@@ -545,3 +545,88 @@
 - `h_obj2_prompt_only_quality_latency_tuning`:
   tester une variante prompt-only issue de la nouvelle registry pour isoler le
   gain de wording sans le cout de `max_history_utterances=1`
+
+## objective2_prompt_only_terminology_guard_annex
+
+### Decision
+
+- ajouter une seule variante live `prompt_only_terminology_guard`
+- geler cette branche en annexe: meilleure latence que la baseline, mais gate
+  `2s` encore rate et `BLEU` en baisse
+
+### Impact runtime
+
+- un seul rechargement `Qwen3-ASR`/`Gemma` a encore ete justifie car
+  `restart_jupyter_kernel.py --list` et `ps` n'ont trouve ni kernel
+  `.venv-inference` ni `VLLM::EngineCore` reutilisable
+- le runtime sait maintenant selectionner une variante prompt-only gardee dans
+  la meme registry que les variantes contexte
+- `outputs/cascade_v1_prompt_only_terminology_guard/` capture le run live
+  distinct sans ecraser `outputs/cascade_v1/`
+
+### Portee de preuve
+
+- preuve locale runtime
+- un seul talk `objective2`
+- un seul delai `prompt_only_latency_quality`
+- un seul rerun live puis evaluation offline
+- aucun claim papier
+
+### Trigger de sortie
+
+- cette iteration sort une fois que la variante prompt-only est reproductible
+  via la registry, qu'un bundle reel distinct est evalue, et que la branche
+  est explicitement gelee si elle ne passe pas sous `2s`
+
+### Hypothesis IDs touched
+
+- `h_obj2_prompt_only_quality_latency_tuning`
+- `h_obj2_prompt_only_terminology_guard_annex`
+
+### Status transitions
+
+- `h_obj2_prompt_only_terminology_guard_annex: new -> frozen_annex`
+
+### Ce qui a ete fait
+
+- factorise les regles de prompt partagees dans
+  `cascade_translation_variants.py`
+- ajoute la variante `prompt_only_terminology_guard` avec
+  `max_history_utterances=0`
+- justifie l'absence de kernel persistant puis lance un seul run live
+  `prompt_only_terminology_guard`
+- evalue offline `outputs/cascade_v1_prompt_only_terminology_guard/`
+
+### Validations lancees
+
+- `python -m py_compile cascade_translation_variants.py qwen3asr_gemma_cascade_core.py qwen3asr_gemma_cascade_notebook.py run_cascade_baseline.py`: PASS
+- `python restart_jupyter_kernel.py --list`: PASS (`No active notebook kernels found.`)
+- `ps -eo pid=,command= | rg 'VLLM::EngineCore|qwen3asr_gemma_cascade.py|run_cascade_baseline.py'`: PASS (`aucun runtime reutilisable`)
+- `.venv-inference/bin/python run_cascade_baseline.py --output-dir outputs/cascade_v1_prompt_only_terminology_guard --translation-variant prompt_only_terminology_guard`: PASS
+- `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv-evaluation/bin/python evaluate_cascade_outputs.py --output-dir outputs/cascade_v1_prompt_only_terminology_guard`: PASS
+
+### Resultats utiles
+
+- par rapport a la baseline canonique, la variante prompt-only baisse
+  `LongYAAL CU` de `420.2378 ms` (`2218.5736` vs `2638.8114`) et ameliore
+  `LongYAAL CA` de `1833.0147 ms` (`-10767.8162` vs `-12600.8309`)
+- `CHRF` monte legerement (`68.5887` vs `68.5453`) mais `BLEU` baisse
+  (`39.8939` vs `40.3126`), donc le wording seul ne conserve pas le gain
+  qualite de `context1_terminology_guard`
+- la branche reste au-dessus du gate de `218.5736 ms`
+  (`2218.5736 ms > 2s`) mais elle rapproche suffisamment la latence pour
+  justifier un replay d'emission offline sur ce nouveau bundle
+
+### Blocages restants
+
+- aucun kernel `.venv-inference` persistant n'est vivant apres le script
+- `Unbabel/XCOMET-XL` manque toujours du cache HF local offline
+- la meilleure branche live qualite reste `context1_terminology_guard`, tandis
+  que la meilleure branche prompt-only live reste encore au-dessus du gate
+
+### Hypothese de la prochaine iteration
+
+- `h_obj2_prompt_only_quality_latency_tuning`:
+  rejouer exactement une politique d'emission conservative sur
+  `outputs/cascade_v1_prompt_only_terminology_guard/` pour tester si le bundle
+  prompt-only peut enfin passer sous `2s` sans nouveau rerun live

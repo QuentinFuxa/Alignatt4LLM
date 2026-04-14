@@ -8,55 +8,55 @@
 - `h_obj1_reproducible_single_audio_eval_loop`
 - `h_obj2_freeze14_emission_annex`
 - `h_obj2_context1_terminology_guard_annex`
+- `h_obj2_prompt_only_terminology_guard_annex`
 
 ## Why This Is Not A Revisit
 
-`h_obj2_prompt_only_quality_latency_tuning` never left `active`. The live
-`context1_terminology_guard` run now lives in
-`h_obj2_context1_terminology_guard_annex`, while the older `freeze14` emission
-replay remains parked in `h_obj2_freeze14_emission_annex`. The next slice
-isolates prompt wording without reopening either frozen branch.
+`h_obj2_prompt_only_quality_latency_tuning` never left `active`. The next slice
+uses the `new_runtime_artifact`
+`outputs/cascade_v1_prompt_only_terminology_guard/` to test one deterministic
+emission replay, while `h_obj2_freeze14_emission_annex`,
+`h_obj2_context1_terminology_guard_annex`, and
+`h_obj2_prompt_only_terminology_guard_annex` stay parked out of focus.
 
 ## Goal
 
-Run exactly one prompt-only wording experiment that tries to keep the quality
-gain found by `context1_terminology_guard` while removing the latency cost of
-`max_history_utterances=1`.
+Replay exactly one conservative emission policy over the new prompt-only live
+bundle to see whether the remaining `218.5736 ms` `LongYAAL CU` gap can be
+closed without losing the small `CHRF` win already achieved over the canonical
+baseline.
 
 ## Scope
 
 - code surface:
-  `cascade_translation_variants.py`, `qwen3asr_gemma_cascade_core.py`,
-  `qwen3asr_gemma_cascade_notebook.py`, `run_cascade_baseline.py`,
-  `outputs/cascade_v1/`, and
-  `outputs/cascade_v1_context1_terminology_guard/` for comparison only
+  `cascade_emission.py`, `reemit_cascade_outputs.py`,
+  `evaluate_cascade_outputs.py`,
+  `outputs/cascade_v1_prompt_only_terminology_guard/`, and one fresh replay
+  output dir
 - required inputs:
   `ralph/ralph_mission/EXISTING.md`, `outputs/cascade_v1/`,
-  `outputs/cascade_v1_context1_terminology_guard/`,
-  `test-set/audio/ccpXHNfaoy.wav`, `.venv-inference`, `.venv-evaluation`
+  `outputs/cascade_v1_emit_freeze14/`,
+  `outputs/cascade_v1_prompt_only_terminology_guard/`, `.venv-evaluation`
 - explicit non-goals:
-  revisiting the `freeze14` emission branch, rerunning
-  `context1_terminology_guard`, model swaps, online `XCOMETXL` downloads, or
-  broad latency-metric refactors
+  another live vLLM rerun, revisiting `context1_terminology_guard`, changing
+  prompt wording again, online `XCOMETXL` downloads, or broad metric refactors
 
 ## Tasks
 
-1. Derive one prompt-only variant from the new translation-variant registry so
-   the wording gains can be tested without previous-utterance reinjection.
-2. If no `.venv-inference` kernel is alive, justify one model reload and run
-   exactly once into a new output dir that does not replace
-   `outputs/cascade_v1/`.
-3. Reevaluate offline and compare the new prompt-only run against the canonical
-   baseline (`BLEU=40.3126`, `CHRF=68.5453`, `LongYAAL CU=2638.8114`) and the
-   frozen `context1_terminology_guard` annex
-   (`BLEU=40.6694`, `CHRF=69.8671`, `LongYAAL CU=2339.1869`).
+1. Replay exactly one deterministic emission policy from
+   `outputs/cascade_v1_prompt_only_terminology_guard/` into a fresh output dir,
+   using the existing replay path rather than another live run.
+2. Evaluate the replay offline and compare it against the raw prompt-only
+   bundle, the canonical baseline, and the old baseline `freeze14` annex.
+3. Promote only if the replay clears `LongYAAL CU < 2s` while keeping the
+   prompt-only final translation quality profile intact; otherwise record one
+   more bounded negative result.
 
 ## Done When
 
-- one committed prompt-only live run either beats the baseline on quality and
-  clears the latency gate, or records a bounded negative result distinct from
-  the `context1_terminology_guard` annex
-- `outputs/cascade_v1/` stays the canonical baseline unless the new live
-  experiment earns promotion
-- `h_obj2_freeze14_emission_annex` and
-  `h_obj2_context1_terminology_guard_annex` remain out of focus
+- one committed replay result shows whether
+  `prompt_only_terminology_guard + conservative emission` can satisfy the
+  active success gate
+- no additional ASR/Gemma reload occurs in the iteration
+- frozen annexes remain out of focus unless a later plan explicitly reopens one
+  via `new_runtime_artifact`
