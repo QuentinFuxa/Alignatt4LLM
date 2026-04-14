@@ -4,6 +4,9 @@
 This script is intentionally idempotent so it can be run during Docker builds,
 bootstrap scripts, and local env setup without caring whether the patch has
 already been applied.
+
+
+The environement that should be patched is .venv-inference.
 """
 
 from __future__ import annotations

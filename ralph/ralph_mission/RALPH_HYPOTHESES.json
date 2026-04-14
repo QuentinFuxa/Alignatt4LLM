@@ -1,0 +1,189 @@
+{
+  "version": "ralph_hypotheses.v1",
+  "global_goal": [
+    "Finalize a reproducible En->DE single-audio cascade workflow with persistent kernel reuse and evaluation artifacts under outputs/cascade_v1.",
+    "Keep prompt-only quality and latency tuning explicitly gated behind a clean Objectif 1 baseline and a clean repo state.",
+    "Track which runtime branch is active, frozen, or superseded so Ralph iterations stay bounded and auditable."
+  ],
+  "global_status": "active",
+  "active_focus_ids": [
+    "h_obj1_reproducible_single_audio_eval_loop"
+  ],
+  "reopen_policy": {
+    "default_rules": [
+      "new_talk",
+      "new_delay",
+      "new_runtime_artifact",
+      "human_override"
+    ],
+    "note": "Frozen, falsified, and superseded branches must not become active again unless the plan names an allowed reopen condition explicitly."
+  },
+  "hypotheses": [
+    {
+      "id": "h_bootstrap_first_bounded_slice",
+      "family": "mission_bootstrap",
+      "title": "Bootstrap the first bounded mission slice",
+      "question": "What is the first concrete and verifiable slice that should be executed for this mission?",
+      "kind": "runtime_candidate",
+      "status": "superseded",
+      "priority": "annex",
+      "scope": {
+        "talks": [
+          "bootstrap"
+        ],
+        "delays": [
+          "bootstrap"
+        ],
+        "slice": "Replace the placeholders with the first real bounded slice for the mission.",
+        "artifacts": [
+          "ralph_mission/EXISTING.md",
+          "ralph_mission/PLAN.md",
+          "ralph_mission/RALPH_AGENT.md"
+        ]
+      },
+      "success_signal": "The bootstrap placeholders are replaced with one real bounded mission slice and the loop can execute or refine it immediately.",
+      "failure_signal": "The mission stays in placeholder mode and the loop drifts into broad exploration without a concrete next step.",
+      "reopen_only_if": [
+        "new_talk",
+        "new_delay",
+        "new_runtime_artifact",
+        "human_override"
+      ],
+      "budget": {
+        "max_local_iterations": 2,
+        "used": 1
+      },
+      "last_touched_commit": "workspace",
+      "last_touched_iteration": "mission_objectives_bootstrap",
+      "evidence": [
+        {
+          "kind": "bootstrap",
+          "ref": "ralph_mission/PLAN.md",
+          "summary": "Initial blank mission scaffold. Replace this with the actual first bounded mission slice before the first real run."
+        }
+      ]
+    },
+    {
+      "id": "h_obj1_reproducible_single_audio_eval_loop",
+      "family": "objective_1_runtime_foundation",
+      "title": "Lock a reproducible single-audio cascade and evaluation loop",
+      "question": "Can the repo provide one stable workflow that reuses the persistent .venv-inference kernel to run ccpXHNfaoy.wav through the full-vLLM En->DE cascade and write outputs plus OmniSTEval metrics to outputs/cascade_v1/?",
+      "kind": "runtime_candidate",
+      "status": "active",
+      "priority": "primary",
+      "scope": {
+        "talks": [
+          "objective1"
+        ],
+        "delays": [
+          "single_audio_baseline"
+        ],
+        "slice": "Define and execute the minimal reproducible baseline that writes inference outputs and evaluation metrics for ccpXHNfaoy.wav under outputs/cascade_v1/ without unnecessary model reloads.",
+        "artifacts": [
+          "qwen3asr_gemma_cascade_core.py",
+          "qwen3asr_gemma_cascade_notebook.py",
+          "pyproject.toml",
+          "setup_inference_qwen_asr_vllm.sh",
+          "test-set/audio/ccpXHNfaoy.wav",
+          "outputs/cascade_v1/"
+        ]
+      },
+      "success_signal": "outputs/cascade_v1/ contains the baseline inference artifacts plus BLEU, CHRF, XCOMETXL, LongYAAL CU, and LongYAAL CA produced through the split inference/evaluation environments without unnecessary kernel reloads.",
+      "failure_signal": "The baseline still depends on ad hoc manual steps, does not persist the required artifacts, or forces kernel/model reloads that break the fast-iteration contract.",
+      "reopen_only_if": [
+        "new_talk",
+        "new_delay",
+        "new_runtime_artifact",
+        "human_override"
+      ],
+      "budget": {
+        "max_local_iterations": 4,
+        "used": 0
+      },
+      "last_touched_commit": "workspace",
+      "last_touched_iteration": "mission_objectives_bootstrap",
+      "evidence": [
+        {
+          "kind": "human_goal",
+          "ref": "ralph_mission/EXISTING.md",
+          "summary": "The mission now explicitly requires a reproducible En->DE single-audio baseline with inference artifacts, OmniSTEval metrics, persistent kernel reuse, and a local commit."
+        },
+        {
+          "kind": "repo_inspection",
+          "ref": "qwen3asr_gemma_cascade_core.py",
+          "summary": "The current cascade code loads the full-vLLM stack and prints streaming output, but it does not yet establish the required outputs/cascade_v1/ artifact contract."
+        }
+      ]
+    },
+    {
+      "id": "h_obj2_prompt_only_quality_latency_tuning",
+      "family": "objective_2_prompt_only_optimization",
+      "title": "Tune prompt-only cascade variants under LongYAAL CU below 2 seconds",
+      "question": "After Objectif 1 is clean and the repo is clean, can prompt-only and lightweight context variants improve BLEU, CHRF, and XCOMETXL while keeping LongYAAL CU below 2 seconds on ccpXHNfaoy.wav?",
+      "kind": "runtime_candidate",
+      "status": "frozen_annex",
+      "priority": "secondary",
+      "scope": {
+        "talks": [
+          "objective2"
+        ],
+        "delays": [
+          "prompt_only_latency_quality"
+        ],
+        "slice": "Explore only prompt changes, previous-sentence reinjection, and conservative tail trimming after a clean baseline exists; commit every experiment separately.",
+        "artifacts": [
+          "qwen3asr_gemma_cascade_core.py",
+          "qwen3asr_gemma_cascade_notebook.py",
+          "outputs/cascade_v1/"
+        ]
+      },
+      "success_signal": "At least one committed experiment improves BLEU, CHRF, or XCOMETXL over the clean baseline while keeping LongYAAL CU below 2 seconds on the target audio.",
+      "failure_signal": "Iterations start before the clean baseline exists, the repo is not clean, or the branch drifts into custom models, training, or non-prompt-only changes.",
+      "reopen_only_if": [
+        "new_runtime_artifact",
+        "human_override"
+      ],
+      "budget": {
+        "max_local_iterations": 6,
+        "used": 0
+      },
+      "last_touched_commit": "workspace",
+      "last_touched_iteration": "mission_objectives_bootstrap",
+      "evidence": [
+        {
+          "kind": "human_goal",
+          "ref": "ralph_mission/EXISTING.md",
+          "summary": "The follow-up objective explicitly allows only prompting, previous-context reinjection, and conservative trimming variants, with a commit for each experiment and a LongYAAL CU target below 2 seconds."
+        }
+      ]
+    }
+  ],
+  "iteration_ledger": [
+    {
+      "iteration": "bootstrap",
+      "commit": "bootstrap",
+      "hypothesis_ids_touched": [
+        "h_bootstrap_first_bounded_slice"
+      ],
+      "status_transitions": [
+        "h_bootstrap_first_bounded_slice: new -> active"
+      ],
+      "bounded_outcome": "Initialized a blank Ralph mission scaffold with one active bootstrap hypothesis."
+    },
+    {
+      "iteration": "mission_objectives_bootstrap",
+      "commit": "workspace",
+      "hypothesis_ids_touched": [
+        "h_bootstrap_first_bounded_slice",
+        "h_obj1_reproducible_single_audio_eval_loop",
+        "h_obj2_prompt_only_quality_latency_tuning"
+      ],
+      "status_transitions": [
+        "h_bootstrap_first_bounded_slice: active -> superseded",
+        "h_obj1_reproducible_single_audio_eval_loop: new -> active",
+        "h_obj2_prompt_only_quality_latency_tuning: new -> frozen_annex"
+      ],
+      "bounded_outcome": "Replaced the blank mission bootstrap with a concrete Objective 1 baseline branch and a frozen Objective 2 prompt-only tuning branch."
+    }
+  ]
+}

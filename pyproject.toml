@@ -8,7 +8,7 @@ dependencies = []
 inference = [
   "torch==2.10.0",
   "mistral-common==1.11.0",
-  "accelerate==1.13.0",
+  "accelerate==1.12.0",
   "simulstream",
   "simuleval",
   "pymupdf-layout",
@@ -17,8 +17,8 @@ inference = [
   "nvitop",
   "pycryptodome",
   "mweralign",
-  "cloudpickle"
-  "qwen_asr[vllm]"
+  "cloudpickle",
+  "qwen_asr"
 ]
 evaluation = [
   "torch==2.10.0",
@@ -53,15 +53,8 @@ name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
-# uv venv .venv-inference --python 3.13
-# UV_PROJECT_ENVIRONMENT=.venv-inference uv sync --group inference
-# uv venv .venv-inference --python 3.13
-# source .venv-inference/bin/activate
-# UV_PROJECT_ENVIRONMENT=.venv-inference uv pip install -U vllm --pre \
-#   --extra-index-url https://wheels.vllm.ai/nightly/cu129 \
-#   --extra-index-url https://download.pytorch.org/whl/cu129 \
-#   --index-strategy unsafe-best-match
-# UV_PROJECT_ENVIRONMENT=.venv-inference uv pip install transformers==5.5.0
+# ./setup_inference_qwen_asr_vllm.sh
+# ./setup_inference_qwen_asr_vllm.sh /custom/path/to/.venv-inference
 
 # uv venv .venv-evaluation --python 3.13
 # UV_PROJECT_ENVIRONMENT=.venv-evaluation uv sync --group evaluation
