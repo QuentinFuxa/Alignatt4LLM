@@ -84,26 +84,25 @@ de stack deja contournes dans le repo.
 
 ## Known Blockers
 
-- blocker: aucun bundle reel `outputs/cascade_v1/` n'a encore ete produit a
-  partir de `test-set/audio/ccpXHNfaoy.wav`; le contrat existe mais pas encore
-  la preuve runtime finale
-- blocker: aucun kernel Jupyter `.venv-inference` n'etait en cours
-  d'execution lors de l'inspection; si la prochaine iteration doit relancer les
-  modeles, elle doit le justifier explicitement
-- blocker: `Unbabel/XCOMET-XL` n'est pas present dans le cache HF local au
-  moment de l'inspection; le score `XCOMETXL` reste donc a valider en runtime
-- blocker: le repo est actuellement dirty, donc l'Objectif 2 doit rester gate
-  derriere une baseline propre et un worktree clean
+- blocker: `Unbabel/XCOMET-XL` n'est toujours pas present dans le cache HF
+  local offline; `XCOMETXL` reste donc un blocage externe explicite meme si
+  `BLEU`, `CHRF`, `LongYAAL CU`, et `LongYAAL CA` sont maintenant persistes
+- blocker: la baseline runtime corrigee existe maintenant, mais `LongYAAL CU`
+  reste a `2638.8114 ms`, donc l'Objectif 2 doit encore reduire la latence
+  sous `2s` sans casser `BLEU=40.3126` et `CHRF=68.5453`
+- blocker: aucun kernel Jupyter `.venv-inference` persistant n'etait vivant au
+  moment de la relance; toute nouvelle rerun devra encore justifier un
+  rechargement unique des modeles
 - blocker: la reutilisation du kernel persistant est une contrainte forte; tout
   workflow qui redemarre silencieusement le kernel compte comme regression
 
 ## First Bounded Slice Candidates
 
-- candidate: reutiliser un kernel `.venv-inference` vivant, ou justifier le
-  chargement unique, puis produire le premier bundle reel
-  `outputs/cascade_v1/` pour `ccpXHNfaoy.wav`
-- candidate: executer `evaluate_cascade_outputs.py` dans `.venv-evaluation`
-  sur ce bundle reel, et distinguer explicitement une vraie absence de score
-  `XCOMETXL` d'un simple smoke test offline
-- candidate: une fois l'Objectif 1 reproductible et committe, de-geler
-  l'Objectif 2 pour des experiences prompt-only avec un commit par variante
+- candidate: utiliser le bundle reel corrige `outputs/cascade_v1/` comme
+  baseline verrouillee et ouvrir enfin l'Objectif 2 sur une seule variante
+  prompt-only ou contexte-1-phrase
+- candidate: mesurer si une coupe prudente sur la fin de prediction ou une
+  reinjection minimale du contexte precedent peut faire passer `LongYAAL CU`
+  sous `2s` sans casser materiallement `BLEU`/`CHRF`
+- candidate: garder `XCOMETXL` hors focus tant que le modele n'est pas cache
+  localement, mais conserver son blocage structure dans les artefacts

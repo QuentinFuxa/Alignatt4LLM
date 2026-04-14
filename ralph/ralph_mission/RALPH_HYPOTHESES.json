@@ -7,7 +7,7 @@
   ],
   "global_status": "active",
   "active_focus_ids": [
-    "h_obj1_reproducible_single_audio_eval_loop"
+    "h_obj2_prompt_only_quality_latency_tuning"
   ],
   "reopen_policy": {
     "default_rules": [
@@ -69,7 +69,7 @@
       "title": "Lock a reproducible single-audio cascade and evaluation loop",
       "question": "Can the repo provide one stable workflow that reuses the persistent .venv-inference kernel to run ccpXHNfaoy.wav through the full-vLLM En->DE cascade and write outputs plus OmniSTEval metrics to outputs/cascade_v1/?",
       "kind": "runtime_candidate",
-      "status": "active",
+      "status": "blocked_external",
       "priority": "primary",
       "scope": {
         "talks": [
@@ -101,10 +101,10 @@
       ],
       "budget": {
         "max_local_iterations": 4,
-        "used": 2
+        "used": 3
       },
       "last_touched_commit": "workspace",
-      "last_touched_iteration": "objective1_real_bundle_blockers",
+      "last_touched_iteration": "objective1_incremental_translation_unlock_objective2",
       "evidence": [
         {
           "kind": "human_goal",
@@ -150,6 +150,21 @@
           "kind": "runtime_artifact",
           "ref": "outputs/cascade_v1/translation.de.txt",
           "summary": "The persisted final German translation contains only a short 62-word prefix while the ASR transcript is complete, exposing the next Objective 1 runtime bug to fix."
+        },
+        {
+          "kind": "repo_change",
+          "ref": "qwen3asr_gemma_cascade_core.py",
+          "summary": "The cascade now translates punctuation-stable utterances incrementally with per-segment Gemma token budgets, avoiding the previous full-transcript truncation under Gemma's 1024-token context limit."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1/translation.de.txt",
+          "summary": "The refreshed baseline now persists a materially complete 709-word final German translation for ccpXHNfaoy.wav instead of the earlier 62-word prefix."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1/evaluation.json",
+          "summary": "The corrected baseline reevaluation now reports BLEU=40.3126, CHRF=68.5453, LongYAAL CU=2638.8114, LongYAAL CA=-12600.8309, while XCOMETXL remains explicitly blocked offline because Unbabel/XCOMET-XL is not cached locally."
         }
       ]
     },
@@ -159,8 +174,8 @@
       "title": "Tune prompt-only cascade variants under LongYAAL CU below 2 seconds",
       "question": "After Objectif 1 is clean and the repo is clean, can prompt-only and lightweight context variants improve BLEU, CHRF, and XCOMETXL while keeping LongYAAL CU below 2 seconds on ccpXHNfaoy.wav?",
       "kind": "runtime_candidate",
-      "status": "frozen_annex",
-      "priority": "secondary",
+      "status": "active",
+      "priority": "primary",
       "scope": {
         "talks": [
           "objective2"
@@ -186,12 +201,17 @@
         "used": 0
       },
       "last_touched_commit": "workspace",
-      "last_touched_iteration": "mission_objectives_bootstrap",
+      "last_touched_iteration": "objective1_incremental_translation_unlock_objective2",
       "evidence": [
         {
           "kind": "human_goal",
           "ref": "ralph_mission/EXISTING.md",
           "summary": "The follow-up objective explicitly allows only prompting, previous-context reinjection, and conservative trimming variants, with a commit for each experiment and a LongYAAL CU target below 2 seconds."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1/evaluation.json",
+          "summary": "A corrected Objective 1 baseline now exists with BLEU=40.3126, CHRF=68.5453, LongYAAL CU=2638.8114, and an explicit offline XCOMETXL blocker, so prompt-only latency tuning is now the next bounded branch."
         }
       ]
     }
@@ -240,6 +260,19 @@
       ],
       "status_transitions": [],
       "bounded_outcome": "Produced the first real outputs/cascade_v1 bundle and offline evaluation for ccpXHNfaoy.wav, hardened evaluation against XCOMET failures, and exposed that the persisted final translation is still only a short prefix."
+    },
+    {
+      "iteration": "objective1_incremental_translation_unlock_objective2",
+      "commit": "workspace",
+      "hypothesis_ids_touched": [
+        "h_obj1_reproducible_single_audio_eval_loop",
+        "h_obj2_prompt_only_quality_latency_tuning"
+      ],
+      "status_transitions": [
+        "h_obj1_reproducible_single_audio_eval_loop: active -> blocked_external",
+        "h_obj2_prompt_only_quality_latency_tuning: frozen_annex -> active"
+      ],
+      "bounded_outcome": "Replaced full-transcript Gemma truncation with utterance-incremental translation, reran the real baseline to a full final translation plus refreshed offline metrics, and reopened Objective 2 because the corrected runtime artifact now exists."
     }
   ]
 }

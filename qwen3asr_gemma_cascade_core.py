@@ -139,6 +139,7 @@ class CascadeState:
     source: np.ndarray = field(default_factory=lambda: np.zeros(0, dtype=np.float32))
     utt_timestamps: List[int] = field(default_factory=lambda: [0])
     utt_sources: List[str] = field(default_factory=lambda: [""])
+    utt_translations: List[str] = field(default_factory=lambda: [""])
     asr_hypotheses: List[str] = field(default_factory=lambda: [""])
 
 
@@ -152,7 +153,12 @@ config = SimpleNamespace(
     latency_unit="word",
     min_start_seconds=5.0,
     max_history_utterances=0,
-    max_new_tokens=100,
+    translation_mode="utterance_incremental",
+    max_new_tokens=160,
+    translation_min_new_tokens=32,
+    translation_token_budget_ratio=3.0,
+    translation_token_budget_buffer=24,
+    translation_generation_margin=8,
     temperature=0.0,
     repetition_penalty=1.05,
     asr_gpu_memory_utilization=0.2,
@@ -256,7 +262,77 @@ def transcribe_audio():
     return state.asr_hypotheses[-1].strip()
 
 
-def translate_with_gemma(text: str) -> str:
+def translation_history_window(items: List[str], end_exclusive: int) -> List[str]:
+    if config.max_history_utterances <= 0:
+        return []
+
+    start = max(1, end_exclusive - config.max_history_utterances)
+    return [item.strip() for item in items[start:end_exclusive] if item.strip()]
+
+
+def build_translation_prompt(
+    text: str,
+    *,
+    source_history: List[str],
+    translation_history: List[str],
+    is_partial: bool,
+) -> str:
+    prompt_sections = [
+        (
+            f"You are a professional translator from {config.source_lang} to {config.target_lang}. "
+            "The input comes from streaming ASR and may contain recognition noise. "
+            "Use any provided context only to keep terminology consistent. "
+            "Return only the translation of the current source segment."
+        )
+    ]
+    if is_partial:
+        prompt_sections.append(
+            "The current source segment may be incomplete, so translate only what is already clear."
+        )
+    else:
+        prompt_sections.append("The current source segment is punctuation-stable.")
+
+    if source_history:
+        prompt_sections.append("Previous source context:\n" + "\n".join(source_history))
+    if translation_history:
+        prompt_sections.append("Previous translated context:\n" + "\n".join(translation_history))
+
+    segment_label = "Current source segment (possibly incomplete):" if is_partial else "Current source segment:"
+    prompt_sections.append(f"{segment_label}\n{text}")
+    return "\n\n".join(prompt_sections)
+
+
+def build_translation_request(prompt: str, source_text: str) -> tuple[str, int]:
+    messages = [{"role": "user", "content": prompt}]
+    final_prompt = gemma_tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+
+    prompt_tokens = len(gemma_tokenizer(final_prompt, add_special_tokens=False)["input_ids"])
+    source_tokens = len(gemma_tokenizer(source_text, add_special_tokens=False)["input_ids"])
+    desired_max_tokens = max(
+        config.translation_min_new_tokens,
+        int(source_tokens * config.translation_token_budget_ratio) + config.translation_token_budget_buffer,
+    )
+    available_max_tokens = config.gemma_max_model_len - prompt_tokens - config.translation_generation_margin
+    if available_max_tokens < 1:
+        raise RuntimeError(
+            f"Gemma prompt exhausted the context window: prompt_tokens={prompt_tokens} "
+            f"gemma_max_model_len={config.gemma_max_model_len}"
+        )
+
+    return final_prompt, min(config.max_new_tokens, desired_max_tokens, available_max_tokens)
+
+
+def translate_with_gemma(
+    text: str,
+    *,
+    source_history: List[str] | None = None,
+    translation_history: List[str] | None = None,
+    is_partial: bool = False,
+) -> str:
     if gemma_tokenizer is None or gemma_llm is None:
         raise RuntimeError("Models are not loaded. Run load_models() first.")
 
@@ -264,27 +340,57 @@ def translate_with_gemma(text: str) -> str:
     if not text:
         return ""
 
-    prompt = (
-        f"You are a professional translator from {config.source_lang} to {config.target_lang}. "
-        "The input may be incomplete because it comes from streaming ASR. "
-        "Translate only what is clear. Return only the translation.\n\n"
-        f"Source:\n{text}"
+    prompt = build_translation_prompt(
+        text,
+        source_history=source_history or [],
+        translation_history=translation_history or [],
+        is_partial=is_partial,
     )
-    messages = [{"role": "user", "content": prompt}]
-    final_prompt = gemma_tokenizer.apply_chat_template(
-        messages,
-        tokenize=False,
-        add_generation_prompt=True,
-    )
+    final_prompt, max_tokens = build_translation_request(prompt, text)
     outputs = gemma_llm.generate(
         final_prompt,
         SamplingParams(
             temperature=config.temperature,
-            max_tokens=config.max_new_tokens,
+            max_tokens=max_tokens,
             repetition_penalty=config.repetition_penalty,
         ),
     )
     return outputs[0].outputs[0].text.strip()
+
+
+def sync_committed_translations() -> None:
+    while len(state.utt_translations) < len(state.utt_sources):
+        segment_idx = len(state.utt_translations)
+        segment_source = state.utt_sources[segment_idx].strip()
+        state.utt_translations.append(
+            translate_with_gemma(
+                segment_source,
+                source_history=translation_history_window(state.utt_sources, segment_idx),
+                translation_history=translation_history_window(state.utt_translations, segment_idx),
+                is_partial=False,
+            )
+        )
+
+
+def render_translation_from_state() -> str:
+    sync_committed_translations()
+
+    translation_segments = [segment for segment in state.utt_translations[1:] if segment.strip()]
+    partial_source = state.asr_hypotheses[-1].strip()
+    if partial_source:
+        translation_segments.append(
+            translate_with_gemma(
+                partial_source,
+                source_history=translation_history_window(state.utt_sources, len(state.utt_sources)),
+                translation_history=translation_history_window(
+                    state.utt_translations,
+                    len(state.utt_translations),
+                ),
+                is_partial=True,
+            )
+        )
+
+    return " ".join(segment.strip() for segment in translation_segments if segment.strip()).strip()
 
 
 def load_wav(path: str) -> np.ndarray:
@@ -319,6 +425,7 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
     chunk_size = int(SAMPLE_RATE * chunk_ms / 1000)
     last_asr = ""
     last_translation = ""
+    last_committed_segments = len(state.utt_sources)
     word_delays_ms: List[float] = []
     word_elapsed_ms: List[float] = []
     updates: List[StreamUpdate] = []
@@ -332,11 +439,15 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
             continue
 
         current_asr = transcribe_audio()
-        if not current_asr or current_asr == last_asr:
+        committed_segments = len(state.utt_sources)
+        if not current_asr:
+            continue
+        if current_asr == last_asr and committed_segments == last_committed_segments:
             continue
 
         last_asr = current_asr
-        translation = translate_with_gemma(current_asr)
+        last_committed_segments = committed_segments
+        translation = render_translation_from_state()
         audio_processed_ms = len(state.source) * 1000.0 / SAMPLE_RATE
         wallclock_elapsed_ms = (perf_counter() - start_time) * 1000.0
         new_words = register_translation_words(
@@ -363,7 +474,7 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
         last_translation = translation
 
     final_asr = transcribe_audio() or last_asr
-    final_translation = translate_with_gemma(final_asr)
+    final_translation = render_translation_from_state()
     audio_duration_ms = len(audio) * 1000.0 / SAMPLE_RATE
     final_elapsed_ms = (perf_counter() - start_time) * 1000.0
     final_new_words = register_translation_words(
@@ -404,9 +515,14 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
         translation_word_elapsed_ms=word_elapsed_ms,
         updates=updates,
         runtime_config={
+            "translation_mode": config.translation_mode,
             "min_start_seconds": config.min_start_seconds,
             "max_history_utterances": config.max_history_utterances,
             "max_new_tokens": config.max_new_tokens,
+            "translation_min_new_tokens": config.translation_min_new_tokens,
+            "translation_token_budget_ratio": config.translation_token_budget_ratio,
+            "translation_token_budget_buffer": config.translation_token_budget_buffer,
+            "translation_generation_margin": config.translation_generation_margin,
             "temperature": config.temperature,
             "repetition_penalty": config.repetition_penalty,
             "asr_gpu_memory_utilization": config.asr_gpu_memory_utilization,

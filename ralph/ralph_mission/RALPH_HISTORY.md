@@ -284,3 +284,89 @@
 - `h_obj1_reproducible_single_audio_eval_loop`:
   expliquer puis corriger la traduction finale prefix-only, rerun une seule
   fois la baseline reelle, puis reevaluer offline avec le meme contrat
+
+## objective1_incremental_translation_unlock_objective2
+
+### Decision
+
+- remplacer la retraduction Gemma du transcript complet par une traduction
+  incrementale par utterance ponctuee
+- rerun une seule baseline reelle car aucun kernel `.venv-inference` ni
+  `VLLM::EngineCore` reutilisable n'etait vivant
+- geler l'Objectif 1 en `blocked_external` sur `XCOMETXL` et ouvrir l'Objectif
+  2 car la baseline corrigee existe enfin
+
+### Impact runtime
+
+- `outputs/cascade_v1/translation.de.txt` n'est plus un prefixe court: la
+  traduction finale persistee fait maintenant `709` mots
+- `outputs/cascade_v1/manifest.json` declare maintenant un mode
+  `translation_mode=utterance_incremental` avec budget tokens par segment
+- `outputs/cascade_v1/evaluation.json` contient des scores reels rafraichis:
+  `BLEU=40.3126`, `CHRF=68.5453`, `LongYAAL CU=2638.8114`,
+  `LongYAAL CA=-12600.8309`, `XCOMETXL=NA`
+
+### Portee de preuve
+
+- preuve locale runtime
+- un seul talk `objective1`
+- un seul delai `single_audio_baseline`
+- evaluation offline seulement pour `XCOMETXL`
+- aucun claim papier
+
+### Trigger de sortie
+
+- cette iteration sort une fois que le bundle reel corrige remplace le prefixe
+  62 mots, que l'evaluation offline est rerafraichie, et que le prochain focus
+  Ralph peut passer a une variante prompt-only bornee
+
+### Hypothesis IDs touched
+
+- `h_obj1_reproducible_single_audio_eval_loop`
+- `h_obj2_prompt_only_quality_latency_tuning`
+
+### Status transitions
+
+- `h_obj1_reproducible_single_audio_eval_loop: active -> blocked_external`
+- `h_obj2_prompt_only_quality_latency_tuning: frozen_annex -> active`
+
+### Ce qui a ete fait
+
+- ajoute un chemin de traduction Gemma incremental par utterance stabilisee
+  avec budget `max_new_tokens` calcule par segment au lieu de retranscrire tout
+  le transcript courant
+- conserve `Qwen3-ASR` + `Gemma` sur `vLLM` et les reglages GPU stables
+  (`0.2`, `0.44`, `1024`, `enforce_eager=True`)
+- justifie un seul rechargement modele car la GPU etait propre et aucun kernel
+  `.venv-inference` persistant n'etait vivant
+- rerun la baseline reelle puis relance l'evaluation offline sur le meme
+  contrat `outputs/cascade_v1/`
+
+### Validations lancees
+
+- `python -m py_compile qwen3asr_gemma_cascade_core.py run_cascade_baseline.py cascade_artifacts.py evaluate_cascade_outputs.py`: PASS
+- `.venv-inference/bin/python run_cascade_baseline.py`: PASS
+- `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv-evaluation/bin/python evaluate_cascade_outputs.py --output-dir outputs/cascade_v1`: PASS
+
+### Resultats utiles
+
+- la traduction finale est maintenant materiellement complete (`709` mots) et
+  les compteurs `delays`/`elapsed` couvrent toute la prediction persistee
+- la baseline corrigee remonte fortement `BLEU` et `CHRF` par rapport au bundle
+  prefix-only precedent
+- `LongYAAL CU` reste au-dessus de la cible Objectif 2 (`2638.8114 ms > 2s`)
+- `XCOMETXL` reste explicitement bloque offline par
+  `comet_model_not_cached_locally`
+
+### Blocages restants
+
+- `Unbabel/XCOMET-XL` manque toujours du cache HF local offline
+- la latence reste trop haute pour l'Objectif 2 (`LongYAAL CU=2638.8114 ms`)
+- la baseline script se termine en dechargeant la GPU; toute rerun suivante
+  doit encore rester unique et justifiee
+
+### Hypothese de la prochaine iteration
+
+- `h_obj2_prompt_only_quality_latency_tuning`:
+  tester une seule variante prompt-only ou contexte minimal pour faire passer
+  `LongYAAL CU` sous `2s` sans casser materiallement la baseline corrigee
