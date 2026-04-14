@@ -370,3 +370,91 @@
 - `h_obj2_prompt_only_quality_latency_tuning`:
   tester une seule variante prompt-only ou contexte minimal pour faire passer
   `LongYAAL CU` sous `2s` sans casser materiallement la baseline corrigee
+
+## objective2_emission_freeze14_annex
+
+### Decision
+
+- separer proprement la timeline de calcul brut et la timeline d'emission
+- tester offline une seule branche de coupe conservative:
+  `freeze_major_tail_rewrites` avec fenetre `14`
+- garder cette branche en annexe et restaurer `outputs/cascade_v1/` comme
+  baseline canonique
+
+### Impact runtime
+
+- aucun rechargement `Qwen3-ASR`/`Gemma`: la preuve vient d'un replay offline
+  du stream brut deja capture
+- `outputs/cascade_v1/` reste la baseline raw-passthrough
+  (`BLEU=40.3126`, `CHRF=68.5453`, `LongYAAL CU=2638.8114`)
+- `outputs/cascade_v1_emit_freeze14/` capture l'annexe `freeze14`
+  (`BLEU=40.3126`, `CHRF=68.5453`, `LongYAAL CU=1940.9677`)
+- la politique gelante n'est pas active par defaut dans le runtime live
+
+### Portee de preuve
+
+- preuve locale runtime
+- un seul talk `objective2`
+- un seul delai `prompt_only_latency_quality`
+- replay offline seulement sur le bundle reel verrouille
+- aucun claim papier
+
+### Trigger de sortie
+
+- cette iteration sort une fois que la baseline canonique est restauree,
+  qu'une annexe `freeze14` distincte existe, et que la branche reste
+  explicitement hors focus pour la suite
+
+### Hypothesis IDs touched
+
+- `h_obj2_prompt_only_quality_latency_tuning`
+- `h_obj2_freeze14_emission_annex`
+
+### Status transitions
+
+- `h_obj2_freeze14_emission_annex: new -> frozen_annex`
+
+### Ce qui a ete fait
+
+- ajoute `cascade_emission.py` pour separer traduction brute, politique
+  d'emission, `delays`, et `elapsed`
+- ajoute `reemit_cascade_outputs.py` pour rejouer offline un bundle capture
+  sans relancer `vLLM`
+- etend `stream_updates.jsonl` avec `raw_translation_text` et
+  `emission_policy_action`
+- produit une annexe `outputs/cascade_v1_emit_freeze14/`, puis restaure
+  `outputs/cascade_v1/` en raw-passthrough
+
+### Validations lancees
+
+- `python -m py_compile cascade_artifacts.py cascade_emission.py reemit_cascade_outputs.py qwen3asr_gemma_cascade_core.py qwen3asr_gemma_cascade_notebook.py run_cascade_baseline.py evaluate_cascade_outputs.py`: PASS
+- `python reemit_cascade_outputs.py --input-dir outputs/cascade_v1 --output-dir outputs/cascade_v1_emit_freeze14 --emit-policy freeze_major_tail_rewrites --max-tail-rewrite-words 14`: PASS
+- `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv-evaluation/bin/python evaluate_cascade_outputs.py --output-dir outputs/cascade_v1_emit_freeze14`: PASS
+- `python reemit_cascade_outputs.py --input-dir outputs/cascade_v1 --output-dir outputs/cascade_v1 --emit-policy raw_passthrough --max-tail-rewrite-words 14`: PASS
+- `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv-evaluation/bin/python evaluate_cascade_outputs.py --output-dir outputs/cascade_v1`: PASS
+
+### Resultats utiles
+
+- `freeze14` passe `LongYAAL CU` sous `2s` sur le bundle reel
+  (`1940.9677 ms`)
+- `BLEU`, `CHRF`, `XCOMETXL=NA`, et `LongYAAL CA` restent inchanges dans
+  l'annexe
+- `319/357` updates sont gelees par la politique, ce qui confirme une coupe
+  trop agressive pour en faire la voie par defaut
+- les autres metriques CU (`LongAL`, `LongLAAL`, `LongDAL`) restent
+  pathologiques dans l'annexe, donc le gain n'est pas promu comme vraie
+  amelioration runtime
+
+### Blocages restants
+
+- aucun kernel `.venv-inference` persistant n'est vivant pour une vraie
+  variante prompt/context
+- `Unbabel/XCOMET-XL` manque toujours du cache HF local offline
+- aucune variante prompt/context n'a encore ameliore la qualite au-dessus de
+  la baseline corrigee
+
+### Hypothese de la prochaine iteration
+
+- `h_obj2_prompt_only_quality_latency_tuning`:
+  tester une seule vraie variante prompt/context sur la baseline restauree, en
+  gardant `h_obj2_freeze14_emission_annex` hors focus

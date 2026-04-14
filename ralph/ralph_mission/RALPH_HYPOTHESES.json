@@ -185,9 +185,12 @@
         ],
         "slice": "Explore only prompt changes, previous-sentence reinjection, and conservative tail trimming after a clean baseline exists; commit every experiment separately.",
         "artifacts": [
+          "cascade_emission.py",
+          "reemit_cascade_outputs.py",
           "qwen3asr_gemma_cascade_core.py",
           "qwen3asr_gemma_cascade_notebook.py",
-          "outputs/cascade_v1/"
+          "outputs/cascade_v1/",
+          "outputs/cascade_v1_emit_freeze14/"
         ]
       },
       "success_signal": "At least one committed experiment improves BLEU, CHRF, or XCOMETXL over the clean baseline while keeping LongYAAL CU below 2 seconds on the target audio.",
@@ -198,10 +201,10 @@
       ],
       "budget": {
         "max_local_iterations": 6,
-        "used": 0
+        "used": 1
       },
       "last_touched_commit": "workspace",
-      "last_touched_iteration": "objective1_incremental_translation_unlock_objective2",
+      "last_touched_iteration": "objective2_emission_freeze14_annex",
       "evidence": [
         {
           "kind": "human_goal",
@@ -212,6 +215,64 @@
           "kind": "runtime_artifact",
           "ref": "outputs/cascade_v1/evaluation.json",
           "summary": "A corrected Objective 1 baseline now exists with BLEU=40.3126, CHRF=68.5453, LongYAAL CU=2638.8114, and an explicit offline XCOMETXL blocker, so prompt-only latency tuning is now the next bounded branch."
+        },
+        {
+          "kind": "repo_change",
+          "ref": "cascade_emission.py",
+          "summary": "Objective 2 now has a shared raw-vs-emitted translation layer plus a repo-local replay entrypoint, so conservative emission policies can be screened on the locked stream bundle without another vLLM reload."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1_emit_freeze14/evaluation.json",
+          "summary": "A freeze_major_tail_rewrites replay with a 14-word window lowered LongYAAL CU to 1940.9677 while keeping BLEU=40.3126, CHRF=68.5453, and the offline XCOMETXL blocker unchanged, but it did not improve quality and left the branch annexed."
+        }
+      ]
+    },
+    {
+      "id": "h_obj2_freeze14_emission_annex",
+      "family": "objective_2_emission_annex",
+      "title": "Keep the freeze14 emission replay as an annex rather than the promoted path",
+      "question": "Should the non-final freeze_major_tail_rewrites replay with a 14-word window become the promoted Objective 2 runtime path?",
+      "kind": "runtime_candidate",
+      "status": "frozen_annex",
+      "priority": "annex",
+      "scope": {
+        "talks": [
+          "objective2"
+        ],
+        "delays": [
+          "prompt_only_latency_quality"
+        ],
+        "slice": "Replay a deterministic emission policy over the captured raw translation stream without reloading models, and only promote it if the broader latency profile stays sane.",
+        "artifacts": [
+          "cascade_emission.py",
+          "reemit_cascade_outputs.py",
+          "outputs/cascade_v1/",
+          "outputs/cascade_v1_emit_freeze14/"
+        ]
+      },
+      "success_signal": "The replayed emission policy improves the usable latency profile, not just LongYAAL CU, while preserving final quality on the real bundle.",
+      "failure_signal": "The replay only improves a narrow latency slice or behaves like a metric hack, so it should stay annexed instead of becoming the default runtime path.",
+      "reopen_only_if": [
+        "new_runtime_artifact",
+        "human_override"
+      ],
+      "budget": {
+        "max_local_iterations": 2,
+        "used": 1
+      },
+      "last_touched_commit": "workspace",
+      "last_touched_iteration": "objective2_emission_freeze14_annex",
+      "evidence": [
+        {
+          "kind": "repo_change",
+          "ref": "cascade_emission.py",
+          "summary": "The repo now separates raw translation computation from emitted stream policy and can replay emission alternatives against the locked raw bundle without another vLLM run."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1_emit_freeze14/evaluation.json",
+          "summary": "The freeze14 replay preserves BLEU=40.3126, CHRF=68.5453, and XCOMETXL=NA while lowering LongYAAL CU to 1940.9677, but it leaves LongAL/LongLAAL/LongDAL on the CU side pathological, so the branch remains frozen_annex."
         }
       ]
     }
@@ -273,6 +334,18 @@
         "h_obj2_prompt_only_quality_latency_tuning: frozen_annex -> active"
       ],
       "bounded_outcome": "Replaced full-transcript Gemma truncation with utterance-incremental translation, reran the real baseline to a full final translation plus refreshed offline metrics, and reopened Objective 2 because the corrected runtime artifact now exists."
+    },
+    {
+      "iteration": "objective2_emission_freeze14_annex",
+      "commit": "workspace",
+      "hypothesis_ids_touched": [
+        "h_obj2_prompt_only_quality_latency_tuning",
+        "h_obj2_freeze14_emission_annex"
+      ],
+      "status_transitions": [
+        "h_obj2_freeze14_emission_annex: new -> frozen_annex"
+      ],
+      "bounded_outcome": "Separated raw versus emitted translation timelines, restored the canonical baseline bundle, and parked a freeze14 emission replay in an annex after it lowered LongYAAL CU below 2 seconds without improving quality."
     }
   ]
 }

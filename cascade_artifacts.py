@@ -34,6 +34,8 @@ class StreamUpdate:
     asr_text: str
     translation_text: str
     new_words: list[str] = field(default_factory=list)
+    raw_translation_text: str | None = None
+    emission_policy_action: str | None = None
 
 
 @dataclass

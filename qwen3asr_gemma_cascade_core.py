@@ -20,6 +20,12 @@ from cascade_artifacts import (
     StreamUpdate,
     write_inference_artifacts,
 )
+from cascade_emission import (
+    RAW_PASSTHROUGH,
+    apply_emission_policy,
+    register_translation_timestamps,
+    register_translation_words,
+)
 
 
 # Avoid repeated HF HEAD requests for optional files that are already cached as absent.
@@ -103,36 +109,6 @@ def n_utterances(text: str) -> int:
     return n_utt
 
 
-def longest_common_prefix_words(previous: List[str], current: List[str]) -> int:
-    prefix_len = 0
-    for left, right in zip(previous, current):
-        if left != right:
-            break
-        prefix_len += 1
-    return prefix_len
-
-
-def register_translation_words(
-    previous_translation: str,
-    current_translation: str,
-    audio_processed_ms: float,
-    wallclock_elapsed_ms: float,
-    word_delays_ms: List[float],
-    word_elapsed_ms: List[float],
-) -> List[str]:
-    previous_words = previous_translation.split()
-    current_words = current_translation.split()
-    prefix_len = longest_common_prefix_words(previous_words, current_words)
-
-    del word_delays_ms[prefix_len:]
-    del word_elapsed_ms[prefix_len:]
-    for _ in current_words[prefix_len:]:
-        word_delays_ms.append(audio_processed_ms)
-        word_elapsed_ms.append(wallclock_elapsed_ms)
-
-    return current_words[prefix_len:]
-
-
 @dataclass
 class CascadeState:
     speech_id: int = 0
@@ -159,6 +135,8 @@ config = SimpleNamespace(
     translation_token_budget_ratio=3.0,
     translation_token_budget_buffer=24,
     translation_generation_margin=8,
+    translation_emit_policy=RAW_PASSTHROUGH,
+    translation_max_tail_rewrite_words=14,
     temperature=0.0,
     repetition_penalty=1.05,
     asr_gpu_memory_utilization=0.2,
@@ -393,6 +371,21 @@ def render_translation_from_state() -> str:
     return " ".join(segment.strip() for segment in translation_segments if segment.strip()).strip()
 
 
+def apply_translation_emit_policy(
+    previous_translation: str,
+    raw_translation: str,
+    *,
+    is_final: bool,
+) -> tuple[str, str]:
+    return apply_emission_policy(
+        config.translation_emit_policy,
+        previous_translation,
+        raw_translation,
+        max_tail_rewrite_words=config.translation_max_tail_rewrite_words,
+        is_final=is_final,
+    )
+
+
 def load_wav(path: str) -> np.ndarray:
     with wave.open(path, "rb") as wav_file:
         sample_rate = wav_file.getframerate()
@@ -425,6 +418,7 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
     chunk_size = int(SAMPLE_RATE * chunk_ms / 1000)
     last_asr = ""
     last_translation = ""
+    last_raw_translation = ""
     last_committed_segments = len(state.utt_sources)
     word_delays_ms: List[float] = []
     word_elapsed_ms: List[float] = []
@@ -447,16 +441,25 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
 
         last_asr = current_asr
         last_committed_segments = committed_segments
-        translation = render_translation_from_state()
+        raw_translation = render_translation_from_state()
+        translation, emission_policy_action = apply_translation_emit_policy(
+            last_translation,
+            raw_translation,
+            is_final=False,
+        )
         audio_processed_ms = len(state.source) * 1000.0 / SAMPLE_RATE
         wallclock_elapsed_ms = (perf_counter() - start_time) * 1000.0
+        register_translation_timestamps(
+            last_raw_translation,
+            raw_translation,
+            wallclock_elapsed_ms,
+            word_elapsed_ms,
+        )
         new_words = register_translation_words(
             last_translation,
             translation,
             audio_processed_ms,
-            wallclock_elapsed_ms,
             word_delays_ms,
-            word_elapsed_ms,
         )
         updates.append(
             StreamUpdate(
@@ -466,24 +469,36 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
                 asr_text=current_asr,
                 translation_text=translation,
                 new_words=new_words,
+                raw_translation_text=raw_translation,
+                emission_policy_action=emission_policy_action,
             )
         )
         current_time = audio_processed_ms / 1000.0
         print(f"[{current_time:6.2f}s] ASR: {current_asr}")
         print(f"[{current_time:6.2f}s] DE : {translation}")
         last_translation = translation
+        last_raw_translation = raw_translation
 
     final_asr = transcribe_audio() or last_asr
-    final_translation = render_translation_from_state()
+    final_raw_translation = render_translation_from_state()
+    final_translation, final_emission_policy_action = apply_translation_emit_policy(
+        last_translation,
+        final_raw_translation,
+        is_final=True,
+    )
     audio_duration_ms = len(audio) * 1000.0 / SAMPLE_RATE
     final_elapsed_ms = (perf_counter() - start_time) * 1000.0
+    register_translation_timestamps(
+        last_raw_translation,
+        final_raw_translation,
+        final_elapsed_ms,
+        word_elapsed_ms,
+    )
     final_new_words = register_translation_words(
         last_translation,
         final_translation,
         audio_duration_ms,
-        final_elapsed_ms,
         word_delays_ms,
-        word_elapsed_ms,
     )
     if final_asr != last_asr or final_translation != last_translation:
         updates.append(
@@ -494,6 +509,8 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
                 asr_text=final_asr,
                 translation_text=final_translation,
                 new_words=final_new_words,
+                raw_translation_text=final_raw_translation,
+                emission_policy_action=final_emission_policy_action,
             )
         )
 
@@ -523,6 +540,8 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
             "translation_token_budget_ratio": config.translation_token_budget_ratio,
             "translation_token_budget_buffer": config.translation_token_budget_buffer,
             "translation_generation_margin": config.translation_generation_margin,
+            "translation_emit_policy": config.translation_emit_policy,
+            "translation_max_tail_rewrite_words": config.translation_max_tail_rewrite_words,
             "temperature": config.temperature,
             "repetition_penalty": config.repetition_penalty,
             "asr_gpu_memory_utilization": config.asr_gpu_memory_utilization,
