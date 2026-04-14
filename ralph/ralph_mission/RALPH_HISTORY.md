@@ -458,3 +458,90 @@
 - `h_obj2_prompt_only_quality_latency_tuning`:
   tester une seule vraie variante prompt/context sur la baseline restauree, en
   gardant `h_obj2_freeze14_emission_annex` hors focus
+
+## objective2_context1_terminology_guard_annex
+
+### Decision
+
+- introduire une vraie registry de variantes de traduction au lieu de modifier
+  `config` a la main
+- lancer une seule variante live `context1_terminology_guard`
+- garder cette branche en annexe: meilleure qualite, meilleure latence CU,
+  mais gate `2s` toujours rate
+
+### Impact runtime
+
+- un seul rechargement `Qwen3-ASR`/`Gemma` a ete justifie car aucun kernel
+  `.venv-inference` n'etait vivant
+- le runtime sait maintenant selectionner une variante nommee depuis le core,
+  le notebook et le CLI, sans ecraser `outputs/cascade_v1/`
+- `outputs/cascade_v1_context1_terminology_guard/` capture le run live
+  (`BLEU=40.6694`, `CHRF=69.8671`, `LongYAAL CU=2339.1869`)
+- la baseline canonique `outputs/cascade_v1/` n'est pas remplacee pour
+  l'instant
+
+### Portee de preuve
+
+- preuve locale runtime
+- un seul talk `objective2`
+- un seul delai `prompt_only_latency_quality`
+- un seul rerun live puis evaluation offline
+- aucun claim papier
+
+### Trigger de sortie
+
+- cette iteration sort une fois que la variante live est reproduisible via une
+  option nommee, qu'un bundle reel distinct est evalue, et que la branche est
+  explicitement gelee si elle ne passe pas sous `2s`
+
+### Hypothesis IDs touched
+
+- `h_obj2_prompt_only_quality_latency_tuning`
+- `h_obj2_context1_terminology_guard_annex`
+
+### Status transitions
+
+- `h_obj2_context1_terminology_guard_annex: new -> frozen_annex`
+
+### Ce qui a ete fait
+
+- ajoute `cascade_translation_variants.py` pour definir des variantes
+  prompt/context nommees
+- branche la selection de variante dans
+  `qwen3asr_gemma_cascade_core.py`,
+  `qwen3asr_gemma_cascade_notebook.py`, et `run_cascade_baseline.py`
+- justifie l'absence de kernel persistant puis lance un seul run live
+  `context1_terminology_guard`
+- evalue offline `outputs/cascade_v1_context1_terminology_guard/`
+
+### Validations lancees
+
+- `python -m py_compile cascade_translation_variants.py qwen3asr_gemma_cascade_core.py qwen3asr_gemma_cascade_notebook.py run_cascade_baseline.py`: PASS
+- `python restart_jupyter_kernel.py --list`: PASS (`No active notebook kernels found.`)
+- `.venv-inference/bin/python run_cascade_baseline.py --output-dir outputs/cascade_v1_context1_terminology_guard --translation-variant context1_terminology_guard`: PASS
+- `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv-evaluation/bin/python evaluate_cascade_outputs.py --output-dir outputs/cascade_v1_context1_terminology_guard`: PASS
+
+### Resultats utiles
+
+- la variante live ameliore la qualite par rapport a la baseline:
+  `BLEU +0.3568` (`40.6694` vs `40.3126`) et
+  `CHRF +1.3218` (`69.8671` vs `68.5453`)
+- `LongYAAL CU` baisse de `299.6245 ms`
+  (`2339.1869` vs `2638.8114`) mais reste au-dessus du gate `2s`
+- `LongAL`, `LongLAAL`, et `LongDAL` cote CU s'ameliorent aussi, mais
+  `LongYAAL CA` se degrade a `-15065.4140`
+- le gain semble venir d'un meilleur cadrage prompt/terminologie, sans preuve
+  que la reinjection d'une phrase precedente vaut encore son cout latence
+
+### Blocages restants
+
+- aucun kernel `.venv-inference` persistant n'est vivant apres le script
+- `Unbabel/XCOMET-XL` manque toujours du cache HF local offline
+- la meilleure variante live reste au-dessus du gate
+  (`LongYAAL CU=2339.1869 ms > 2s`)
+
+### Hypothese de la prochaine iteration
+
+- `h_obj2_prompt_only_quality_latency_tuning`:
+  tester une variante prompt-only issue de la nouvelle registry pour isoler le
+  gain de wording sans le cout de `max_history_utterances=1`

@@ -26,6 +26,11 @@ from cascade_emission import (
     register_translation_timestamps,
     register_translation_words,
 )
+from cascade_translation_variants import (
+    DEFAULT_TRANSLATION_VARIANT_ID,
+    TRANSLATION_VARIANTS,
+    TranslationVariant,
+)
 
 
 # Avoid repeated HF HEAD requests for optional files that are already cached as absent.
@@ -128,6 +133,7 @@ config = SimpleNamespace(
     target_lang="German",
     latency_unit="word",
     min_start_seconds=5.0,
+    translation_variant_id=DEFAULT_TRANSLATION_VARIANT_ID,
     max_history_utterances=0,
     translation_mode="utterance_incremental",
     max_new_tokens=160,
@@ -149,6 +155,25 @@ asr = None
 gemma_tokenizer = None
 gemma_llm = None
 state = CascadeState()
+
+
+def get_translation_variant(variant_id: str) -> TranslationVariant:
+    try:
+        return TRANSLATION_VARIANTS[variant_id]
+    except KeyError as exc:
+        known = ", ".join(sorted(TRANSLATION_VARIANTS))
+        raise ValueError(f"Unknown translation variant '{variant_id}'. Known variants: {known}") from exc
+
+
+def available_translation_variants() -> list[TranslationVariant]:
+    return [TRANSLATION_VARIANTS[variant_id] for variant_id in sorted(TRANSLATION_VARIANTS)]
+
+
+def set_translation_variant(variant_id: str) -> TranslationVariant:
+    variant = get_translation_variant(variant_id)
+    config.translation_variant_id = variant.variant_id
+    config.max_history_utterances = variant.max_history_utterances
+    return variant
 
 
 # %%
@@ -255,29 +280,15 @@ def build_translation_prompt(
     translation_history: List[str],
     is_partial: bool,
 ) -> str:
-    prompt_sections = [
-        (
-            f"You are a professional translator from {config.source_lang} to {config.target_lang}. "
-            "The input comes from streaming ASR and may contain recognition noise. "
-            "Use any provided context only to keep terminology consistent. "
-            "Return only the translation of the current source segment."
-        )
-    ]
-    if is_partial:
-        prompt_sections.append(
-            "The current source segment may be incomplete, so translate only what is already clear."
-        )
-    else:
-        prompt_sections.append("The current source segment is punctuation-stable.")
-
-    if source_history:
-        prompt_sections.append("Previous source context:\n" + "\n".join(source_history))
-    if translation_history:
-        prompt_sections.append("Previous translated context:\n" + "\n".join(translation_history))
-
-    segment_label = "Current source segment (possibly incomplete):" if is_partial else "Current source segment:"
-    prompt_sections.append(f"{segment_label}\n{text}")
-    return "\n\n".join(prompt_sections)
+    variant = get_translation_variant(config.translation_variant_id)
+    return variant.render_prompt(
+        source_lang=config.source_lang,
+        target_lang=config.target_lang,
+        text=text,
+        source_history=source_history,
+        translation_history=translation_history,
+        is_partial=is_partial,
+    )
 
 
 def build_translation_request(prompt: str, source_text: str) -> tuple[str, int]:
@@ -410,7 +421,13 @@ def load_wav(path: str) -> np.ndarray:
     return audio
 
 
-def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArtifacts:
+def run_stream_to_artifacts(
+    wav_path: str,
+    chunk_ms: int = 960,
+    *,
+    translation_variant: str | None = None,
+) -> InferenceArtifacts:
+    variant = set_translation_variant(translation_variant or config.translation_variant_id)
     load_models()
     clear_state()
 
@@ -532,6 +549,8 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
         translation_word_elapsed_ms=word_elapsed_ms,
         updates=updates,
         runtime_config={
+            "translation_variant_id": variant.variant_id,
+            "translation_variant_description": variant.description,
             "translation_mode": config.translation_mode,
             "min_start_seconds": config.min_start_seconds,
             "max_history_utterances": config.max_history_utterances,
@@ -552,8 +571,18 @@ def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArti
     )
 
 
-def run_stream(wav_path: str, chunk_ms: int = 960, output_dir: str | None = None):
-    artifacts = run_stream_to_artifacts(wav_path, chunk_ms=chunk_ms)
+def run_stream(
+    wav_path: str,
+    chunk_ms: int = 960,
+    output_dir: str | None = None,
+    *,
+    translation_variant: str | None = None,
+):
+    artifacts = run_stream_to_artifacts(
+        wav_path,
+        chunk_ms=chunk_ms,
+        translation_variant=translation_variant,
+    )
     if output_dir is not None:
         write_inference_artifacts(artifacts, output_dir)
 
@@ -565,8 +594,13 @@ def run_baseline(
     *,
     output_dir: str = DEFAULT_OUTPUT_DIR,
     chunk_ms: int = 960,
+    translation_variant: str | None = None,
 ):
-    artifacts = run_stream_to_artifacts(wav_path, chunk_ms=chunk_ms)
+    artifacts = run_stream_to_artifacts(
+        wav_path,
+        chunk_ms=chunk_ms,
+        translation_variant=translation_variant,
+    )
     written_files = write_inference_artifacts(artifacts, output_dir)
     print(f"\nWrote baseline artifacts to {output_dir}")
     for label, path in written_files.items():

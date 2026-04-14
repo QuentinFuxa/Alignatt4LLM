@@ -186,10 +186,12 @@
         "slice": "Explore only prompt changes, previous-sentence reinjection, and conservative tail trimming after a clean baseline exists; commit every experiment separately.",
         "artifacts": [
           "cascade_emission.py",
+          "cascade_translation_variants.py",
           "reemit_cascade_outputs.py",
           "qwen3asr_gemma_cascade_core.py",
           "qwen3asr_gemma_cascade_notebook.py",
           "outputs/cascade_v1/",
+          "outputs/cascade_v1_context1_terminology_guard/",
           "outputs/cascade_v1_emit_freeze14/"
         ]
       },
@@ -201,10 +203,10 @@
       ],
       "budget": {
         "max_local_iterations": 6,
-        "used": 1
+        "used": 2
       },
       "last_touched_commit": "workspace",
-      "last_touched_iteration": "objective2_emission_freeze14_annex",
+      "last_touched_iteration": "objective2_context1_terminology_guard_annex",
       "evidence": [
         {
           "kind": "human_goal",
@@ -225,6 +227,16 @@
           "kind": "runtime_artifact",
           "ref": "outputs/cascade_v1_emit_freeze14/evaluation.json",
           "summary": "A freeze_major_tail_rewrites replay with a 14-word window lowered LongYAAL CU to 1940.9677 while keeping BLEU=40.3126, CHRF=68.5453, and the offline XCOMETXL blocker unchanged, but it did not improve quality and left the branch annexed."
+        },
+        {
+          "kind": "repo_change",
+          "ref": "cascade_translation_variants.py",
+          "summary": "Objective 2 prompt/context experiments now use a named translation-variant registry that can be selected from the CLI, notebook facade, and runtime config without hand-editing the live baseline path."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1_context1_terminology_guard/evaluation.json",
+          "summary": "A real context1_terminology_guard run improved BLEU to 40.6694, CHRF to 69.8671, and LongYAAL CU to 2339.1869 on ccpXHNfaoy.wav, but it still missed the sub-2s gate and worsened LongYAAL CA to -15065.4140, so the branch was not promoted."
         }
       ]
     },
@@ -273,6 +285,56 @@
           "kind": "runtime_artifact",
           "ref": "outputs/cascade_v1_emit_freeze14/evaluation.json",
           "summary": "The freeze14 replay preserves BLEU=40.3126, CHRF=68.5453, and XCOMETXL=NA while lowering LongYAAL CU to 1940.9677, but it leaves LongAL/LongLAAL/LongDAL on the CU side pathological, so the branch remains frozen_annex."
+        }
+      ]
+    },
+    {
+      "id": "h_obj2_context1_terminology_guard_annex",
+      "family": "objective_2_prompt_context_annex",
+      "title": "Keep the one-utterance terminology-guard run as a measured annex, not the promoted runtime",
+      "question": "Should the real context1_terminology_guard live run become the promoted Objective 2 runtime path?",
+      "kind": "runtime_candidate",
+      "status": "frozen_annex",
+      "priority": "annex",
+      "scope": {
+        "talks": [
+          "objective2"
+        ],
+        "delays": [
+          "prompt_only_latency_quality"
+        ],
+        "slice": "Run exactly one live prompt/context variant with one previous utterance plus stricter terminology guidance, and only promote it if the quality gain survives the sub-2s LongYAAL CU gate.",
+        "artifacts": [
+          "cascade_translation_variants.py",
+          "qwen3asr_gemma_cascade_core.py",
+          "qwen3asr_gemma_cascade_notebook.py",
+          "run_cascade_baseline.py",
+          "outputs/cascade_v1/",
+          "outputs/cascade_v1_context1_terminology_guard/"
+        ]
+      },
+      "success_signal": "The real context1_terminology_guard branch improves quality over the canonical baseline and clears LongYAAL CU below 2 seconds without destabilizing the runtime path.",
+      "failure_signal": "The live branch improves wording but still misses the latency gate or introduces new translation artifacts, so it should stay annexed instead of replacing outputs/cascade_v1/.",
+      "reopen_only_if": [
+        "new_runtime_artifact",
+        "human_override"
+      ],
+      "budget": {
+        "max_local_iterations": 2,
+        "used": 1
+      },
+      "last_touched_commit": "workspace",
+      "last_touched_iteration": "objective2_context1_terminology_guard_annex",
+      "evidence": [
+        {
+          "kind": "repo_change",
+          "ref": "cascade_translation_variants.py",
+          "summary": "The repo now treats prompt/context experiments as explicit translation variants, so the one-utterance history branch can be reproduced without editing core defaults."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1_context1_terminology_guard/evaluation.json",
+          "summary": "The real context1_terminology_guard run raised BLEU to 40.6694 and CHRF to 69.8671 while lowering LongYAAL CU to 2339.1869, but it still missed the 2-second gate and pushed LongYAAL CA down to -15065.4140, so the branch remains frozen_annex."
         }
       ]
     }
@@ -346,6 +408,18 @@
         "h_obj2_freeze14_emission_annex: new -> frozen_annex"
       ],
       "bounded_outcome": "Separated raw versus emitted translation timelines, restored the canonical baseline bundle, and parked a freeze14 emission replay in an annex after it lowered LongYAAL CU below 2 seconds without improving quality."
+    },
+    {
+      "iteration": "objective2_context1_terminology_guard_annex",
+      "commit": "workspace",
+      "hypothesis_ids_touched": [
+        "h_obj2_prompt_only_quality_latency_tuning",
+        "h_obj2_context1_terminology_guard_annex"
+      ],
+      "status_transitions": [
+        "h_obj2_context1_terminology_guard_annex: new -> frozen_annex"
+      ],
+      "bounded_outcome": "Added named translation variants, ran one real context1_terminology_guard experiment, and parked it in an annex after it improved BLEU/CHRF and LongYAAL CU but still missed the sub-2s gate."
     }
   ]
 }
