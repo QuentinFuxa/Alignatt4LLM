@@ -76,6 +76,8 @@ def main() -> None:
     args = parse_args()
     input_dir = Path(args.input_dir)
     output_dir = Path(args.output_dir)
+    if input_dir.resolve() == output_dir.resolve():
+        raise ValueError("Replay output dir must differ from the input dir.")
 
     manifest = load_json(input_dir / MANIFEST_FILENAME)
     hypothesis = load_json(input_dir / HYPOTHESIS_FILENAME)
@@ -90,9 +92,22 @@ def main() -> None:
         max_tail_rewrite_words=args.max_tail_rewrite_words,
     )
 
-    runtime_config = dict(manifest.get("runtime_config", {}))
+    source_runtime_config = dict(manifest.get("runtime_config", {}))
+    replay_depth = int(source_runtime_config.get("translation_replay_depth", 0) or 0) + 1
+    runtime_config = dict(source_runtime_config)
     runtime_config["translation_emit_policy"] = args.emit_policy
     runtime_config["translation_max_tail_rewrite_words"] = args.max_tail_rewrite_words
+    runtime_config["translation_artifact_origin"] = "replayed_stream"
+    runtime_config["translation_replay_input_dir"] = str(input_dir)
+    runtime_config["translation_replay_depth"] = replay_depth
+    runtime_config["translation_replay_input_emit_policy"] = source_runtime_config.get(
+        "translation_emit_policy",
+        RAW_PASSTHROUGH,
+    )
+    runtime_config["translation_replay_input_max_tail_rewrite_words"] = source_runtime_config.get(
+        "translation_max_tail_rewrite_words",
+        args.max_tail_rewrite_words,
+    )
 
     artifacts = InferenceArtifacts(
         wav_path=manifest["wav_path"],

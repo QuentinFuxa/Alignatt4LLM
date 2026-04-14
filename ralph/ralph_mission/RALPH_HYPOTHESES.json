@@ -193,21 +193,22 @@
           "outputs/cascade_v1/",
           "outputs/cascade_v1_context1_terminology_guard/",
           "outputs/cascade_v1_prompt_only_terminology_guard/",
-          "outputs/cascade_v1_emit_freeze14/"
+          "outputs/cascade_v1_emit_freeze14/",
+          "outputs/cascade_v1_prompt_only_terminology_guard_emit_freeze14/"
         ]
       },
-      "success_signal": "At least one committed experiment improves BLEU, CHRF, or XCOMETXL over the clean baseline while keeping LongYAAL CU below 2 seconds on the target audio.",
-      "failure_signal": "Iterations start before the clean baseline exists, the repo is not clean, or the branch drifts into custom models, training, or non-prompt-only changes.",
+      "success_signal": "At least one committed experiment improves BLEU, CHRF, or XCOMETXL over the clean baseline while keeping LongYAAL CU below 2 seconds on the target audio without relying on replay-only LongAL/LongLAAL/LongDAL CU pathologies.",
+      "failure_signal": "Iterations start before the clean baseline exists, the repo is not clean, depend on replay-only latency hacks that only win a narrow metric slice, or drift into custom models, training, or non-prompt-only changes.",
       "reopen_only_if": [
         "new_runtime_artifact",
         "human_override"
       ],
       "budget": {
         "max_local_iterations": 6,
-        "used": 3
+        "used": 4
       },
       "last_touched_commit": "workspace",
-      "last_touched_iteration": "objective2_prompt_only_terminology_guard_annex",
+      "last_touched_iteration": "objective2_prompt_only_emission_freeze14_annex",
       "evidence": [
         {
           "kind": "human_goal",
@@ -248,6 +249,16 @@
           "kind": "runtime_artifact",
           "ref": "outputs/cascade_v1_prompt_only_terminology_guard/evaluation.json",
           "summary": "A real prompt_only_terminology_guard run lowered LongYAAL CU to 2218.5736 and improved LongYAAL CA to -10767.8162 while nudging CHRF to 68.5887, but it dropped BLEU to 39.8939 and still missed the 2-second gate, so prompt wording alone was not promoted."
+        },
+        {
+          "kind": "repo_change",
+          "ref": "reemit_cascade_outputs.py",
+          "summary": "Replay artifacts now reject in-place rewrites and persist their input bundle plus replay depth in runtime_config, so offline emission annexes stay auditable as first-class derived artifacts."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1_prompt_only_terminology_guard_emit_freeze14/evaluation.json",
+          "summary": "A prompt_only_terminology_guard freeze14 replay preserved the 710-word final translation and CHRF=68.5887 while pushing LongYAAL CU down to 1774.5828, but LongAL/LongLAAL/LongDAL CU stayed pathological, so the result remains evidence for the active branch rather than the promoted runtime."
         }
       ]
     },
@@ -398,6 +409,54 @@
           "summary": "The real prompt_only_terminology_guard run improved CHRF to 68.5887 and lowered LongYAAL CU to 2218.5736 while improving LongYAAL CA to -10767.8162, but BLEU fell to 39.8939 and the branch still missed the sub-2s gate, so it remains frozen_annex."
         }
       ]
+    },
+    {
+      "id": "h_obj2_prompt_only_freeze14_emission_annex",
+      "family": "objective_2_emission_annex",
+      "title": "Keep the prompt-only freeze14 emission replay as an annex rather than the promoted path",
+      "question": "Should the prompt_only_terminology_guard freeze_major_tail_rewrites replay with a 14-word window become the promoted Objective 2 runtime path?",
+      "kind": "runtime_candidate",
+      "status": "frozen_annex",
+      "priority": "annex",
+      "scope": {
+        "talks": [
+          "objective2"
+        ],
+        "delays": [
+          "prompt_only_latency_quality"
+        ],
+        "slice": "Replay exactly one deterministic freeze14 emission policy over the prompt-only live bundle without another vLLM run, and only promote it if the broader latency profile stays sane alongside the sub-2s LongYAAL win.",
+        "artifacts": [
+          "cascade_emission.py",
+          "reemit_cascade_outputs.py",
+          "outputs/cascade_v1_prompt_only_terminology_guard/",
+          "outputs/cascade_v1_prompt_only_terminology_guard_emit_freeze14/"
+        ]
+      },
+      "success_signal": "The prompt-only freeze14 replay preserves the prompt-only final translation, improves the useful quality profile over the canonical baseline, clears LongYAAL CU below 2 seconds, and keeps LongAL/LongLAAL/DAL CU within a sane range.",
+      "failure_signal": "The replay clears LongYAAL CU but still behaves like a metric hack on the broader CU latency family, so it should stay annexed instead of becoming the default runtime path.",
+      "reopen_only_if": [
+        "new_runtime_artifact",
+        "human_override"
+      ],
+      "budget": {
+        "max_local_iterations": 2,
+        "used": 1
+      },
+      "last_touched_commit": "workspace",
+      "last_touched_iteration": "objective2_prompt_only_emission_freeze14_annex",
+      "evidence": [
+        {
+          "kind": "repo_change",
+          "ref": "reemit_cascade_outputs.py",
+          "summary": "Replay artifacts now encode their input bundle and replay depth in runtime_config, so prompt-only emission annexes can be compared without guessing whether a bundle is live or replayed."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1_prompt_only_terminology_guard_emit_freeze14/evaluation.json",
+          "summary": "The prompt-only freeze14 replay preserved BLEU=39.8939, CHRF=68.5887, and the 710-word final translation while lowering LongYAAL CU to 1774.5828, but 311 of 357 updates froze and LongAL/LongLAAL/DAL CU remained pathological, so the branch remains frozen_annex."
+        }
+      ]
     }
   ],
   "iteration_ledger": [
@@ -493,6 +552,18 @@
         "h_obj2_prompt_only_terminology_guard_annex: new -> frozen_annex"
       ],
       "bounded_outcome": "Added one prompt_only_terminology_guard live variant, reran the real bundle once, and parked it in an annex after it improved latency versus baseline but still missed the sub-2s gate and lost BLEU."
+    },
+    {
+      "iteration": "objective2_prompt_only_emission_freeze14_annex",
+      "commit": "workspace",
+      "hypothesis_ids_touched": [
+        "h_obj2_prompt_only_quality_latency_tuning",
+        "h_obj2_prompt_only_freeze14_emission_annex"
+      ],
+      "status_transitions": [
+        "h_obj2_prompt_only_freeze14_emission_annex: new -> frozen_annex"
+      ],
+      "bounded_outcome": "Replayed a freeze14 emission policy over the prompt-only live bundle, recorded explicit replay provenance, and parked the sub-2s result in an annex because the broader CU latency metrics still behaved pathologically."
     }
   ]
 }

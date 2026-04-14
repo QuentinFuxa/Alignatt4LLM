@@ -630,3 +630,81 @@
   rejouer exactement une politique d'emission conservative sur
   `outputs/cascade_v1_prompt_only_terminology_guard/` pour tester si le bundle
   prompt-only peut enfin passer sous `2s` sans nouveau rerun live
+
+## objective2_prompt_only_emission_freeze14_annex
+
+### Decision
+
+- rejouer une seule politique `freeze14` sur le bundle prompt-only
+- geler ce replay en annexe: `LongYAAL CU` passe sous `2s`, mais le profil CU
+  large reste pathologique donc la branche n'est pas promue
+
+### Impact runtime
+
+- aucun rechargement `Qwen3-ASR`/`Gemma`: tranche `offline` uniquement
+- `reemit_cascade_outputs.py` refuse maintenant les replays in-place et
+  persiste la provenance du bundle source dans le `manifest`
+- `outputs/cascade_v1_prompt_only_terminology_guard_emit_freeze14/` capture le
+  replay derive sans ecraser le bundle live prompt-only
+
+### Portee de preuve
+
+- preuve locale runtime
+- un seul talk `objective2`
+- un seul delai `prompt_only_latency_quality`
+- offline seulement
+- aucun claim papier
+
+### Trigger de sortie
+
+- cette iteration sort une fois qu'un seul replay deterministe du bundle
+  prompt-only est evalue, puis explicitement annexe si le gain `LongYAAL`
+  repose encore sur une pathologie CU plus large
+
+### Hypothesis IDs touched
+
+- `h_obj2_prompt_only_quality_latency_tuning`
+- `h_obj2_prompt_only_freeze14_emission_annex`
+
+### Status transitions
+
+- `h_obj2_prompt_only_freeze14_emission_annex: new -> frozen_annex`
+
+### Ce qui a ete fait
+
+- durcit `reemit_cascade_outputs.py` avec une garde contre le replay in-place
+  et une provenance explicite du bundle source
+- rejoue `freeze_major_tail_rewrites` avec fenetre `14` sur
+  `outputs/cascade_v1_prompt_only_terminology_guard/`
+- reevalue offline le dossier derive
+
+### Validations lancees
+
+- `python -m py_compile reemit_cascade_outputs.py cascade_emission.py evaluate_cascade_outputs.py`: PASS
+- `python reemit_cascade_outputs.py --input-dir outputs/cascade_v1_prompt_only_terminology_guard --output-dir outputs/cascade_v1_prompt_only_terminology_guard_emit_freeze14 --emit-policy freeze_major_tail_rewrites --max-tail-rewrite-words 14`: PASS
+- `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv-evaluation/bin/python evaluate_cascade_outputs.py --output-dir outputs/cascade_v1_prompt_only_terminology_guard_emit_freeze14`: PASS
+
+### Resultats utiles
+
+- le replay conserve exactement la traduction finale prompt-only (`710` mots)
+  donc `BLEU` et `CHRF` restent a `39.8939` et `68.5887`
+- `LongYAAL CU` tombe a `1774.5828 ms`, soit `-443.9908 ms` vs le bundle
+  prompt-only live et `-864.2287 ms` vs la baseline canonique
+- `311` updates sur `357` sont gelees, et `LongAL`/`LongLAAL`/`LongDAL` cote
+  CU restent a des ordres de grandeur pathologiques, donc le gain reste une
+  annexe de replay et pas un runtime promouvable
+
+### Blocages restants
+
+- `Unbabel/XCOMET-XL` manque toujours du cache HF local offline
+- aucun chemin sub-`2s` promouvable n'existe encore sans pathologie CU large
+- la meilleure branche live qualite reste `context1_terminology_guard`, tandis
+  que la meilleure branche live prompt-only reste le bundle raw au-dessus du
+  gate
+
+### Hypothese de la prochaine iteration
+
+- `h_obj2_prompt_only_quality_latency_tuning`:
+  tester exactement une politique d'emission offline moins fragile que
+  `freeze14` sur le meme bundle prompt-only pour chercher un sub-`2s` qui ne
+  casse pas `LongAL`/`LongLAAL`/`LongDAL`
