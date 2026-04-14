@@ -80,6 +80,9 @@
         ],
         "slice": "Define and execute the minimal reproducible baseline that writes inference outputs and evaluation metrics for ccpXHNfaoy.wav under outputs/cascade_v1/ without unnecessary model reloads.",
         "artifacts": [
+          "cascade_artifacts.py",
+          "run_cascade_baseline.py",
+          "evaluate_cascade_outputs.py",
           "qwen3asr_gemma_cascade_core.py",
           "qwen3asr_gemma_cascade_notebook.py",
           "pyproject.toml",
@@ -98,10 +101,10 @@
       ],
       "budget": {
         "max_local_iterations": 4,
-        "used": 0
+        "used": 1
       },
       "last_touched_commit": "workspace",
-      "last_touched_iteration": "mission_objectives_bootstrap",
+      "last_touched_iteration": "objective1_artifact_contract",
       "evidence": [
         {
           "kind": "human_goal",
@@ -111,7 +114,22 @@
         {
           "kind": "repo_inspection",
           "ref": "qwen3asr_gemma_cascade_core.py",
-          "summary": "The current cascade code loads the full-vLLM stack and prints streaming output, but it does not yet establish the required outputs/cascade_v1/ artifact contract."
+          "summary": "Before the current iteration, the cascade loaded the full-vLLM stack and printed streaming output but did not yet establish the required outputs/cascade_v1/ artifact contract."
+        },
+        {
+          "kind": "repo_change",
+          "ref": "cascade_artifacts.py",
+          "summary": "The repo now has a versioned outputs/cascade_v1 artifact contract shared by inference and evaluation, including manifest, hypothesis, stream updates, and evaluation outputs."
+        },
+        {
+          "kind": "repo_change",
+          "ref": "evaluate_cascade_outputs.py",
+          "summary": "A repo-local OmniSTEval entrypoint now filters the corpus segmentation down to the hypothesis sources so the single-audio baseline can be evaluated without inventing a new dataset layout."
+        },
+        {
+          "kind": "offline_smoke_test",
+          "ref": "evaluate_cascade_outputs.py --skip-comet",
+          "summary": "A synthetic single-audio hypothesis bundle wrote BLEU, CHRF, LongYAAL CU, LongYAAL CA, and an explicit XCOMETXL placeholder without loading the inference models."
         }
       ]
     },
@@ -184,6 +202,15 @@
         "h_obj2_prompt_only_quality_latency_tuning: new -> frozen_annex"
       ],
       "bounded_outcome": "Replaced the blank mission bootstrap with a concrete Objective 1 baseline branch and a frozen Objective 2 prompt-only tuning branch."
+    },
+    {
+      "iteration": "objective1_artifact_contract",
+      "commit": "workspace",
+      "hypothesis_ids_touched": [
+        "h_obj1_reproducible_single_audio_eval_loop"
+      ],
+      "status_transitions": [],
+      "bounded_outcome": "Landed a versioned outputs/cascade_v1 artifact contract, notebook-safe baseline entrypoints, and a repo-local OmniSTEval driver for the single-audio path without reloading the model stack."
     }
   ]
 }

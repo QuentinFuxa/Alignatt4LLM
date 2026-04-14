@@ -4,49 +4,53 @@
 
 ## Blocked Or Frozen IDs
 
+- `h_bootstrap_first_bounded_slice`
 - `h_obj2_prompt_only_quality_latency_tuning`
 
 ## Why This Is Not A Revisit
 
-This is the first real mission framing after bootstrap. The human objective is
-now explicit, so Ralph is not reopening a frozen branch; it is replacing the
-placeholder mission with one bounded active baseline and one intentionally
-frozen follow-up branch.
+This keeps the same active hypothesis but advances to the next bounded runtime
+step after the artifact contract landed. The repo now has repo-local
+entrypoints for inference and evaluation, so the next iteration is to replace
+offline smoke-test proof with a real `ccpXHNfaoy.wav` baseline run, not to
+reopen any frozen branch.
 
 ## Goal
 
-Establish Objectif 1 as the active bounded mission slice: one reproducible
-En->DE single-audio cascade run plus evaluation outputs under
-`outputs/cascade_v1/`, while preserving the persistent `.venv-inference`
-kernel workflow.
+Produce the first real `outputs/cascade_v1/` bundle for `ccpXHNfaoy.wav` and
+replace the current offline-only smoke test with runtime proof from the split
+`.venv-inference` and `.venv-evaluation` workflow.
 
 ## Scope
 
 - code surface:
-  `qwen3asr_gemma_cascade_core.py`, `qwen3asr_gemma_cascade_notebook.py`,
-  `pyproject.toml`, `setup_inference_qwen_asr_vllm.sh`, kernel helper scripts,
-  and the smallest new output plumbing needed for `outputs/cascade_v1/`
+  `run_cascade_baseline.py`, `evaluate_cascade_outputs.py`,
+  `qwen3asr_gemma_cascade_core.py`, kernel helper scripts, and only the
+  smallest fixes required by the first real persisted run
 - required inputs:
-  `ralph_mission/EXISTING.md`, repo rules, `test-set/audio/ccpXHNfaoy.wav`,
-  local HF snapshots, `.venv-inference`, `.venv-evaluation`
+  `ralph_mission/EXISTING.md`, `test-set/audio/ccpXHNfaoy.wav`,
+  `outputs/cascade_v1/`, local HF snapshots, `.venv-inference`,
+  `.venv-evaluation`
 - explicit non-goals:
-  Objectif 2 experiments, broad refactors, model swaps, environment rebuilds
-  without evidence, and anything that forces unnecessary model reloads
+  Objectif 2 prompt tuning, model swaps, broad refactors, synthetic-only proof
+  presented as final evidence, or silent kernel restarts
 
 ## Tasks
 
-1. Turn Objectif 1 into a concrete artifact contract: define what inference and
-   evaluation outputs must exist in `outputs/cascade_v1/`.
-2. Make the baseline path executable from the persistent `.venv-inference`
-   kernel and from `.venv-evaluation` without rediscovering the stack.
-3. Record remaining blockers precisely if the baseline cannot yet be completed,
-   then keep Objectif 2 frozen until the repo is clean and the baseline commit
-   exists.
+1. Reuse a live `.venv-inference` kernel if one exists; otherwise justify the
+   one-time model load and run `run_cascade_baseline.py` for
+   `ccpXHNfaoy.wav`.
+2. Run `evaluate_cascade_outputs.py` from `.venv-evaluation` on the emitted
+   `hypothesis.jsonl`, and record whether `Unbabel/XCOMET-XL` is available as a
+   real score or an explicit blocker.
+3. Keep `h_obj2_prompt_only_quality_latency_tuning` frozen until the real
+   baseline bundle and evaluation outputs exist and the repo is clean again.
 
 ## Done When
 
+- `outputs/cascade_v1/` contains real inference artifacts from
+  `ccpXHNfaoy.wav`
+- the evaluation bundle contains `BLEU`, `CHRF`, `LongYAAL CU`,
+  `LongYAAL CA`, and either a real `XCOMETXL` score or explicit blocker
+  evidence
 - `h_obj1_reproducible_single_audio_eval_loop` remains the only active focus
-- Ralph has a concrete path to produce inference and evaluation artifacts under
-  `outputs/cascade_v1/`
-- `h_obj2_prompt_only_quality_latency_tuning` stays frozen until Objectif 1 is
-  clean and the repo is clean

@@ -35,9 +35,15 @@ de stack deja contournes dans le repo.
 
 - entrypoints:
   - `qwen3asr_gemma_cascade_core.py`: logique actuelle de la cascade full vLLM,
-    chargement des modeles, boucle streaming
+    chargement des modeles, boucle streaming, et emission des artefacts
+    d'inference
   - `qwen3asr_gemma_cascade_notebook.py`: facade notebook pour
-    `load_models()` puis `run_stream(...)`
+    `load_models()` puis `run_baseline()` ou `run_stream(...)`, sans execution
+    automatique a l'import
+  - `run_cascade_baseline.py`: entree repo-locale `.venv-inference` pour
+    produire `outputs/cascade_v1/`
+  - `evaluate_cascade_outputs.py`: entree repo-locale `.venv-evaluation`
+    pour resegmenter et scorer `hypothesis.jsonl`
   - `setup_inference_qwen_asr_vllm.sh`: bootstrap de `.venv-inference`
 - evaluation stack:
   - `pyproject.toml` et `uv.lock`: separation des deps inference/evaluation
@@ -48,7 +54,9 @@ de stack deja contournes dans le repo.
   - `test-set/ref/en.txt`, `test-set/ref/de.txt`,
     `test-set/audio-segments.yaml`
 - logs or artifacts already available:
-  - pas encore de contrat de sortie versionne pour `outputs/cascade_v1/`
+  - `cascade_artifacts.py`: schema versionne pour `manifest.json`,
+    `hypothesis.jsonl`, `stream_updates.jsonl`, `scores.tsv`,
+    `evaluation.json`
   - scripts utilitaires de kernel: `check_jupyter_kernels.sh`,
     `restart_jupyter_kernel.py`
 
@@ -76,23 +84,26 @@ de stack deja contournes dans le repo.
 
 ## Known Blockers
 
-- blocker: le code actuel affiche les sorties streaming mais ne definit pas
-  encore un contrat de persistance versionne pour `outputs/cascade_v1/`
-- blocker: aucun driver d'evaluation repo-local n'est encore cable a
-  OmniSTEval pour ce chemin single-audio precis
+- blocker: aucun bundle reel `outputs/cascade_v1/` n'a encore ete produit a
+  partir de `test-set/audio/ccpXHNfaoy.wav`; le contrat existe mais pas encore
+  la preuve runtime finale
+- blocker: aucun kernel Jupyter `.venv-inference` n'etait en cours
+  d'execution lors de l'inspection; si la prochaine iteration doit relancer les
+  modeles, elle doit le justifier explicitement
+- blocker: `Unbabel/XCOMET-XL` n'est pas present dans le cache HF local au
+  moment de l'inspection; le score `XCOMETXL` reste donc a valider en runtime
 - blocker: le repo est actuellement dirty, donc l'Objectif 2 doit rester gate
   derriere une baseline propre et un worktree clean
-- blocker: la facade notebook finit actuellement par un
-  `run_stream("test-set/audio/ccpXHNfaoy.wav")` direct, utile pour du manuel
-  mais pas encore un contrat de mission robuste
 - blocker: la reutilisation du kernel persistant est une contrainte forte; tout
   workflow qui redemarre silencieusement le kernel compte comme regression
 
 ## First Bounded Slice Candidates
 
-- candidate: definir le contrat exact des artefacts `outputs/cascade_v1/` et
-  faire ecrire une premiere inference reproductible sans recharger les modeles
-- candidate: ajouter l'entree `.venv-evaluation` qui consomme ces artefacts et
-  produit `BLEU`, `CHRF`, `XCOMETXL`, `LongYAAL CU`, `LongYAAL CA`
+- candidate: reutiliser un kernel `.venv-inference` vivant, ou justifier le
+  chargement unique, puis produire le premier bundle reel
+  `outputs/cascade_v1/` pour `ccpXHNfaoy.wav`
+- candidate: executer `evaluate_cascade_outputs.py` dans `.venv-evaluation`
+  sur ce bundle reel, et distinguer explicitement une vraie absence de score
+  `XCOMETXL` d'un simple smoke test offline
 - candidate: une fois l'Objectif 1 reproductible et committe, de-geler
   l'Objectif 2 pour des experiences prompt-only avec un commit par variante

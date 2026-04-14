@@ -25,5 +25,6 @@ Derived from `ralph_mission/RALPH_HYPOTHESES.json`. Do not edit by hand.
 - `h_obj2_prompt_only_quality_latency_tuning` -> new_runtime_artifact, human_override
 
 ## Recent Iterations
+- `objective1_artifact_contract` `workspace` | ids=h_obj1_reproducible_single_audio_eval_loop | Landed a versioned outputs/cascade_v1 artifact contract, notebook-safe baseline entrypoints, and a repo-local OmniSTEval driver for the single-audio path without reloading the model stack.
 - `mission_objectives_bootstrap` `workspace` | ids=h_bootstrap_first_bounded_slice, h_obj1_reproducible_single_audio_eval_loop, h_obj2_prompt_only_quality_latency_tuning | Replaced the blank mission bootstrap with a concrete Objective 1 baseline branch and a frozen Objective 2 prompt-only tuning branch.
 - `bootstrap` `bootstrap` | ids=h_bootstrap_first_bounded_slice | Initialized a blank Ralph mission scaffold with one active bootstrap hypothesis.

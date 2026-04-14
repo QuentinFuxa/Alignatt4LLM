@@ -120,3 +120,82 @@
 
 - `h_obj1_reproducible_single_audio_eval_loop`:
   verrouiller la baseline single-audio avec sorties et evaluation persistantes
+
+## objective1_artifact_contract
+
+### Decision
+
+- figer un vrai contrat d'artefacts `outputs/cascade_v1/` avant toute relance
+  GPU
+- separer proprement l'entree inference `.venv-inference` et l'entree
+  evaluation `.venv-evaluation`
+- garder l'Objectif 1 actif tant qu'aucun bundle reel `ccpXHNfaoy.wav` n'a ete
+  produit
+
+### Impact runtime
+
+- le runtime sait maintenant ecrire `manifest.json`, `hypothesis.jsonl`,
+  `stream_updates.jsonl`, `transcript.en.txt`, `translation.de.txt`
+- le notebook n'execute plus la cascade a l'import
+- rien n'a encore ete charge en GPU dans cette iteration
+
+### Portee de preuve
+
+- preuve locale uniquement
+- offline seulement pour les validations lancees
+- smoke test single-audio synthetique, pas une vraie inference
+- aucun claim papier
+
+### Trigger de sortie
+
+- cette iteration sort une fois que le repo contient un chemin unique pour
+  produire puis evaluer `outputs/cascade_v1/` sans re-decouvrir la stack
+
+### Hypothesis IDs touched
+
+- `h_obj1_reproducible_single_audio_eval_loop`
+
+### Status transitions
+
+- none
+
+### Ce qui a ete fait
+
+- ajoute `cascade_artifacts.py` comme schema partage inference/evaluation
+- etend `qwen3asr_gemma_cascade_core.py` pour persister la baseline et suivre
+  des timestamps mot-a-mot
+- retire l'execution automatique de
+  `qwen3asr_gemma_cascade_notebook.py`
+- ajoute `run_cascade_baseline.py` et `evaluate_cascade_outputs.py`
+- filtre l'evaluation OmniSTEval sur les `source` reels du `hypothesis.jsonl`
+  pour le cas single-audio
+
+### Validations lancees
+
+- `python -m py_compile cascade_artifacts.py run_cascade_baseline.py evaluate_cascade_outputs.py qwen3asr_gemma_cascade_core.py qwen3asr_gemma_cascade_notebook.py`
+- smoke test local `write_inference_artifacts(...)`: PASS
+- `.venv-evaluation/bin/python evaluate_cascade_outputs.py --skip-comet` sur un
+  bundle synthetique `ccpXHNfaoy.wav`: PASS
+
+### Resultats utiles
+
+- l'evaluation repo-locale ecrit bien `BLEU`, `CHRF`, `XCOMETXL`,
+  `LongYAAL CU`, `LongYAAL CA` dans `scores.tsv`
+- le faux blocage "1 hypothese contre tout le corpus" a ete elimine en
+  filtrant `audio-segments.yaml` sur les `source` reels
+- un smoke test synthetique a donne `BLEU=100`, `CHRF=100`,
+  `XCOMETXL=NA`, donc le contrat de sortie est verifie sans preuve runtime
+
+### Blocages restants
+
+- aucun kernel `.venv-inference` vivant n'etait disponible au moment de
+  l'iteration
+- aucun bundle reel `outputs/cascade_v1/` n'a encore ete produit
+- `Unbabel/XCOMET-XL` n'est pas present dans le cache HF local, donc le score
+  `XCOMETXL` reste a confirmer en conditions reelles
+
+### Hypothese de la prochaine iteration
+
+- `h_obj1_reproducible_single_audio_eval_loop`:
+  produire le premier bundle reel `ccpXHNfaoy.wav`, puis lancer
+  l'evaluation reelle ou enregistrer un blocage `XCOMETXL` explicite

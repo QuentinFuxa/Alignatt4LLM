@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from time import perf_counter
 import os
 from types import SimpleNamespace
 from typing import List
@@ -11,6 +12,14 @@ import patch_qwen_asr_for_transformers5
 from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS
 from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams
+
+from cascade_artifacts import (
+    DEFAULT_OUTPUT_DIR,
+    DEFAULT_WAV_PATH,
+    InferenceArtifacts,
+    StreamUpdate,
+    write_inference_artifacts,
+)
 
 
 # Avoid repeated HF HEAD requests for optional files that are already cached as absent.
@@ -92,6 +101,36 @@ def n_utterances(text: str) -> int:
     if text.endswith((".", "!", "?")):
         n_utt += 1
     return n_utt
+
+
+def longest_common_prefix_words(previous: List[str], current: List[str]) -> int:
+    prefix_len = 0
+    for left, right in zip(previous, current):
+        if left != right:
+            break
+        prefix_len += 1
+    return prefix_len
+
+
+def register_translation_words(
+    previous_translation: str,
+    current_translation: str,
+    audio_processed_ms: float,
+    wallclock_elapsed_ms: float,
+    word_delays_ms: List[float],
+    word_elapsed_ms: List[float],
+) -> List[str]:
+    previous_words = previous_translation.split()
+    current_words = current_translation.split()
+    prefix_len = longest_common_prefix_words(previous_words, current_words)
+
+    del word_delays_ms[prefix_len:]
+    del word_elapsed_ms[prefix_len:]
+    for _ in current_words[prefix_len:]:
+        word_delays_ms.append(audio_processed_ms)
+        word_elapsed_ms.append(wallclock_elapsed_ms)
+
+    return current_words[prefix_len:]
 
 
 @dataclass
@@ -272,13 +311,18 @@ def load_wav(path: str) -> np.ndarray:
     return audio
 
 
-def run_stream(wav_path: str, chunk_ms: int = 960):
+def run_stream_to_artifacts(wav_path: str, chunk_ms: int = 960) -> InferenceArtifacts:
     load_models()
     clear_state()
 
     audio = load_wav(wav_path)
     chunk_size = int(SAMPLE_RATE * chunk_ms / 1000)
     last_asr = ""
+    last_translation = ""
+    word_delays_ms: List[float] = []
+    word_elapsed_ms: List[float] = []
+    updates: List[StreamUpdate] = []
+    start_time = perf_counter()
 
     for start in range(0, len(audio), chunk_size):
         chunk = audio[start : start + chunk_size]
@@ -293,19 +337,108 @@ def run_stream(wav_path: str, chunk_ms: int = 960):
 
         last_asr = current_asr
         translation = translate_with_gemma(current_asr)
-        current_time = start / SAMPLE_RATE
+        audio_processed_ms = len(state.source) * 1000.0 / SAMPLE_RATE
+        wallclock_elapsed_ms = (perf_counter() - start_time) * 1000.0
+        new_words = register_translation_words(
+            last_translation,
+            translation,
+            audio_processed_ms,
+            wallclock_elapsed_ms,
+            word_delays_ms,
+            word_elapsed_ms,
+        )
+        updates.append(
+            StreamUpdate(
+                update_idx=len(updates),
+                audio_processed_ms=audio_processed_ms,
+                wallclock_elapsed_ms=wallclock_elapsed_ms,
+                asr_text=current_asr,
+                translation_text=translation,
+                new_words=new_words,
+            )
+        )
+        current_time = audio_processed_ms / 1000.0
         print(f"[{current_time:6.2f}s] ASR: {current_asr}")
         print(f"[{current_time:6.2f}s] DE : {translation}")
+        last_translation = translation
 
     final_asr = transcribe_audio() or last_asr
     final_translation = translate_with_gemma(final_asr)
+    audio_duration_ms = len(audio) * 1000.0 / SAMPLE_RATE
+    final_elapsed_ms = (perf_counter() - start_time) * 1000.0
+    final_new_words = register_translation_words(
+        last_translation,
+        final_translation,
+        audio_duration_ms,
+        final_elapsed_ms,
+        word_delays_ms,
+        word_elapsed_ms,
+    )
+    if final_asr != last_asr or final_translation != last_translation:
+        updates.append(
+            StreamUpdate(
+                update_idx=len(updates),
+                audio_processed_ms=audio_duration_ms,
+                wallclock_elapsed_ms=final_elapsed_ms,
+                asr_text=final_asr,
+                translation_text=final_translation,
+                new_words=final_new_words,
+            )
+        )
 
     print("\nFinal ASR:")
     print(final_asr)
     print("\nFinal translation:")
     print(final_translation)
 
-    return final_asr, final_translation
+    return InferenceArtifacts(
+        wav_path=wav_path,
+        chunk_ms=chunk_ms,
+        source_language=config.source_lang,
+        target_language=config.target_lang,
+        latency_unit=config.latency_unit,
+        audio_duration_ms=audio_duration_ms,
+        final_asr_text=final_asr,
+        final_translation_text=final_translation,
+        translation_word_delays_ms=word_delays_ms,
+        translation_word_elapsed_ms=word_elapsed_ms,
+        updates=updates,
+        runtime_config={
+            "min_start_seconds": config.min_start_seconds,
+            "max_history_utterances": config.max_history_utterances,
+            "max_new_tokens": config.max_new_tokens,
+            "temperature": config.temperature,
+            "repetition_penalty": config.repetition_penalty,
+            "asr_gpu_memory_utilization": config.asr_gpu_memory_utilization,
+            "gemma_gpu_memory_utilization": config.gemma_gpu_memory_utilization,
+            "gemma_max_model_len": config.gemma_max_model_len,
+            "gemma_enforce_eager": config.gemma_enforce_eager,
+        },
+    )
+
+
+def run_stream(wav_path: str, chunk_ms: int = 960, output_dir: str | None = None):
+    artifacts = run_stream_to_artifacts(wav_path, chunk_ms=chunk_ms)
+    if output_dir is not None:
+        write_inference_artifacts(artifacts, output_dir)
+
+    return artifacts.final_asr_text, artifacts.final_translation_text
+
+
+def run_baseline(
+    wav_path: str = DEFAULT_WAV_PATH,
+    *,
+    output_dir: str = DEFAULT_OUTPUT_DIR,
+    chunk_ms: int = 960,
+):
+    artifacts = run_stream_to_artifacts(wav_path, chunk_ms=chunk_ms)
+    written_files = write_inference_artifacts(artifacts, output_dir)
+    print(f"\nWrote baseline artifacts to {output_dir}")
+    for label, path in written_files.items():
+        print(f"- {label}: {path}")
+
+    return written_files
+
+
 if __name__ == "__main__":
-    load_models()
-    run_stream("test-set/audio/wJAPXMIoIG.wav")
+    run_baseline()
