@@ -15,7 +15,12 @@ from cascade_artifacts import (
     STREAM_UPDATES_FILENAME,
     write_inference_artifacts,
 )
-from cascade_emission import FREEZE_MAJOR_TAIL_REWRITES, RAW_PASSTHROUGH, replay_stream_updates
+from cascade_emission import (
+    FREEZE_MAJOR_TAIL_REWRITES,
+    FREEZE_NONEXPANDING_MAJOR_REWRITES,
+    RAW_PASSTHROUGH,
+    replay_stream_updates,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -41,7 +46,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--emit-policy",
         default=FREEZE_MAJOR_TAIL_REWRITES,
-        choices=[RAW_PASSTHROUGH, FREEZE_MAJOR_TAIL_REWRITES],
+        choices=[
+            RAW_PASSTHROUGH,
+            FREEZE_MAJOR_TAIL_REWRITES,
+            FREEZE_NONEXPANDING_MAJOR_REWRITES,
+        ],
         help="Emission policy to apply while replaying the stored raw translation stream.",
     )
     return parser.parse_args()

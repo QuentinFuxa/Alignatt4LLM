@@ -7,9 +7,11 @@ from cascade_artifacts import StreamUpdate
 
 
 FREEZE_MAJOR_TAIL_REWRITES = "freeze_major_tail_rewrites"
+FREEZE_NONEXPANDING_MAJOR_REWRITES = "freeze_nonexpanding_major_rewrites"
 RAW_PASSTHROUGH = "raw_passthrough"
 FINAL_PASSTHROUGH = "final_passthrough"
 FROZEN_MAJOR_TAIL_REWRITE = "frozen_major_tail_rewrite"
+FROZEN_NONEXPANDING_MAJOR_TAIL_REWRITE = "frozen_nonexpanding_major_tail_rewrite"
 FINAL_FORCE_MATCH = "final_force_match"
 
 
@@ -53,6 +55,17 @@ def register_translation_words(
     )
 
 
+def major_rewrite_exceeds_tail_window(
+    previous_words: list[str],
+    raw_words: list[str],
+    *,
+    max_tail_rewrite_words: int,
+) -> bool:
+    prefix_len = longest_common_prefix_words(previous_words, raw_words)
+    allowed_rewrite_start = max(0, len(previous_words) - max_tail_rewrite_words)
+    return prefix_len < allowed_rewrite_start
+
+
 def stabilize_emitted_translation(
     previous_translation: str,
     raw_translation: str,
@@ -71,12 +84,45 @@ def stabilize_emitted_translation(
 
     previous_words = previous_translation.split()
     raw_words = raw_translation.split()
-    prefix_len = longest_common_prefix_words(previous_words, raw_words)
-    allowed_rewrite_start = max(0, len(previous_words) - max_tail_rewrite_words)
-    if prefix_len >= allowed_rewrite_start:
+    if not major_rewrite_exceeds_tail_window(
+        previous_words,
+        raw_words,
+        max_tail_rewrite_words=max_tail_rewrite_words,
+    ):
         return raw_translation, RAW_PASSTHROUGH
 
     return previous_translation, FROZEN_MAJOR_TAIL_REWRITE
+
+
+def stabilize_nonexpanding_major_rewrites(
+    previous_translation: str,
+    raw_translation: str,
+    *,
+    max_tail_rewrite_words: int,
+    is_final: bool,
+) -> tuple[str, str]:
+    previous_translation = previous_translation.strip()
+    raw_translation = raw_translation.strip()
+
+    if is_final:
+        return raw_translation, FINAL_PASSTHROUGH
+
+    if max_tail_rewrite_words < 0 or not previous_translation or not raw_translation:
+        return raw_translation, RAW_PASSTHROUGH
+
+    previous_words = previous_translation.split()
+    raw_words = raw_translation.split()
+    if (
+        major_rewrite_exceeds_tail_window(
+            previous_words,
+            raw_words,
+            max_tail_rewrite_words=max_tail_rewrite_words,
+        )
+        and len(raw_words) <= len(previous_words)
+    ):
+        return previous_translation, FROZEN_NONEXPANDING_MAJOR_TAIL_REWRITE
+
+    return raw_translation, RAW_PASSTHROUGH
 
 
 def apply_emission_policy(
@@ -89,6 +135,13 @@ def apply_emission_policy(
 ) -> tuple[str, str]:
     if emit_policy == FREEZE_MAJOR_TAIL_REWRITES:
         return stabilize_emitted_translation(
+            previous_translation,
+            raw_translation,
+            max_tail_rewrite_words=max_tail_rewrite_words,
+            is_final=is_final,
+        )
+    if emit_policy == FREEZE_NONEXPANDING_MAJOR_REWRITES:
+        return stabilize_nonexpanding_major_rewrites(
             previous_translation,
             raw_translation,
             max_tail_rewrite_words=max_tail_rewrite_words,

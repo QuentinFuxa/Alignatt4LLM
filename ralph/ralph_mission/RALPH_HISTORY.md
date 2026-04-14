@@ -708,3 +708,84 @@
   tester exactement une politique d'emission offline moins fragile que
   `freeze14` sur le meme bundle prompt-only pour chercher un sub-`2s` qui ne
   casse pas `LongAL`/`LongLAAL`/`LongDAL`
+
+## objective2_prompt_only_emission_nonexpanding_annex
+
+### Decision
+
+- ajouter une seule politique d'emission `nonexpanding`
+- geler ce replay en annexe: il garde le profil CU large sain, mais il reste
+  au-dessus du gate `<2s`
+
+### Impact runtime
+
+- aucun rechargement `Qwen3-ASR`/`Gemma`: tranche `offline` uniquement
+- `cascade_emission.py` et `reemit_cascade_outputs.py` savent maintenant
+  rejouer une politique qui ne gele que les grosses reecritures sans croissance
+- `outputs/cascade_v1_prompt_only_terminology_guard_emit_nonexpanding14/`
+  capture ce derive sans toucher au bundle live prompt-only
+
+### Portee de preuve
+
+- preuve locale runtime
+- un seul talk `objective2`
+- un seul delai `prompt_only_latency_quality`
+- offline seulement
+- aucun claim papier
+
+### Trigger de sortie
+
+- cette iteration sort une fois qu'un seul replay `nonexpanding` du bundle
+  prompt-only est evalue, puis explicitement annexe s'il garde `LongAL` /
+  `LongLAAL` / `LongDAL` dans une plage saine mais rate encore `LongYAAL CU <
+  2s`
+
+### Hypothesis IDs touched
+
+- `h_obj2_prompt_only_quality_latency_tuning`
+- `h_obj2_prompt_only_nonexpanding_emission_annex`
+
+### Status transitions
+
+- `h_obj2_prompt_only_nonexpanding_emission_annex: new -> frozen_annex`
+
+### Ce qui a ete fait
+
+- ajoute `freeze_nonexpanding_major_rewrites` dans la couche de replay
+- rejoue cette politique avec fenetre `14` sur
+  `outputs/cascade_v1_prompt_only_terminology_guard/`
+- reevalue offline le dossier derive et le compare au bundle raw prompt-only et
+  a l'annexe `freeze14`
+
+### Validations lancees
+
+- `python -m py_compile cascade_emission.py reemit_cascade_outputs.py evaluate_cascade_outputs.py`: PASS
+- `python reemit_cascade_outputs.py --input-dir outputs/cascade_v1_prompt_only_terminology_guard --output-dir outputs/cascade_v1_prompt_only_terminology_guard_emit_nonexpanding14 --emit-policy freeze_nonexpanding_major_rewrites --max-tail-rewrite-words 14`: PASS
+- `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv-evaluation/bin/python evaluate_cascade_outputs.py --output-dir outputs/cascade_v1_prompt_only_terminology_guard_emit_nonexpanding14`: PASS
+- comparaison offline des bundles prompt-only raw / `freeze14` / `nonexpanding14`: PASS
+
+### Resultats utiles
+
+- le replay conserve exactement la traduction finale prompt-only (`710` mots)
+  donc `BLEU` et `CHRF` restent a `39.8939` et `68.5887`
+- seuls `2` updates sur `357` sont geles, ce qui garde `LongAL`,
+  `LongLAAL` et `LongDAL` cote CU a `2112.7369`, `2175.5032` et `3396.8845`
+  au lieu des ordres de grandeur pathologiques de l'annexe `freeze14`
+- `LongYAAL CU` reste a `2235.3946 ms`, donc legerement pire que le bundle raw
+  prompt-only et encore au-dessus du gate; l'espace emission-only prompt-only
+  est maintenant borne par deux annexes negatives complementaires
+
+### Blocages restants
+
+- `Unbabel/XCOMET-XL` manque toujours du cache HF local offline
+- aucun chemin prompt-only sub-`2s` promouvable n'existe encore entre les deux
+  annexes de replay connues
+- le prochain gain utile doit venir d'une variante live qui reduit le churn en
+  amont plutot que d'un nouveau replay offline
+
+### Hypothese de la prochaine iteration
+
+- `h_obj2_prompt_only_quality_latency_tuning`:
+  tester exactement une nouvelle variante live prompt-only qui durcit la
+  continuation des segments partiels pour chercher un gain de latence plus
+  honnete que les replays d'emission
