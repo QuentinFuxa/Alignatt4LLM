@@ -24,6 +24,34 @@ RESEGMENTED_INSTANCES_FILENAME = "instances.resegmented.jsonl"
 EVALUATION_JSON_FILENAME = "evaluation.json"
 EVALUATION_REPORT_FILENAME = "evaluation.report.txt"
 SCORES_TSV_FILENAME = "scores.tsv"
+HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE = "ca_compatible_incremental"
+STREAM_UPDATE_ELAPSED_SEMANTICS_WALLCLOCK = "wallclock_elapsed_since_run_start"
+
+
+def normalize_computation_aware_timestamps(
+    delays_ms: list[float],
+    elapsed_wallclock_ms: list[float],
+) -> list[float]:
+    if len(delays_ms) != len(elapsed_wallclock_ms):
+        raise ValueError(
+            "Computation-aware timestamps require matching delay and elapsed lengths: "
+            f"{len(delays_ms)} != {len(elapsed_wallclock_ms)}"
+        )
+    if not delays_ms:
+        return []
+
+    # OmniSTEval expects computation-aware timestamps on the source-time axis.
+    # Our runtime stores cumulative wallclock elapsed values, so we convert them
+    # into incremental CA-compatible timestamps while preserving monotonicity.
+    normalized = [float(elapsed_wallclock_ms[0])]
+    for index in range(1, len(delays_ms)):
+        candidate = (
+            float(elapsed_wallclock_ms[index])
+            - float(elapsed_wallclock_ms[index - 1])
+            + float(delays_ms[index - 1])
+        )
+        normalized.append(max(candidate, normalized[-1]))
+    return normalized
 
 
 @dataclass
@@ -36,6 +64,10 @@ class StreamUpdate:
     new_words: list[str] = field(default_factory=list)
     raw_translation_text: str | None = None
     emission_policy_action: str | None = None
+    translation_prompt_num_cached_tokens: int | None = None
+    translation_prompt_num_tokens: int | None = None
+    partial_committed_prefix: str | None = None
+    uncertainty_boundary_emitted: bool | None = None
 
 
 @dataclass
@@ -54,15 +86,30 @@ class InferenceArtifacts:
     runtime_config: dict[str, Any]
 
     def hypothesis_record(self) -> dict[str, Any]:
+        normalized_elapsed_ms = normalize_computation_aware_timestamps(
+            self.translation_word_delays_ms,
+            self.translation_word_elapsed_ms,
+        )
         return {
             "source": [Path(self.wav_path).name],
             "source_length": self.audio_duration_ms,
             "prediction": self.final_translation_text,
             "delays": self.translation_word_delays_ms,
-            "elapsed": self.translation_word_elapsed_ms,
+            "elapsed": normalized_elapsed_ms,
+            "elapsed_wallclock_ms": self.translation_word_elapsed_ms,
+            "elapsed_semantics": HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
         }
 
     def manifest_record(self) -> dict[str, Any]:
+        runtime_config = dict(self.runtime_config)
+        runtime_config.setdefault(
+            "hypothesis_elapsed_semantics",
+            HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
+        )
+        runtime_config.setdefault(
+            "stream_update_elapsed_semantics",
+            STREAM_UPDATE_ELAPSED_SEMANTICS_WALLCLOCK,
+        )
         return {
             "schema_version": ARTIFACT_SCHEMA_VERSION,
             "generated_at_utc": utc_now_isoformat(),
@@ -79,7 +126,7 @@ class InferenceArtifacts:
                 "transcript_en_txt": FINAL_ASR_FILENAME,
                 "translation_de_txt": FINAL_TRANSLATION_FILENAME,
             },
-            "runtime_config": self.runtime_config,
+            "runtime_config": runtime_config,
         }
 
 

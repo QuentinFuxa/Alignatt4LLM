@@ -17,6 +17,8 @@ from cascade_artifacts import (
     DEFAULT_SOURCE_REF_PATH,
     DEFAULT_TARGET_REF_PATH,
     HYPOTHESIS_FILENAME,
+    HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
+    MANIFEST_FILENAME,
     write_evaluation_outputs,
 )
 from omnisteval import evaluate_instances
@@ -60,9 +62,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--fix-emission-ca",
+        dest="fix_emission_ca",
         action="store_true",
-        help="Apply OmniSTEval's fix for cumulative computation-aware timestamps.",
+        help="Force-apply OmniSTEval's fix for legacy cumulative elapsed timestamps.",
     )
+    parser.add_argument(
+        "--no-fix-emission-ca",
+        dest="fix_emission_ca",
+        action="store_false",
+        help="Disable the automatic compatibility fix for legacy cumulative elapsed timestamps.",
+    )
+    parser.set_defaults(fix_emission_ca=None)
     return parser.parse_args()
 
 
@@ -78,6 +88,31 @@ def resolve_hypothesis_path(output_dir: str) -> Path:
             "Run run_cascade_baseline.py from .venv-inference first."
         )
     return hypothesis_path
+
+
+def load_manifest(output_dir: str) -> dict | None:
+    manifest_path = Path(output_dir) / MANIFEST_FILENAME
+    if not manifest_path.exists():
+        return None
+    return json.loads(manifest_path.read_text(encoding="utf-8"))
+
+
+def resolve_fix_emission_ca(output_dir: str, cli_override: bool | None) -> bool:
+    if cli_override is not None:
+        return cli_override
+
+    manifest = load_manifest(output_dir)
+    if manifest is None:
+        return False
+
+    runtime_config = manifest.get("runtime_config", {}) or {}
+    semantics = runtime_config.get("hypothesis_elapsed_semantics")
+    if semantics == HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE:
+        return False
+
+    # Legacy cascade_v1 bundles stored raw cumulative wallclock elapsed values
+    # in hypothesis.jsonl and need OmniSTEval's compatibility fix at evaluation.
+    return manifest.get("schema_version") == "cascade_v1"
 
 
 def read_hypothesis_sources(hypothesis_path: Path) -> set[str]:
@@ -211,6 +246,7 @@ def append_metric_blockers(report_lines: list[str], blockers: list[dict[str, str
 def main() -> None:
     args = parse_args()
     hypothesis_path = resolve_hypothesis_path(args.output_dir)
+    fix_emission_ca = resolve_fix_emission_ca(args.output_dir, args.fix_emission_ca)
     compute_comet = not args.skip_comet
     allowed_sources = read_hypothesis_sources(hypothesis_path)
     filtered_segments, filtered_references = filter_longform_reference_inputs(
@@ -240,7 +276,7 @@ def main() -> None:
             hypothesis_format="jsonl",
             char_level=False,
             offset_delays=False,
-            fix_emission_ca_flag=args.fix_emission_ca,
+            fix_emission_ca_flag=fix_emission_ca,
         )
         instances, instances_dicts = resegment(
             ref_words,
@@ -300,7 +336,7 @@ def main() -> None:
         "matched_sources": sorted(allowed_sources),
         "source_reference": args.source_reference if compute_comet else "skipped",
         "comet_model": args.comet_model if compute_comet else "skipped",
-        "fix_emission_ca": args.fix_emission_ca,
+        "fix_emission_ca": fix_emission_ca,
         "output_dir": args.output_dir,
     }
     report_text = format_report(

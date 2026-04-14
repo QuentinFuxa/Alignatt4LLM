@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""List and control active notebook kernels.
+"""List, control, start, and warm notebook kernels.
 
 This script supports two modes:
 1. Jupyter Server managed sessions via the server API.
@@ -7,10 +7,21 @@ This script supports two modes:
 
 Examples:
   ./restart_jupyter_kernel.py --list
+  ./restart_jupyter_kernel.py --start
+  ./restart_jupyter_kernel.py --start --warm
+  ./restart_jupyter_kernel.py --hot-reload-help
   ./restart_jupyter_kernel.py --interrupt
   ./restart_jupyter_kernel.py --interrupt --pid 3690
   ./restart_jupyter_kernel.py --kernel-id <kernel-id>
   ./restart_jupyter_kernel.py --session-id <session-id>
+
+Hot reload principle:
+  Keep the warmed raw kernel alive, preserve the in-memory model objects
+  (`asr`, `gemma_llm`, `gemma_tokenizer`), reload only the Python modules with
+  `importlib.reload(...)`, rebind the preserved model objects into the reloaded
+  `qwen3asr_gemma_cascade_core` module, reset only `core.state`, then call
+  `qwen3asr_gemma_cascade_core.run_baseline(...)` directly. This updates the
+  code path without paying the model reload cost again.
 """
 
 from __future__ import annotations
@@ -18,10 +29,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import queue
 import re
+import shutil
 import signal
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Iterable
@@ -32,7 +46,33 @@ from urllib.request import Request, urlopen
 KERNEL_COMMAND_PATTERN = re.compile(
     r"ipykernel_launcher|jupyter-kernel|python[^ ]* .*ipykernel"
 )
-RUNTIME_PATH_PATTERN = re.compile(r"--f(?:=|\s+)(\S*kernel-[^\s]+\.json)")
+RUNTIME_PATH_PATTERN = re.compile(r"(?:--f|-f)(?:=|\s+)(\S*kernel-[^\s]+\.json)")
+DEFAULT_TMUX_SESSION = "cascade-inference-kernel"
+DEFAULT_RUNTIME_FILE = "kernel-cascade-simultaneous.json"
+LOAD_MODELS_BEGIN_MARKER = "LOAD_MODELS_BEGIN"
+LOAD_MODELS_DONE_MARKER = "LOAD_MODELS_DONE"
+HOT_RELOAD_GUIDE = """
+Hot reload principle
+--------------------
+1. Keep the persistent raw `.venv-inference` kernel alive and warmed.
+2. Save `qwen3asr_gemma_cascade_core.asr`, `gemma_llm`, and `gemma_tokenizer`.
+3. Reload `cascade_translation_variants` and `qwen3asr_gemma_cascade_core`
+   with `importlib.reload(...)`.
+4. Rebind the saved model objects into the reloaded core module.
+5. Recompute `gemma_uncertainty_token_id` and reset only `core.state`.
+6. Call `qwen3asr_gemma_cascade_core.run_baseline(...)` directly.
+
+Why call the core module directly?
+  The notebook facade imports function references eagerly. After a hot reload,
+  running the reloaded `qwen3asr_gemma_cascade_core` module directly avoids
+  accidentally using stale function objects that were imported before reload.
+""".strip()
+LOAD_MODELS_CODE = (
+    "from qwen3asr_gemma_cascade_notebook import load_models\n"
+    f"print({LOAD_MODELS_BEGIN_MARKER!r})\n"
+    "load_models()\n"
+    f"print({LOAD_MODELS_DONE_MARKER!r})\n"
+)
 
 
 @dataclass(frozen=True)
@@ -219,6 +259,10 @@ def discover_targets() -> list[KernelTarget]:
 def print_targets(targets: list[KernelTarget]) -> None:
     if not targets:
         print("No active notebook kernels found.")
+        print(
+            "Tip: start a persistent .venv-inference kernel with "
+            "`./restart_jupyter_kernel.py --start --warm`."
+        )
         return
 
     print(f"Active notebook kernels: {len(targets)}")
@@ -309,14 +353,207 @@ def control_targets(targets: list[KernelTarget], *, action: str) -> int:
     return 0
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parent
+
+
+def _runtime_path(runtime_file: str) -> Path:
+    path = Path(runtime_file)
+    if path.is_absolute():
+        return path
+    return _runtime_dir() / path.name
+
+
+def _pid_is_alive(pid: int | None) -> bool:
+    if pid is None:
+        return False
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _find_raw_target_by_runtime_file(runtime_file: str) -> KernelTarget | None:
+    runtime_name = Path(runtime_file).name
+    for target in discover_raw_targets():
+        if (target.runtime_file or "") == runtime_name:
+            return target
+    return None
+
+
+def _tmux_has_session(session_name: str) -> bool:
+    result = subprocess.run(
+        ["tmux", "has-session", "-t", session_name],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0
+
+
+def start_persistent_raw_kernel(
+    *,
+    session_name: str,
+    runtime_file: str,
+) -> KernelTarget:
+    if shutil.which("tmux") is None:
+        raise RuntimeError("`tmux` is required to start a persistent raw kernel.")
+
+    repo_root = _repo_root()
+    python_path = repo_root / ".venv-inference" / "bin" / "python"
+    if not python_path.exists():
+        raise RuntimeError(
+            f"Expected inference Python at {python_path}, but it does not exist."
+        )
+
+    runtime_path = _runtime_path(runtime_file)
+    runtime_path.parent.mkdir(parents=True, exist_ok=True)
+
+    existing = _find_raw_target_by_runtime_file(runtime_path.name)
+    if existing and _pid_is_alive(existing.pid):
+        print(
+            f"Persistent raw kernel already running: PID {existing.pid} "
+            f"({existing.runtime_file or runtime_path.name})"
+        )
+        return existing
+
+    if _tmux_has_session(session_name):
+        subprocess.run(
+            ["tmux", "kill-session", "-t", session_name],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    if runtime_path.exists():
+        runtime_path.unlink()
+
+    subprocess.run(
+        [
+            "tmux",
+            "new-session",
+            "-d",
+            "-s",
+            session_name,
+            "-c",
+            str(repo_root),
+            str(python_path),
+            "-m",
+            "ipykernel_launcher",
+            "-f",
+            str(runtime_path),
+        ],
+        check=True,
+    )
+
+    deadline = time.time() + 30.0
+    while time.time() < deadline:
+        target = _find_raw_target_by_runtime_file(runtime_path.name)
+        if target and _pid_is_alive(target.pid):
+            print(
+                f"Started persistent raw kernel: PID {target.pid} "
+                f"({target.runtime_file or runtime_path.name})"
+            )
+            return target
+        time.sleep(0.1)
+
+    raise RuntimeError(
+        f"Started tmux session {session_name!r}, but no raw kernel became discoverable."
+    )
+
+
+def warm_raw_kernel(target: KernelTarget) -> int:
+    if target.kind != "raw":
+        raise RuntimeError("Warm-up is only supported for raw kernels.")
+    if not target.runtime_file:
+        raise RuntimeError("The raw kernel does not expose a runtime file.")
+    if not _pid_is_alive(target.pid):
+        raise RuntimeError("The selected raw kernel is no longer running.")
+
+    runtime_path = _runtime_path(target.runtime_file)
+    if not runtime_path.exists():
+        raise RuntimeError(f"Missing runtime file: {runtime_path}")
+
+    from jupyter_client import BlockingKernelClient
+
+    client = BlockingKernelClient(connection_file=str(runtime_path))
+    client.load_connection_file()
+    client.start_channels()
+    try:
+        client.wait_for_ready(timeout=120)
+        print(f"Connected to raw kernel PID {target.pid} via {runtime_path.name}")
+        msg_id = client.execute(LOAD_MODELS_CODE, store_history=False)
+        saw_done = False
+        start = time.time()
+        last_wait_notice = start
+
+        while True:
+            try:
+                message = client.get_iopub_msg(timeout=5)
+            except queue.Empty:
+                now = time.time()
+                if now - last_wait_notice >= 30:
+                    print(f"Still warming kernel; elapsed={int(now - start)}s")
+                    last_wait_notice = now
+                continue
+
+            if message.get("parent_header", {}).get("msg_id") != msg_id:
+                continue
+
+            msg_type = message["header"]["msg_type"]
+            content = message["content"]
+            if msg_type == "stream":
+                text = content.get("text", "")
+                if text:
+                    print(text, end="")
+                    if LOAD_MODELS_DONE_MARKER in text:
+                        saw_done = True
+            elif msg_type == "error":
+                traceback = "\n".join(content.get("traceback", []))
+                raise RuntimeError(f"Kernel warm-up failed:\n{traceback}")
+            elif (
+                msg_type == "status"
+                and content.get("execution_state") == "idle"
+                and saw_done
+            ):
+                print("Kernel warm-up finished.")
+                return 0
+    finally:
+        client.stop_channels()
+
+    raise RuntimeError("Kernel warm-up ended unexpectedly.")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="List, interrupt, or restart active notebook kernels."
+        description="List, start, warm, interrupt, or restart active notebook kernels."
+    )
+    parser.add_argument(
+        "--hot-reload-help",
+        action="store_true",
+        help="Print the recommended code-only hot reload workflow for the warmed raw kernel.",
     )
     parser.add_argument(
         "--list",
         action="store_true",
         help="List active kernels instead of controlling them.",
+    )
+    parser.add_argument(
+        "--start",
+        action="store_true",
+        help=(
+            "Start a persistent raw .venv-inference ipykernel inside tmux. "
+            "If it already exists, reuse it."
+        ),
+    )
+    parser.add_argument(
+        "--warm",
+        action="store_true",
+        help=(
+            "Run `load_models()` inside the selected raw kernel. "
+            "Useful with --start to pre-load ASR and Gemma once."
+        ),
     )
     parser.add_argument(
         "--interrupt",
@@ -335,16 +572,58 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--session-id", help="Control a server-backed session by session id.")
     parser.add_argument("--kernel-id", help="Control a server-backed session by kernel id.")
     parser.add_argument("--pid", type=int, help="Control a raw kernel by process id.")
+    parser.add_argument(
+        "--tmux-session",
+        default=DEFAULT_TMUX_SESSION,
+        help=f"tmux session name used by --start (default: {DEFAULT_TMUX_SESSION}).",
+    )
+    parser.add_argument(
+        "--runtime-file",
+        default=DEFAULT_RUNTIME_FILE,
+        help=(
+            "Runtime filename used by --start or when resolving a raw kernel "
+            f"(default: {DEFAULT_RUNTIME_FILE})."
+        ),
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     try:
+        if args.hot_reload_help:
+            print(HOT_RELOAD_GUIDE)
+            return 0
+
+        if args.start:
+            target = start_persistent_raw_kernel(
+                session_name=args.tmux_session,
+                runtime_file=args.runtime_file,
+            )
+            if args.warm:
+                return warm_raw_kernel(target)
+            return 0
+
         targets = discover_targets()
         if args.list:
             print_targets(targets)
             return 0
+
+        if args.warm:
+            selected = select_targets(
+                targets,
+                session_id=args.session_id,
+                kernel_id=args.kernel_id,
+                notebook_path=args.path,
+                pid=args.pid,
+                all_targets=args.all,
+            )
+            if len(selected) != 1:
+                raise RuntimeError(
+                    "Warm-up requires exactly one selected kernel. Use --list first, "
+                    "then select a raw kernel with --pid, or use --start --warm."
+                )
+            return warm_raw_kernel(selected[0])
 
         action = "interrupt" if args.interrupt else "restart"
         selected = select_targets(

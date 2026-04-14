@@ -76,6 +76,12 @@ def load_stream_updates(path: Path) -> list[StreamUpdate]:
                 new_words=payload.get("new_words", []),
                 raw_translation_text=payload.get("raw_translation_text"),
                 emission_policy_action=payload.get("emission_policy_action"),
+                translation_prompt_num_cached_tokens=payload.get(
+                    "translation_prompt_num_cached_tokens"
+                ),
+                translation_prompt_num_tokens=payload.get("translation_prompt_num_tokens"),
+                partial_committed_prefix=payload.get("partial_committed_prefix"),
+                uncertainty_boundary_emitted=payload.get("uncertainty_boundary_emitted"),
             )
         )
     return updates
