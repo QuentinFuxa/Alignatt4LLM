@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from huggingface_hub import snapshot_download
 import yaml
 
 from cascade_artifacts import (
@@ -124,6 +126,88 @@ def filter_longform_reference_inputs(
     return filtered_segments, filtered_references
 
 
+def evaluate_base_metrics(instances: list) -> tuple[dict[str, float], list[str]]:
+    return evaluate_instances(
+        instances,
+        compute_quality=True,
+        compute_latency=True,
+        is_longform=True,
+        compute_comet=False,
+    )
+
+
+def comet_local_cache_blocker(comet_model: str) -> dict[str, str] | None:
+    offline_env = {"1", "true", "yes"}
+    if (
+        os.environ.get("HF_HUB_OFFLINE", "").lower() not in offline_env
+        and os.environ.get("TRANSFORMERS_OFFLINE", "").lower() not in offline_env
+    ):
+        return None
+
+    try:
+        snapshot_download(repo_id=comet_model, local_files_only=True)
+    except Exception as exc:
+        return {
+            "metric": "XCOMETXL",
+            "status": "blocked",
+            "reason": "comet_model_not_cached_locally",
+            "model": comet_model,
+            "exception_type": type(exc).__name__,
+            "message": str(exc),
+        }
+
+    return None
+
+
+def try_compute_comet_score(
+    instances: list,
+    *,
+    comet_model: str,
+    source_sentences: list[str],
+) -> tuple[float | None, dict[str, str] | None]:
+    local_cache_blocker = comet_local_cache_blocker(comet_model)
+    if local_cache_blocker is not None:
+        return None, local_cache_blocker
+
+    try:
+        comet_scores, _ = evaluate_instances(
+            instances,
+            compute_quality=True,
+            compute_latency=False,
+            is_longform=True,
+            compute_comet=True,
+            comet_model=comet_model,
+            source_sentences=source_sentences,
+        )
+    except Exception as exc:
+        return None, {
+            "metric": "XCOMETXL",
+            "status": "blocked",
+            "reason": "comet_evaluation_failed",
+            "model": comet_model,
+            "exception_type": type(exc).__name__,
+            "message": str(exc),
+        }
+
+    return comet_scores.get("comet"), None
+
+
+def append_metric_blockers(report_lines: list[str], blockers: list[dict[str, str]]) -> list[str]:
+    if not blockers:
+        return report_lines
+
+    augmented = list(report_lines)
+    augmented.extend(["", "Metric blockers", "-" * 64])
+    for blocker in blockers:
+        augmented.append(
+            "  "
+            f"{blocker['metric']}: {blocker['status']} | "
+            f"{blocker['reason']} | {blocker['model']} | "
+            f"{blocker['exception_type']}: {blocker['message']}"
+        )
+    return augmented
+
+
 def main() -> None:
     args = parse_args()
     hypothesis_path = resolve_hypothesis_path(args.output_dir)
@@ -189,23 +273,18 @@ def main() -> None:
                 "The source reference file must contain exactly one line per target reference segment."
             )
 
-    try:
-        scores, instance_report = evaluate_instances(
+    scores, instance_report = evaluate_base_metrics(instances)
+    metric_blockers: list[dict[str, str]] = []
+    if compute_comet:
+        comet_score, comet_blocker = try_compute_comet_score(
             instances,
-            compute_quality=True,
-            compute_latency=True,
-            is_longform=True,
-            compute_comet=compute_comet,
             comet_model=args.comet_model,
             source_sentences=source_sentences,
         )
-    except Exception as exc:
-        if compute_comet:
-            raise RuntimeError(
-                "XCOMETXL evaluation failed. Accept or cache the model for "
-                f"{args.comet_model}, or rerun with --skip-comet for an offline smoke test."
-            ) from exc
-        raise
+        if comet_blocker is not None:
+            metric_blockers.append(comet_blocker)
+        if comet_score is not None:
+            scores["comet"] = comet_score
 
     contract_scores = {
         "BLEU": scores.get("bleu"),
@@ -230,13 +309,15 @@ def main() -> None:
         scores,
         instance_report,
     )
+    report_lines = append_metric_blockers(report_text.splitlines(), metric_blockers)
     written_files = write_evaluation_outputs(
         args.output_dir,
         settings=settings,
         contract_scores=contract_scores,
         raw_scores=scores,
-        report_lines=report_text.splitlines(),
+        report_lines=report_lines,
         instances_dicts=instances_dicts,
+        metric_blockers=metric_blockers,
     )
 
     print(f"Wrote evaluation artifacts to {args.output_dir}")

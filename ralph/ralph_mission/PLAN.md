@@ -9,48 +9,52 @@
 
 ## Why This Is Not A Revisit
 
-This keeps the same active hypothesis but advances to the next bounded runtime
-step after the artifact contract landed. The repo now has repo-local
-entrypoints for inference and evaluation, so the next iteration is to replace
-offline smoke-test proof with a real `ccpXHNfaoy.wav` baseline run, not to
-reopen any frozen branch.
+This keeps the same active hypothesis and uses a new runtime artifact rather
+than reopening any frozen branch. The repo now has a first real
+`outputs/cascade_v1/` bundle plus a real offline evaluation bundle, and those
+artifacts expose two fresh runtime facts: `translation.de.txt` is only a short
+prefix while `transcript.en.txt` is complete, and `XCOMETXL` now fails with an
+explicit local-cache blocker instead of an opaque evaluator crash.
 
 ## Goal
 
-Produce the first real `outputs/cascade_v1/` bundle for `ccpXHNfaoy.wav` and
-replace the current offline-only smoke test with runtime proof from the split
-`.venv-inference` and `.venv-evaluation` workflow.
+Diagnose and remove the prefix-only final translation failure in the real
+`ccpXHNfaoy.wav` baseline, then rerun the single-audio bundle and offline
+evaluation without broadening scope beyond Objectif 1.
 
 ## Scope
 
 - code surface:
-  `run_cascade_baseline.py`, `evaluate_cascade_outputs.py`,
-  `qwen3asr_gemma_cascade_core.py`, kernel helper scripts, and only the
-  smallest fixes required by the first real persisted run
+  `qwen3asr_gemma_cascade_core.py`, `run_cascade_baseline.py`,
+  `evaluate_cascade_outputs.py`, `outputs/cascade_v1/`, and only the
+  smallest instrumentation or config fixes required to explain and fix the
+  incomplete final translation
 - required inputs:
   `ralph_mission/EXISTING.md`, `test-set/audio/ccpXHNfaoy.wav`,
   `outputs/cascade_v1/`, local HF snapshots, `.venv-inference`,
   `.venv-evaluation`
 - explicit non-goals:
-  Objectif 2 prompt tuning, model swaps, broad refactors, synthetic-only proof
-  presented as final evidence, or silent kernel restarts
+  Objectif 2 prompt-only tuning, model swaps, network downloads for XCOMET,
+  broad notebook refactors, or silent multi-run GPU restarts
 
 ## Tasks
 
-1. Reuse a live `.venv-inference` kernel if one exists; otherwise justify the
-   one-time model load and run `run_cascade_baseline.py` for
-   `ccpXHNfaoy.wav`.
-2. Run `evaluate_cascade_outputs.py` from `.venv-evaluation` on the emitted
-   `hypothesis.jsonl`, and record whether `Unbabel/XCOMET-XL` is available as a
-   real score or an explicit blocker.
-3. Keep `h_obj2_prompt_only_quality_latency_tuning` frozen until the real
-   baseline bundle and evaluation outputs exist and the repo is clean again.
+1. Use the persisted real bundle under `outputs/cascade_v1/` to trace why the
+   final translation is prefix-only despite a full ASR transcript; check
+   `max_new_tokens`, `gemma_max_model_len`, prompt truncation, and the
+   stream-versus-final aggregation path before changing behavior.
+2. Implement the smallest runtime fix that yields a materially complete final
+   `translation.de.txt` for `ccpXHNfaoy.wav` without breaking the artifact
+   contract or the explicit offline `XCOMETXL` blocker capture.
+3. Justify one more model load only if artifact inspection alone is
+   insufficient, rerun the real baseline once, reevaluate offline, and keep
+   `h_obj2_prompt_only_quality_latency_tuning` frozen until the corrected
+   baseline is persisted.
 
 ## Done When
 
-- `outputs/cascade_v1/` contains real inference artifacts from
-  `ccpXHNfaoy.wav`
-- the evaluation bundle contains `BLEU`, `CHRF`, `LongYAAL CU`,
-  `LongYAAL CA`, and either a real `XCOMETXL` score or explicit blocker
-  evidence
+- the next real `outputs/cascade_v1/translation.de.txt` is no longer just the
+  short prefix captured in this iteration
+- the rerun evaluation bundle contains refreshed `BLEU`, `CHRF`,
+  `LongYAAL CU`, `LongYAAL CA`, and the current `XCOMETXL` status
 - `h_obj1_reproducible_single_audio_eval_loop` remains the only active focus

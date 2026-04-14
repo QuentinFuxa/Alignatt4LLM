@@ -356,6 +356,7 @@ evaluation = [
     { name = "pyyaml" },
     { name = "sacrebleu" },
     { name = "sentencepiece" },
+    { name = "setuptools", version = "80.10.2", source = { registry = "https://pypi.org/simple" } },
     { name = "simulstream", extra = ["eval"], marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
     { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
     { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
@@ -390,6 +391,7 @@ evaluation = [
     { name = "pyyaml" },
     { name = "sacrebleu", specifier = "==2.6.0" },
     { name = "sentencepiece", specifier = "==0.2.1" },
+    { name = "setuptools", specifier = "<81" },
     { name = "simulstream", extras = ["eval"] },
     { name = "torch", marker = "sys_platform != 'linux'", specifier = "==2.10.0" },
     { name = "torch", marker = "sys_platform == 'linux'", specifier = "==2.10.0", index = "https://download.pytorch.org/whl/cu128" },
@@ -1334,7 +1336,7 @@ dependencies = [
     { name = "jupyterlab-server" },
     { name = "notebook-shim" },
     { name = "packaging" },
-    { name = "setuptools" },
+    { name = "setuptools", version = "82.0.1", source = { registry = "https://pypi.org/simple" } },
     { name = "tornado" },
     { name = "traitlets" },
 ]
@@ -3136,8 +3138,27 @@ wheels = [
 
 [[package]]
 name = "setuptools"
+version = "80.10.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "sys_platform == 'linux'",
+    "sys_platform != 'linux'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/76/95/faf61eb8363f26aa7e1d762267a8d602a1b26d4f3a1e758e92cb3cb8b054/setuptools-80.10.2.tar.gz", hash = "sha256:8b0e9d10c784bf7d262c4e5ec5d4ec94127ce206e8738f29a437945fbc219b70", size = 1200343, upload-time = "2026-01-25T22:38:17.252Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/b8/f1f62a5e3c0ad2ff1d189590bfa4c46b4f3b6e49cef6f26c6ee4e575394d/setuptools-80.10.2-py3-none-any.whl", hash = "sha256:95b30ddfb717250edb492926c92b5221f7ef3fbcc2b07579bcd4a27da21d0173", size = 1064234, upload-time = "2026-01-25T22:38:15.216Z" },
+]
+
+[[package]]
+name = "setuptools"
 version = "82.0.1"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "sys_platform == 'linux'",
+    "sys_platform == 'win32'",
+    "sys_platform == 'emscripten'",
+    "sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32'",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/4f/db/cfac1baf10650ab4d1c111714410d2fbb77ac5a616db26775db562c8fab2/setuptools-82.0.1.tar.gz", hash = "sha256:7d872682c5d01cfde07da7bccc7b65469d3dca203318515ada1de5eda35efbf9", size = 1152316, upload-time = "2026-03-09T12:47:17.221Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9d/76/f789f7a86709c6b087c5a2f52f911838cad707cc613162401badc665acfe/setuptools-82.0.1-py3-none-any.whl", hash = "sha256:a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb", size = 1006223, upload-time = "2026-03-09T12:47:15.026Z" },
@@ -3484,7 +3505,8 @@ dependencies = [
     { name = "fsspec", marker = "sys_platform != 'linux'" },
     { name = "jinja2", marker = "sys_platform != 'linux'" },
     { name = "networkx", marker = "sys_platform != 'linux'" },
-    { name = "setuptools", marker = "sys_platform != 'linux'" },
+    { name = "setuptools", version = "80.10.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
+    { name = "setuptools", version = "82.0.1", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-inference') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
     { name = "sympy", marker = "sys_platform != 'linux'" },
     { name = "typing-extensions", marker = "sys_platform != 'linux'" },
 ]
@@ -3530,7 +3552,8 @@ dependencies = [
     { name = "nvidia-nvjitlink-cu12", marker = "sys_platform == 'linux'" },
     { name = "nvidia-nvshmem-cu12", marker = "sys_platform == 'linux'" },
     { name = "nvidia-nvtx-cu12", marker = "sys_platform == 'linux'" },
-    { name = "setuptools", marker = "sys_platform == 'linux'" },
+    { name = "setuptools", version = "80.10.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
+    { name = "setuptools", version = "82.0.1", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-inference') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
     { name = "sympy", marker = "sys_platform == 'linux'" },
     { name = "triton", marker = "sys_platform == 'linux'" },
     { name = "typing-extensions", marker = "sys_platform == 'linux'" },

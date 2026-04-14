@@ -199,3 +199,88 @@
 - `h_obj1_reproducible_single_audio_eval_loop`:
   produire le premier bundle reel `ccpXHNfaoy.wav`, puis lancer
   l'evaluation reelle ou enregistrer un blocage `XCOMETXL` explicite
+
+## objective1_real_bundle_blockers
+
+### Decision
+
+- produire enfin le premier bundle runtime reel `outputs/cascade_v1/` pour
+  `ccpXHNfaoy.wav`
+- durcir l'entree d'evaluation pour ecrire un blocage `XCOMETXL` explicite au
+  lieu d'echouer a vide
+- garder l'Objectif 1 actif car la traduction finale persistee est encore un
+  prefixe court malgre un transcript ASR complet
+
+### Impact runtime
+
+- `outputs/cascade_v1/` contient maintenant un vrai bundle inference +
+  evaluation pour `ccpXHNfaoy.wav`
+- `.venv-evaluation` declare maintenant `setuptools<81` pour que COMET reste
+  importable avec `pkg_resources` sous Python 3.13
+- l'evaluation ecrit des `metric_blockers` structures quand `XCOMETXL` n'est
+  pas disponible localement
+
+### Portee de preuve
+
+- preuve locale runtime
+- un seul talk `objective1`
+- un seul delai `single_audio_baseline`
+- evaluation offline seulement pour `XCOMETXL`
+- aucun claim papier
+
+### Trigger de sortie
+
+- cette iteration sort une fois que le premier bundle reel et son evaluation
+  offline sont persistes et que le blocage `XCOMETXL` est explicite dans les
+  artefacts
+
+### Hypothesis IDs touched
+
+- `h_obj1_reproducible_single_audio_eval_loop`
+
+### Status transitions
+
+- none
+
+### Ce qui a ete fait
+
+- ajoute un chemin d'evaluation qui separe les metriques locales de `XCOMETXL`
+  et persiste les blocages structures
+- epingle `setuptools<81` dans le groupe `evaluation` puis resynchronise
+  `.venv-evaluation`
+- justifie un chargement unique `.venv-inference` car aucun kernel ni
+  `VLLM::EngineCore` n'etait vivant
+- lance la premiere baseline reelle puis l'evaluation offline sur
+  `outputs/cascade_v1/`
+
+### Validations lancees
+
+- `python -m py_compile cascade_artifacts.py evaluate_cascade_outputs.py`: PASS
+- smoke test synthetique offline du blocage `XCOMETXL`: PASS
+- `UV_PROJECT_ENVIRONMENT=/home/cascade_simultaneous/.venv-evaluation uv sync --group evaluation`: PASS
+- `.venv-inference/bin/python run_cascade_baseline.py`: PASS
+- `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv-evaluation/bin/python evaluate_cascade_outputs.py --output-dir outputs/cascade_v1`: PASS
+
+### Resultats utiles
+
+- premier bundle runtime reel present sous `outputs/cascade_v1/`
+- scores reels: `BLEU=0.0013`, `CHRF=6.5501`, `LongYAAL CU=144127.5131`,
+  `LongYAAL CA=-988.2935`, `XCOMETXL=NA`
+- `metric_blockers` enregistre maintenant
+  `comet_model_not_cached_locally` pour `Unbabel/XCOMET-XL`
+- `translation.de.txt` ne contient que 62 mots alors que `transcript.en.txt`
+  est complet, donc le bug de completude baseline est maintenant prouve
+
+### Blocages restants
+
+- `Unbabel/XCOMET-XL` n'est toujours pas dans le cache HF local offline
+- la traduction finale persistee est un prefixe court, ce qui rend la baseline
+  qualitativement inutilisable telle quelle
+- la run process a vide la GPU a la fin; toute rerun devra donc recharger une
+  fois les modeles et doit rester strictement justifiee
+
+### Hypothese de la prochaine iteration
+
+- `h_obj1_reproducible_single_audio_eval_loop`:
+  expliquer puis corriger la traduction finale prefix-only, rerun une seule
+  fois la baseline reelle, puis reevaluer offline avec le meme contrat

@@ -134,6 +134,7 @@ def write_evaluation_outputs(
     raw_scores: dict[str, float],
     report_lines: list[str],
     instances_dicts: list[dict[str, Any]],
+    metric_blockers: list[dict[str, Any]] | None = None,
 ) -> dict[str, str]:
     output_path = ensure_output_dir(output_dir)
 
@@ -149,6 +150,7 @@ def write_evaluation_outputs(
             "settings": settings,
             "contract_scores": contract_scores,
             "raw_scores": raw_scores,
+            "metric_blockers": metric_blockers or [],
             "report_lines": report_lines,
             "files": {
                 "instances_resegmented_jsonl": RESEGMENTED_INSTANCES_FILENAME,
@@ -180,4 +182,3 @@ def write_scores_tsv(path: Path, contract_scores: dict[str, float | None]) -> No
             value = contract_scores.get(metric)
             rendered = "NA" if value is None else f"{value:.4f}"
             handle.write(f"{metric}\t{rendered}\n")
-

@@ -25,6 +25,7 @@ evaluation = [
   "numpy==1.26.4",
   "pandas==2.3.3",
   "pyyaml",
+  "setuptools<81",
   "sentencepiece==0.2.1",
   "sacrebleu==2.6.0",
   "mosestokenizer==1.2.1",

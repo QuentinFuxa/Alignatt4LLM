@@ -101,10 +101,10 @@
       ],
       "budget": {
         "max_local_iterations": 4,
-        "used": 1
+        "used": 2
       },
       "last_touched_commit": "workspace",
-      "last_touched_iteration": "objective1_artifact_contract",
+      "last_touched_iteration": "objective1_real_bundle_blockers",
       "evidence": [
         {
           "kind": "human_goal",
@@ -130,6 +130,26 @@
           "kind": "offline_smoke_test",
           "ref": "evaluate_cascade_outputs.py --skip-comet",
           "summary": "A synthetic single-audio hypothesis bundle wrote BLEU, CHRF, LongYAAL CU, LongYAAL CA, and an explicit XCOMETXL placeholder without loading the inference models."
+        },
+        {
+          "kind": "repo_change",
+          "ref": "pyproject.toml",
+          "summary": "The evaluation environment now pins setuptools<81 so COMET and torchmetrics can still import pkg_resources reproducibly under Python 3.13."
+        },
+        {
+          "kind": "repo_change",
+          "ref": "evaluate_cascade_outputs.py",
+          "summary": "The evaluation entrypoint now computes BLEU/chrF/latency independently of XCOMET and persists structured metric_blockers, including offline local-cache misses."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1/",
+          "summary": "The first real ccpXHNfaoy.wav bundle now exists with offline evaluation artifacts: BLEU=0.0013, CHRF=6.5501, LongYAAL CU=144127.5131, LongYAAL CA=-988.2935, and XCOMETXL blocked because the model is not cached locally."
+        },
+        {
+          "kind": "runtime_artifact",
+          "ref": "outputs/cascade_v1/translation.de.txt",
+          "summary": "The persisted final German translation contains only a short 62-word prefix while the ASR transcript is complete, exposing the next Objective 1 runtime bug to fix."
         }
       ]
     },
@@ -211,6 +231,15 @@
       ],
       "status_transitions": [],
       "bounded_outcome": "Landed a versioned outputs/cascade_v1 artifact contract, notebook-safe baseline entrypoints, and a repo-local OmniSTEval driver for the single-audio path without reloading the model stack."
+    },
+    {
+      "iteration": "objective1_real_bundle_blockers",
+      "commit": "workspace",
+      "hypothesis_ids_touched": [
+        "h_obj1_reproducible_single_audio_eval_loop"
+      ],
+      "status_transitions": [],
+      "bounded_outcome": "Produced the first real outputs/cascade_v1 bundle and offline evaluation for ccpXHNfaoy.wav, hardened evaluation against XCOMET failures, and exposed that the persisted final translation is still only a short prefix."
     }
   ]
 }
