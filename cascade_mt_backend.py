@@ -320,6 +320,10 @@ class BaseMTBackend(ABC):
     ) -> MTBackendResult:
         raise NotImplementedError
 
+    def reset_caches(self) -> None:
+        """Drop any per-run prompt cache state so reruns are independent."""
+        return None
+
     def resolve_generation_stop_token_ids(self) -> tuple[int, ...]:
         if self.tokenizer is None:
             raise RuntimeError("Gemma tokenizer is not loaded. Run load() first.")
@@ -599,6 +603,9 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
         self.alignatt_layer_input_recorder: SelectedLayerInputRecorder | None = None
         self.prompt_cache = PromptCacheState()
         self.policy = None
+
+    def reset_caches(self) -> None:
+        self.prompt_cache = PromptCacheState()
 
     def load(self) -> None:
         if self.tokenizer is None:

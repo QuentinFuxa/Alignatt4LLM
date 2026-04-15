@@ -1325,3 +1325,89 @@ require the unfinished `Direction B / E / F / G` work in
 `ALIGNATT_LLM.md` (cheap inline observer, serving-optimized head set,
 explicit cache branches), which would let us push `chunk_ms` lower without
 the current sentence-fragmentation tax on quality.
+
+
+## 2026-04-15 Reproducibility Pass
+
+### What Was Broken In The Original `< 2 s` Claim
+
+The `latency_v*` numbers in the previous section were collected by a
+harness that hot-reloaded the Python modules but **reused the old
+`core.mt_backend` instance**. Two consequences:
+
+1. Backend code edits in `cascade_mt_backend.py` were not guaranteed to
+   take effect in the next run, because methods were still bound to the
+   pre-reload class object.
+2. The backend instance owns the `PromptCacheState`, so prompt KV cache
+   contents could leak across runs and silently bias latency.
+
+This was a real reproducibility hazard for a paper claim, even if the CU
+numbers happened to be correct.
+
+### What The Rewritten Harness Does
+
+`run_latency_experiment.py` now:
+
+- saves only the hot weights (ASR + Gemma model + tokenizer) across runs;
+- rebuilds `mt_backend` from the freshly reloaded `cascade_mt_backend`
+  module via `core.rebuild_mt_backend_preserving_weights(...)`;
+- calls `mt_backend.reset_caches()` explicitly at the start of every run;
+- collects a `run_provenance` block (git SHA, dirty state, dirty file
+  list, CLI args, backend class name, backend module, cache-reset policy,
+  harness timestamp) and writes it into the manifest.
+
+`BaseMTBackend` now exposes a `reset_caches()` method; on the
+`TransformersAlignAttGemmaMTBackend` subclass it replaces
+`self.prompt_cache` with a fresh `PromptCacheState()`.
+
+### Revalidated `< 2 s` Operating Point
+
+Two back-to-back hot-kernel runs on `test-set/audio/ccpXHNfaoy.wav`
+with the recommended defaults
+(`chunk_ms = 450`, `min_start_seconds = 2.0`,
+`partial_max_new_tokens = 16`, `partial_followup_max_new_tokens = 8`,
+`max_history_utterances = 1`,
+`translation_alignatt_rewind_threshold = 8`,
+`translation_alignatt_inaccessible_ms = 0`) gave bit-exact scores:
+
+| run | BLEU | chrF | `LongYAAL CU` | `LongYAAL CA` |
+| --- | ---: | ---: | ---: | ---: |
+| `outputs/revalidate_phaseA_v2` | 28.22 | 63.53 | **1747.19** | 2186.21 |
+| `outputs/revalidate_phaseA_v2_rerun` | 28.22 | 63.53 | **1747.19** | 2195.95 |
+
+Both runs landed comfortably below the `2000 ms` `LongYAAL CU` target,
+with identical translation text and identical CU. The only number that
+moves between the two is `LongYAAL CA`, which is wallclock-sensitive.
+
+Compared to the previously recorded `latency_v9` point (`CU = 1948.51`),
+the revalidated run on the same operating point is ~`200 ms` faster. The
+delta is consistent with the harness fix: the rebuilt backend and the
+explicit `reset_caches()` remove any stale prompt-KV state that the old
+harness could have been dragging into the first few chunks of a fresh
+run.
+
+### Regression Test
+
+`test_alignatt_rewind_keeps_safe_prefix_up_to_offending_token` in
+`test_cascade_mt_backend.py` locks in the truncate-on-rewind invariant:
+when the aligned source position jumps backward past
+`translation_alignatt_rewind_threshold`, the policy must return
+`unsafe_reason = "rewind"` on the offending token only, so the caller's
+accumulate-then-break loop keeps the safe prefix and rejects just the
+suffix. This is the Whisper-style behaviour adapted to the LLM
+self-attention setting; rejecting the whole draft on a rewind would
+violate monotone acceptance.
+
+### Non-Obvious Things Worth Remembering
+
+- `importlib.reload(qwen3asr_gemma_cascade_core)` resets the module-level
+  `mt_backend` to `None`. The harness therefore has to save a reference
+  to the pre-reload backend *before* reloading, then pass it into the
+  rebuild helper so that the hot weights survive.
+- Quality (BLEU / chrF) is **identical across the two revalidated runs**
+  and `draft_decode` is greedy with `temperature = 0`, so any residual
+  CU noise between runs is compute-time jitter only. This makes the
+  harness a suitable base for future CU ablations at one-audio scale.
+- `LongYAAL CA` is not bit-exact across runs; it depends on wallclock
+  elapsed time per update. Only `LongYAAL CU` should be used as a
+  reproducibility signal.

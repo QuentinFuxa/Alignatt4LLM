@@ -88,6 +88,7 @@ class InferenceArtifacts:
     translation_word_elapsed_ms: list[float]
     updates: list[StreamUpdate]
     runtime_config: dict[str, Any]
+    run_provenance: dict[str, Any] = field(default_factory=dict)
 
     def hypothesis_record(self) -> dict[str, Any]:
         normalized_elapsed_ms = normalize_computation_aware_timestamps(
@@ -132,6 +133,7 @@ class InferenceArtifacts:
                 "translation_de_txt": FINAL_TRANSLATION_FILENAME,
             },
             "runtime_config": runtime_config,
+            "run_provenance": dict(self.run_provenance),
         }
 
 

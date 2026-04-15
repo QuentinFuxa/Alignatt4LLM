@@ -4,6 +4,7 @@ import torch.nn as nn
 from cascade_emission import RAW_PASSTHROUGH, apply_emission_policy
 from cascade_mt_backend import (
     AlignAttHead,
+    AlignAttDecoderPolicy,
     IncrementalAlignAttTracker,
     LayerInputCapture,
     MTBackendResult,
@@ -545,3 +546,57 @@ def test_source_normalizer_normalizes_spacing_without_hardcoded_phrases():
     )
 
     assert normalized.text == "Hello, world! This is a test."
+
+
+def test_alignatt_rewind_keeps_safe_prefix_up_to_offending_token():
+    """AlignAtt must keep the prefix already aligned to the accessible source
+    and only reject the offending tail.
+
+    The Whisper-style behaviour is: when the current aligned source position
+    jumps backward past a configured threshold relative to the prefix's last
+    stable alignment, that one suffix token is unsafe. Everything strictly
+    before it is provenance-consistent with the accessible source and stays
+    accepted. Rejecting the whole suffix would make `accepted_target` shrink
+    on every attention glitch and defeat the monotone-acceptance contract.
+    """
+
+    from types import SimpleNamespace
+
+    runtime_config = SimpleNamespace(translation_alignatt_rewind_threshold=2)
+    policy = AlignAttDecoderPolicy(tokenizer=None, runtime_config=runtime_config)
+
+    draft_token_ids = [101, 102, 103, 104, 105]
+    # Tokens 0..2 climb monotonically through the accessible source; token 3
+    # jumps back far enough to trigger rewind; token 4 would be downstream.
+    aligned_source_local_positions = [0, 3, 6, 1, 7]
+    accessible_source_token_count = 10
+
+    accepted_candidate_ids: list[int] = []
+    unsafe_reason: str | None = None
+    unsafe_target_token_index: int | None = None
+    last_aligned: int | None = None
+
+    for token_index, (token_id, aligned) in enumerate(
+        zip(draft_token_ids, aligned_source_local_positions)
+    ):
+        (
+            unsafe_reason,
+            _,
+            _,
+            _,
+        ) = policy.should_stop_in_loop(
+            current_source_local_position=aligned,
+            last_aligned_source_local_position=last_aligned,
+            accessible_source_token_count=accessible_source_token_count,
+        )
+        if unsafe_reason in {"rewind", "source_frontier"}:
+            unsafe_target_token_index = token_index
+            break
+        accepted_candidate_ids.append(token_id)
+        if aligned is not None:
+            last_aligned = aligned
+
+    assert unsafe_reason == "rewind"
+    assert unsafe_target_token_index == 3
+    # Safe prefix is kept: tokens before the offending one survive the rewind.
+    assert accepted_candidate_ids == [101, 102, 103]

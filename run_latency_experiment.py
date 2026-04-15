@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """Run a single-audio latency experiment in the warm inference kernel.
 
-This script hot-reloads the cascade modules inside the persistent
-.venv-inference kernel, then runs one audio with latency-optimized
-configuration overrides and evaluates the LongYAAL CU.
+The harness hot-reloads the cascade Python modules inside the persistent
+`.venv-inference` kernel. Only the expensive hot weights (ASR + Gemma) and
+the tokenizer are carried across runs; the backend object, its policy, and
+the prompt KV cache are rebuilt from the freshly reloaded modules every
+time so that code edits actually take effect and cache state cannot leak
+between runs.
+
+Defaults track the current best provisional operating point from PLAN.md so
+that invoking the harness without flags reproduces the recommended
+configuration instead of a degraded one.
 """
 from __future__ import annotations
 
@@ -26,18 +33,44 @@ def utc_stamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
+def collect_local_provenance(args: argparse.Namespace) -> dict:
+    def _git(*cmd: str) -> str:
+        try:
+            out = subprocess.run(
+                ["git", *cmd],
+                cwd="/home/cascade_simultaneous",
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            return out.stdout.strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return ""
+
+    commit_sha = _git("rev-parse", "HEAD")
+    dirty_files = _git("status", "--porcelain")
+    return {
+        "git_commit_sha": commit_sha,
+        "git_dirty": bool(dirty_files),
+        "git_dirty_files": [line for line in dirty_files.splitlines() if line.strip()],
+        "cli_args": {key: value for key, value in vars(args).items()},
+        "harness_started_at_utc": utc_stamp(),
+        "cache_reset_policy": "rebuild_backend_each_run",
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--connection-file", default=DEFAULT_CONNECTION_FILE)
     parser.add_argument("--wav-path", default=DEFAULT_WAV_PATH)
-    parser.add_argument("--chunk-ms", default=400, type=int)
+    parser.add_argument("--chunk-ms", default=450, type=int)
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
     parser.add_argument("--partial-followup-max-new-tokens", default=8, type=int)
     parser.add_argument("--rewind-threshold", default=8, type=int)
     parser.add_argument("--inaccessible-ms", default=0.0, type=float)
     parser.add_argument("--scheduler-stall-seconds", default=1.2, type=float)
-    parser.add_argument("--max-history-utterances", default=0, type=int)
+    parser.add_argument("--max-history-utterances", default=1, type=int)
     parser.add_argument("--tag", default=None)
     return parser.parse_args()
 
@@ -75,23 +108,30 @@ def execute_kernel_code(client: BlockingKernelClient, code: str, *, timeout_s: i
             return stream_chunks
 
 
-def hot_reload_core_in_kernel(client: BlockingKernelClient) -> None:
+def hot_reload_core_in_kernel(client: BlockingKernelClient) -> dict:
+    """Reload Python modules, rebuild the backend, reset caches.
+
+    Returns a provenance dict describing what happened in the kernel, so the
+    manifest can faithfully record what code/config served this run.
+    """
     code = """
 import importlib
+import json
+
 import qwen3asr_gemma_cascade_core as core
 
 saved_asr = core.asr
 saved_mt_backend = core.mt_backend
-saved_gemma_llm = core.gemma_llm
-saved_gemma_tokenizer = core.gemma_tokenizer
 saved_speech_id = core.state.speech_id
 
+import cascade_artifacts
 import cascade_translation_variants
 import cascade_mt_backend
 import cascade_emission
 import cascade_source_frontier
 import cascade_source_text
 import cascade_text_surface
+cascade_artifacts = importlib.reload(cascade_artifacts)
 cascade_translation_variants = importlib.reload(cascade_translation_variants)
 cascade_mt_backend = importlib.reload(cascade_mt_backend)
 cascade_emission = importlib.reload(cascade_emission)
@@ -101,17 +141,38 @@ cascade_text_surface = importlib.reload(cascade_text_surface)
 core = importlib.reload(core)
 
 core.asr = saved_asr
-core.mt_backend = saved_mt_backend
-core.gemma_llm = saved_gemma_llm
-core.gemma_tokenizer = saved_gemma_tokenizer
 core.state = core.CascadeState(speech_id=saved_speech_id)
 
-core.load_models()
+# Rebuild backend under the freshly reloaded class, preserving hot weights.
+# Fall back to a full load_models() if this is the first run in this kernel.
+if saved_mt_backend is None:
+    core.load_models()
+else:
+    core.rebuild_mt_backend_preserving_weights(existing_backend=saved_mt_backend)
+core.mt_backend.reset_caches()
+
+provenance = {
+    "kernel_backend_class": type(core.mt_backend).__name__,
+    "kernel_backend_module": type(core.mt_backend).__module__,
+    "kernel_model_loaded": core.mt_backend.model is not None,
+    "kernel_prompt_cache_empty": not core.mt_backend.prompt_cache.full_prompt_ids,
+}
+print("__HOT_RELOAD_PROVENANCE__" + json.dumps(provenance) + "__END__")
 print("__HOT_RELOAD_OK__")
 """
     outputs = execute_kernel_code(client, code, timeout_s=3600)
-    if "__HOT_RELOAD_OK__" not in "".join(outputs):
+    joined = "".join(outputs)
+    if "__HOT_RELOAD_OK__" not in joined:
         raise RuntimeError("Hot reload did not complete successfully.")
+    start = joined.find("__HOT_RELOAD_PROVENANCE__")
+    end = joined.find("__END__", start)
+    provenance: dict = {}
+    if start != -1 and end != -1:
+        try:
+            provenance = json.loads(joined[start + len("__HOT_RELOAD_PROVENANCE__") : end])
+        except json.JSONDecodeError:
+            provenance = {}
+    return provenance
 
 
 def run_baseline_in_kernel(
@@ -127,6 +188,7 @@ def run_baseline_in_kernel(
     scheduler_stall_seconds: float,
     max_history_utterances: int,
     output_dir: str,
+    run_provenance: dict,
 ) -> None:
     overrides = {
         "min_start_seconds": float(min_start_seconds),
@@ -137,15 +199,19 @@ def run_baseline_in_kernel(
         "translation_scheduler_stall_seconds": float(scheduler_stall_seconds),
         "max_history_utterances": int(max_history_utterances),
     }
+    overrides_json = json.dumps(overrides)
+    provenance_json = json.dumps(run_provenance)
     code = f"""
 import json
 import qwen3asr_gemma_cascade_core as core
 
+core.mt_backend.reset_caches()
 written = core.run_baseline(
     wav_path=r"{wav_path}",
     output_dir=r"{output_dir}",
     chunk_ms={int(chunk_ms)},
-    runtime_overrides={json.dumps(overrides)},
+    runtime_overrides=json.loads({overrides_json!r}),
+    run_provenance=json.loads({provenance_json!r}),
 )
 print("__WRITTEN__")
 print(json.dumps(written))
@@ -176,21 +242,26 @@ def main() -> None:
     output_dir = Path(f"/home/cascade_simultaneous/outputs/{tag}")
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    local_provenance = collect_local_provenance(args)
+
     print(
         f"=== Latency experiment: chunk_ms={args.chunk_ms} "
         f"min_start={args.min_start_seconds} "
         f"partial_max={args.partial_max_new_tokens} "
         f"followup_max={args.partial_followup_max_new_tokens} "
         f"rewind={args.rewind_threshold} "
-        f"inaccessible_ms={args.inaccessible_ms} ==="
+        f"inaccessible_ms={args.inaccessible_ms} "
+        f"history={args.max_history_utterances} ==="
     )
+    print(f"git_commit_sha={local_provenance['git_commit_sha']} dirty={local_provenance['git_dirty']}")
 
     client = BlockingKernelClient(connection_file=args.connection_file)
     client.load_connection_file()
     client.start_channels()
     try:
         client.wait_for_ready(timeout=120)
-        hot_reload_core_in_kernel(client)
+        kernel_provenance = hot_reload_core_in_kernel(client)
+        run_provenance = {**local_provenance, **kernel_provenance}
         run_baseline_in_kernel(
             client,
             wav_path=args.wav_path,
@@ -203,6 +274,7 @@ def main() -> None:
             scheduler_stall_seconds=args.scheduler_stall_seconds,
             max_history_utterances=args.max_history_utterances,
             output_dir=str(output_dir),
+            run_provenance=run_provenance,
         )
         evaluation = evaluate_output_dir(output_dir)
         scores = evaluation["contract_scores"]

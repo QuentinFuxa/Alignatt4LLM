@@ -277,6 +277,31 @@ def load_models():
 def clear_state():
     global state
     state = CascadeState(speech_id=state.speech_id)
+    if mt_backend is not None:
+        mt_backend.reset_caches()
+
+
+def rebuild_mt_backend_preserving_weights(existing_backend=None) -> None:
+    """Rebuild the MT backend from the current module while keeping the loaded model/tokenizer.
+
+    The hot-reload harness uses this to make sure backend code changes take effect
+    without paying the cost of reloading Gemma weights. `existing_backend` lets the
+    caller pass a pre-reload reference that is otherwise lost when the module-level
+    `mt_backend` is re-initialized to None by `importlib.reload`.
+    """
+    global mt_backend, gemma_tokenizer, gemma_llm
+    source_backend = existing_backend if existing_backend is not None else mt_backend
+    saved_model = getattr(source_backend, "model", None) if source_backend is not None else None
+    saved_tokenizer = getattr(source_backend, "tokenizer", None) if source_backend is not None else None
+    mt_backend = build_mt_backend(
+        model_name=gemma_model_name,
+        runtime_config=config,
+    )
+    mt_backend.model = saved_model
+    mt_backend.tokenizer = saved_tokenizer
+    mt_backend.load()
+    gemma_tokenizer = mt_backend.tokenizer
+    gemma_llm = getattr(mt_backend, "model", None)
 
 def transcribe_audio():
     if asr is None:
@@ -742,6 +767,8 @@ def load_wav(path: str) -> np.ndarray:
 def run_stream_to_artifacts(
     wav_path: str,
     chunk_ms: int = 960,
+    *,
+    run_provenance: dict[str, Any] | None = None,
 ) -> InferenceArtifacts:
     variant = get_translation_variant()
     load_models()
@@ -949,6 +976,7 @@ def run_stream_to_artifacts(
             "gemma_transformers_prompt_kv_reuse": config.gemma_transformers_prompt_kv_reuse,
             "translation_scheduler_stall_seconds": config.translation_scheduler_stall_seconds,
         },
+        run_provenance=dict(run_provenance or {}),
     )
 
 
@@ -957,11 +985,13 @@ def run_stream(
     chunk_ms: int = 960,
     output_dir: str | None = None,
     runtime_overrides: dict[str, Any] | None = None,
+    run_provenance: dict[str, Any] | None = None,
 ):
     with temporary_runtime_config(**(runtime_overrides or {})):
         artifacts = run_stream_to_artifacts(
             wav_path,
             chunk_ms=chunk_ms,
+            run_provenance=run_provenance,
         )
         if output_dir is not None:
             write_inference_artifacts(artifacts, output_dir)
@@ -975,11 +1005,13 @@ def run_baseline(
     output_dir: str = DEFAULT_OUTPUT_DIR,
     chunk_ms: int = 960,
     runtime_overrides: dict[str, Any] | None = None,
+    run_provenance: dict[str, Any] | None = None,
 ):
     with temporary_runtime_config(**(runtime_overrides or {})):
         artifacts = run_stream_to_artifacts(
             wav_path,
             chunk_ms=chunk_ms,
+            run_provenance=run_provenance,
         )
         written_files = write_inference_artifacts(artifacts, output_dir)
         print(f"\nWrote baseline artifacts to {output_dir}")
