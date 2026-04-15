@@ -201,8 +201,9 @@ where `inaccessible_ms` is the latency control knob.
 
 Examples:
 
-- `inaccessible_ms = 300`: aggressive, lower latency, more risk
-- `inaccessible_ms = 500-800`: safer, likely better quality
+- `inaccessible_ms = 0`: latency-first default for the current cascade after calibration
+- `inaccessible_ms = 100-200`: softer safety buffer when quality pressure dominates
+- `inaccessible_ms = 300+`: conservative, often too restrictive for CU in this setup
 
 ### Acceptance Rule
 
@@ -236,6 +237,10 @@ For the text MT cascade, the clean analogue is:
 
 This is an **intra-draft** safety check, not a temporal agreement rule
 between `t-1` and `t`.
+
+Operationally, the rewind threshold should stay permissive enough to
+avoid suppressing legitimate German reordering. For the current E4B
+text-only cascade, `rewind_threshold = 8` is the calibrated default.
 
 ### Last-Word Truncation
 
@@ -312,6 +317,103 @@ These heads should then be reduced to a smaller serving set for runtime use, for
 - top 4 heads
 - top 8 heads
 - or one validated middle-layer cluster if the scores are concentrated
+
+
+## Empirical Calibration Notes
+
+The design above is not only theoretical. It has already been exercised on
+the current talk-level test file with full streaming runs at `chunk_ms = 800`.
+
+All evaluations below were run with `.venv-evaluation`. In practice we used
+`--skip-comet` for the hot-kernel experiments because keeping Qwen3-ASR and
+Gemma E4B resident in GPU memory makes `XCOMETXL` prone to CUDA OOM.
+
+
+## Short Smoke Sweep
+
+Before running full-talk experiments, we used the short
+`alignatt_smoke18_*` clips to calibrate the source frontier.
+
+| Setting | Updates with AlignAtt | Unsafe `source_frontier` | Unsafe `rewind` | Avg accepted tokens | Avg candidate tokens |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `500 ms / 3` | 14 | 7 | 1 | 2.786 | 4.571 |
+| `200 ms / 6` | 14 | 7 | 0 | 4.071 | 6.071 |
+| `100 ms / 6` | 14 | 7 | 0 | 4.000 | 5.929 |
+| `0 ms / 6` | 14 | 5 | 1 | 4.429 | 6.143 |
+
+Takeaway:
+
+- `500 / 3` was clearly too conservative.
+- Lowering `inaccessible_ms` materially increased accepted progress.
+- The smoke sweep suggested that `200 ms` and `0 ms` were the right full-run candidates.
+
+
+## Full 800 ms Runs
+
+The most relevant complete runs so far are:
+
+| Run | Architecture / calibration | BLEU | chrF | LongYAAL CU | LongYAAL CA |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `foundational_nomarker_defaultsafe` | old safe baseline, pre-source-frontier | 37.0393 | 67.3858 | 4419.0688 | 4297.6604 |
+| `source_frontier_hotreload_live` | source frontier `500 ms / 3` | 36.2580 | 67.0110 | 4269.0472 | 4220.3349 |
+| `source_frontier_ms200_rw6` | source frontier `200 ms / 6` | 36.1303 | 66.9475 | 4068.3914 | 4093.7408 |
+| `source_frontier_ms0_rw8` | source frontier `0 ms / 8` | 35.3816 | 66.6986 | 3851.1828 | 3956.4983 |
+
+For context, the best historical non-AlignAtt `chunk800` run
+(`prompt_only_partial_anchor_chunk800_live`) is still much faster:
+
+| Run | BLEU | chrF | LongYAAL CU | LongYAAL CA |
+| --- | ---: | ---: | ---: | ---: |
+| `prompt_only_partial_anchor_chunk800_live` | 38.3956 | 67.8364 | 1997.3458 | 2581.6145 |
+
+So the current AlignAtt-first architecture is cleaner and more principled,
+but it is **not yet latency-competitive** with the best older cascade.
+
+
+## Full-Run Behavioral Summary
+
+The frontier calibration also changed the behavior of the inline policy:
+
+| Run | Unsafe `source_frontier` / `source_tail` | Unsafe `rewind` | Word trims | Avg accepted tokens | Avg candidate tokens |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `foundational_nomarker_defaultsafe` | 329 | 44 | 294 | 0.836 | 2.150 |
+| `source_frontier_hotreload_live` | 98 | 126 | 247 | 1.973 | 3.118 |
+| `source_frontier_ms200_rw6` | 107 | 89 | 284 | 2.847 | 4.193 |
+| `source_frontier_ms0_rw8` | 110 | 66 | 307 | 3.536 | 4.976 |
+
+Takeaway:
+
+- Moving from `500 / 3` to `0 / 8` reduced `LongYAAL CU` by about `418 ms`
+  (`4269.0472 -> 3851.1828`).
+- The gain comes from allowing more accepted target growth per update:
+  `avg accepted tokens` rises from `1.973` to `3.536`.
+- A more permissive rewind threshold also matters: rewinds fall from `126`
+  to `66`, which is important for German reordering freedom.
+- Even with this calibration, the frontier-only approach still leaves a large
+  latency gap relative to the best historical run.
+
+
+## Current Default And Rationale
+
+The current default is therefore:
+
+- `translation_alignatt_inaccessible_ms = 0.0`
+- `translation_alignatt_rewind_threshold = 8`
+
+Why this default:
+
+- it is the best `LongYAAL CU` setting found so far on the full-talk run
+- it keeps the design faithful to AlignAtt: source accessibility first,
+  no special token, no heavy temporal agreement rule
+- it preserves a safety mechanism through the inline rewind guard and
+  last-complete-word truncation
+
+Why this is not the final answer:
+
+- the current bottleneck is no longer “how to make the frontier less strict”
+- the next likely wins will come from lowering observation/emission cost elsewhere:
+  `chunk_ms`, word-boundary emission policy, and possibly tighter integration of
+  the inline policy with decoding cost
 
 
 ## Runtime Head Aggregation
