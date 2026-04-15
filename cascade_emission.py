@@ -4,6 +4,7 @@ from dataclasses import replace
 from typing import Sequence
 
 from cascade_artifacts import StreamUpdate
+from cascade_text_surface import normalize_incremental_target_text
 
 
 FREEZE_MAJOR_TAIL_REWRITES = "freeze_major_tail_rewrites"
@@ -133,6 +134,9 @@ def apply_emission_policy(
     max_tail_rewrite_words: int,
     is_final: bool,
 ) -> tuple[str, str]:
+    previous_translation = normalize_incremental_target_text(previous_translation)
+    raw_translation = normalize_incremental_target_text(raw_translation)
+
     if emit_policy == FREEZE_MAJOR_TAIL_REWRITES:
         return stabilize_emitted_translation(
             previous_translation,
@@ -199,7 +203,7 @@ def replay_stream_updates(
         previous_emitted_translation = emitted_translation
         previous_raw_translation = raw_translation
 
-    final_translation_text = final_translation_text.strip()
+    final_translation_text = normalize_incremental_target_text(final_translation_text)
     if emitted_updates and previous_emitted_translation != final_translation_text:
         last_update = emitted_updates[-1]
         new_words = register_translation_words(

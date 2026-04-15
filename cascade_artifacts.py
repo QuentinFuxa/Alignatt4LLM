@@ -70,6 +70,7 @@ class StreamUpdate:
     partial_accepted_token_count: int | None = None
     partial_draft_target: str | None = None
     alignatt_metadata: dict[str, Any] | None = None
+    translation_timings_ms: dict[str, float] | None = None
 
 
 @dataclass

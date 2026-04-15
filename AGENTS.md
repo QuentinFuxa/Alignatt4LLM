@@ -1,5 +1,19 @@
 For each change, examine the existing system and redesign it into the most elegant solution that would have emerged if the change had been a foundational assumption from the start.
 
+## Defensible Research Code
+
+- We want the final system to be clean, generalizable, and defensible in a paper.
+- The codebase is very recent and almost nothing should be treated as settled or sacred yet.
+- We are in a pure experimentation phase: be proactive, be willing to rethink foundations, and do not be overly conservative about existing code.
+- Do not add hardcoded lexical substitutions, phrase tables, dataset-specific rewrites, content-aware string repairs, or other ad hoc heuristics just to make examples look better.
+- Do not smuggle in special-case behavior for known failures or benchmark artifacts.
+- Prefer principled architectural changes, generic normalization, well-scoped model/runtime improvements, and explicitly measurable mechanisms.
+- If a shortcut is not something we could defend honestly in a paper, it is forbidden here.
+- No "screugneugneu" adjustments: no hacky tuning whose only purpose is to patch a specific example without a general justification.
+- Do not overproduce low-value tests. We are experimenting, so tests should protect real invariants, critical regressions, or reusable mechanisms, not add weight for its own sake.
+- Avoid test bloat, hyper-granular assertion noise, and large test scaffolding for temporary or exploratory changes.
+- Do not hesitate to remove, replace, or redesign code that is poorly conceived. During this phase, strong cleanup and bold simplification are encouraged when they improve the system.
+
 ## qwen3asr_gemma_cascade.py notes
 
 - The ASR part runs with `qwen_asr` (vLLM-backed), while Gemma uses Transformers+AlignAtt in this code path.
@@ -45,3 +59,9 @@ For each change, examine the existing system and redesign it into the most elega
 ## Kernel use
 - There is the .venv-inference KERNEL that should be running.
 - Reloading in memory the ASR and MT model takes 5 minutes. So please do not do that except if necessary. If the models are loaded in memory, reuse it. if you have to restart, please justify it.
+- Running the cascade is also expensive in wall-clock time even when the models are already hot in memory. Treat full streaming evaluations as costly experiments, not cheap probes.
+- Do not launch multiple audios or broad benchmark sweeps until the current objective has already been reached, or very nearly reached, on a single audio.
+- Preferred workflow:
+  - first validate the idea on one audio
+  - then iterate on that one audio until the mechanism behaves as intended
+  - only then scale out to multiple audios or full benchmark runs

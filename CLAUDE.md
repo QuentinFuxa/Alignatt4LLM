@@ -26,6 +26,20 @@ Before implementing:
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
+## 2.5. Defensibility First
+
+**Write code we could defend in a paper. No ad hoc tricks.**
+
+- This codebase is very recent, and almost nothing should be assumed frozen.
+- We are in an experimentation phase, so don't be timid about questioning or replacing existing implementations.
+- Do not add hardcoded lexical substitutions, phrase-specific rewrites, dataset-specific fixes, or content-aware string repair rules unless the user explicitly asks for an experimental heuristic.
+- Do not patch isolated failures with hidden special cases.
+- Prefer generic, principled mechanisms over benchmark-tuned behavior.
+- If a change would feel embarrassing to justify in a methods section, do not implement it.
+- We want clean and defensible systems, not "screugneugneu" adjustment.
+- Do not overuse tests. Add tests when they protect an important invariant, a real bug fix, or a reusable mechanism, but avoid bloating the repo with low-signal tests during experimentation.
+- If existing code is weak, awkward, or poorly motivated, it is acceptable and often preferable to remove it aggressively rather than preserve it out of habit.
+
 ## 3. Surgical Changes
 
 **Touch only what you must. Clean up only your own mess.**

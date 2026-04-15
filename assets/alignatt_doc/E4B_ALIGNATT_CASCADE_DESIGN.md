@@ -358,6 +358,7 @@ The most relevant complete runs so far are:
 | `source_frontier_hotreload_live` | source frontier `500 ms / 3` | 36.2580 | 67.0110 | 4269.0472 | 4220.3349 |
 | `source_frontier_ms200_rw6` | source frontier `200 ms / 6` | 36.1303 | 66.9475 | 4068.3914 | 4093.7408 |
 | `source_frontier_ms0_rw8` | source frontier `0 ms / 8` | 35.3816 | 66.6986 | 3851.1828 | 3956.4983 |
+| `compute_unaware_chunk800_20260415T154922Z` | hot-kernel rerun, same `0 ms / 8` frontier defaults, manifest recorded `probe_mode = eager` | 38.7556 | 68.0866 | 3716.8469 | 5595.8554 |
 
 For context, the best historical non-AlignAtt `chunk800` run
 (`prompt_only_partial_anchor_chunk800_live`) is still much faster:
@@ -368,6 +369,20 @@ For context, the best historical non-AlignAtt `chunk800` run
 
 So the current AlignAtt-first architecture is cleaner and more principled,
 but it is **not yet latency-competitive** with the best older cascade.
+
+The new hot-kernel rerun is important for interpretation:
+
+- it materially improves quality and `LongYAAL CU` relative to the older
+  `source_frontier_ms0_rw8` run
+- but it is still far from the `< 2 s` `LongYAAL CU` target
+- and its `LongYAAL CA` is much worse because the reused in-memory kernel
+  reported `translation_alignatt_probe_mode = eager`
+
+So this rerun changes the picture in a useful way:
+
+- the current AlignAtt semantics can already produce good `compute unaware`
+  quality/latency tradeoffs
+- but observer compute is still unresolved on the `CA` axis
 
 
 ## Full-Run Behavioral Summary
@@ -392,6 +407,577 @@ Takeaway:
 - Even with this calibration, the frontier-only approach still leaves a large
   latency gap relative to the best historical run.
 
+The 2026-04-15 hot-kernel rerun sharpens that conclusion:
+
+- compared to `source_frontier_ms0_rw8`, it improves by about:
+  - `+3.374 BLEU`
+  - `+1.388 chrF`
+  - `-134 ms` `LongYAAL CU`
+- but compared to the historical `prompt_only_partial_anchor_chunk800_live`,
+  it is still slower by about `+1719 ms` on `LongYAAL CU`
+
+That means the remaining gap to `< 2 s` `LongYAAL CU` is no longer a small
+calibration issue. It is a structural latency problem.
+
+
+## What The New Rerun Tells Us
+
+The newest `chunk800` rerun matters because it separates two questions that
+were previously entangled.
+
+### 1. The main remaining `CU` gap is not primarily compute
+
+This run was evaluated on the `compute unaware` axis and still landed at:
+
+- `LongYAAL CU = 3716.8469`
+
+even though its manifest recorded:
+
+- `translation_alignatt_probe_mode = eager`
+
+That means speeding up the observer alone will not get us below `2 s`
+`LongYAAL CU`.
+
+Observer cost matters for `CA`.
+
+But the dominant remaining `CU` gap is source-time waiting:
+
+- when we start translating
+- how often we are allowed to react
+- how coarse the source frontier is
+- how much safe target text we accept at each frontier step
+
+### 2. Quality is no longer the blocker for trying more aggressive `CU` policies
+
+The same rerun reached:
+
+- `BLEU = 38.7556`
+- `chrF = 68.0866`
+
+So we are no longer in the regime where every latency improvement attempt is
+obviously quality-destructive.
+
+That gives room to attack `CU` directly with more aggressive but principled
+streaming decisions.
+
+
+## Pistes To Get Below 2 Seconds LongYAAL CU
+
+The gap from the current rerun to the target is about:
+
+- `3716.8469 -> < 2000`
+- roughly `1717 ms` still to remove
+
+The most plausible path is not a single trick. It is a stack of structural
+changes that all move the `source-time` policy in the same direction.
+
+### 1. Remove the `5 s` start gate
+
+The current manifest still records:
+
+- `min_start_seconds = 5.0`
+
+and the first partial emission in the rerun only appears after that initial
+wait.
+
+For a system targeting `< 2 s` corpus-level `LongYAAL CU`, a hard `5 s`
+translation start gate is almost certainly incompatible with the goal.
+
+The principled redesign is:
+
+- split the streaming regime into:
+  - an early low-context regime
+  - a later steady-state regime
+- start partial MT much earlier, for example around `1.5-2.0 s`
+- compensate with:
+  - tiny initial draft budgets
+  - no speculative history
+  - the same accepted-prefix contract as later steps
+
+This is likely the single biggest `CU` lever.
+
+### 2. Reduce `chunk_ms` below `800`
+
+At `chunk_ms = 800`, every source update arrives on a coarse time grid.
+
+Even a perfect inline policy cannot emit earlier than the next chunk boundary.
+
+So a large part of the remaining `CU` gap is probably quantization error from:
+
+- chunk arrival
+- ASR refresh
+- MT refresh
+
+The most principled next sweep is:
+
+- `chunk_ms = 400`
+- then `chunk_ms = 200-320`
+
+If quality becomes unstable, the clean answer is not to reintroduce hacks.
+It is:
+
+- adaptive cadence
+
+For example:
+
+- smaller chunks at sentence start and near blocked frontiers
+- larger chunks once the system is clearly behind the frontier
+
+### 3. Use token-level blocked-frontier scheduling, not only unit-level scheduling
+
+The current scheduler stores:
+
+- `blocked_source_local_position`
+- `blocked_source_unit_index`
+
+but gating is still mainly driven by:
+
+- `accessible_unit_count`
+- `blocked_source_unit_index`
+
+This is unnecessarily coarse for `CU`.
+
+If a probe stopped at a specific blocked source token position, waiting for the
+whole next source unit can add avoidable delay.
+
+The principled next step is:
+
+- drive scheduling from `blocked_source_local_position`
+- compare it directly to `accessible_source_token_count`
+- rerun MT as soon as the token-level frontier is close enough
+
+This should recover latency without changing the acceptance semantics.
+
+### 4. Make the source frontier finer than whole completed words
+
+Right now, the source accessibility frontier is still effectively governed by
+completed source-word timestamps.
+
+That is clean, but probably too coarse for `< 2 s` `CU`.
+
+The principled long-term direction is:
+
+- move from word-complete accessibility to source-token or subword accessibility
+- use timestamped ASR evidence at finer granularity when available
+- keep the same monotone accepted-prefix invariant on the target side
+
+This is especially important because the current AlignAtt policy is already at:
+
+- `inaccessible_ms = 0`
+
+So the next source-time gains will not come from making the word frontier more
+permissive. They will come from making it finer.
+
+### 5. Increase accepted target growth per update with LLM-native provenance checks
+
+On a causal LLM, some drafted target tokens are blocked not because they truly
+depend on future source evidence, but because the current observer does not yet
+distinguish clearly between:
+
+- source support
+- accepted-prefix support
+- speculative-suffix support
+
+For `CU`, this matters directly.
+
+If a token's source anchor is already behind the frontier and the remaining
+support comes mainly from the accepted target prefix rather than speculative
+future target tokens, then rejecting it is often overly conservative.
+
+So a strong medium-term `CU` lever is:
+
+- provenance-aware acceptance
+
+not to accept arbitrary target-history-driven tokens, but specifically to
+separate:
+
+- safe accepted-prefix continuation
+- unsafe speculative-suffix self-support
+
+This should raise `avg accepted tokens` per update, which is exactly the
+behavior that previously improved `LongYAAL CU`.
+
+### 6. Make draft length adaptive to frontier distance
+
+The current system can still spend updates drafting much farther than the
+blocked frontier.
+
+For `CA` that wastes compute.
+
+For `CU` it also wastes opportunities because:
+
+- longer drafts increase the chance that acceptance stops only after a large
+  speculative tail was explored
+- word-boundary truncation then throws away part of that effort
+
+The cleaner policy is:
+
+- if the blocked frontier is very near, draft very short
+- if the frontier jumped far, allow a larger suffix
+
+This is not just a serving optimization. It is a latency policy because it
+changes how often we can expose a newly accepted whole-word prefix.
+
+
+## What Is Unlikely To Be Enough
+
+If the explicit goal is `< 2 s` `LongYAAL CU`, these changes alone are very
+unlikely to suffice:
+
+- further tuning `inaccessible_ms`
+- further tuning `rewind_threshold`
+- speeding up the observer backend without changing the source-time policy
+
+Those can still matter.
+
+But the new rerun suggests that the decisive `CU` gains now require:
+
+- earlier start
+- finer update cadence
+- finer frontier granularity
+- less conservative scheduling
+- more target growth per accepted update
+
+
+## Prioritized Experimental Program For `< 2 s` LongYAAL CU
+
+The right next step is not a broad grid search.
+
+It is a staged program that tests the highest-impact `CU` levers first while
+keeping the interpretation clean.
+
+### Success Criterion
+
+For this phase, the primary objective is:
+
+- `LongYAAL CU < 2000 ms`
+
+Subject to a secondary quality floor:
+
+- stay in the same broad quality regime as the new rerun
+- i.e. avoid changes that collapse quality even if they improve `CU`
+
+A practical working guardrail for early experiments is:
+
+- `BLEU >= 37.5`
+- `chrF >= 67.5`
+
+These are not final scientific thresholds. They are just a stop condition to
+avoid spending time on obviously bad latency-only regimes.
+
+
+### Stage 0: Fix The Experimental Baseline
+
+Before changing behavior, we should lock one explicit baseline around the new
+rerun:
+
+- `chunk_ms = 800`
+- `min_start_seconds = 5.0`
+- `inaccessible_ms = 0.0`
+- `rewind_threshold = 8`
+- current scheduler
+
+Artifacts to record for every future run:
+
+- `BLEU`
+- `chrF`
+- `LongYAAL CU`
+- `LongYAAL CA`
+- first accepted target emission time
+- average accepted tokens per update
+- average candidate tokens per update
+- number of scheduler skips
+- number of updates where the blocked frontier was within one source token of accessibility
+
+This is important because the current document has quality/latency tables, but
+the next phase needs more direct diagnostics for why `CU` moves.
+
+
+### Stage 1: Attack The Start Lag First
+
+#### Why first
+
+The current hard gate:
+
+- `min_start_seconds = 5.0`
+
+is so large that it may already consume a substantial fraction of the remaining
+`1717 ms` gap by itself.
+
+If this is true, no amount of fine scheduling will beat it.
+
+#### Experiment
+
+Hold everything else fixed and sweep only:
+
+- `min_start_seconds = 5.0`
+- `min_start_seconds = 3.0`
+- `min_start_seconds = 2.0`
+- `min_start_seconds = 1.5`
+
+Do this at the current:
+
+- `chunk_ms = 800`
+
+#### What to look for
+
+- first accepted target emission time
+- `LongYAAL CU`
+- `BLEU` and `chrF`
+
+#### Hypothesis
+
+This is the most likely single lever to produce a large `CU` drop quickly.
+
+#### Decision rule
+
+If lowering the start gate to `2.0` or `1.5` yields a large `CU` win while
+keeping quality in range, freeze the best setting before touching chunking.
+
+
+### Stage 2: Reduce Chunk Quantization
+
+#### Why second
+
+Once the start gate is no longer dominating, the next clean structural limit is
+the `800 ms` update grid.
+
+#### Experiment
+
+Using the best Stage 1 start gate, sweep:
+
+- `chunk_ms = 800`
+- `chunk_ms = 400`
+- `chunk_ms = 320`
+- `chunk_ms = 240`
+
+Keep:
+
+- the same frontier semantics
+- the same scheduler
+- the same acceptance policy
+
+#### What to look for
+
+- `LongYAAL CU`
+- average accepted tokens per update
+- number of updates
+- quality degradation, if any
+
+#### Hypothesis
+
+This is the second most likely large `CU` lever, because it reduces source-time
+quantization without changing the core semantics.
+
+#### Decision rule
+
+Prefer the smallest `chunk_ms` that preserves quality and does not explode the
+number of useless updates.
+
+If smaller chunks create too many empty or blocked updates, that is a sign to
+move immediately to Stage 3 rather than backing off entirely.
+
+
+### Stage 3: Token-Level Blocked-Frontier Scheduler
+
+#### Why third
+
+After lowering start lag and chunk quantization, the next likely bottleneck is
+that the scheduler is still too coarse:
+
+- it mainly gates on source units
+- not on token-level blocked positions
+
+#### Minimal code change
+
+Promote the scheduler from:
+
+- `blocked_source_unit_index`
+
+to also using:
+
+- `blocked_source_local_position`
+- `accessible_source_token_count`
+
+The simplest principled rule is:
+
+- if the blocked source token is now accessible, rerun immediately
+- if it is within one token of accessibility, rerun on the next source update
+- otherwise keep skipping unless a stall override triggers
+
+#### Experiment
+
+Compare:
+
+- current unit-level scheduler
+- token-level blocked-frontier scheduler
+
+at the best settings from Stages 1 and 2.
+
+#### What to look for
+
+- `LongYAAL CU`
+- number of skipped updates
+- number of reruns that still stop on the first blocked token
+
+#### Hypothesis
+
+This is the cheapest structural scheduler upgrade and should improve `CU`
+without changing acceptance semantics.
+
+
+### Stage 4: Adaptive Draft Budget
+
+#### Why fourth
+
+Once scheduling is more reactive, the next likely issue is that the system still
+drafts too far past the blocked frontier.
+
+That wastes updates and lowers the chance that each source refresh yields a new
+accepted whole-word prefix.
+
+#### Minimal policy
+
+Drive `partial_max_new_tokens` from frontier distance:
+
+- blocked very near: draft `4-8` tokens
+- medium distance: draft `8-16`
+- far distance or no known block: draft `16-32`
+
+Do not change the acceptance semantics.
+Only change how far the model speculates.
+
+#### Experiment
+
+Compare:
+
+- fixed current draft budget
+- frontier-distance-adaptive draft budget
+
+#### What to look for
+
+- `LongYAAL CU`
+- average accepted tokens per update
+- average candidate tokens per update
+- word-boundary trim rate
+
+#### Hypothesis
+
+This is more likely to give moderate but consistent `CU` gains than dramatic
+ones, especially once chunking and early start are already improved.
+
+
+### Stage 5: Finer Source Frontier
+
+#### Why fifth
+
+At this point, if `CU` is still above target, the word-complete source frontier
+is probably the main semantic bottleneck.
+
+The current system is already at:
+
+- `inaccessible_ms = 0`
+
+So further gains need finer source evidence, not a looser word boundary.
+
+#### Experiment direction
+
+Prototype a frontier over:
+
+- source tokenizer units
+- or finer ASR timestamped segments if available
+
+instead of only completed source words.
+
+#### What to look for
+
+- whether accepted growth can happen earlier inside the same source word span
+- whether German quality remains stable
+
+#### Hypothesis
+
+This is one of the strongest remaining `CU` levers, but it is more invasive
+than the earlier stages and should not be attempted before the easier source-time
+levers are exhausted.
+
+
+### Stage 6: Provenance-Aware Acceptance
+
+#### Why sixth
+
+If the system is still missing the target after the earlier stages, the problem
+is likely no longer scheduling alone.
+
+It is that the current observer is still too conservative when a drafted token is
+supported by:
+
+- already accepted target context
+
+rather than by:
+
+- speculative future target context
+
+#### Experiment direction
+
+Augment the observer to distinguish:
+
+- source support
+- accepted-prefix support
+- speculative-suffix support
+
+Then allow acceptance when:
+
+- source anchor is already accessible
+- accepted-prefix support is strong
+- speculative-suffix self-support is weak
+
+#### What to look for
+
+- increase in accepted tokens per update
+- reduction in frontier stops that are later revealed to be unnecessary
+- quality drift from over-acceptance
+
+#### Hypothesis
+
+This is probably the strongest medium-term semantic improvement for `CU`, but it
+is more complex than the earlier scheduler and cadence changes.
+
+
+### Recommended Order
+
+If we want the shortest path to an answer, the order should be:
+
+1. lower `min_start_seconds`
+2. lower `chunk_ms`
+3. add token-level blocked-frontier scheduling
+4. add adaptive draft budget
+5. add finer source frontier granularity
+6. add provenance-aware acceptance
+
+This order is deliberate.
+
+The first four steps mostly preserve the current semantics and attack the
+largest likely `CU` bottlenecks with minimal conceptual change.
+
+The last two steps are stronger architectural moves and should only be taken
+once we know the simpler source-time changes are insufficient.
+
+
+### Recommended Minimal Run Matrix
+
+To avoid combinatorial explosion, the next concrete run matrix should be:
+
+1. Start-gate sweep at `chunk_ms = 800`
+2. Chunk sweep using the best start gate
+3. Scheduler A/B at the best `(start_gate, chunk_ms)`
+4. Draft-budget A/B at the best configuration so far
+
+Only if the best run after those four steps is still clearly above `2 s`
+`LongYAAL CU` should we move to:
+
+5. finer frontier granularity
+6. provenance-aware acceptance
+
 
 ## Current Default And Rationale
 
@@ -411,9 +997,15 @@ Why this default:
 Why this is not the final answer:
 
 - the current bottleneck is no longer “how to make the frontier less strict”
-- the next likely wins will come from lowering observation/emission cost elsewhere:
-  `chunk_ms`, word-boundary emission policy, and possibly tighter integration of
-  the inline policy with decoding cost
+- the newest rerun suggests that the main remaining `CU` gap is now dominated by
+  source-time policy rather than observer compute
+- the next likely wins for `< 2 s` `LongYAAL CU` will come from:
+  - earlier start than `5 s`
+  - lower or adaptive `chunk_ms`
+  - token-level frontier scheduling
+  - finer source accessibility granularity
+  - larger safe accepted growth per update
+- lowering observation cost is still crucial, but mainly for the `CA` axis
 
 
 ## Runtime Head Aggregation

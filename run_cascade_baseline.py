@@ -14,16 +14,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--wav-path", default=DEFAULT_WAV_PATH, help="Input WAV file.")
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR, help="Artifact directory.")
     parser.add_argument("--chunk-ms", default=960, type=int, help="Streaming chunk size in milliseconds.")
+    parser.add_argument(
+        "--min-start-seconds",
+        default=None,
+        type=float,
+        help="Temporary override for qwen3asr_gemma_cascade_core.config.min_start_seconds.",
+    )
     args = parser.parse_args()
     return args
 
 
 def main() -> None:
     args = parse_args()
+    runtime_overrides = {}
+    if args.min_start_seconds is not None:
+        runtime_overrides["min_start_seconds"] = float(args.min_start_seconds)
     run_baseline(
         wav_path=args.wav_path,
         output_dir=args.output_dir,
         chunk_ms=args.chunk_ms,
+        runtime_overrides=(runtime_overrides or None),
     )
 
 

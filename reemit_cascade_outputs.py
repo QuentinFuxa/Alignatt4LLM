@@ -108,6 +108,9 @@ def main() -> None:
         emit_policy=args.emit_policy,
         max_tail_rewrite_words=args.max_tail_rewrite_words,
     )
+    replayed_final_translation_text = (
+        emitted_updates[-1].translation_text if emitted_updates else final_translation_text
+    )
 
     source_runtime_config = dict(manifest.get("runtime_config", {}))
     replay_depth = int(source_runtime_config.get("translation_replay_depth", 0) or 0) + 1
@@ -129,12 +132,13 @@ def main() -> None:
     artifacts = InferenceArtifacts(
         wav_path=manifest["wav_path"],
         chunk_ms=manifest["chunk_ms"],
+        translation_variant=manifest.get("translation_variant"),
         source_language=manifest["source_language"],
         target_language=manifest["target_language"],
         latency_unit=manifest["latency_unit"],
         audio_duration_ms=manifest["audio_duration_ms"],
         final_asr_text=final_asr_text,
-        final_translation_text=final_translation_text,
+        final_translation_text=replayed_final_translation_text,
         translation_word_delays_ms=word_delays_ms,
         translation_word_elapsed_ms=word_elapsed_ms,
         updates=emitted_updates,

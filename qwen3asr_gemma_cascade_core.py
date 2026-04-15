@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from time import perf_counter
 import os
@@ -30,6 +31,8 @@ from cascade_source_frontier import (
     build_source_accessibility_frontier,
     normalize_word_timestamps_ms,
 )
+from cascade_source_text import NormalizedSourceText, normalize_source_text_for_mt
+from cascade_text_surface import normalize_incremental_target_text
 from cascade_translation_variants import (
     FOUNDATIONAL_TRANSLATION_VARIANT_ID,
     RenderedTranslationPrompt,
@@ -148,7 +151,10 @@ class PartialTranslationState:
     last_num_cached_tokens: int | None = None
     last_prompt_num_tokens: int | None = None
     last_accept_audio_seconds: float = 0.0
+    last_mt_audio_seconds: float = 0.0
     last_alignatt_metadata: dict[str, Any] | None = None
+    blocked_source_local_position: int | None = None
+    blocked_source_unit_index: int | None = None
 
 
 @dataclass
@@ -176,6 +182,8 @@ config = SimpleNamespace(
     max_history_utterances=0,
     translation_alignatt_heads_path="assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-de.json",
     translation_alignatt_top_k_heads=8,
+    translation_alignatt_filter_width=7,
+    translation_alignatt_probe_mode="qk_fast",
     # Calibrated for the current latency-first AlignAtt cascade: make newly
     # timestamped source units accessible immediately, then rely on a more
     # permissive inline rewind guard to preserve German reordering freedom.
@@ -200,7 +208,9 @@ config = SimpleNamespace(
     gemma_enable_prefix_caching=True,
     gemma_transformers_device="cuda:0",
     gemma_transformers_dtype="bfloat16",
-    gemma_transformers_prompt_kv_reuse=False,
+    gemma_transformers_fast_attention="sdpa",
+    gemma_transformers_prompt_kv_reuse=True,
+    translation_scheduler_stall_seconds=1.2,
 )
 
 asr = None
@@ -212,6 +222,26 @@ state = CascadeState()
 
 def get_translation_variant() -> TranslationVariant:
     return TRANSLATION_VARIANTS[config.translation_variant_id]
+
+
+@contextmanager
+def temporary_runtime_config(**overrides):
+    if not overrides:
+        yield
+        return
+
+    original_values: dict[str, Any] = {}
+    for key, value in overrides.items():
+        if not hasattr(config, key):
+            raise AttributeError(f"Unknown runtime config override: {key}")
+        original_values[key] = getattr(config, key)
+        setattr(config, key, value)
+
+    try:
+        yield
+    finally:
+        for key, value in original_values.items():
+            setattr(config, key, value)
 
 
 # %%
@@ -308,6 +338,14 @@ def translation_history_window(items: List[str], end_exclusive: int) -> List[str
     return [item.strip() for item in items[start:end_exclusive] if item.strip()]
 
 
+def normalized_source_history_window(items: List[str], end_exclusive: int) -> List[str]:
+    return [
+        normalize_source_text_for_mt(item.strip()).text
+        for item in translation_history_window(items, end_exclusive)
+        if item.strip()
+    ]
+
+
 def build_translation_messages(
     text: str,
     *,
@@ -334,6 +372,67 @@ def current_audio_seconds() -> float:
     return len(state.source) / SAMPLE_RATE
 
 
+def should_run_partial_mt_update(
+    *,
+    previous_state: PartialTranslationState,
+    source_prefix: str,
+    accessible_unit_count: int,
+    current_audio_seconds_value: float,
+    stall_seconds: float,
+) -> tuple[bool, str]:
+    source_prefix = source_prefix.strip()
+    if not source_prefix:
+        return False, "empty_source"
+    if not previous_state.source_prefix:
+        return True, "initial_partial"
+    if not source_prefix.startswith(previous_state.source_prefix):
+        return True, "source_rebased"
+    blocked_source_unit_index = previous_state.blocked_source_unit_index
+    if (
+        blocked_source_unit_index is not None
+        and accessible_unit_count <= blocked_source_unit_index
+    ):
+        if source_prefix == previous_state.source_prefix:
+            return False, "source_prefix_unchanged"
+        stalled_seconds = max(0.0, current_audio_seconds_value - previous_state.last_mt_audio_seconds)
+        if stalled_seconds >= float(stall_seconds):
+            return True, "stall_probe"
+        return False, "blocked_frontier_not_reached"
+    if accessible_unit_count > previous_state.source_accessible_unit_count:
+        return True, "accessible_frontier_advanced"
+    if source_prefix == previous_state.source_prefix:
+        return False, "source_prefix_unchanged"
+
+    stalled_seconds = max(0.0, current_audio_seconds_value - previous_state.last_mt_audio_seconds)
+    if stalled_seconds >= float(stall_seconds):
+        return True, "stall_probe"
+    return False, "frontier_not_advanced"
+
+
+def derive_monotone_partial_acceptance(
+    *,
+    previous_state: PartialTranslationState,
+    source_prefix: str,
+    result: MTBackendResult,
+) -> tuple[str, tuple[int, ...]]:
+    candidate_text = result.acceptance_text.strip()
+    candidate_ids = tuple(int(token_id) for token_id in result.accepted_token_ids)
+    source_prefix = source_prefix.strip()
+    if not source_prefix:
+        return "", ()
+    if not candidate_text:
+        return previous_state.accepted_target, previous_state.accepted_token_ids
+    if not previous_state.source_prefix or not source_prefix.startswith(previous_state.source_prefix):
+        return candidate_text, candidate_ids
+
+    previous_accepted_ids = previous_state.accepted_token_ids
+    if not previous_accepted_ids:
+        return candidate_text, candidate_ids
+    if candidate_ids[: len(previous_accepted_ids)] != previous_accepted_ids:
+        return previous_state.accepted_target, previous_accepted_ids
+    return candidate_text, candidate_ids
+
+
 def translate_with_mt(
     text: str,
     *,
@@ -348,9 +447,15 @@ def translate_with_mt(
 
     text = text.strip()
     if not text:
+        prefixed_text = assistant_prefill.rstrip(" \n")
+        semantic_token_ids: tuple[int, ...] = ()
+        if mt_backend is not None and hasattr(mt_backend, "encode_semantic_target_token_ids"):
+            semantic_token_ids = tuple(mt_backend.encode_semantic_target_token_ids(prefixed_text))
         return MTBackendResult(
-            draft_text=assistant_prefill.rstrip(" \n"),
-            acceptance_text=assistant_prefill.rstrip(" \n"),
+            draft_text=prefixed_text,
+            acceptance_text=prefixed_text,
+            draft_token_ids=semantic_token_ids,
+            accepted_token_ids=semantic_token_ids,
         )
 
     variant = get_translation_variant()
@@ -376,17 +481,26 @@ class TranslationUnitManager:
     def reset_partial_state(self) -> None:
         state.partial_translation = PartialTranslationState()
 
-    def build_source_frontier(
+    def normalize_source_text(
         self,
         source_text: str,
         *,
         is_final: bool,
+    ) -> NormalizedSourceText:
+        return normalize_source_text_for_mt(
+            source_text.strip(),
+            word_timestamps_ms=(None if is_final else state.partial_word_timestamps_ms),
+        )
+
+    def build_source_frontier(
+        self,
+        source_text: NormalizedSourceText,
+        *,
+        is_final: bool,
     ) -> SourceAccessibilityFrontier:
         return build_source_accessibility_frontier(
-            source_text.strip(),
-            word_timestamps_ms=(
-                None if is_final else state.partial_word_timestamps_ms
-            ),
+            source_text.text,
+            word_timestamps_ms=source_text.word_timestamps_ms,
             current_audio_ms=current_audio_seconds() * 1000.0,
             inaccessible_ms=float(self.runtime_config.translation_alignatt_inaccessible_ms),
             is_final=is_final,
@@ -402,28 +516,61 @@ class TranslationUnitManager:
             self.reset_partial_state()
         return state.partial_translation.accepted_target
 
+    def should_run_partial_mt(
+        self,
+        *,
+        source_text: str,
+        source_frontier: SourceAccessibilityFrontier,
+    ) -> tuple[bool, str]:
+        return should_run_partial_mt_update(
+            previous_state=state.partial_translation,
+            source_prefix=source_text,
+            accessible_unit_count=source_frontier.accessible_unit_count,
+            current_audio_seconds_value=current_audio_seconds(),
+            stall_seconds=float(self.runtime_config.translation_scheduler_stall_seconds),
+        )
+
+    def snapshot_skipped_partial_result(
+        self,
+        *,
+        source_frontier: SourceAccessibilityFrontier,
+        scheduler_reason: str,
+    ) -> MTBackendResult:
+        previous_state = state.partial_translation
+        alignatt_metadata = dict(previous_state.last_alignatt_metadata or {})
+        alignatt_metadata.update(
+            {
+                "scheduler_skipped": True,
+                "scheduler_reason": scheduler_reason,
+                "accessible_source_unit_count": source_frontier.accessible_unit_count,
+                "source_unit_count": len(source_frontier.units),
+                "current_audio_ms": source_frontier.current_audio_ms,
+                "inaccessible_ms": source_frontier.inaccessible_ms,
+            }
+        )
+        return MTBackendResult(
+            draft_text=previous_state.draft_target,
+            acceptance_text=previous_state.accepted_target,
+            draft_token_ids=previous_state.draft_token_ids,
+            accepted_token_ids=previous_state.accepted_token_ids,
+            num_cached_tokens=previous_state.last_num_cached_tokens,
+            prompt_num_tokens=previous_state.last_prompt_num_tokens,
+            stop_reason=f"scheduler:{scheduler_reason}",
+            alignatt_metadata=alignatt_metadata,
+            timings_ms={"scheduler_skip": 0.0},
+        )
+
     def derive_monotone_acceptance(
         self,
         *,
         source_prefix: str,
         result: MTBackendResult,
     ) -> tuple[str, tuple[int, ...]]:
-        previous_state = state.partial_translation
-        candidate_text = result.acceptance_text.strip()
-        candidate_ids = tuple(int(token_id) for token_id in result.accepted_token_ids)
-        if not source_prefix:
-            return "", ()
-        if not candidate_text:
-            return previous_state.accepted_target, previous_state.accepted_token_ids
-        if not previous_state.source_prefix or not source_prefix.startswith(previous_state.source_prefix):
-            return candidate_text, candidate_ids
-
-        previous_accepted_ids = previous_state.accepted_token_ids
-        if not previous_accepted_ids:
-            return candidate_text, candidate_ids
-        if candidate_ids[: len(previous_accepted_ids)] != previous_accepted_ids:
-            return previous_state.accepted_target, previous_accepted_ids
-        return candidate_text, candidate_ids
+        return derive_monotone_partial_acceptance(
+            previous_state=state.partial_translation,
+            source_prefix=source_prefix,
+            result=result,
+        )
 
     def update_partial_state(
         self,
@@ -450,7 +597,18 @@ class TranslationUnitManager:
             last_num_cached_tokens=result.num_cached_tokens,
             last_prompt_num_tokens=result.prompt_num_tokens,
             last_accept_audio_seconds=last_accept_audio_seconds,
+            last_mt_audio_seconds=current_audio_seconds(),
             last_alignatt_metadata=result.alignatt_metadata,
+            blocked_source_local_position=(
+                None
+                if result.alignatt_metadata is None
+                else result.alignatt_metadata.get("blocked_source_local_position")
+            ),
+            blocked_source_unit_index=(
+                None
+                if result.alignatt_metadata is None
+                else result.alignatt_metadata.get("blocked_source_unit_index")
+            ),
         )
 
     def sync_committed_translations(self) -> MTBackendResult | None:
@@ -458,18 +616,25 @@ class TranslationUnitManager:
         while len(state.utt_translations) < len(state.utt_sources):
             segment_idx = len(state.utt_translations)
             segment_source = state.utt_sources[segment_idx].strip()
+            normalized_segment_source = self.normalize_source_text(
+                segment_source,
+                is_final=True,
+            )
             assistant_prefill = ""
             if (
                 state.partial_translation.source_prefix
                 and state.partial_translation.accepted_target
                 and segment_idx == len(state.utt_sources) - 1
-                and segment_source.startswith(state.partial_translation.source_prefix)
+                and normalized_segment_source.text.startswith(state.partial_translation.source_prefix)
             ):
                 assistant_prefill = state.partial_translation.accepted_target
             last_result = translate_with_mt(
-                segment_source,
-                source_frontier=self.build_source_frontier(segment_source, is_final=True),
-                source_history=translation_history_window(state.utt_sources, segment_idx),
+                normalized_segment_source.text,
+                source_frontier=self.build_source_frontier(
+                    normalized_segment_source,
+                    is_final=True,
+                ),
+                source_history=normalized_source_history_window(state.utt_sources, segment_idx),
                 translation_history=translation_history_window(state.utt_translations, segment_idx),
                 is_partial=False,
                 assistant_prefill=assistant_prefill,
@@ -484,20 +649,40 @@ class TranslationUnitManager:
 
         translation_segments = [segment for segment in state.utt_translations[1:] if segment.strip()]
         partial_source = normalize_partial_asr_hypothesis(state.asr_hypotheses[-1])
-        if partial_source:
-            partial_frontier = self.build_source_frontier(partial_source, is_final=False)
-            partial_result = translate_with_mt(
-                partial_source,
-                source_frontier=partial_frontier,
-                source_history=translation_history_window(state.utt_sources, len(state.utt_sources)),
-                translation_history=translation_history_window(
-                    state.utt_translations,
-                    len(state.utt_translations),
-                ),
-                is_partial=True,
-                assistant_prefill=self.current_accepted_prefill(partial_source),
+        normalized_partial_source = self.normalize_source_text(
+            partial_source,
+            is_final=False,
+        )
+        if normalized_partial_source.text:
+            partial_frontier = self.build_source_frontier(
+                normalized_partial_source,
+                is_final=False,
             )
-            self.update_partial_state(partial_source, partial_result, partial_frontier)
+            should_run_partial, scheduler_reason = self.should_run_partial_mt(
+                source_text=normalized_partial_source.text,
+                source_frontier=partial_frontier,
+            )
+            if should_run_partial:
+                partial_result = translate_with_mt(
+                    normalized_partial_source.text,
+                    source_frontier=partial_frontier,
+                    source_history=normalized_source_history_window(
+                        state.utt_sources,
+                        len(state.utt_sources),
+                    ),
+                    translation_history=translation_history_window(
+                        state.utt_translations,
+                        len(state.utt_translations),
+                    ),
+                    is_partial=True,
+                    assistant_prefill=self.current_accepted_prefill(normalized_partial_source.text),
+                )
+                self.update_partial_state(normalized_partial_source.text, partial_result, partial_frontier)
+            else:
+                partial_result = self.snapshot_skipped_partial_result(
+                    source_frontier=partial_frontier,
+                    scheduler_reason=scheduler_reason,
+                )
             if state.partial_translation.accepted_target.strip():
                 translation_segments.append(state.partial_translation.accepted_target)
             latest_result = partial_result
@@ -505,7 +690,9 @@ class TranslationUnitManager:
             self.reset_partial_state()
 
         return (
-            " ".join(segment.strip() for segment in translation_segments if segment.strip()).strip(),
+            normalize_incremental_target_text(
+                " ".join(segment.strip() for segment in translation_segments if segment.strip())
+            ),
             latest_result,
         )
 
@@ -635,6 +822,9 @@ def run_stream_to_artifacts(
                 alignatt_metadata=(
                     None if translation_result is None else translation_result.alignatt_metadata
                 ),
+                translation_timings_ms=(
+                    None if translation_result is None else translation_result.timings_ms
+                ),
             )
         )
         current_time = audio_processed_ms / 1000.0
@@ -699,6 +889,11 @@ def run_stream_to_artifacts(
                     if final_translation_result is None
                     else final_translation_result.alignatt_metadata
                 ),
+                translation_timings_ms=(
+                    None
+                    if final_translation_result is None
+                    else final_translation_result.timings_ms
+                ),
             )
         )
 
@@ -725,6 +920,8 @@ def run_stream_to_artifacts(
             "translation_variant_description": variant.description,
             "translation_alignatt_heads_path": config.translation_alignatt_heads_path,
             "translation_alignatt_top_k_heads": config.translation_alignatt_top_k_heads,
+            "translation_alignatt_filter_width": config.translation_alignatt_filter_width,
+            "translation_alignatt_probe_mode": config.translation_alignatt_probe_mode,
             "translation_alignatt_inaccessible_ms": config.translation_alignatt_inaccessible_ms,
             "translation_alignatt_rewind_threshold": config.translation_alignatt_rewind_threshold,
             "min_start_seconds": config.min_start_seconds,
@@ -748,7 +945,9 @@ def run_stream_to_artifacts(
             "gemma_enable_prefix_caching": config.gemma_enable_prefix_caching,
             "gemma_transformers_device": config.gemma_transformers_device,
             "gemma_transformers_dtype": config.gemma_transformers_dtype,
+            "gemma_transformers_fast_attention": config.gemma_transformers_fast_attention,
             "gemma_transformers_prompt_kv_reuse": config.gemma_transformers_prompt_kv_reuse,
+            "translation_scheduler_stall_seconds": config.translation_scheduler_stall_seconds,
         },
     )
 
@@ -757,13 +956,15 @@ def run_stream(
     wav_path: str,
     chunk_ms: int = 960,
     output_dir: str | None = None,
+    runtime_overrides: dict[str, Any] | None = None,
 ):
-    artifacts = run_stream_to_artifacts(
-        wav_path,
-        chunk_ms=chunk_ms,
-    )
-    if output_dir is not None:
-        write_inference_artifacts(artifacts, output_dir)
+    with temporary_runtime_config(**(runtime_overrides or {})):
+        artifacts = run_stream_to_artifacts(
+            wav_path,
+            chunk_ms=chunk_ms,
+        )
+        if output_dir is not None:
+            write_inference_artifacts(artifacts, output_dir)
 
     return artifacts.final_asr_text, artifacts.final_translation_text
 
@@ -773,15 +974,17 @@ def run_baseline(
     *,
     output_dir: str = DEFAULT_OUTPUT_DIR,
     chunk_ms: int = 960,
+    runtime_overrides: dict[str, Any] | None = None,
 ):
-    artifacts = run_stream_to_artifacts(
-        wav_path,
-        chunk_ms=chunk_ms,
-    )
-    written_files = write_inference_artifacts(artifacts, output_dir)
-    print(f"\nWrote baseline artifacts to {output_dir}")
-    for label, path in written_files.items():
-        print(f"- {label}: {path}")
+    with temporary_runtime_config(**(runtime_overrides or {})):
+        artifacts = run_stream_to_artifacts(
+            wav_path,
+            chunk_ms=chunk_ms,
+        )
+        written_files = write_inference_artifacts(artifacts, output_dir)
+        print(f"\nWrote baseline artifacts to {output_dir}")
+        for label, path in written_files.items():
+            print(f"- {label}: {path}")
 
     return written_files
 

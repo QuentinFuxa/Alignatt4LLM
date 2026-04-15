@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from cascade_source_frontier import SourceAccessibilityFrontier
+from cascade_text_surface import normalize_incremental_target_text
 
 
 @dataclass(frozen=True)
@@ -118,7 +119,7 @@ class TranslationVariant:
             )
 
         messages: list[dict[str, str]] = []
-        if self.system_prompt_template and self.uses_structured_scaffolding:
+        if self.system_prompt_template:
             messages.append(
                 {
                     "role": "system",
@@ -182,8 +183,8 @@ class TranslationVariant:
         del is_partial
         candidate = generated_text.rstrip(" \n")
         if assistant_prefill:
-            return (assistant_prefill + candidate).rstrip(" \n")
-        return candidate.strip()
+            return normalize_incremental_target_text(assistant_prefill + candidate)
+        return normalize_incremental_target_text(candidate)
 
     def _render_structured_user_message(
         self,
@@ -193,37 +194,15 @@ class TranslationVariant:
         is_partial: bool,
         assistant_prefix_seeded: bool,
     ) -> tuple[str, tuple[int, int]]:
-        task_lines = [
-            "Output natural German, not English word order.",
-            "Return only one German continuation, with no explanations or alternatives.",
-        ]
-        if assistant_prefix_seeded:
-            task_lines.append(
-                "The assistant message already contains the accepted German prefix from the beginning of the current sentence. Continue directly after it and never restart or rewrite that prefix."
-            )
-        else:
-            task_lines.append(
-                "Start the German sentence from the beginning of the current sentence in the assistant continuation."
-            )
-        if is_partial:
-            task_lines.append(
-                "If the English prefix is still unfolding, stop at the last complete German word that is already safe to emit now."
-            )
-        else:
-            task_lines.append(
-                "The sentence is complete enough to finish naturally while preserving the accepted prefix."
-            )
-
-        rendered_task = "\n".join(f"- {line}" for line in task_lines)
         source_header = "[Current English ASR prefix]\n"
-        content = (
-            "[Instruction]\n"
-            f"{rendered_task}\n\n"
-            "[Confirmed earlier sentence pairs]\n"
-            f"{context_block}\n\n"
-            f"{source_header}"
-            f"{source_text}"
-        )
+        content_sections = []
+        if context_block != "(none)":
+            content_sections.append(
+                "[Confirmed earlier sentence pairs]\n"
+                f"{context_block}"
+            )
+        content_sections.append(f"{source_header}{source_text}")
+        content = "\n\n".join(content_sections)
         source_start = content.rfind(source_header) + len(source_header)
         return content, (source_start, source_start + len(source_text))
 
@@ -248,35 +227,13 @@ class TranslationVariant:
 PUNCTUATION_STABLE_SEGMENT_RULE = "The current source segment is punctuation-stable."
 
 STRUCTURED_PREFIX_SYSTEM_PROMPT = """
-You translate live incremental {source_lang} ASR into {target_lang}.
-Produce the longest {target_lang} prefix from the beginning of the current sentence that is already safe to emit now.
-Use natural {target_lang} word order and preserve names, titles, and technical terms when they are already clear.
-If an accepted {target_lang} prefix is already present in the assistant message, keep it exactly and continue directly after it.
-Use earlier confirmed sentence pairs only for continuity and terminology.
+Translate live incremental {source_lang} ASR into fluent, idiomatic {target_lang} suitable for speech translation.
+Return only {target_lang} text.
+If the assistant message already contains an accepted {target_lang} prefix, continue directly after it and preserve its wording.
+Prefer natural {target_lang} syntax over word-for-word calques.
+If the ASR prefix contains minor punctuation noise or local disfluencies, translate the most plausible intended meaning without adding new facts.
+Translate from the beginning of the current sentence, preserve names and technical terms when they are already clear, and let the runtime decide which drafted tokens are committed.
 """.strip()
-
-PREFIX_CONTINUATION_EXAMPLES = (
-    PrefixContinuationExample(
-        source="because I have seen",
-        output="weil ich",
-        is_partial=True,
-    ),
-    PrefixContinuationExample(
-        source="because I have seen him",
-        output="weil ich ihn gesehen habe",
-        is_partial=False,
-    ),
-    PrefixContinuationExample(
-        source="I'm here to introduce",
-        output="Ich bin hier, um",
-        is_partial=True,
-    ),
-    PrefixContinuationExample(
-        source="I'm here to introduce our paper.",
-        output="Ich bin hier, um unser Paper vorzustellen.",
-        is_partial=False,
-    ),
-)
 
 def make_structured_prefix_variant(*, variant_id: str, description: str) -> TranslationVariant:
     return TranslationVariant(
@@ -284,9 +241,8 @@ def make_structured_prefix_variant(*, variant_id: str, description: str) -> Tran
         description=description,
         max_history_utterances=0,
         system_prompt_template=STRUCTURED_PREFIX_SYSTEM_PROMPT,
-        examples=PREFIX_CONTINUATION_EXAMPLES,
         preserve_frozen_prefix=True,
-        include_structured_scaffolding=True,
+        include_structured_scaffolding=False,
     )
 
 
