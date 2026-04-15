@@ -17,7 +17,7 @@ Examples:
 
 Hot reload principle:
   Keep the warmed raw kernel alive, preserve the in-memory model objects
-  (`asr`, `gemma_llm`, `gemma_tokenizer`), reload only the Python modules with
+  (`asr`, `mt_backend`; plus `gemma_llm` / `gemma_tokenizer` only as legacy convenience handles), reload only the Python modules with
   `importlib.reload(...)`, rebind the preserved model objects into the reloaded
   `qwen3asr_gemma_cascade_core` module, reset only `core.state`, then call
   `qwen3asr_gemma_cascade_core.run_baseline(...)` directly. This updates the
@@ -55,12 +55,13 @@ HOT_RELOAD_GUIDE = """
 Hot reload principle
 --------------------
 1. Keep the persistent raw `.venv-inference` kernel alive and warmed.
-2. Save `qwen3asr_gemma_cascade_core.asr`, `gemma_llm`, and `gemma_tokenizer`.
-3. Reload `cascade_translation_variants` and `qwen3asr_gemma_cascade_core`
+2. Save `qwen3asr_gemma_cascade_core.asr` and `mt_backend`.
+3. Optionally keep `gemma_llm` and `gemma_tokenizer` in sync as legacy convenience handles.
+4. Reload `cascade_translation_variants`, `cascade_mt_backend`, and `qwen3asr_gemma_cascade_core`
    with `importlib.reload(...)`.
-4. Rebind the saved model objects into the reloaded core module.
-5. Recompute `gemma_uncertainty_token_id` and reset only `core.state`.
-6. Call `qwen3asr_gemma_cascade_core.run_baseline(...)` directly.
+5. Rebind the saved model objects into the reloaded core module.
+6. Reset only `core.state`.
+7. Call `qwen3asr_gemma_cascade_core.run_baseline(...)` directly.
 
 Why call the core module directly?
   The notebook facade imports function references eagerly. After a hot reload,

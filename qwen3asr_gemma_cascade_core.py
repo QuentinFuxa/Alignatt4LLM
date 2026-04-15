@@ -10,8 +10,6 @@ import numpy as np
 import torch
 import patch_qwen_asr_for_transformers5
 from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS
-from transformers import AutoTokenizer
-from vllm import LLM, SamplingParams
 
 from cascade_artifacts import (
     DEFAULT_OUTPUT_DIR,
@@ -26,8 +24,14 @@ from cascade_emission import (
     register_translation_timestamps,
     register_translation_words,
 )
+from cascade_mt_backend import MTBackendResult, build_mt_backend
+from cascade_source_frontier import (
+    SourceAccessibilityFrontier,
+    build_source_accessibility_frontier,
+    normalize_word_timestamps_ms,
+)
 from cascade_translation_variants import (
-    DEFAULT_TRANSLATION_VARIANT_ID,
+    FOUNDATIONAL_TRANSLATION_VARIANT_ID,
     RenderedTranslationPrompt,
     TRANSLATION_VARIANTS,
     TranslationVariant,
@@ -115,23 +119,36 @@ def n_utterances(text: str) -> int:
     return n_utt
 
 
+def normalize_partial_asr_hypothesis(text: str) -> str:
+    text = text.rstrip()
+    while text.endswith((".", "!", "?")):
+        text = text[:-1].rstrip()
+    return text
+
+
+def render_public_asr_text() -> str:
+    committed_segments = [segment.strip() for segment in state.utt_sources[1:] if segment.strip()]
+    partial_segment = ""
+    if state.asr_hypotheses:
+        partial_segment = normalize_partial_asr_hypothesis(state.asr_hypotheses[-1])
+    if partial_segment:
+        committed_segments.append(partial_segment)
+    return " ".join(committed_segments).strip()
+
+
 @dataclass
 class PartialTranslationState:
-    source_text: str = ""
-    assistant_prefill: str = ""
+    source_prefix: str = ""
+    draft_target: str = ""
+    draft_token_ids: tuple[int, ...] = ()
+    accepted_target: str = ""
+    accepted_token_ids: tuple[int, ...] = ()
+    source_accessible_unit_count: int = 0
+    source_total_unit_count: int = 0
     last_num_cached_tokens: int | None = None
     last_prompt_num_tokens: int | None = None
-    last_boundary_emitted: bool = False
-    last_commit_audio_seconds: float = 0.0
-
-
-@dataclass
-class TranslationResult:
-    text: str
-    num_cached_tokens: int | None = None
-    prompt_num_tokens: int | None = None
-    uncertainty_boundary_emitted: bool = False
-    stop_reason: str | int | None = None
+    last_accept_audio_seconds: float = 0.0
+    last_alignatt_metadata: dict[str, Any] | None = None
 
 
 @dataclass
@@ -142,6 +159,7 @@ class CascadeState:
     utt_sources: List[str] = field(default_factory=lambda: [""])
     utt_translations: List[str] = field(default_factory=lambda: [""])
     asr_hypotheses: List[str] = field(default_factory=lambda: [""])
+    partial_word_timestamps_ms: List[tuple[float | None, float | None]] = field(default_factory=list)
     partial_translation: PartialTranslationState = field(default_factory=PartialTranslationState)
 
 
@@ -154,13 +172,24 @@ config = SimpleNamespace(
     target_lang="German",
     latency_unit="word",
     min_start_seconds=5.0,
-    translation_variant_id=DEFAULT_TRANSLATION_VARIANT_ID,
+    translation_variant_id=FOUNDATIONAL_TRANSLATION_VARIANT_ID,
     max_history_utterances=0,
-    translation_mode="utterance_incremental",
+    translation_mode="alignatt_source_frontier",
+    translation_mt_backend="transformers_alignatt",
+    translation_prefix_acceptance="inline_policy_monotonic_prefix",
+    translation_alignatt_heads_path="assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-de.json",
+    translation_alignatt_top_k_heads=8,
+    translation_alignatt_inaccessible_ms=500.0,
+    translation_alignatt_rewind_threshold=3,
     max_new_tokens=160,
+    partial_max_new_tokens=48,
+    partial_followup_max_new_tokens=16,
     translation_min_new_tokens=32,
     translation_token_budget_ratio=3.0,
     translation_token_budget_buffer=24,
+    partial_translation_min_new_tokens=4,
+    partial_translation_token_budget_ratio=1.0,
+    partial_translation_token_budget_buffer=8,
     translation_generation_margin=8,
     translation_emit_policy=RAW_PASSTHROUGH,
     translation_max_tail_rewrite_words=14,
@@ -171,16 +200,15 @@ config = SimpleNamespace(
     gemma_max_model_len=1024,
     gemma_enforce_eager=True,
     gemma_enable_prefix_caching=True,
-    uncertainty_marker_logit_bias_max=20.0,
-    uncertainty_marker_logit_bias_min=4.0,
-    uncertainty_marker_decay_audio_seconds=6.0,
-    uncertainty_marker_followup_bias_cap=6.0,
+    gemma_transformers_device="cuda:0",
+    gemma_transformers_dtype="bfloat16",
+    gemma_transformers_prompt_kv_reuse=False,
 )
 
 asr = None
 gemma_tokenizer = None
 gemma_llm = None
-gemma_uncertainty_token_id: int | None = None
+mt_backend = None
 state = CascadeState()
 
 
@@ -205,7 +233,7 @@ def set_translation_variant(variant_id: str) -> TranslationVariant:
 
 # %%
 def load_models():
-    global asr, gemma_tokenizer, gemma_llm, gemma_uncertainty_token_id, state
+    global asr, gemma_tokenizer, gemma_llm, mt_backend, state
 
     if asr is None:
         asr = Qwen3ASRModel.LLM(
@@ -221,27 +249,14 @@ def load_models():
             },
         )
 
-    if gemma_tokenizer is None:
-        gemma_tokenizer = AutoTokenizer.from_pretrained(
-            gemma_model_name,
-            trust_remote_code=True,
-            local_files_only=True,
+    if mt_backend is None:
+        mt_backend = build_mt_backend(
+            model_name=gemma_model_name,
+            runtime_config=config,
         )
-    gemma_uncertainty_token_id = ensure_registered_special_token(
-        gemma_tokenizer,
-        "<unused0>",
-    )
-
-    if gemma_llm is None:
-        gemma_llm = LLM(
-            model=gemma_model_name,
-            tensor_parallel_size=max(1, torch.cuda.device_count()),
-            max_model_len=config.gemma_max_model_len,
-            gpu_memory_utilization=config.gemma_gpu_memory_utilization,
-            enforce_eager=config.gemma_enforce_eager,
-            enable_prefix_caching=config.gemma_enable_prefix_caching,
-            trust_remote_code=True,
-        )
+        mt_backend.load()
+        gemma_tokenizer = mt_backend.tokenizer
+        gemma_llm = getattr(mt_backend, "llm", None) or getattr(mt_backend, "model", None)
 
     state = CascadeState(speech_id=state.speech_id)
 
@@ -249,26 +264,6 @@ def load_models():
 def clear_state():
     global state
     state = CascadeState(speech_id=state.speech_id)
-
-
-def ensure_registered_special_token(tokenizer, token: str) -> int:
-    token_id = tokenizer.convert_tokens_to_ids(token)
-    if token_id is None or token_id == getattr(tokenizer, "unk_token_id", None):
-        raise RuntimeError(f"Gemma tokenizer does not expose {token!r} as a vocab token.")
-
-    encoded = tokenizer.encode(token, add_special_tokens=False)
-    if encoded != [int(token_id)]:
-        tokenizer.add_special_tokens({"additional_special_tokens": [token]})
-        encoded = tokenizer.encode(token, add_special_tokens=False)
-
-    if encoded != [int(token_id)]:
-        raise RuntimeError(
-            f"Gemma tokenizer failed to encode {token!r} as a single special token: {encoded}"
-        )
-    if token not in tokenizer.all_special_tokens:
-        raise RuntimeError(f"Gemma tokenizer did not register {token!r} as a special token.")
-    return int(token_id)
-
 
 def transcribe_audio():
     if asr is None:
@@ -290,6 +285,7 @@ def transcribe_audio():
 
     asr_hypo = asr_outputs[0].text
     state.asr_hypotheses.append(asr_hypo)
+    state.partial_word_timestamps_ms = normalize_word_timestamps_ms(asr_outputs[0].time_stamps)
 
     asr_segment = longest_common_prefix(state.asr_hypotheses[-2], state.asr_hypotheses[-1])
     if n_utterances(asr_segment) >= 1:
@@ -309,11 +305,16 @@ def transcribe_audio():
         utt_end_time = min(utt_end_time, len(state.source))
         state.utt_timestamps.append(utt_end_time)
         state.utt_sources.append(asr_segment[: rightest_punct_idx + 1])
-        state.asr_hypotheses = [asr_hypo[rightest_punct_idx + 1 :].strip()]
+        remainder = asr_hypo[rightest_punct_idx + 1 :].strip()
+        n_words_right = len(remove_punctuation(remainder).strip().split())
+        state.asr_hypotheses = [remainder]
+        state.partial_word_timestamps_ms = (
+            state.partial_word_timestamps_ms[-n_words_right:] if n_words_right > 0 else []
+        )
 
     if state.utt_sources[1:]:
-        return " ".join(state.utt_sources[1:] + [state.asr_hypotheses[-1]]).strip()
-    return state.asr_hypotheses[-1].strip()
+        return render_public_asr_text()
+    return normalize_partial_asr_hypothesis(state.asr_hypotheses[-1])
 
 
 def translation_history_window(items: List[str], end_exclusive: int) -> List[str]:
@@ -327,6 +328,7 @@ def translation_history_window(items: List[str], end_exclusive: int) -> List[str
 def build_translation_messages(
     text: str,
     *,
+    source_frontier: SourceAccessibilityFrontier | None,
     source_history: List[str],
     translation_history: List[str],
     is_partial: bool,
@@ -337,6 +339,7 @@ def build_translation_messages(
         source_lang=config.source_lang,
         target_lang=config.target_lang,
         text=text,
+        source_frontier=source_frontier,
         source_history=source_history,
         translation_history=translation_history,
         is_partial=is_partial,
@@ -344,262 +347,187 @@ def build_translation_messages(
     )
 
 
-def apply_chat_template_token_ids(rendered_prompt: RenderedTranslationPrompt) -> list[int]:
-    template_kwargs: dict[str, Any] = {
-        "tokenize": True,
-        "return_dict": True,
-    }
-    if rendered_prompt.continue_final_message:
-        template_kwargs["continue_final_message"] = True
-    else:
-        template_kwargs["add_generation_prompt"] = True
-    prompt_token_ids = gemma_tokenizer.apply_chat_template(
-        rendered_prompt.messages,
-        **template_kwargs,
-    )
-    if hasattr(prompt_token_ids, "keys") and "input_ids" in prompt_token_ids:
-        prompt_token_ids = prompt_token_ids["input_ids"]
-    elif hasattr(prompt_token_ids, "ids"):
-        prompt_token_ids = prompt_token_ids.ids
-    return list(prompt_token_ids)
-
-
-def build_translation_request(
-    rendered_prompt: RenderedTranslationPrompt,
-    source_text: str,
-    *,
-    variant: TranslationVariant,
-    is_partial: bool,
-    assistant_prefill: str,
-) -> tuple[dict[str, Any], SamplingParams, int]:
-    prompt_token_ids = apply_chat_template_token_ids(rendered_prompt)
-    prompt_tokens = len(prompt_token_ids)
-    source_tokens = len(gemma_tokenizer(source_text, add_special_tokens=False)["input_ids"])
-    desired_max_tokens = max(
-        config.translation_min_new_tokens,
-        int(source_tokens * config.translation_token_budget_ratio) + config.translation_token_budget_buffer,
-    )
-    available_max_tokens = config.gemma_max_model_len - prompt_tokens - config.translation_generation_margin
-    if available_max_tokens < 1:
-        raise RuntimeError(
-            f"Gemma prompt exhausted the context window: prompt_tokens={prompt_tokens} "
-            f"gemma_max_model_len={config.gemma_max_model_len}"
-        )
-
-    sampling_kwargs: dict[str, Any] = {
-        "temperature": config.temperature,
-        "max_tokens": min(config.max_new_tokens, desired_max_tokens, available_max_tokens),
-        "repetition_penalty": config.repetition_penalty,
-        "skip_reading_prefix_cache": False,
-    }
-    uncertainty_logit_bias = compute_uncertainty_marker_logit_bias(
-        variant=variant,
-        is_partial=is_partial,
-        assistant_prefill=assistant_prefill,
-    )
-    if (
-        is_partial
-        and variant.uses_uncertainty_boundary
-        and variant.uncertainty_marker
-        and gemma_uncertainty_token_id is not None
-    ):
-        sampling_kwargs["stop_token_ids"] = [gemma_uncertainty_token_id]
-        if uncertainty_logit_bias is not None:
-            sampling_kwargs["logit_bias"] = {gemma_uncertainty_token_id: uncertainty_logit_bias}
-
-    return {"prompt_token_ids": prompt_token_ids}, SamplingParams(**sampling_kwargs), prompt_tokens
-
-
 def current_audio_seconds() -> float:
     return len(state.source) / SAMPLE_RATE
 
 
-def compute_uncertainty_marker_logit_bias(
-    *,
-    variant: TranslationVariant,
-    is_partial: bool,
-    assistant_prefill: str,
-) -> float | None:
-    if (
-        not is_partial
-        or not variant.uses_uncertainty_boundary
-        or gemma_uncertainty_token_id is None
-    ):
-        return None
-
-    max_bias = float(config.uncertainty_marker_logit_bias_max)
-    min_bias = float(config.uncertainty_marker_logit_bias_min)
-    decay_seconds = max(1e-6, float(config.uncertainty_marker_decay_audio_seconds))
-
-    new_audio_seconds = max(
-        0.0,
-        current_audio_seconds() - state.partial_translation.last_commit_audio_seconds,
-    )
-    if new_audio_seconds >= decay_seconds:
-        scheduled_bias = min_bias
-    else:
-        ratio = 1.0 - (new_audio_seconds / decay_seconds)
-        scheduled_bias = min_bias + ratio * (max_bias - min_bias)
-
-    if assistant_prefill.strip():
-        scheduled_bias = min(
-            scheduled_bias,
-            float(config.uncertainty_marker_followup_bias_cap),
-        )
-    return scheduled_bias
-
-
-def completion_emitted_uncertainty_boundary(
-    *,
-    variant: TranslationVariant,
-    completion,
-) -> bool:
-    if not variant.uses_uncertainty_boundary or not variant.uncertainty_marker:
-        return False
-    if variant.uncertainty_marker in completion.text:
-        return True
-    if (
-        gemma_uncertainty_token_id is not None
-        and gemma_uncertainty_token_id in completion.token_ids
-    ):
-        return True
-    return completion.stop_reason in {variant.uncertainty_marker, gemma_uncertainty_token_id}
-
-
-def translate_with_gemma(
+def translate_with_mt(
     text: str,
     *,
+    source_frontier: SourceAccessibilityFrontier | None = None,
     source_history: List[str] | None = None,
     translation_history: List[str] | None = None,
     is_partial: bool = False,
     assistant_prefill: str = "",
-) -> TranslationResult:
-    if gemma_tokenizer is None or gemma_llm is None:
-        raise RuntimeError("Models are not loaded. Run load_models() first.")
+) -> MTBackendResult:
+    if mt_backend is None:
+        raise RuntimeError("MT backend is not loaded. Run load_models() first.")
 
     text = text.strip()
     if not text:
-        return TranslationResult(text=assistant_prefill.rstrip(" \n"))
+        return MTBackendResult(
+            draft_text=assistant_prefill.rstrip(" \n"),
+            acceptance_text=assistant_prefill.rstrip(" \n"),
+        )
 
     variant = get_translation_variant(config.translation_variant_id)
     rendered_prompt = build_translation_messages(
         text,
+        source_frontier=source_frontier,
         source_history=source_history or [],
         translation_history=translation_history or [],
         is_partial=is_partial,
         assistant_prefill=assistant_prefill,
     )
-    prompt, sampling_params, prompt_num_tokens = build_translation_request(
-        rendered_prompt,
-        text,
+    return mt_backend.translate(
+        rendered_prompt=rendered_prompt,
         variant=variant,
         is_partial=is_partial,
-        assistant_prefill=assistant_prefill,
-    )
-    outputs = gemma_llm.generate(prompt, sampling_params)
-    request_output = outputs[0]
-    completion = request_output.outputs[0]
-    boundary_seen = completion_emitted_uncertainty_boundary(
-        variant=variant,
-        completion=completion,
-    )
-    normalized_text, boundary_seen = variant.normalize_output(
-        generated_text=completion.text,
-        assistant_prefill=assistant_prefill,
-        is_partial=is_partial,
-    )
-    boundary_seen = boundary_seen or completion_emitted_uncertainty_boundary(
-        variant=variant,
-        completion=completion,
-    )
-    return TranslationResult(
-        text=normalized_text,
-        num_cached_tokens=request_output.num_cached_tokens,
-        prompt_num_tokens=prompt_num_tokens,
-        uncertainty_boundary_emitted=boundary_seen,
-        stop_reason=completion.stop_reason,
     )
 
 
-def reset_partial_translation_state() -> None:
-    state.partial_translation = PartialTranslationState()
+class TranslationUnitManager:
+    def __init__(self, runtime_config: SimpleNamespace):
+        self.runtime_config = runtime_config
 
+    def reset_partial_state(self) -> None:
+        state.partial_translation = PartialTranslationState()
 
-def current_assistant_prefill(source_text: str) -> str:
-    source_text = source_text.strip()
-    partial_state = state.partial_translation
-    if not source_text:
-        reset_partial_translation_state()
-        return ""
-    if partial_state.source_text and not source_text.startswith(partial_state.source_text):
-        reset_partial_translation_state()
-    return state.partial_translation.assistant_prefill
-
-
-def update_partial_translation_state(source_text: str, result: TranslationResult) -> None:
-    previous_prefill = state.partial_translation.assistant_prefill
-    last_commit_audio_seconds = state.partial_translation.last_commit_audio_seconds
-    if result.text and result.text != previous_prefill:
-        last_commit_audio_seconds = current_audio_seconds()
-    state.partial_translation = PartialTranslationState(
-        source_text=source_text.strip(),
-        assistant_prefill=result.text,
-        last_num_cached_tokens=result.num_cached_tokens,
-        last_prompt_num_tokens=result.prompt_num_tokens,
-        last_boundary_emitted=result.uncertainty_boundary_emitted,
-        last_commit_audio_seconds=last_commit_audio_seconds,
-    )
-
-
-def sync_committed_translations() -> TranslationResult | None:
-    last_result: TranslationResult | None = None
-    while len(state.utt_translations) < len(state.utt_sources):
-        segment_idx = len(state.utt_translations)
-        segment_source = state.utt_sources[segment_idx].strip()
-        assistant_prefill = ""
-        if (
-            state.partial_translation.source_text
-            and state.partial_translation.assistant_prefill
-            and segment_idx == len(state.utt_sources) - 1
-            and segment_source.startswith(state.partial_translation.source_text)
-        ):
-            assistant_prefill = state.partial_translation.assistant_prefill
-        last_result = translate_with_gemma(
-            segment_source,
-            source_history=translation_history_window(state.utt_sources, segment_idx),
-            translation_history=translation_history_window(state.utt_translations, segment_idx),
-            is_partial=False,
-            assistant_prefill=assistant_prefill,
-        )
-        state.utt_translations.append(last_result.text)
-        if assistant_prefill:
-            reset_partial_translation_state()
-    return last_result
-
-
-def render_translation_from_state() -> tuple[str, TranslationResult | None]:
-    latest_result = sync_committed_translations()
-
-    translation_segments = [segment for segment in state.utt_translations[1:] if segment.strip()]
-    partial_source = state.asr_hypotheses[-1].strip()
-    if partial_source:
-        partial_result = translate_with_gemma(
-            partial_source,
-            source_history=translation_history_window(state.utt_sources, len(state.utt_sources)),
-            translation_history=translation_history_window(
-                state.utt_translations,
-                len(state.utt_translations),
+    def build_source_frontier(
+        self,
+        source_text: str,
+        *,
+        is_final: bool,
+    ) -> SourceAccessibilityFrontier:
+        return build_source_accessibility_frontier(
+            source_text.strip(),
+            word_timestamps_ms=(
+                None if is_final else state.partial_word_timestamps_ms
             ),
-            is_partial=True,
-            assistant_prefill=current_assistant_prefill(partial_source),
+            current_audio_ms=current_audio_seconds() * 1000.0,
+            inaccessible_ms=float(self.runtime_config.translation_alignatt_inaccessible_ms),
+            is_final=is_final,
         )
-        update_partial_translation_state(partial_source, partial_result)
-        translation_segments.append(partial_result.text)
-        latest_result = partial_result
-    else:
-        reset_partial_translation_state()
 
-    return " ".join(segment.strip() for segment in translation_segments if segment.strip()).strip(), latest_result
+    def current_accepted_prefill(self, source_text: str) -> str:
+        source_text = source_text.strip()
+        partial_state = state.partial_translation
+        if not source_text:
+            self.reset_partial_state()
+            return ""
+        if partial_state.source_prefix and not source_text.startswith(partial_state.source_prefix):
+            self.reset_partial_state()
+        return state.partial_translation.accepted_target
+
+    def derive_monotone_acceptance(
+        self,
+        *,
+        source_prefix: str,
+        result: MTBackendResult,
+    ) -> tuple[str, tuple[int, ...]]:
+        previous_state = state.partial_translation
+        candidate_text = result.acceptance_text.strip()
+        candidate_ids = tuple(int(token_id) for token_id in result.accepted_token_ids)
+        if not source_prefix:
+            return "", ()
+        if not candidate_text:
+            return previous_state.accepted_target, previous_state.accepted_token_ids
+        if not previous_state.source_prefix or not source_prefix.startswith(previous_state.source_prefix):
+            return candidate_text, candidate_ids
+
+        previous_accepted_ids = previous_state.accepted_token_ids
+        if not previous_accepted_ids:
+            return candidate_text, candidate_ids
+        if candidate_ids[: len(previous_accepted_ids)] != previous_accepted_ids:
+            return previous_state.accepted_target, previous_accepted_ids
+        return candidate_text, candidate_ids
+
+    def update_partial_state(
+        self,
+        source_text: str,
+        result: MTBackendResult,
+        source_frontier: SourceAccessibilityFrontier,
+    ) -> None:
+        previous_accepted = state.partial_translation.accepted_target
+        accepted_target, accepted_token_ids = self.derive_monotone_acceptance(
+            source_prefix=source_text.strip(),
+            result=result,
+        )
+        last_accept_audio_seconds = state.partial_translation.last_accept_audio_seconds
+        if accepted_target and accepted_target != previous_accepted:
+            last_accept_audio_seconds = current_audio_seconds()
+        state.partial_translation = PartialTranslationState(
+            source_prefix=source_text.strip(),
+            draft_target=result.draft_text,
+            draft_token_ids=tuple(int(token_id) for token_id in result.draft_token_ids),
+            accepted_target=accepted_target,
+            accepted_token_ids=accepted_token_ids,
+            source_accessible_unit_count=source_frontier.accessible_unit_count,
+            source_total_unit_count=len(source_frontier.units),
+            last_num_cached_tokens=result.num_cached_tokens,
+            last_prompt_num_tokens=result.prompt_num_tokens,
+            last_accept_audio_seconds=last_accept_audio_seconds,
+            last_alignatt_metadata=result.alignatt_metadata,
+        )
+
+    def sync_committed_translations(self) -> MTBackendResult | None:
+        last_result: MTBackendResult | None = None
+        while len(state.utt_translations) < len(state.utt_sources):
+            segment_idx = len(state.utt_translations)
+            segment_source = state.utt_sources[segment_idx].strip()
+            assistant_prefill = ""
+            if (
+                state.partial_translation.source_prefix
+                and state.partial_translation.accepted_target
+                and segment_idx == len(state.utt_sources) - 1
+                and segment_source.startswith(state.partial_translation.source_prefix)
+            ):
+                assistant_prefill = state.partial_translation.accepted_target
+            last_result = translate_with_mt(
+                segment_source,
+                source_frontier=self.build_source_frontier(segment_source, is_final=True),
+                source_history=translation_history_window(state.utt_sources, segment_idx),
+                translation_history=translation_history_window(state.utt_translations, segment_idx),
+                is_partial=False,
+                assistant_prefill=assistant_prefill,
+            )
+            state.utt_translations.append(last_result.acceptance_text)
+            if assistant_prefill:
+                self.reset_partial_state()
+        return last_result
+
+    def render_translation(self) -> tuple[str, MTBackendResult | None]:
+        latest_result = self.sync_committed_translations()
+
+        translation_segments = [segment for segment in state.utt_translations[1:] if segment.strip()]
+        partial_source = normalize_partial_asr_hypothesis(state.asr_hypotheses[-1])
+        if partial_source:
+            partial_frontier = self.build_source_frontier(partial_source, is_final=False)
+            partial_result = translate_with_mt(
+                partial_source,
+                source_frontier=partial_frontier,
+                source_history=translation_history_window(state.utt_sources, len(state.utt_sources)),
+                translation_history=translation_history_window(
+                    state.utt_translations,
+                    len(state.utt_translations),
+                ),
+                is_partial=True,
+                assistant_prefill=self.current_accepted_prefill(partial_source),
+            )
+            self.update_partial_state(partial_source, partial_result, partial_frontier)
+            if state.partial_translation.accepted_target.strip():
+                translation_segments.append(state.partial_translation.accepted_target)
+            latest_result = partial_result
+        else:
+            self.reset_partial_state()
+
+        return (
+            " ".join(segment.strip() for segment in translation_segments if segment.strip()).strip(),
+            latest_result,
+        )
+
+
+translation_units = TranslationUnitManager(config)
 
 
 def apply_translation_emit_policy(
@@ -678,7 +606,7 @@ def run_stream_to_artifacts(
 
         last_asr = current_asr
         last_committed_segments = committed_segments
-        raw_translation, translation_result = render_translation_from_state()
+        raw_translation, translation_result = translation_units.render_translation()
         translation, emission_policy_action = apply_translation_emit_policy(
             last_translation,
             raw_translation,
@@ -714,13 +642,17 @@ def run_stream_to_artifacts(
                 translation_prompt_num_tokens=(
                     None if translation_result is None else translation_result.prompt_num_tokens
                 ),
-                partial_committed_prefix=(
-                    state.partial_translation.assistant_prefill or None
+                partial_accepted_target=(
+                    state.partial_translation.accepted_target or None
                 ),
-                uncertainty_boundary_emitted=(
-                    None
-                    if translation_result is None
-                    else translation_result.uncertainty_boundary_emitted
+                partial_draft_target=(
+                    state.partial_translation.draft_target or None
+                ),
+                partial_accepted_token_count=(
+                    len(state.partial_translation.accepted_token_ids) or None
+                ),
+                alignatt_metadata=(
+                    None if translation_result is None else translation_result.alignatt_metadata
                 ),
             )
         )
@@ -731,7 +663,7 @@ def run_stream_to_artifacts(
         last_raw_translation = raw_translation
 
     final_asr = transcribe_audio() or last_asr
-    final_raw_translation, final_translation_result = render_translation_from_state()
+    final_raw_translation, final_translation_result = translation_units.render_translation()
     final_translation, final_emission_policy_action = apply_translation_emit_policy(
         last_translation,
         final_raw_translation,
@@ -772,13 +704,19 @@ def run_stream_to_artifacts(
                     if final_translation_result is None
                     else final_translation_result.prompt_num_tokens
                 ),
-                partial_committed_prefix=(
-                    state.partial_translation.assistant_prefill or None
+                partial_accepted_target=(
+                    state.partial_translation.accepted_target or None
                 ),
-                uncertainty_boundary_emitted=(
+                partial_draft_target=(
+                    state.partial_translation.draft_target or None
+                ),
+                partial_accepted_token_count=(
+                    len(state.partial_translation.accepted_token_ids) or None
+                ),
+                alignatt_metadata=(
                     None
                     if final_translation_result is None
-                    else final_translation_result.uncertainty_boundary_emitted
+                    else final_translation_result.alignatt_metadata
                 ),
             )
         )
@@ -791,6 +729,7 @@ def run_stream_to_artifacts(
     return InferenceArtifacts(
         wav_path=wav_path,
         chunk_ms=chunk_ms,
+        translation_variant=variant.variant_id,
         source_language=config.source_lang,
         target_language=config.target_lang,
         latency_unit=config.latency_unit,
@@ -804,12 +743,23 @@ def run_stream_to_artifacts(
             "translation_variant_id": variant.variant_id,
             "translation_variant_description": variant.description,
             "translation_mode": config.translation_mode,
+            "translation_mt_backend": config.translation_mt_backend,
+            "translation_prefix_acceptance": config.translation_prefix_acceptance,
+            "translation_alignatt_heads_path": config.translation_alignatt_heads_path,
+            "translation_alignatt_top_k_heads": config.translation_alignatt_top_k_heads,
+            "translation_alignatt_inaccessible_ms": config.translation_alignatt_inaccessible_ms,
+            "translation_alignatt_rewind_threshold": config.translation_alignatt_rewind_threshold,
             "min_start_seconds": config.min_start_seconds,
             "max_history_utterances": config.max_history_utterances,
             "max_new_tokens": config.max_new_tokens,
+            "partial_max_new_tokens": config.partial_max_new_tokens,
+            "partial_followup_max_new_tokens": config.partial_followup_max_new_tokens,
             "translation_min_new_tokens": config.translation_min_new_tokens,
             "translation_token_budget_ratio": config.translation_token_budget_ratio,
             "translation_token_budget_buffer": config.translation_token_budget_buffer,
+            "partial_translation_min_new_tokens": config.partial_translation_min_new_tokens,
+            "partial_translation_token_budget_ratio": config.partial_translation_token_budget_ratio,
+            "partial_translation_token_budget_buffer": config.partial_translation_token_budget_buffer,
             "translation_generation_margin": config.translation_generation_margin,
             "translation_emit_policy": config.translation_emit_policy,
             "translation_max_tail_rewrite_words": config.translation_max_tail_rewrite_words,
@@ -820,13 +770,9 @@ def run_stream_to_artifacts(
             "gemma_max_model_len": config.gemma_max_model_len,
             "gemma_enforce_eager": config.gemma_enforce_eager,
             "gemma_enable_prefix_caching": config.gemma_enable_prefix_caching,
-            "translation_uses_uncertainty_boundary": variant.uses_uncertainty_boundary,
-            "translation_uncertainty_marker": variant.uncertainty_marker,
-            "translation_uncertainty_token_id": gemma_uncertainty_token_id,
-            "translation_uncertainty_marker_logit_bias_max": config.uncertainty_marker_logit_bias_max,
-            "translation_uncertainty_marker_logit_bias_min": config.uncertainty_marker_logit_bias_min,
-            "translation_uncertainty_marker_decay_audio_seconds": config.uncertainty_marker_decay_audio_seconds,
-            "translation_uncertainty_marker_followup_bias_cap": config.uncertainty_marker_followup_bias_cap,
+            "gemma_transformers_device": config.gemma_transformers_device,
+            "gemma_transformers_dtype": config.gemma_transformers_dtype,
+            "gemma_transformers_prompt_kv_reuse": config.gemma_transformers_prompt_kv_reuse,
         },
     )
 

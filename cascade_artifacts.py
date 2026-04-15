@@ -66,14 +66,17 @@ class StreamUpdate:
     emission_policy_action: str | None = None
     translation_prompt_num_cached_tokens: int | None = None
     translation_prompt_num_tokens: int | None = None
-    partial_committed_prefix: str | None = None
-    uncertainty_boundary_emitted: bool | None = None
+    partial_accepted_target: str | None = None
+    partial_accepted_token_count: int | None = None
+    partial_draft_target: str | None = None
+    alignatt_metadata: dict[str, Any] | None = None
 
 
 @dataclass
 class InferenceArtifacts:
     wav_path: str
     chunk_ms: int
+    translation_variant: str | None
     source_language: str
     target_language: str
     latency_unit: str
@@ -116,6 +119,7 @@ class InferenceArtifacts:
             "kind": "inference",
             "wav_path": self.wav_path,
             "chunk_ms": self.chunk_ms,
+            "translation_variant": self.translation_variant,
             "source_language": self.source_language,
             "target_language": self.target_language,
             "latency_unit": self.latency_unit,

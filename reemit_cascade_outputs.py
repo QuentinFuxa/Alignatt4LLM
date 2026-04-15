@@ -80,8 +80,10 @@ def load_stream_updates(path: Path) -> list[StreamUpdate]:
                     "translation_prompt_num_cached_tokens"
                 ),
                 translation_prompt_num_tokens=payload.get("translation_prompt_num_tokens"),
-                partial_committed_prefix=payload.get("partial_committed_prefix"),
-                uncertainty_boundary_emitted=payload.get("uncertainty_boundary_emitted"),
+                partial_accepted_target=payload.get("partial_accepted_target"),
+                partial_accepted_token_count=payload.get("partial_accepted_token_count"),
+                partial_draft_target=payload.get("partial_draft_target"),
+                alignatt_metadata=payload.get("alignatt_metadata"),
             )
         )
     return updates
