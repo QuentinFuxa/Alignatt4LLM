@@ -1,0 +1,186 @@
+{
+  "tag": "qwen_baseline",
+  "wav_path": "tmp/alignatt_smoke18.wav",
+  "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step",
+  "audio_duration_s": 18.0,
+  "words": [
+    {
+      "text": "Hi",
+      "start_time": 1.6,
+      "end_time": 1.84
+    },
+    {
+      "text": "I'm",
+      "start_time": 1.84,
+      "end_time": 2.08
+    },
+    {
+      "text": "Siyu",
+      "start_time": 2.08,
+      "end_time": 2.48
+    },
+    {
+      "text": "Yuan",
+      "start_time": 2.48,
+      "end_time": 2.8
+    },
+    {
+      "text": "from",
+      "start_time": 2.88,
+      "end_time": 3.2
+    },
+    {
+      "text": "Fudan",
+      "start_time": 3.2,
+      "end_time": 3.52
+    },
+    {
+      "text": "University",
+      "start_time": 3.6,
+      "end_time": 4.08
+    },
+    {
+      "text": "I'm",
+      "start_time": 4.72,
+      "end_time": 4.88
+    },
+    {
+      "text": "here",
+      "start_time": 4.88,
+      "end_time": 5.2
+    },
+    {
+      "text": "to",
+      "start_time": 5.2,
+      "end_time": 5.2
+    },
+    {
+      "text": "introduce",
+      "start_time": 5.28,
+      "end_time": 5.68
+    },
+    {
+      "text": "our",
+      "start_time": 5.92,
+      "end_time": 6.24
+    },
+    {
+      "text": "work",
+      "start_time": 6.24,
+      "end_time": 6.72
+    },
+    {
+      "text": "distilling",
+      "start_time": 7.2,
+      "end_time": 7.68
+    },
+    {
+      "text": "script",
+      "start_time": 7.68,
+      "end_time": 8.08
+    },
+    {
+      "text": "knowledge",
+      "start_time": 8.08,
+      "end_time": 8.64
+    },
+    {
+      "text": "from",
+      "start_time": 8.8,
+      "end_time": 9.2
+    },
+    {
+      "text": "large",
+      "start_time": 9.28,
+      "end_time": 9.44
+    },
+    {
+      "text": "language",
+      "start_time": 9.44,
+      "end_time": 9.68
+    },
+    {
+      "text": "models",
+      "start_time": 9.68,
+      "end_time": 10.4
+    },
+    {
+      "text": "for",
+      "start_time": 10.64,
+      "end_time": 10.88
+    },
+    {
+      "text": "constrained",
+      "start_time": 10.88,
+      "end_time": 11.36
+    },
+    {
+      "text": "language",
+      "start_time": 11.36,
+      "end_time": 11.68
+    },
+    {
+      "text": "planning",
+      "start_time": 11.68,
+      "end_time": 12.24
+    },
+    {
+      "text": "In",
+      "start_time": 13.36,
+      "end_time": 13.52
+    },
+    {
+      "text": "everyday",
+      "start_time": 13.52,
+      "end_time": 13.92
+    },
+    {
+      "text": "life",
+      "start_time": 13.92,
+      "end_time": 14.4
+    },
+    {
+      "text": "humans",
+      "start_time": 14.72,
+      "end_time": 15.12
+    },
+    {
+      "text": "often",
+      "start_time": 15.2,
+      "end_time": 15.52
+    },
+    {
+      "text": "plan",
+      "start_time": 15.52,
+      "end_time": 15.84
+    },
+    {
+      "text": "their",
+      "start_time": 15.84,
+      "end_time": 16.0
+    },
+    {
+      "text": "actions",
+      "start_time": 16.0,
+      "end_time": 16.64
+    },
+    {
+      "text": "by",
+      "start_time": 16.88,
+      "end_time": 17.04
+    },
+    {
+      "text": "following",
+      "start_time": 17.04,
+      "end_time": 17.36
+    },
+    {
+      "text": "stepbystep",
+      "start_time": 17.44,
+      "end_time": 17.92
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

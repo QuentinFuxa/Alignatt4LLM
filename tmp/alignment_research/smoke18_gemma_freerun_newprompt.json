@@ -1,0 +1,240 @@
+{
+  "tag": "gemma_attention",
+  "wav_path": "tmp/alignatt_smoke18.wav",
+  "text": "Hi sir, for the university, I need to do the work. This is not for the university. In the name of Professor Sanchez, for the language learning. In the name of Professor Sanchez, for the language",
+  "audio_duration_s": 18.0,
+  "words": [
+    {
+      "text": "Hi",
+      "start_time": 1.9199999999999995,
+      "end_time": 1.9199999999999995
+    },
+    {
+      "text": "sir",
+      "start_time": 2.5599999999999996,
+      "end_time": 2.5599999999999996
+    },
+    {
+      "text": "for",
+      "start_time": 3.4799999999999995,
+      "end_time": 3.4799999999999995
+    },
+    {
+      "text": "the",
+      "start_time": 3.5999999999999996,
+      "end_time": 3.5999999999999996
+    },
+    {
+      "text": "university",
+      "start_time": 4.0,
+      "end_time": 4.0
+    },
+    {
+      "text": "I",
+      "start_time": 4.96,
+      "end_time": 4.96
+    },
+    {
+      "text": "need",
+      "start_time": 5.279999999999999,
+      "end_time": 5.279999999999999
+    },
+    {
+      "text": "to",
+      "start_time": 5.52,
+      "end_time": 5.52
+    },
+    {
+      "text": "do",
+      "start_time": 5.72,
+      "end_time": 5.72
+    },
+    {
+      "text": "the",
+      "start_time": 6.079999999999999,
+      "end_time": 6.079999999999999
+    },
+    {
+      "text": "work",
+      "start_time": 6.359999999999999,
+      "end_time": 6.359999999999999
+    },
+    {
+      "text": "This",
+      "start_time": 7.799999999999999,
+      "end_time": 7.799999999999999
+    },
+    {
+      "text": "is",
+      "start_time": 8.04,
+      "end_time": 8.04
+    },
+    {
+      "text": "not",
+      "start_time": 8.44,
+      "end_time": 8.44
+    },
+    {
+      "text": "for",
+      "start_time": 9.2,
+      "end_time": 9.2
+    },
+    {
+      "text": "the",
+      "start_time": 9.24,
+      "end_time": 9.24
+    },
+    {
+      "text": "university",
+      "start_time": 10.0,
+      "end_time": 10.0
+    },
+    {
+      "text": "In",
+      "start_time": 13.52,
+      "end_time": 13.52
+    },
+    {
+      "text": "the",
+      "start_time": 13.879999999999999,
+      "end_time": 13.879999999999999
+    },
+    {
+      "text": "name",
+      "start_time": 14.16,
+      "end_time": 14.16
+    },
+    {
+      "text": "of",
+      "start_time": 14.6,
+      "end_time": 14.6
+    },
+    {
+      "text": "Professor",
+      "start_time": 15.28,
+      "end_time": 15.28
+    },
+    {
+      "text": "Sanchez",
+      "start_time": 16.8,
+      "end_time": 16.8
+    },
+    {
+      "text": "for",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "the",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "language",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "learning",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "In",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "the",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "name",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "of",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "Professor",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "Sanchez",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "for",
+      "start_time": 17.04,
+      "end_time": 17.04
+    },
+    {
+      "text": "the",
+      "start_time": 17.24,
+      "end_time": 17.24
+    },
+    {
+      "text": "language",
+      "start_time": 17.52,
+      "end_time": 17.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "gemma_attention_aligner",
+    "audio_span_length": 450,
+    "audio_ms_per_token": 40.0,
+    "monotonicity": 0.9761904761904762,
+    "aligned_audio_positions": [
+      59,
+      75,
+      85,
+      98,
+      101,
+      111,
+      128,
+      135,
+      143,
+      149,
+      154,
+      163,
+      170,
+      190,
+      206,
+      212,
+      222,
+      241,
+      242,
+      261,
+      278,
+      349,
+      358,
+      365,
+      376,
+      393,
+      431,
+      433,
+      288,
+      290,
+      305,
+      317,
+      343,
+      356,
+      357,
+      367,
+      378,
+      397,
+      419,
+      432,
+      437,
+      442,
+      449
+    ],
+    "word_end_offset_s": 0.4800000000000004
+  }
+}

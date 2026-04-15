@@ -1,0 +1,2908 @@
+{
+  "metrics": {
+    "num_ticks": 11,
+    "num_words_tracked": 45,
+    "identity_changes": 8,
+    "mean_stdev_end_s": 0.12974756407431412,
+    "median_stdev_end_s": 0.07608607565836813,
+    "mean_drift_range_s": 0.2986666666666665,
+    "max_drift_range_s": 1.2399999999999984,
+    "num_backward_jumps": 20,
+    "max_backward_jump_s": 0.7599999999999998,
+    "mean_time_to_stable_s": 4.488888888888889,
+    "stability_threshold_s": 0.05,
+    "per_word_stats": [
+      {
+        "position": 0,
+        "surface_modes": [
+          "Hi"
+        ],
+        "stdev_end_s": 0.016180796699117823,
+        "drift_range_s": 0.040000000000000036,
+        "max_backward_jump_s": 0.040000000000000036,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          1.5999999999999996,
+          1.5999999999999996,
+          1.5599999999999996,
+          1.5599999999999996,
+          1.5599999999999996,
+          1.5599999999999996,
+          1.5599999999999996,
+          1.5599999999999996,
+          1.5599999999999996,
+          1.5599999999999996,
+          1.5599999999999996
+        ],
+        "tick_series": [
+          5.0,
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 1,
+        "surface_modes": [
+          "I'm"
+        ],
+        "stdev_end_s": 0.044802597327305994,
+        "drift_range_s": 0.1599999999999997,
+        "max_backward_jump_s": 0.08000000000000007,
+        "time_to_stable_s": 4.0,
+        "end_time_series": [
+          2.3999999999999995,
+          2.3599999999999994,
+          2.2799999999999994,
+          2.2799999999999994,
+          2.2799999999999994,
+          2.2399999999999998,
+          2.2799999999999994,
+          2.2799999999999994,
+          2.2799999999999994,
+          2.2799999999999994,
+          2.2799999999999994
+        ],
+        "tick_series": [
+          5.0,
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 2,
+        "surface_modes": [
+          "Siyu"
+        ],
+        "stdev_end_s": 0.15005453554079468,
+        "drift_range_s": 0.3599999999999999,
+        "max_backward_jump_s": 0.3599999999999999,
+        "time_to_stable_s": 20.0,
+        "end_time_series": [
+          2.9199999999999995,
+          2.9199999999999995,
+          2.9199999999999995,
+          2.9199999999999995,
+          2.9199999999999995,
+          2.5599999999999996,
+          2.9199999999999995,
+          2.7199999999999998,
+          2.9199999999999995,
+          2.7199999999999998,
+          2.5599999999999996
+        ],
+        "tick_series": [
+          5.0,
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 3,
+        "surface_modes": [
+          "Yuan"
+        ],
+        "stdev_end_s": 0.10444659357341868,
+        "drift_range_s": 0.3999999999999999,
+        "max_backward_jump_s": 0.3999999999999999,
+        "time_to_stable_s": 8.0,
+        "end_time_series": [
+          3.3199999999999994,
+          2.9199999999999995,
+          2.9599999999999995,
+          2.9599999999999995,
+          3.0399999999999996,
+          2.9999999999999996,
+          2.9999999999999996,
+          3.0399999999999996,
+          3.0399999999999996,
+          2.9999999999999996,
+          3.0399999999999996
+        ],
+        "tick_series": [
+          5.0,
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 4,
+        "surface_modes": [
+          "from"
+        ],
+        "stdev_end_s": 0.07608607565836813,
+        "drift_range_s": 0.16000000000000014,
+        "max_backward_jump_s": 0.16000000000000014,
+        "time_to_stable_s": 20.0,
+        "end_time_series": [
+          3.5599999999999996,
+          3.3999999999999995,
+          3.3999999999999995,
+          3.5599999999999996,
+          3.3999999999999995,
+          3.4799999999999995,
+          3.5599999999999996,
+          3.5599999999999996,
+          3.5199999999999996,
+          3.3999999999999995,
+          3.5599999999999996
+        ],
+        "tick_series": [
+          5.0,
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 5,
+        "surface_modes": [
+          "Fudan"
+        ],
+        "stdev_end_s": 0.0,
+        "drift_range_s": 0.0,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          3.84,
+          3.84,
+          3.84,
+          3.84,
+          3.84,
+          3.84,
+          3.84,
+          3.84,
+          3.84,
+          3.84,
+          3.84
+        ],
+        "tick_series": [
+          5.0,
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 6,
+        "surface_modes": [
+          "University"
+        ],
+        "stdev_end_s": 0.16815577193888911,
+        "drift_range_s": 0.3600000000000003,
+        "max_backward_jump_s": 0.3600000000000003,
+        "time_to_stable_s": 20.0,
+        "end_time_series": [
+          4.119999999999999,
+          4.119999999999999,
+          4.4799999999999995,
+          4.4799999999999995,
+          4.4799999999999995,
+          4.4799999999999995,
+          4.4799999999999995,
+          4.4799999999999995,
+          4.4799999999999995,
+          4.4799999999999995,
+          4.119999999999999
+        ],
+        "tick_series": [
+          5.0,
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 7,
+        "surface_modes": [
+          "I'm"
+        ],
+        "stdev_end_s": 0.19296726052976862,
+        "drift_range_s": 0.6399999999999997,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          4.52,
+          5.159999999999999,
+          5.159999999999999,
+          5.159999999999999,
+          5.159999999999999,
+          5.159999999999999,
+          5.159999999999999,
+          5.159999999999999,
+          5.159999999999999,
+          5.159999999999999,
+          5.159999999999999
+        ],
+        "tick_series": [
+          5.0,
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 8,
+        "surface_modes": [
+          "here"
+        ],
+        "stdev_end_s": 0.0,
+        "drift_range_s": 0.0,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          5.3999999999999995,
+          5.3999999999999995,
+          5.3999999999999995,
+          5.3999999999999995,
+          5.3999999999999995,
+          5.3999999999999995,
+          5.3999999999999995,
+          5.3999999999999995,
+          5.3999999999999995,
+          5.3999999999999995
+        ],
+        "tick_series": [
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 9,
+        "surface_modes": [
+          "to"
+        ],
+        "stdev_end_s": 0.0,
+        "drift_range_s": 0.0,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          5.64,
+          5.64,
+          5.64,
+          5.64,
+          5.64,
+          5.64,
+          5.64,
+          5.64,
+          5.64,
+          5.64
+        ],
+        "tick_series": [
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 10,
+        "surface_modes": [
+          "introduce"
+        ],
+        "stdev_end_s": 0.012649110640673528,
+        "drift_range_s": 0.040000000000000036,
+        "max_backward_jump_s": 0.040000000000000036,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          5.68,
+          5.68,
+          5.68,
+          5.72,
+          5.68,
+          5.68,
+          5.68,
+          5.68,
+          5.68,
+          5.68
+        ],
+        "tick_series": [
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 11,
+        "surface_modes": [
+          "our"
+        ],
+        "stdev_end_s": 0.06798692684790386,
+        "drift_range_s": 0.16000000000000014,
+        "max_backward_jump_s": 0.16000000000000014,
+        "time_to_stable_s": 10.0,
+        "end_time_series": [
+          6.239999999999999,
+          6.239999999999999,
+          6.079999999999999,
+          6.079999999999999,
+          6.159999999999999,
+          6.079999999999999,
+          6.079999999999999,
+          6.079999999999999,
+          6.079999999999999,
+          6.079999999999999
+        ],
+        "tick_series": [
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 12,
+        "surface_modes": [
+          "work"
+        ],
+        "stdev_end_s": 0.24947945807220276,
+        "drift_range_s": 0.7999999999999998,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          6.359999999999999,
+          7.119999999999999,
+          7.119999999999999,
+          7.119999999999999,
+          7.159999999999999,
+          7.159999999999999,
+          7.159999999999999,
+          7.159999999999999,
+          7.159999999999999,
+          7.159999999999999
+        ],
+        "tick_series": [
+          7.0,
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 13,
+        "surface_modes": [
+          "distilling",
+          "distinguishing"
+        ],
+        "stdev_end_s": 0.14575474072717007,
+        "drift_range_s": 0.4400000000000013,
+        "max_backward_jump_s": 0.4400000000000013,
+        "time_to_stable_s": 16.0,
+        "end_time_series": [
+          7.719999999999999,
+          8.16,
+          7.719999999999999,
+          7.719999999999999,
+          7.719999999999999,
+          7.719999999999999,
+          7.719999999999999,
+          7.799999999999999,
+          7.719999999999999
+        ],
+        "tick_series": [
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 14,
+        "surface_modes": [
+          "script"
+        ],
+        "stdev_end_s": 0.040000000000000334,
+        "drift_range_s": 0.120000000000001,
+        "max_backward_jump_s": 0.120000000000001,
+        "time_to_stable_s": 4.0,
+        "end_time_series": [
+          8.04,
+          8.16,
+          8.04,
+          8.04,
+          8.04,
+          8.04,
+          8.04,
+          8.04,
+          8.04
+        ],
+        "tick_series": [
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 15,
+        "surface_modes": [
+          "knowledge"
+        ],
+        "stdev_end_s": 0.23673707872752917,
+        "drift_range_s": 0.5199999999999996,
+        "max_backward_jump_s": 0.5199999999999996,
+        "time_to_stable_s": 16.0,
+        "end_time_series": [
+          8.52,
+          8.44,
+          8.959999999999999,
+          8.44,
+          8.959999999999999,
+          8.879999999999999,
+          8.959999999999999,
+          8.879999999999999,
+          8.959999999999999
+        ],
+        "tick_series": [
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 16,
+        "surface_modes": [
+          "from"
+        ],
+        "stdev_end_s": 0.22666666666666657,
+        "drift_range_s": 0.6799999999999997,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          8.52,
+          9.2,
+          9.2,
+          9.2,
+          9.2,
+          9.2,
+          9.2,
+          9.2,
+          9.2
+        ],
+        "tick_series": [
+          9.0,
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 17,
+        "surface_modes": [
+          "language",
+          "large"
+        ],
+        "stdev_end_s": 0.06023762469230893,
+        "drift_range_s": 0.16000000000000014,
+        "max_backward_jump_s": 0.120000000000001,
+        "time_to_stable_s": 14.0,
+        "end_time_series": [
+          9.48,
+          9.52,
+          9.48,
+          9.36,
+          9.48,
+          9.48,
+          9.36,
+          9.48
+        ],
+        "tick_series": [
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 18,
+        "surface_modes": [
+          "language",
+          "models"
+        ],
+        "stdev_end_s": 0.08552359741197559,
+        "drift_range_s": 0.1999999999999993,
+        "max_backward_jump_s": 0.1999999999999993,
+        "time_to_stable_s": 8.0,
+        "end_time_series": [
+          10.08,
+          10.12,
+          9.92,
+          10.04,
+          9.92,
+          9.92,
+          9.92,
+          9.92
+        ],
+        "tick_series": [
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 19,
+        "surface_modes": [
+          "for",
+          "models"
+        ],
+        "stdev_end_s": 0.23299294900428705,
+        "drift_range_s": 0.5600000000000005,
+        "max_backward_jump_s": 0.5199999999999996,
+        "time_to_stable_s": 14.0,
+        "end_time_series": [
+          10.52,
+          10.68,
+          10.6,
+          10.12,
+          10.639999999999999,
+          10.6,
+          10.639999999999999,
+          10.12
+        ],
+        "tick_series": [
+          11.0,
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 20,
+        "surface_modes": [
+          "constrained",
+          "for"
+        ],
+        "stdev_end_s": 0.18618986725025238,
+        "drift_range_s": 0.5999999999999996,
+        "max_backward_jump_s": 0.5999999999999996,
+        "time_to_stable_s": 4.0,
+        "end_time_series": [
+          11.28,
+          10.68,
+          10.84,
+          10.84,
+          10.84,
+          10.84,
+          10.84
+        ],
+        "tick_series": [
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 21,
+        "surface_modes": [
+          "constrained",
+          "language"
+        ],
+        "stdev_end_s": 0.18883099019266628,
+        "drift_range_s": 0.5199999999999996,
+        "max_backward_jump_s": 0.5199999999999996,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          11.76,
+          11.24,
+          11.24,
+          11.28,
+          11.32,
+          11.24,
+          11.28
+        ],
+        "tick_series": [
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 22,
+        "surface_modes": [
+          "language",
+          "planning"
+        ],
+        "stdev_end_s": 0.2901559514993208,
+        "drift_range_s": 0.8000000000000007,
+        "max_backward_jump_s": 0.7599999999999998,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          12.52,
+          11.76,
+          11.76,
+          11.76,
+          11.76,
+          11.76,
+          11.719999999999999
+        ],
+        "tick_series": [
+          13.0,
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 23,
+        "surface_modes": [
+          "planning"
+        ],
+        "stdev_end_s": 0.016329931618554897,
+        "drift_range_s": 0.040000000000000924,
+        "max_backward_jump_s": 0.040000000000000924,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          12.12,
+          12.16,
+          12.12,
+          12.12,
+          12.12,
+          12.12
+        ],
+        "tick_series": [
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 24,
+        "surface_modes": [
+          "In"
+        ],
+        "stdev_end_s": 0.048989794855663245,
+        "drift_range_s": 0.11999999999999922,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          13.52,
+          13.639999999999999,
+          13.639999999999999,
+          13.639999999999999,
+          13.639999999999999,
+          13.639999999999999
+        ],
+        "tick_series": [
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 25,
+        "surface_modes": [
+          "everyday"
+        ],
+        "stdev_end_s": 0.0,
+        "drift_range_s": 0.0,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          13.92,
+          13.92,
+          13.92,
+          13.92,
+          13.92,
+          13.92
+        ],
+        "tick_series": [
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 26,
+        "surface_modes": [
+          "life"
+        ],
+        "stdev_end_s": 0.048989794855663245,
+        "drift_range_s": 0.11999999999999922,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          14.52,
+          14.639999999999999,
+          14.639999999999999,
+          14.639999999999999,
+          14.639999999999999,
+          14.639999999999999
+        ],
+        "tick_series": [
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 27,
+        "surface_modes": [
+          "human",
+          "humans"
+        ],
+        "stdev_end_s": 0.2122891110412086,
+        "drift_range_s": 0.5199999999999996,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          14.52,
+          15.04,
+          15.04,
+          15.04,
+          15.04,
+          15.04
+        ],
+        "tick_series": [
+          15.0,
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 28,
+        "surface_modes": [
+          "often"
+        ],
+        "stdev_end_s": 0.08944271909999127,
+        "drift_range_s": 0.1999999999999993,
+        "max_backward_jump_s": 0.1999999999999993,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          15.52,
+          15.32,
+          15.32,
+          15.32,
+          15.32
+        ],
+        "tick_series": [
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 29,
+        "surface_modes": [
+          "plan"
+        ],
+        "stdev_end_s": 0.0,
+        "drift_range_s": 0.0,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          15.8,
+          15.8,
+          15.8,
+          15.8,
+          15.8
+        ],
+        "tick_series": [
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 30,
+        "surface_modes": [
+          "their"
+        ],
+        "stdev_end_s": 0.0,
+        "drift_range_s": 0.0,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          15.96,
+          15.96,
+          15.96,
+          15.96,
+          15.96
+        ],
+        "tick_series": [
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 31,
+        "surface_modes": [
+          "actions"
+        ],
+        "stdev_end_s": 0.2674322344071475,
+        "drift_range_s": 0.5599999999999987,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 6.0,
+        "end_time_series": [
+          16.32,
+          16.44,
+          16.44,
+          16.88,
+          16.88
+        ],
+        "tick_series": [
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 32,
+        "surface_modes": [
+          "by"
+        ],
+        "stdev_end_s": 0.30410524493997126,
+        "drift_range_s": 0.6799999999999997,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          16.32,
+          17.0,
+          17.0,
+          17.0,
+          17.0
+        ],
+        "tick_series": [
+          17.0,
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 33,
+        "surface_modes": [
+          "following"
+        ],
+        "stdev_end_s": 0.0600000000000005,
+        "drift_range_s": 0.120000000000001,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          17.16,
+          17.28,
+          17.28,
+          17.28
+        ],
+        "tick_series": [
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 34,
+        "surface_modes": [
+          "step-by-step"
+        ],
+        "stdev_end_s": 0.09999999999999964,
+        "drift_range_s": 0.1999999999999993,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          18.44,
+          18.64,
+          18.64,
+          18.64
+        ],
+        "tick_series": [
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 35,
+        "surface_modes": [
+          "instructions"
+        ],
+        "stdev_end_s": 0.2599999999999998,
+        "drift_range_s": 0.5199999999999996,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          18.52,
+          19.04,
+          19.04,
+          19.04
+        ],
+        "tick_series": [
+          19.0,
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 36,
+        "surface_modes": [
+          "in"
+        ],
+        "stdev_end_s": 0.03999999999999915,
+        "drift_range_s": 0.0799999999999983,
+        "max_backward_jump_s": 0.03999999999999915,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          19.52,
+          19.48,
+          19.44
+        ],
+        "tick_series": [
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 37,
+        "surface_modes": [
+          "the"
+        ],
+        "stdev_end_s": 0.0,
+        "drift_range_s": 0.0,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          19.56,
+          19.56,
+          19.56
+        ],
+        "tick_series": [
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 38,
+        "surface_modes": [
+          "form"
+        ],
+        "stdev_end_s": 0.061101009266078504,
+        "drift_range_s": 0.120000000000001,
+        "max_backward_jump_s": -0.03999999999999915,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          19.919999999999998,
+          20.0,
+          20.04
+        ],
+        "tick_series": [
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 39,
+        "surface_modes": [
+          "of"
+        ],
+        "stdev_end_s": 0.0,
+        "drift_range_s": 0.0,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          20.08,
+          20.08,
+          20.08
+        ],
+        "tick_series": [
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 40,
+        "surface_modes": [
+          "granted"
+        ],
+        "stdev_end_s": 0.04618802153516908,
+        "drift_range_s": 0.0799999999999983,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          20.52,
+          20.599999999999998,
+          20.599999999999998
+        ],
+        "tick_series": [
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 41,
+        "surface_modes": [
+          "scripts"
+        ],
+        "stdev_end_s": 0.715914333795135,
+        "drift_range_s": 1.2399999999999984,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          20.52,
+          21.759999999999998,
+          21.759999999999998
+        ],
+        "tick_series": [
+          21.0,
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 42,
+        "surface_modes": [
+          "Previous"
+        ],
+        "stdev_end_s": 0.0,
+        "drift_range_s": 0.0,
+        "max_backward_jump_s": 0.0,
+        "time_to_stable_s": 0.0,
+        "end_time_series": [
+          22.36,
+          22.36
+        ],
+        "tick_series": [
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 43,
+        "surface_modes": [
+          "work"
+        ],
+        "stdev_end_s": 0.3394112549695431,
+        "drift_range_s": 0.4800000000000004,
+        "max_backward_jump_s": -0.4800000000000004,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          22.52,
+          23.0
+        ],
+        "tick_series": [
+          23.0,
+          25.0
+        ]
+      },
+      {
+        "position": 44,
+        "surface_modes": [
+          "has"
+        ],
+        "stdev_end_s": 0.4525483399593908,
+        "drift_range_s": 0.6400000000000006,
+        "max_backward_jump_s": -0.6400000000000006,
+        "time_to_stable_s": 2.0,
+        "end_time_series": [
+          22.52,
+          23.16
+        ],
+        "tick_series": [
+          23.0,
+          25.0
+        ]
+      }
+    ]
+  },
+  "ticks": [
+    {
+      "tick_s": 5.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5999999999999996,
+          "end_time": 1.5999999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2399999999999998,
+          "end_time": 2.3999999999999995
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.5599999999999996,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.3199999999999994,
+          "end_time": 3.3199999999999994
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.119999999999999,
+          "end_time": 4.119999999999999
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.52,
+          "end_time": 4.52
+        }
+      ]
+    },
+    {
+      "tick_s": 7.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5999999999999996,
+          "end_time": 1.5999999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.3599999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.3599999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9199999999999995,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "from",
+          "start_time": 3.3999999999999995,
+          "end_time": 3.3999999999999995
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.119999999999999,
+          "end_time": 4.119999999999999
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.239999999999999,
+          "end_time": 6.239999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 6.359999999999999,
+          "end_time": 6.359999999999999
+        }
+      ]
+    },
+    {
+      "tick_s": 9.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work, distilling script knowledge from.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9599999999999995,
+          "end_time": 2.9599999999999995
+        },
+        {
+          "text": "from",
+          "start_time": 3.3999999999999995,
+          "end_time": 3.3999999999999995
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.239999999999999,
+          "end_time": 6.239999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.119999999999999,
+          "end_time": 7.119999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.52,
+          "end_time": 8.52
+        },
+        {
+          "text": "from",
+          "start_time": 8.52,
+          "end_time": 8.52
+        }
+      ]
+    },
+    {
+      "tick_s": 11.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distinguishing script knowledge from language models for.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9599999999999995,
+          "end_time": 2.9599999999999995
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.079999999999999,
+          "end_time": 6.079999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.119999999999999,
+          "end_time": 7.119999999999999
+        },
+        {
+          "text": "distinguishing",
+          "start_time": 8.16,
+          "end_time": 8.16
+        },
+        {
+          "text": "script",
+          "start_time": 8.16,
+          "end_time": 8.16
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.44,
+          "end_time": 8.44
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "language",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "models",
+          "start_time": 10.08,
+          "end_time": 10.08
+        },
+        {
+          "text": "for",
+          "start_time": 10.52,
+          "end_time": 10.52
+        }
+      ]
+    },
+    {
+      "tick_s": 13.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from language models for constrained language planning.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.3999999999999995,
+          "end_time": 3.3999999999999995
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.72,
+          "end_time": 5.72
+        },
+        {
+          "text": "our",
+          "start_time": 6.079999999999999,
+          "end_time": 6.079999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.119999999999999,
+          "end_time": 7.119999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.959999999999999,
+          "end_time": 8.959999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "language",
+          "start_time": 9.52,
+          "end_time": 9.52
+        },
+        {
+          "text": "models",
+          "start_time": 10.12,
+          "end_time": 10.12
+        },
+        {
+          "text": "for",
+          "start_time": 10.68,
+          "end_time": 10.68
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.28,
+          "end_time": 11.28
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.52,
+          "end_time": 12.52
+        }
+      ]
+    },
+    {
+      "tick_s": 15.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, human",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 1.7999999999999994,
+          "end_time": 2.2399999999999998
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.5599999999999996
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9999999999999996,
+          "end_time": 2.9999999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.4799999999999995,
+          "end_time": 3.4799999999999995
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 5.0,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.159999999999999,
+          "end_time": 6.159999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.159999999999999,
+          "end_time": 7.159999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.44,
+          "end_time": 8.44
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.6,
+          "end_time": 10.6
+        },
+        {
+          "text": "for",
+          "start_time": 10.68,
+          "end_time": 10.68
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.24,
+          "end_time": 11.24
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.52,
+          "end_time": 13.52
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.52,
+          "end_time": 14.52
+        },
+        {
+          "text": "human",
+          "start_time": 14.52,
+          "end_time": 14.52
+        }
+      ]
+    },
+    {
+      "tick_s": 17.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 1.5599999999999996,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9999999999999996,
+          "end_time": 2.9999999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 5.0,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.079999999999999,
+          "end_time": 6.079999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.159999999999999,
+          "end_time": 7.159999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.959999999999999,
+          "end_time": 8.959999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.36,
+          "end_time": 9.36
+        },
+        {
+          "text": "language",
+          "start_time": 10.04,
+          "end_time": 10.04
+        },
+        {
+          "text": "models",
+          "start_time": 10.12,
+          "end_time": 10.12
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.24,
+          "end_time": 11.24
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.16,
+          "end_time": 12.16
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.52,
+          "end_time": 15.52
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.32,
+          "end_time": 16.32
+        },
+        {
+          "text": "by",
+          "start_time": 16.32,
+          "end_time": 16.32
+        }
+      ]
+    },
+    {
+      "tick_s": 19.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step instructions.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.7199999999999998
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 5.0,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.079999999999999,
+          "end_time": 6.079999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.159999999999999,
+          "end_time": 7.159999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.879999999999999,
+          "end_time": 8.879999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.639999999999999,
+          "end_time": 10.639999999999999
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.28,
+          "end_time": 11.28
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.32,
+          "end_time": 15.32
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.44,
+          "end_time": 16.44
+        },
+        {
+          "text": "by",
+          "start_time": 17.0,
+          "end_time": 17.0
+        },
+        {
+          "text": "following",
+          "start_time": 17.16,
+          "end_time": 17.16
+        },
+        {
+          "text": "step-by-step",
+          "start_time": 17.16,
+          "end_time": 18.44
+        },
+        {
+          "text": "instructions",
+          "start_time": 18.52,
+          "end_time": 18.52
+        }
+      ]
+    },
+    {
+      "tick_s": 21.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step instructions in the form of granted scripts.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5199999999999996,
+          "end_time": 3.5199999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 5.0,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.079999999999999,
+          "end_time": 6.079999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.159999999999999,
+          "end_time": 7.159999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.959999999999999,
+          "end_time": 8.959999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.6,
+          "end_time": 10.6
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.32,
+          "end_time": 11.32
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.32,
+          "end_time": 15.32
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.44,
+          "end_time": 16.44
+        },
+        {
+          "text": "by",
+          "start_time": 17.0,
+          "end_time": 17.0
+        },
+        {
+          "text": "following",
+          "start_time": 17.28,
+          "end_time": 17.28
+        },
+        {
+          "text": "step-by-step",
+          "start_time": 17.68,
+          "end_time": 18.64
+        },
+        {
+          "text": "instructions",
+          "start_time": 19.04,
+          "end_time": 19.04
+        },
+        {
+          "text": "in",
+          "start_time": 19.52,
+          "end_time": 19.52
+        },
+        {
+          "text": "the",
+          "start_time": 19.56,
+          "end_time": 19.56
+        },
+        {
+          "text": "form",
+          "start_time": 19.919999999999998,
+          "end_time": 19.919999999999998
+        },
+        {
+          "text": "of",
+          "start_time": 20.08,
+          "end_time": 20.08
+        },
+        {
+          "text": "granted",
+          "start_time": 20.52,
+          "end_time": 20.52
+        },
+        {
+          "text": "scripts",
+          "start_time": 20.52,
+          "end_time": 20.52
+        }
+      ]
+    },
+    {
+      "tick_s": 23.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step instructions in the form of granted scripts. Previous work has",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.7199999999999998
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9999999999999996,
+          "end_time": 2.9999999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.3999999999999995,
+          "end_time": 3.3999999999999995
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 5.0,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.079999999999999,
+          "end_time": 6.079999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.159999999999999,
+          "end_time": 7.159999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.799999999999999,
+          "end_time": 7.799999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.879999999999999,
+          "end_time": 8.879999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.36,
+          "end_time": 9.36
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.639999999999999,
+          "end_time": 10.639999999999999
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.24,
+          "end_time": 11.24
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.32,
+          "end_time": 15.32
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.88,
+          "end_time": 16.88
+        },
+        {
+          "text": "by",
+          "start_time": 17.0,
+          "end_time": 17.0
+        },
+        {
+          "text": "following",
+          "start_time": 17.28,
+          "end_time": 17.28
+        },
+        {
+          "text": "step-by-step",
+          "start_time": 17.56,
+          "end_time": 18.64
+        },
+        {
+          "text": "instructions",
+          "start_time": 19.04,
+          "end_time": 19.04
+        },
+        {
+          "text": "in",
+          "start_time": 19.48,
+          "end_time": 19.48
+        },
+        {
+          "text": "the",
+          "start_time": 19.56,
+          "end_time": 19.56
+        },
+        {
+          "text": "form",
+          "start_time": 20.0,
+          "end_time": 20.0
+        },
+        {
+          "text": "of",
+          "start_time": 20.08,
+          "end_time": 20.08
+        },
+        {
+          "text": "granted",
+          "start_time": 20.599999999999998,
+          "end_time": 20.599999999999998
+        },
+        {
+          "text": "scripts",
+          "start_time": 21.759999999999998,
+          "end_time": 21.759999999999998
+        },
+        {
+          "text": "Previous",
+          "start_time": 22.36,
+          "end_time": 22.36
+        },
+        {
+          "text": "work",
+          "start_time": 22.52,
+          "end_time": 22.52
+        },
+        {
+          "text": "has",
+          "start_time": 22.52,
+          "end_time": 22.52
+        }
+      ]
+    },
+    {
+      "tick_s": 25.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step instructions in the form of granted scripts. Previous work has exploited language models.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.5599999999999996
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.119999999999999,
+          "end_time": 4.119999999999999
+        },
+        {
+          "text": "I'm",
+          "start_time": 5.039999999999999,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.079999999999999,
+          "end_time": 6.079999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.159999999999999,
+          "end_time": 7.159999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.959999999999999,
+          "end_time": 8.959999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.12,
+          "end_time": 10.12
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.28,
+          "end_time": 11.28
+        },
+        {
+          "text": "language",
+          "start_time": 11.719999999999999,
+          "end_time": 11.719999999999999
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.32,
+          "end_time": 15.32
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.88,
+          "end_time": 16.88
+        },
+        {
+          "text": "by",
+          "start_time": 17.0,
+          "end_time": 17.0
+        },
+        {
+          "text": "following",
+          "start_time": 17.28,
+          "end_time": 17.28
+        },
+        {
+          "text": "step-by-step",
+          "start_time": 17.56,
+          "end_time": 18.64
+        },
+        {
+          "text": "instructions",
+          "start_time": 19.04,
+          "end_time": 19.04
+        },
+        {
+          "text": "in",
+          "start_time": 19.44,
+          "end_time": 19.44
+        },
+        {
+          "text": "the",
+          "start_time": 19.56,
+          "end_time": 19.56
+        },
+        {
+          "text": "form",
+          "start_time": 20.04,
+          "end_time": 20.04
+        },
+        {
+          "text": "of",
+          "start_time": 20.08,
+          "end_time": 20.08
+        },
+        {
+          "text": "granted",
+          "start_time": 20.599999999999998,
+          "end_time": 20.599999999999998
+        },
+        {
+          "text": "scripts",
+          "start_time": 21.759999999999998,
+          "end_time": 21.759999999999998
+        },
+        {
+          "text": "Previous",
+          "start_time": 22.36,
+          "end_time": 22.36
+        },
+        {
+          "text": "work",
+          "start_time": 23.0,
+          "end_time": 23.0
+        },
+        {
+          "text": "has",
+          "start_time": 23.16,
+          "end_time": 23.16
+        },
+        {
+          "text": "exploited",
+          "start_time": 23.599999999999998,
+          "end_time": 23.599999999999998
+        },
+        {
+          "text": "language",
+          "start_time": 24.32,
+          "end_time": 24.32
+        },
+        {
+          "text": "models",
+          "start_time": 24.52,
+          "end_time": 24.52
+        }
+      ]
+    }
+  ]
+}

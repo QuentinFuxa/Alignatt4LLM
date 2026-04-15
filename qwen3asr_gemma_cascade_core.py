@@ -12,6 +12,7 @@ import torch
 import patch_qwen_asr_for_transformers5
 from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS
 
+from alignment_backend import AlignmentBackend, AlignmentResult, WordAlignment
 from cascade_artifacts import (
     DEFAULT_OUTPUT_DIR,
     DEFAULT_WAV_PATH,
@@ -108,11 +109,16 @@ def remove_punctuation(text: str) -> str:
     return text.translate(str.maketrans("", "", string.punctuation))
 
 
-def find_end_time(time_stamps, position: int, text: str):
-    if len(time_stamps) != len(remove_punctuation(text).split()):
+def find_end_time(word_alignments, position: int, text: str):
+    """End-time (seconds) of the word immediately before ``position`` in ``text``.
+
+    Works with any object exposing ``end_time`` — ``Qwen3ForcedAligner``
+    timestamps and :class:`alignment_backend.WordAlignment` both qualify.
+    """
+    if len(word_alignments) != len(remove_punctuation(text).split()):
         return None
     n_words_right = len(remove_punctuation(text[position + 1 :]).strip().split())
-    return time_stamps[-n_words_right - 1].end_time
+    return word_alignments[-n_words_right - 1].end_time
 
 
 def n_utterances(text: str) -> int:
@@ -169,9 +175,33 @@ class CascadeState:
     partial_translation: PartialTranslationState = field(default_factory=PartialTranslationState)
 
 
-asr_model_name = "/home/.cache/huggingface/hub/models--Qwen--Qwen3-ASR-1.7B/snapshots/7278e1e70fe206f11671096ffdd38061171dd6e5"
-forced_aligner_model_name = "/home/.cache/huggingface/hub/models--Qwen--Qwen3-ForcedAligner-0.6B/snapshots/c7cbfc2048c462b0d63a45797104fc9db3ad62b7"
-gemma_model_name = "/home/.cache/huggingface/hub/models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c"
+def _resolve_hf_snapshot(repo_subpath: str) -> str:
+    """Resolve a local HF snapshot path under either ``/home/.cache`` or ``~/.cache``.
+
+    The original cascade code hardcoded ``/home/.cache/...``; on hosts where
+    that path doesn't exist we silently fall back to ``~/.cache/...``. This
+    keeps the snapshot paths portable across the various dev machines that
+    map the HF cache differently.
+    """
+    candidates = [
+        os.path.join("/home/.cache/huggingface/hub", repo_subpath),
+        os.path.join(os.path.expanduser("~/.cache/huggingface/hub"), repo_subpath),
+    ]
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+    return candidates[0]
+
+
+asr_model_name = _resolve_hf_snapshot(
+    "models--Qwen--Qwen3-ASR-1.7B/snapshots/7278e1e70fe206f11671096ffdd38061171dd6e5"
+)
+forced_aligner_model_name = _resolve_hf_snapshot(
+    "models--Qwen--Qwen3-ForcedAligner-0.6B/snapshots/c7cbfc2048c462b0d63a45797104fc9db3ad62b7"
+)
+gemma_model_name = _resolve_hf_snapshot(
+    "models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c"
+)
 
 config = SimpleNamespace(
     source_lang="English",
@@ -211,13 +241,77 @@ config = SimpleNamespace(
     gemma_transformers_fast_attention="sdpa",
     gemma_transformers_prompt_kv_reuse=True,
     translation_scheduler_stall_seconds=1.2,
+    alignment_backend_name="qwen",
+    gemma_audio_alignment_heads_path=(
+        "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en.json"
+    ),
+    gemma_audio_alignment_top_k_heads=8,
+    gemma_audio_alignment_filter_width=7,
+    gemma_audio_alignment_max_new_tokens=256,
 )
 
 asr = None
 gemma_tokenizer = None
 gemma_llm = None
 mt_backend = None
+alignment_backend: AlignmentBackend | None = None
 state = CascadeState()
+
+
+def build_alignment_backend() -> AlignmentBackend:
+    """Construct the alignment backend selected by ``config.alignment_backend_name``.
+
+    - ``"qwen"``: current Qwen3-ASR + Qwen3-ForcedAligner baseline.
+    - ``"gemma_attention"``: experimental Gemma-only free-run ASR + attention aligner.
+    - ``"hybrid_qwen_asr_gemma_aligner"``: Qwen3-ASR transcript, Gemma attention
+      timings (forced alignment). This is the defensible path today because
+      Gemma E4B's free-run ASR is unreliable on streaming-quality clips
+      while its attention-based alignment is competitive (~177 ms MAE on
+      the one-clip calibration).
+    """
+    name = str(getattr(config, "alignment_backend_name", "qwen"))
+    if name == "qwen":
+        from qwen_alignment_backend import QwenAlignmentBackend
+
+        return QwenAlignmentBackend(
+            asr_model_path=asr_model_name,
+            forced_aligner_model_path=forced_aligner_model_name,
+            runtime_config=config,
+        )
+    if name == "gemma_attention":
+        from gemma_alignment_probe import GemmaAttentionAlignmentBackend
+
+        return GemmaAttentionAlignmentBackend(
+            model_name=gemma_model_name,
+            runtime_config=config,
+            audio_heads_path=getattr(config, "gemma_audio_alignment_heads_path", None),
+            audio_heads_top_k=int(getattr(config, "gemma_audio_alignment_top_k_heads", 8)),
+            filter_width=int(getattr(config, "gemma_audio_alignment_filter_width", 7)),
+            max_new_tokens=int(getattr(config, "gemma_audio_alignment_max_new_tokens", 256)),
+        )
+    if name == "hybrid_qwen_asr_gemma_aligner":
+        from gemma_alignment_probe import GemmaAttentionAlignmentBackend
+        from hybrid_alignment_backend import HybridQwenAsrGemmaAlignerBackend
+        from qwen_alignment_backend import QwenAlignmentBackend
+
+        asr_backend = QwenAlignmentBackend(
+            asr_model_path=asr_model_name,
+            forced_aligner_model_path=forced_aligner_model_name,
+            runtime_config=config,
+        )
+        gemma_backend = GemmaAttentionAlignmentBackend(
+            model_name=gemma_model_name,
+            runtime_config=config,
+            audio_heads_path=getattr(config, "gemma_audio_alignment_heads_path", None),
+            audio_heads_top_k=int(getattr(config, "gemma_audio_alignment_top_k_heads", 8)),
+            filter_width=int(getattr(config, "gemma_audio_alignment_filter_width", 7)),
+            max_new_tokens=int(getattr(config, "gemma_audio_alignment_max_new_tokens", 256)),
+        )
+        return HybridQwenAsrGemmaAlignerBackend(
+            asr_backend=asr_backend,
+            gemma_backend=gemma_backend,
+        )
+    raise ValueError(f"Unknown alignment_backend_name: {name!r}")
 
 
 def get_translation_variant() -> TranslationVariant:
@@ -246,21 +340,15 @@ def temporary_runtime_config(**overrides):
 
 # %%
 def load_models():
-    global asr, gemma_tokenizer, gemma_llm, mt_backend, state
+    global asr, gemma_tokenizer, gemma_llm, mt_backend, alignment_backend, state
 
-    if asr is None:
-        asr = Qwen3ASRModel.LLM(
-            model=asr_model_name,
-            gpu_memory_utilization=config.asr_gpu_memory_utilization,
-            max_inference_batch_size=1,
-            max_model_len=1024,
-            max_new_tokens=1024,
-            forced_aligner=forced_aligner_model_name,
-            forced_aligner_kwargs={
-                "dtype": torch.bfloat16,
-                "device_map": "cuda",
-            },
-        )
+    if alignment_backend is None:
+        alignment_backend = build_alignment_backend()
+
+    alignment_backend.load()
+    # ``asr`` stays exposed for legacy hot-reload helpers and notebooks;
+    # the cascade itself only talks to ``alignment_backend``.
+    asr = getattr(alignment_backend, "asr", asr)
 
     if mt_backend is None:
         mt_backend = build_mt_backend(
@@ -279,6 +367,8 @@ def clear_state():
     state = CascadeState(speech_id=state.speech_id)
     if mt_backend is not None:
         mt_backend.reset_caches()
+    if alignment_backend is not None:
+        alignment_backend.reset_caches()
 
 
 def rebuild_mt_backend_preserving_weights(existing_backend=None) -> None:
@@ -304,26 +394,21 @@ def rebuild_mt_backend_preserving_weights(existing_backend=None) -> None:
     gemma_llm = getattr(mt_backend, "model", None)
 
 def transcribe_audio():
-    if asr is None:
-        raise RuntimeError("Models are not loaded. Run load_models() first.")
+    if alignment_backend is None:
+        raise RuntimeError("Alignment backend is not loaded. Run load_models() first.")
 
     audio = np.array(state.source[state.utt_timestamps[-1] :], dtype=np.float32)
-    asr_outputs = asr.transcribe(
-        (audio, SAMPLE_RATE),
+    result = alignment_backend.transcribe_and_align(
+        audio,
+        sample_rate=SAMPLE_RATE,
         language=config.source_lang,
-        context="",
-        return_time_stamps=True,
     )
-
-    if (
-        asr_outputs[0].time_stamps is not None
-        and asr_outputs[0].time_stamps[-1].end_time > len(audio) / SAMPLE_RATE
-    ):
+    if result is None:
         return None
 
-    asr_hypo = asr_outputs[0].text
+    asr_hypo = result.text
     state.asr_hypotheses.append(asr_hypo)
-    state.partial_word_timestamps_ms = normalize_word_timestamps_ms(asr_outputs[0].time_stamps)
+    state.partial_word_timestamps_ms = normalize_word_timestamps_ms(result.words)
 
     asr_segment = longest_common_prefix(state.asr_hypotheses[-2], state.asr_hypotheses[-1])
     if n_utterances(asr_segment) >= 1:
@@ -335,7 +420,7 @@ def transcribe_audio():
         if rightest_punct_idx == -1 and asr_segment.endswith((".", "!", "?")):
             rightest_punct_idx = len(asr_segment) - 1
 
-        end_time = find_end_time(asr_outputs[0].time_stamps, rightest_punct_idx, asr_hypo)
+        end_time = find_end_time(result.words, rightest_punct_idx, asr_hypo)
         if end_time is None:
             return asr_hypo.strip()
 

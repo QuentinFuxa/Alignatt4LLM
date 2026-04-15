@@ -1,0 +1,1216 @@
+"""Gemma-only attention-based source alignment backend.
+
+The paper-level question driving this code is whether a multimodal LLM's
+self-attention to its own audio-placeholder tokens is strong enough to
+replace an external forced aligner. Gemma 4 encodes audio as a contiguous
+span of ``audio_token_id`` placeholders in the LLM input sequence at a
+fixed ``audio_ms_per_token`` rate (40 ms on E4B). A generated transcript
+token's attention distribution over that span is therefore a direct
+text-to-audio alignment signal, callable at decode time.
+
+The mechanism implemented here is exactly the one the MT side already
+uses for text-to-text AlignAtt (see ``cascade_mt_backend``): a fixed
+small set of alignment heads, per-head z-score normalization, median
+filtering on the source axis, mean across heads, and argmax — only the
+source axis here is the audio-placeholder span instead of a text source.
+Audio-position argmaxes are converted to milliseconds via the processor's
+``audio_ms_per_token`` (the authoritative calibration). Token-level
+timestamps are then grouped into Qwen-style word-level timestamps using
+the tokenizer's ``offset_mapping`` so the downstream cascade contract is
+unchanged.
+
+No lexical heuristics, no content-aware adjustments, no punctuation
+tricks: every knob is a generic attention or tokenization artifact.
+"""
+
+from __future__ import annotations
+
+from contextlib import contextmanager
+from dataclasses import dataclass
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Sequence
+import json
+import math
+import string
+
+import numpy as np
+import torch
+
+from alignment_backend import AlignmentBackend, AlignmentResult, WordAlignment
+from cascade_mt_backend import (
+    AlignAttHead,
+    SelectedAttentionRecorder,
+    compute_alignatt_source_argmaxes,
+    extract_source_attention_rows_per_token,
+)
+
+
+GEMMA_AUDIO_TOKEN_ID_DEFAULT = 258881
+GEMMA_AUDIO_MS_PER_TOKEN_DEFAULT = 40.0
+PUNCTUATION_STRIP = string.punctuation + "”’)]}"
+PUNCTUATION_LEADING = "\"'`“”‘’([{"
+
+
+@dataclass(frozen=True)
+class AudioSpan:
+    prompt_start: int
+    prompt_end: int  # exclusive
+    ms_per_token: float
+
+    @property
+    def length(self) -> int:
+        return self.prompt_end - self.prompt_start
+
+
+@dataclass(frozen=True)
+class TokenTiming:
+    token_id: int
+    token_str: str
+    aligned_audio_position: int | None
+    end_time: float | None
+
+
+def detect_audio_span(
+    input_ids: Sequence[int],
+    *,
+    audio_token_id: int,
+    audio_ms_per_token: float,
+) -> AudioSpan | None:
+    """Find the contiguous audio-placeholder span in a rendered prompt.
+
+    Gemma4Processor inserts ``boa_token, audio_token * N, eoa_token`` to
+    represent one audio input. We locate that contiguous run and expose its
+    position range for downstream attention extraction.
+    """
+    prompt_start: int | None = None
+    for idx, token_id in enumerate(input_ids):
+        if int(token_id) == int(audio_token_id):
+            prompt_start = idx
+            break
+    if prompt_start is None:
+        return None
+    prompt_end = prompt_start + 1
+    while prompt_end < len(input_ids) and int(input_ids[prompt_end]) == int(audio_token_id):
+        prompt_end += 1
+    return AudioSpan(
+        prompt_start=prompt_start,
+        prompt_end=prompt_end,
+        ms_per_token=float(audio_ms_per_token),
+    )
+
+
+def audio_position_to_end_seconds(
+    position: int | None,
+    *,
+    ms_per_token: float,
+    audio_duration_s: float,
+) -> float | None:
+    """Audio-token index -> upper-bound end time for that token.
+
+    Position ``i`` covers ``[i * ms_per_token, (i + 1) * ms_per_token)``.
+    We report the upper bound as the end time so that cutting after a
+    given token yields audio that fully contains the attended frame.
+    """
+    if position is None:
+        return None
+    end_s = (float(position) + 1.0) * float(ms_per_token) / 1000.0
+    return min(end_s, float(audio_duration_s))
+
+
+def split_text_into_word_spans(text: str) -> list[tuple[int, int, str]]:
+    """Match the word-unit convention used by Qwen's forced aligner.
+
+    Strips leading quotes/brackets and trailing punctuation, returning the
+    residual word surface + its character span in ``text``. Empty words
+    (pure-punctuation tokens) are dropped. This mirrors the source-unit
+    logic already used by ``cascade_source_frontier.iter_source_word_spans``.
+    """
+    words: list[tuple[int, int, str]] = []
+    idx = 0
+    length = len(text)
+    while idx < length:
+        while idx < length and text[idx].isspace():
+            idx += 1
+        start = idx
+        while idx < length and not text[idx].isspace():
+            idx += 1
+        end = idx
+        while start < end and text[start] in PUNCTUATION_LEADING:
+            start += 1
+        while end > start and text[end - 1] in PUNCTUATION_STRIP:
+            end -= 1
+        if start < end:
+            words.append((start, end, text[start:end]))
+    return words
+
+
+def aggregate_token_timings_to_words(
+    text: str,
+    *,
+    generated_ids: Sequence[int],
+    tokenizer,
+    token_end_times_s: Sequence[float | None],
+    audio_duration_s: float,
+) -> list[WordAlignment]:
+    """Group per-token end-times into word-level timestamps.
+
+    Uses tokenizer's ``decode`` to recover each token's surface characters
+    and runs them against the final transcript's word spans. Each word's
+    end-time is the max end-time of any token whose characters overlap
+    the word span; start-time is the min. Tokens with no alignment
+    (``None``) are ignored for that word. If a word has no aligned token,
+    the previous word's end-time is used as a monotone fallback.
+    """
+    if len(generated_ids) != len(token_end_times_s):
+        raise ValueError("generated_ids and token_end_times_s length mismatch")
+
+    token_surfaces: list[str] = []
+    for token_id in generated_ids:
+        piece = tokenizer.decode([int(token_id)], skip_special_tokens=False)
+        token_surfaces.append(piece)
+
+    cumulative_prefix: list[int] = []
+    offset = 0
+    for piece in token_surfaces:
+        cumulative_prefix.append(offset)
+        offset += len(piece)
+    full_decoded = "".join(token_surfaces)
+
+    word_spans = split_text_into_word_spans(text)
+    if full_decoded == text:
+        char_to_word_idx = _map_chars_to_words(text, word_spans)
+    else:
+        # Fall back to word-by-word alignment on the decoded string,
+        # then re-anchor to the normalized text via longest-common-prefix.
+        decoded_word_spans = split_text_into_word_spans(full_decoded)
+        char_to_word_idx = _map_chars_to_words(full_decoded, decoded_word_spans)
+        word_spans = decoded_word_spans
+
+    per_word_ends: dict[int, float] = {}
+    per_word_starts: dict[int, float] = {}
+    for piece, piece_start, end_time_s in zip(
+        token_surfaces, cumulative_prefix, token_end_times_s
+    ):
+        if end_time_s is None:
+            continue
+        piece_end = piece_start + len(piece)
+        if piece_end <= piece_start:
+            continue
+        for char_idx in range(piece_start, min(piece_end, len(char_to_word_idx))):
+            word_idx = char_to_word_idx[char_idx]
+            if word_idx is None:
+                continue
+            if word_idx not in per_word_ends or end_time_s > per_word_ends[word_idx]:
+                per_word_ends[word_idx] = float(end_time_s)
+            if word_idx not in per_word_starts or end_time_s < per_word_starts[word_idx]:
+                per_word_starts[word_idx] = float(end_time_s)
+
+    words: list[WordAlignment] = []
+    last_end = 0.0
+    for word_idx, (_, _, surface) in enumerate(word_spans):
+        end_s = per_word_ends.get(word_idx)
+        if end_s is None:
+            end_s = last_end
+        start_s = per_word_starts.get(word_idx, last_end)
+        end_s = min(max(end_s, start_s), float(audio_duration_s))
+        start_s = min(start_s, end_s)
+        words.append(
+            WordAlignment(
+                text=surface,
+                start_time=float(start_s),
+                end_time=float(end_s),
+            )
+        )
+        last_end = end_s
+    return words
+
+
+def _map_chars_to_words(
+    text: str, word_spans: Sequence[tuple[int, int, str]]
+) -> list[int | None]:
+    mapping: list[int | None] = [None] * len(text)
+    for word_idx, (start, end, _) in enumerate(word_spans):
+        for char_idx in range(start, min(end, len(text))):
+            mapping[char_idx] = word_idx
+    return mapping
+
+
+def load_audio_alignment_heads(
+    path: str, *, top_k: int
+) -> tuple[list[AlignAttHead], float]:
+    """Load calibrated alignment heads from a JSON file.
+
+    The file has the same shape as the MT head files
+    (``token_alignment_heads`` array with ``layer``, ``head``, ``ts``) plus
+    an optional ``word_end_offset_seconds`` scalar that is subtracted from
+    every predicted word-end time at inference. That offset corrects the
+    systematic lag between a causal LLM's attention peak and the acoustic
+    word boundary — a single generic constant, not a per-example hack.
+    """
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    heads = [
+        AlignAttHead(
+            layer=int(entry["layer"]),
+            head=int(entry["head"]),
+            ts=float(entry.get("ts", 0.0)),
+        )
+        for entry in payload.get("token_alignment_heads", [])[:top_k]
+    ]
+    offset = float(payload.get("word_end_offset_seconds", 0.0))
+    return heads, offset
+
+
+def save_audio_alignment_heads(
+    path: str,
+    *,
+    scored_heads: Sequence[dict],
+    model_name: str,
+    language: str,
+    scoring_notes: dict[str, object] | None = None,
+    word_end_offset_seconds: float = 0.0,
+) -> None:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "model": model_name,
+        "language": language,
+        "score_name": "audio_alignment_monotonicity_mae",
+        "word_end_offset_seconds": float(word_end_offset_seconds),
+        "scoring_notes": scoring_notes or {},
+        "token_alignment_heads": list(scored_heads),
+    }
+    Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def monotonicity_score(audio_positions: Sequence[int | None]) -> float:
+    """Fraction of consecutive token pairs with non-decreasing audio index.
+
+    This is the source-axis analogue of AlignAtt's quality signal: an
+    alignment head useful for streaming must move forward in time. We
+    ignore ``None`` positions. Returns ``0`` when fewer than two valid
+    positions exist.
+    """
+    filtered = [int(pos) for pos in audio_positions if pos is not None]
+    if len(filtered) < 2:
+        return 0.0
+    pairs = zip(filtered[:-1], filtered[1:])
+    non_decreasing = sum(1 for prev, nxt in pairs if nxt >= prev)
+    return non_decreasing / float(len(filtered) - 1)
+
+
+@dataclass
+class _GeneratedCapture:
+    generated_ids: list[int]
+    per_token_layer_attentions: list[dict[int, torch.Tensor]]
+
+
+class GemmaAttentionAlignmentBackend(AlignmentBackend):
+    name = "gemma_attention_aligner"
+
+    def __init__(
+        self,
+        *,
+        model_name: str,
+        runtime_config: SimpleNamespace,
+        audio_heads_path: str | None = None,
+        audio_heads_top_k: int = 8,
+        filter_width: int = 7,
+        max_new_tokens: int = 256,
+        audio_token_id: int = GEMMA_AUDIO_TOKEN_ID_DEFAULT,
+        audio_ms_per_token: float = GEMMA_AUDIO_MS_PER_TOKEN_DEFAULT,
+    ):
+        self.model_name = model_name
+        self.runtime_config = runtime_config
+        self.audio_heads_path = audio_heads_path
+        self.audio_heads_top_k = int(audio_heads_top_k)
+        self.filter_width = int(filter_width)
+        self.max_new_tokens = int(max_new_tokens)
+        self.audio_token_id = int(audio_token_id)
+        self.audio_ms_per_token = float(audio_ms_per_token)
+        self.device = str(getattr(runtime_config, "gemma_transformers_device", "cuda:0"))
+        self.dtype = getattr(torch, str(getattr(runtime_config, "gemma_transformers_dtype", "bfloat16")))
+
+        self.model = None
+        self.processor = None
+        self.tokenizer = None
+        self.alignatt_heads: list[AlignAttHead] = []
+        self.alignatt_recorder: SelectedAttentionRecorder | None = None
+        # Subtracted from every predicted word-end time. Calibrated once per
+        # (language, model) alongside the heads file. Defaults to 0 so
+        # uncalibrated runs still work.
+        self.word_end_offset_s: float = 0.0
+
+    def load(self) -> None:
+        from transformers import (
+            AutoModelForMultimodalLM,
+            AutoProcessor,
+            modeling_utils,
+        )
+
+        if self.processor is None:
+            self.processor = AutoProcessor.from_pretrained(
+                self.model_name,
+                trust_remote_code=True,
+                local_files_only=True,
+            )
+            self.tokenizer = self.processor.tokenizer
+            ms_per_token = getattr(self.processor, "audio_ms_per_token", None)
+            if ms_per_token is not None:
+                self.audio_ms_per_token = float(ms_per_token)
+
+        if self.model is None:
+            original_warmup = None
+            if hasattr(modeling_utils, "caching_allocator_warmup"):
+                original_warmup = modeling_utils.caching_allocator_warmup
+                modeling_utils.caching_allocator_warmup = lambda *args, **kwargs: None
+            try:
+                self.model = AutoModelForMultimodalLM.from_pretrained(
+                    self.model_name,
+                    torch_dtype=self.dtype,
+                    device_map=self.device,
+                    trust_remote_code=True,
+                    local_files_only=True,
+                    attn_implementation="eager",
+                    low_cpu_mem_usage=True,
+                )
+            finally:
+                if original_warmup is not None:
+                    modeling_utils.caching_allocator_warmup = original_warmup
+            self.model.eval()
+            audio_token_id = getattr(self.model.config, "audio_token_id", None)
+            if audio_token_id is not None:
+                self.audio_token_id = int(audio_token_id)
+
+        if self.alignatt_heads == [] and self.audio_heads_path:
+            if Path(self.audio_heads_path).exists():
+                self.alignatt_heads, self.word_end_offset_s = load_audio_alignment_heads(
+                    self.audio_heads_path,
+                    top_k=self.audio_heads_top_k,
+                )
+        if self.alignatt_recorder is None and self.alignatt_heads:
+            self.alignatt_recorder = SelectedAttentionRecorder(
+                model=self.model,
+                alignatt_heads=self.alignatt_heads,
+            )
+
+    # -------------------- core prompt / inference machinery ---------------
+
+    def _render_asr_messages(
+        self, audio: np.ndarray, *, language: str
+    ) -> list[dict]:
+        # Audio block comes *before* the text block — this matches the
+        # Gemma cookbook exactly. Swapping the order changes where the
+        # audio placeholders land in the rendered chat template and (per
+        # quick ablation on this clip) is the difference between clean
+        # transcription and hallucinated content.
+        del language  # cookbook uses "original language" directly
+        return [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "audio", "audio": np.asarray(audio, dtype=np.float32)},
+                    {
+                        "type": "text",
+                        "text": (
+                            "Transcribe the following speech segment in its original language. "
+                            "Follow these specific instructions for formatting the answer:\n"
+                            "* Only output the transcription, with no newlines.\n"
+                            "* When transcribing numbers, write the digits, i.e. write 1.7 "
+                            "and not one point seven, and write 3 instead of three."
+                        ),
+                    },
+                ],
+            }
+        ]
+
+    @contextmanager
+    def _eager_attention_implementation(self):
+        """Force eager attention so attention weights are materialized.
+
+        ``SelectedAttentionRecorder`` reads the hook output's second tuple
+        element, which only exists when the model runs with eager attention.
+        """
+        if self.model is None:
+            raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
+
+        configs: list[object] = []
+        candidates = (
+            self.model,
+            getattr(self.model, "model", None),
+            getattr(getattr(self.model, "model", None), "language_model", None),
+        )
+        seen_ids: set[int] = set()
+        for candidate in candidates:
+            config = getattr(candidate, "config", None)
+            if config is None or id(config) in seen_ids:
+                continue
+            seen_ids.add(id(config))
+            configs.append(config)
+        original_impls = [getattr(c, "_attn_implementation", None) for c in configs]
+        for config in configs:
+            if hasattr(config, "_attn_implementation"):
+                config._attn_implementation = "eager"
+        try:
+            yield
+        finally:
+            for config, original in zip(configs, original_impls):
+                if original is not None and hasattr(config, "_attn_implementation"):
+                    config._attn_implementation = original
+
+    def _prepare_inputs(self, audio: np.ndarray, *, language: str) -> tuple[dict, list[int]]:
+        messages = self._render_asr_messages(audio, language=language)
+        inputs = self.processor.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            tokenize=True,
+            return_dict=True,
+            return_tensors="pt",
+        )
+        # Cookbook-style: a single ``.to(device)`` only. The BatchFeature
+        # keeps floats in their native dtype; letting the model auto-cast
+        # internally matches the reference setup and avoids a bf16
+        # quantization pass over the mel features before the audio tower.
+        inputs = inputs.to(self.model.device)
+        input_ids = inputs["input_ids"][0].tolist()
+        return dict(inputs), input_ids
+
+    def _build_all_layer_recorder(self) -> SelectedAttentionRecorder:
+        """Hook every text-model layer so we can score the full (layer, head) grid.
+
+        ``SelectedAttentionRecorder`` captures the whole attention tensor
+        per hooked layer (all heads), filtering by head happens later. So a
+        recorder constructed with one synthetic ``AlignAttHead`` per layer
+        is exactly the "all layers" capture calibration needs. This works
+        uniformly because Gemma4 in transformers 5.x no longer populates
+        ``outputs.attentions`` — hooks are the supported extraction path.
+        """
+        if self.model is None:
+            raise RuntimeError("Gemma alignment backend is not loaded.")
+        text_config = getattr(self.model.config, "text_config", None)
+        num_layers = int(getattr(text_config, "num_hidden_layers", 0))
+        if num_layers <= 0:
+            raise RuntimeError(
+                "Could not resolve num_hidden_layers on Gemma4 text config."
+            )
+        synthetic_heads = [
+            AlignAttHead(layer=layer_idx, head=0, ts=0.0)
+            for layer_idx in range(num_layers)
+        ]
+        return SelectedAttentionRecorder(
+            model=self.model,
+            alignatt_heads=synthetic_heads,
+        )
+
+    def _generate_with_attention(
+        self,
+        inputs: dict,
+        audio_span: AudioSpan,
+        *,
+        record_all_heads: bool = False,
+        recorder_override: SelectedAttentionRecorder | None = None,
+    ) -> _GeneratedCapture:
+        """Autoregressively decode, capturing per-step attention via hooks.
+
+        ``record_all_heads=True`` hooks every text-model layer so head-
+        selection calibration can pull any head; otherwise the configured
+        runtime recorder (over the selected heads only) is used. Forcing
+        eager attention is required so ``attn_weights`` is materialized for
+        the hook.
+        """
+        if self.model is None or self.tokenizer is None:
+            raise RuntimeError("Gemma alignment backend is not loaded.")
+
+        if record_all_heads:
+            recorder = self._build_all_layer_recorder()
+        else:
+            recorder = recorder_override or self.alignatt_recorder
+
+        eos_token_ids = set(self._resolve_stop_token_ids())
+        generated_ids: list[int] = []
+        per_token_captures: list[dict[int, torch.Tensor]] = []
+
+        model_kwargs = {k: v for k, v in inputs.items()}
+        past_key_values = None
+
+        with self._eager_attention_implementation(), torch.no_grad():
+            # The first pass processes the audio features and populates the
+            # KV cache. Its own attentions belong to the prompt / audio
+            # tokens, not to any generated token, so we do not capture them.
+            outputs = self.model(
+                **model_kwargs,
+                use_cache=True,
+                return_dict=True,
+            )
+            past_key_values = outputs.past_key_values
+
+            for step in range(self.max_new_tokens):
+                logits = outputs.logits[0, -1, :].float()
+                next_token_id = int(logits.argmax().item())
+                if next_token_id in eos_token_ids:
+                    break
+                generated_ids.append(next_token_id)
+
+                step_input_ids = torch.tensor(
+                    [[next_token_id]], device=self.model.device
+                )
+                step_kwargs: dict = {
+                    "input_ids": step_input_ids,
+                    "past_key_values": past_key_values,
+                    "use_cache": True,
+                }
+                if recorder is not None:
+                    with recorder.capture() as captured:
+                        outputs = self.model(**step_kwargs)
+                    per_token_captures.append(
+                        {
+                            k: (v.detach().to("cpu") if record_all_heads else v.clone())
+                            for k, v in captured.items()
+                        }
+                    )
+                else:
+                    outputs = self.model(**step_kwargs)
+                past_key_values = outputs.past_key_values
+
+        return _GeneratedCapture(
+            generated_ids=generated_ids,
+            per_token_layer_attentions=per_token_captures,
+        )
+
+    def _resolve_stop_token_ids(self) -> tuple[int, ...]:
+        tokenizer = self.tokenizer
+        stops: set[int] = set()
+        eos = getattr(tokenizer, "eos_token_id", None)
+        if eos is not None:
+            stops.add(int(eos))
+        # Pull multi-eos from config if present (Gemma4 ships with [1, 106]).
+        config_eos = getattr(self.model.config, "eos_token_id", None)
+        if isinstance(config_eos, (list, tuple)):
+            stops.update(int(t) for t in config_eos)
+        elif isinstance(config_eos, int):
+            stops.add(int(config_eos))
+        # Stop when the model emits end-of-turn / other special tokens.
+        end_of_turn = tokenizer.convert_tokens_to_ids("<end_of_turn>")
+        if isinstance(end_of_turn, int) and end_of_turn >= 0:
+            stops.add(end_of_turn)
+        return tuple(sorted(stops))
+
+    # -------------------- forced alignment --------------------------------
+
+    def align_transcript(
+        self,
+        audio: np.ndarray,
+        *,
+        sample_rate: int,
+        language: str,
+        transcript: str,
+    ) -> AlignmentResult | None:
+        """Teacher-forced alignment: ``audio + known transcript`` -> word timestamps.
+
+        This is the direct replacement for Qwen3-ForcedAligner-0.6B: given
+        the audio and the text, we run a single forward pass with the
+        transcript prefilled as the assistant message and extract per
+        transcript-token attention to the audio span. It decouples the
+        novel part of this research (attention-based alignment) from the
+        quality of Gemma's own ASR head, and is the right experiment to
+        run first when the model's free-running transcription is noisy.
+        """
+        if self.model is None or self.tokenizer is None:
+            raise RuntimeError("Gemma alignment backend is not loaded.")
+        transcript = transcript.strip()
+        if not transcript:
+            return None
+
+        audio = np.asarray(audio, dtype=np.float32)
+        audio_duration_s = float(len(audio)) / float(sample_rate)
+
+        inputs, input_ids, transcript_span = self._prepare_forced_alignment_inputs(
+            audio, language=language, transcript=transcript
+        )
+        audio_span = detect_audio_span(
+            input_ids,
+            audio_token_id=self.audio_token_id,
+            audio_ms_per_token=self.audio_ms_per_token,
+        )
+        if audio_span is None or audio_span.length <= 0:
+            return None
+        if transcript_span is None or transcript_span[1] <= transcript_span[0]:
+            return None
+
+        # One forward pass with all-layer capture.
+        per_token_captures = self._run_forward_capture_transcript_attention(
+            inputs=inputs,
+            transcript_span=transcript_span,
+        )
+        transcript_token_ids = input_ids[transcript_span[0] : transcript_span[1]]
+
+        if not self.alignatt_heads:
+            return AlignmentResult(
+                text=transcript,
+                words=(),
+                audio_duration_s=audio_duration_s,
+                diagnostics={
+                    "backend": self.name,
+                    "mode": "forced_alignment",
+                    "audio_span_length": audio_span.length,
+                    "reason": "no_audio_alignment_heads_calibrated",
+                },
+            )
+
+        token_audio_positions = self._aggregate_audio_positions(
+            per_token_captures=per_token_captures,
+            audio_span=audio_span,
+        )
+        token_end_times_s = [
+            audio_position_to_end_seconds(
+                pos,
+                ms_per_token=audio_span.ms_per_token,
+                audio_duration_s=audio_duration_s,
+            )
+            for pos in token_audio_positions
+        ]
+        token_end_times_s = _enforce_monotone(token_end_times_s)
+        token_end_times_s = _apply_word_end_offset(
+            token_end_times_s,
+            offset_s=self.word_end_offset_s,
+            audio_duration_s=audio_duration_s,
+        )
+
+        words = aggregate_token_timings_to_words(
+            transcript,
+            generated_ids=transcript_token_ids,
+            tokenizer=self.tokenizer,
+            token_end_times_s=token_end_times_s,
+            audio_duration_s=audio_duration_s,
+        )
+        return AlignmentResult(
+            text=transcript,
+            words=tuple(words),
+            audio_duration_s=audio_duration_s,
+            diagnostics={
+                "backend": self.name,
+                "mode": "forced_alignment",
+                "audio_span_length": audio_span.length,
+                "audio_ms_per_token": audio_span.ms_per_token,
+                "monotonicity": monotonicity_score(token_audio_positions),
+                "aligned_audio_positions": token_audio_positions,
+                "transcript_token_count": len(transcript_token_ids),
+                "word_end_offset_s": self.word_end_offset_s,
+            },
+        )
+
+    def _prepare_forced_alignment_inputs(
+        self,
+        audio: np.ndarray,
+        *,
+        language: str,
+        transcript: str,
+    ) -> tuple[dict, list[int], tuple[int, int] | None]:
+        """Build the ``[prompt, audio, assistant=transcript]`` input.
+
+        Uses ``continue_final_message=True`` so the assistant turn is a
+        prefill of the known transcript rather than an empty generation
+        prompt; attention from those assistant tokens into the audio span
+        is exactly what we want to extract.
+        """
+        del language  # cookbook uses "original language"
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "audio", "audio": np.asarray(audio, dtype=np.float32)},
+                    {
+                        "type": "text",
+                        "text": (
+                            "Transcribe the following speech segment in its original language. "
+                            "Follow these specific instructions for formatting the answer:\n"
+                            "* Only output the transcription, with no newlines.\n"
+                            "* When transcribing numbers, write the digits, i.e. write 1.7 "
+                            "and not one point seven, and write 3 instead of three."
+                        ),
+                    },
+                ],
+            },
+            {
+                "role": "assistant",
+                "content": [
+                    {"type": "text", "text": transcript},
+                ],
+            },
+        ]
+        inputs = self.processor.apply_chat_template(
+            messages,
+            continue_final_message=True,
+            tokenize=True,
+            return_dict=True,
+            return_tensors="pt",
+        )
+        inputs = inputs.to(self.model.device)
+        input_ids = inputs["input_ids"][0].tolist()
+        transcript_span = self._locate_transcript_span(input_ids, transcript)
+        return dict(inputs), input_ids, transcript_span
+
+    def _locate_transcript_span(
+        self, input_ids: list[int], transcript: str
+    ) -> tuple[int, int] | None:
+        """Find the contiguous input_ids run that decodes back to the transcript.
+
+        We re-tokenize the transcript with ``add_special_tokens=False`` and
+        search for that subsequence in the rendered input_ids, starting
+        from the end (to land inside the assistant turn). This avoids
+        having to re-parse the chat template and stays robust to any
+        trailing special tokens the template may append.
+        """
+        transcript_token_ids = self.tokenizer(
+            transcript, add_special_tokens=False
+        )["input_ids"]
+        if not transcript_token_ids:
+            return None
+        target = list(transcript_token_ids)
+        n = len(target)
+        for start in range(len(input_ids) - n, -1, -1):
+            if input_ids[start : start + n] == target:
+                return start, start + n
+        return None
+
+    def _run_forward_capture_transcript_attention(
+        self,
+        *,
+        inputs: dict,
+        transcript_span: tuple[int, int],
+    ) -> list[dict[int, torch.Tensor]]:
+        """Run one forward pass, capture attention at transcript positions only."""
+        recorder = self._build_all_layer_recorder()
+        with self._eager_attention_implementation(), torch.no_grad():
+            with recorder.capture() as captured:
+                _ = self.model(
+                    **inputs,
+                    use_cache=False,
+                    return_dict=True,
+                )
+            per_layer = {k: v.clone() for k, v in captured.items()}
+
+        # Each layer tensor has shape (batch, heads, seq_len, seq_len). We
+        # slice out only the transcript rows (one per transcript token) and
+        # CPU-offload to keep GPU memory flat.
+        start, end = transcript_span
+        per_token_captures: list[dict[int, torch.Tensor]] = []
+        num_transcript_tokens = end - start
+        for token_offset in range(num_transcript_tokens):
+            row = {}
+            query_index = start + token_offset
+            for layer_idx, tensor in per_layer.items():
+                # Keep only the row for this query; trim the key-length to
+                # avoid shipping the whole sequence if it's large.
+                row[layer_idx] = tensor[:, :, query_index : query_index + 1, :].detach().cpu()
+            per_token_captures.append(row)
+        return per_token_captures
+
+    # -------------------- alignment backend API --------------------------
+
+    def transcribe_and_align(
+        self,
+        audio: np.ndarray,
+        *,
+        sample_rate: int,
+        language: str,
+    ) -> AlignmentResult | None:
+        if self.model is None:
+            raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
+
+        audio = np.asarray(audio, dtype=np.float32)
+        audio_duration_s = float(len(audio)) / float(sample_rate)
+
+        inputs, input_ids = self._prepare_inputs(audio, language=language)
+        audio_span = detect_audio_span(
+            input_ids,
+            audio_token_id=self.audio_token_id,
+            audio_ms_per_token=self.audio_ms_per_token,
+        )
+        if audio_span is None or audio_span.length <= 0:
+            return None
+
+        if not self.alignatt_heads or self.alignatt_recorder is None:
+            capture = self._generate_with_attention(
+                inputs,
+                audio_span,
+                record_all_heads=True,
+            )
+            text = self.tokenizer.decode(
+                capture.generated_ids, skip_special_tokens=True
+            ).strip()
+            return AlignmentResult(
+                text=text,
+                words=(),
+                audio_duration_s=audio_duration_s,
+                diagnostics={
+                    "backend": self.name,
+                    "audio_span_length": audio_span.length,
+                    "reason": "no_audio_alignment_heads_calibrated",
+                },
+            )
+
+        capture = self._generate_with_attention(
+            inputs,
+            audio_span,
+            record_all_heads=False,
+        )
+        text = self.tokenizer.decode(
+            capture.generated_ids, skip_special_tokens=True
+        ).strip()
+
+        token_audio_positions = self._aggregate_audio_positions(
+            per_token_captures=capture.per_token_layer_attentions,
+            audio_span=audio_span,
+        )
+        token_end_times_s = [
+            audio_position_to_end_seconds(
+                pos,
+                ms_per_token=audio_span.ms_per_token,
+                audio_duration_s=audio_duration_s,
+            )
+            for pos in token_audio_positions
+        ]
+        token_end_times_s = _enforce_monotone(token_end_times_s)
+        token_end_times_s = _apply_word_end_offset(
+            token_end_times_s,
+            offset_s=self.word_end_offset_s,
+            audio_duration_s=audio_duration_s,
+        )
+
+        words = aggregate_token_timings_to_words(
+            text,
+            generated_ids=capture.generated_ids,
+            tokenizer=self.tokenizer,
+            token_end_times_s=token_end_times_s,
+            audio_duration_s=audio_duration_s,
+        )
+
+        return AlignmentResult(
+            text=text,
+            words=tuple(words),
+            audio_duration_s=audio_duration_s,
+            diagnostics={
+                "backend": self.name,
+                "audio_span_length": audio_span.length,
+                "audio_ms_per_token": audio_span.ms_per_token,
+                "monotonicity": monotonicity_score(token_audio_positions),
+                "aligned_audio_positions": token_audio_positions,
+                "word_end_offset_s": self.word_end_offset_s,
+            },
+        )
+
+    def _aggregate_audio_positions(
+        self,
+        *,
+        per_token_captures: Sequence[dict[int, torch.Tensor]],
+        audio_span: AudioSpan,
+    ) -> list[int | None]:
+        if not per_token_captures:
+            return []
+        audio_positions = list(range(audio_span.prompt_start, audio_span.prompt_end))
+        per_token_rows: list[torch.Tensor] = []
+        for captured in per_token_captures:
+            rows_per_token = extract_source_attention_rows_per_token(
+                layer_attentions_by_layer=captured,
+                alignatt_heads=self.alignatt_heads,
+                source_positions=audio_positions,
+            )
+            if not rows_per_token:
+                per_token_rows.append(
+                    torch.zeros(len(self.alignatt_heads), len(audio_positions))
+                )
+                continue
+            per_token_rows.append(rows_per_token[-1])
+
+        argmaxes = compute_alignatt_source_argmaxes(
+            per_token_rows, filter_width=self.filter_width
+        )
+        return [int(pos) if pos is not None else None for pos in argmaxes]
+
+    # -------------------- forced-alignment calibration --------------------
+
+    def calibrate_alignment_heads_forced(
+        self,
+        audio: np.ndarray,
+        *,
+        sample_rate: int,
+        language: str,
+        teacher: AlignmentResult,
+        top_k: int | None = None,
+    ) -> list[dict]:
+        """Score (layer, head) using the teacher's transcript as teacher-forced input.
+
+        This is the defensible calibration: we compare predicted word-end
+        times against the teacher using the *same* word sequence (no
+        alignment of two different transcripts), so MAE is a real
+        alignment-quality signal rather than a transcription-quality
+        artifact.
+        """
+        if self.model is None:
+            raise RuntimeError("Gemma alignment backend is not loaded.")
+        transcript = teacher.text.strip()
+        if not transcript:
+            return []
+
+        audio = np.asarray(audio, dtype=np.float32)
+        audio_duration_s = float(len(audio)) / float(sample_rate)
+
+        inputs, input_ids, transcript_span = self._prepare_forced_alignment_inputs(
+            audio, language=language, transcript=transcript
+        )
+        audio_span = detect_audio_span(
+            input_ids,
+            audio_token_id=self.audio_token_id,
+            audio_ms_per_token=self.audio_ms_per_token,
+        )
+        if audio_span is None or audio_span.length <= 0 or transcript_span is None:
+            return []
+
+        per_token_captures = self._run_forward_capture_transcript_attention(
+            inputs=inputs, transcript_span=transcript_span
+        )
+        transcript_token_ids = input_ids[transcript_span[0] : transcript_span[1]]
+        if not transcript_token_ids:
+            return []
+
+        num_layers = len(per_token_captures[0])
+        layer_names = sorted(per_token_captures[0].keys())
+        num_heads = int(per_token_captures[0][layer_names[0]].shape[1])
+        audio_positions = list(range(audio_span.prompt_start, audio_span.prompt_end))
+
+        scored: list[dict] = []
+        for layer_idx in layer_names:
+            for head_idx in range(num_heads):
+                head = AlignAttHead(layer=layer_idx, head=head_idx, ts=0.0)
+                per_token_rows: list[torch.Tensor] = []
+                for captured in per_token_captures:
+                    rows = extract_source_attention_rows_per_token(
+                        layer_attentions_by_layer=captured,
+                        alignatt_heads=[head],
+                        source_positions=audio_positions,
+                    )
+                    if not rows:
+                        per_token_rows.append(torch.zeros(1, len(audio_positions)))
+                        continue
+                    per_token_rows.append(rows[-1])
+
+                argmaxes = compute_alignatt_source_argmaxes(
+                    per_token_rows, filter_width=self.filter_width
+                )
+                token_ends = [
+                    audio_position_to_end_seconds(
+                        pos,
+                        ms_per_token=audio_span.ms_per_token,
+                        audio_duration_s=audio_duration_s,
+                    )
+                    for pos in argmaxes
+                ]
+                token_ends = _enforce_monotone(token_ends)
+                predicted_words = aggregate_token_timings_to_words(
+                    transcript,
+                    generated_ids=transcript_token_ids,
+                    tokenizer=self.tokenizer,
+                    token_end_times_s=token_ends,
+                    audio_duration_s=audio_duration_s,
+                )
+                mae = _word_end_mae(predicted_words, teacher.words)
+                mono = monotonicity_score(argmaxes)
+                coverage = sum(1 for p in argmaxes if p is not None) / max(1, len(argmaxes))
+                scored.append(
+                    {
+                        "layer": int(layer_idx),
+                        "head": int(head_idx),
+                        "mae_seconds": float(mae) if mae is not None else None,
+                        "monotonicity": float(mono),
+                        "coverage": float(coverage),
+                        "ts": _combine_head_score(mae, mono, coverage),
+                    }
+                )
+        scored.sort(key=lambda entry: entry["ts"], reverse=True)
+        if top_k is not None:
+            scored = scored[: int(top_k)]
+        return scored
+
+    # -------------------- calibration / head selection -------------------
+
+    def calibrate_alignment_heads(
+        self,
+        audio: np.ndarray,
+        *,
+        sample_rate: int,
+        language: str,
+        teacher: AlignmentResult,
+        top_k: int | None = None,
+    ) -> list[dict]:
+        """Score every (layer, head) on one audio using a teacher alignment.
+
+        For each attention head we (a) compute a monotonicity score and
+        (b) compute MAE against the teacher's per-word end times. The
+        returned scored list is sorted by a combined rank so a small
+        ``top_k`` slice can be written back as a runtime head set.
+
+        The teacher is typically the Qwen forced aligner on the same audio;
+        this is used only for head ranking — not as ground truth — in line
+        with the PLAN.md hierarchy of supervision.
+        """
+        if self.model is None:
+            raise RuntimeError("Gemma alignment backend is not loaded.")
+
+        inputs, input_ids = self._prepare_inputs(audio, language=language)
+        audio_span = detect_audio_span(
+            input_ids,
+            audio_token_id=self.audio_token_id,
+            audio_ms_per_token=self.audio_ms_per_token,
+        )
+        if audio_span is None or audio_span.length <= 0:
+            return []
+        audio_duration_s = float(len(audio)) / float(sample_rate)
+
+        capture = self._generate_with_attention(
+            inputs,
+            audio_span,
+            record_all_heads=True,
+        )
+        generated_ids = capture.generated_ids
+        if not generated_ids:
+            return []
+        num_layers = len(capture.per_token_layer_attentions[0])
+        layer_names = sorted(capture.per_token_layer_attentions[0].keys())
+        num_heads = int(capture.per_token_layer_attentions[0][layer_names[0]].shape[1])
+
+        text = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+        audio_positions = list(range(audio_span.prompt_start, audio_span.prompt_end))
+
+        scored: list[dict] = []
+        for layer_idx in layer_names:
+            for head_idx in range(num_heads):
+                head = AlignAttHead(layer=layer_idx, head=head_idx, ts=0.0)
+                per_token_rows: list[torch.Tensor] = []
+                for captured in capture.per_token_layer_attentions:
+                    rows = extract_source_attention_rows_per_token(
+                        layer_attentions_by_layer=captured,
+                        alignatt_heads=[head],
+                        source_positions=audio_positions,
+                    )
+                    if not rows:
+                        per_token_rows.append(
+                            torch.zeros(1, len(audio_positions))
+                        )
+                        continue
+                    per_token_rows.append(rows[-1])
+
+                argmaxes = compute_alignatt_source_argmaxes(
+                    per_token_rows, filter_width=self.filter_width
+                )
+                token_ends = [
+                    audio_position_to_end_seconds(
+                        pos,
+                        ms_per_token=audio_span.ms_per_token,
+                        audio_duration_s=audio_duration_s,
+                    )
+                    for pos in argmaxes
+                ]
+                token_ends = _enforce_monotone(token_ends)
+                predicted_words = aggregate_token_timings_to_words(
+                    text,
+                    generated_ids=generated_ids,
+                    tokenizer=self.tokenizer,
+                    token_end_times_s=token_ends,
+                    audio_duration_s=audio_duration_s,
+                )
+
+                mae = _word_end_mae(predicted_words, teacher.words)
+                mono = monotonicity_score(argmaxes)
+                coverage = sum(1 for p in argmaxes if p is not None) / max(1, len(argmaxes))
+                scored.append(
+                    {
+                        "layer": int(layer_idx),
+                        "head": int(head_idx),
+                        "mae_seconds": float(mae) if mae is not None else None,
+                        "monotonicity": float(mono),
+                        "coverage": float(coverage),
+                        "ts": _combine_head_score(mae, mono, coverage),
+                    }
+                )
+
+        scored.sort(key=lambda entry: entry["ts"], reverse=True)
+        if top_k is not None:
+            scored = scored[: int(top_k)]
+        return scored
+
+
+def _combine_head_score(
+    mae_seconds: float | None, monotonicity: float, coverage: float
+) -> float:
+    """Rank heads by monotonicity / (1 + MAE). Coverage breaks ties.
+
+    Monotonicity is the dominant signal because streaming needs forward
+    progress; MAE is a soft quality term; coverage ensures heads that
+    attend somewhere on the audio axis at all are preferred. The function
+    is generic and contains no calibration constants tuned to any
+    particular example.
+    """
+    if mae_seconds is None or math.isnan(mae_seconds) or math.isinf(mae_seconds):
+        mae_term = 0.0
+    else:
+        mae_term = 1.0 / (1.0 + float(mae_seconds))
+    return float(monotonicity) * 0.7 + mae_term * 0.25 + float(coverage) * 0.05
+
+
+def _word_end_mae(
+    predicted: Sequence[WordAlignment],
+    teacher: Sequence[WordAlignment],
+) -> float | None:
+    if not predicted or not teacher:
+        return None
+    n = min(len(predicted), len(teacher))
+    if n <= 0:
+        return None
+    errors = [abs(predicted[i].end_time - teacher[i].end_time) for i in range(n)]
+    return float(sum(errors) / len(errors))
+
+
+def _apply_word_end_offset(
+    values: Sequence[float | None],
+    *,
+    offset_s: float,
+    audio_duration_s: float,
+) -> list[float | None]:
+    """Subtract the calibrated lag and clamp to ``[0, audio_duration]``.
+
+    The offset corrects a systematic lag between a causal LLM's attention
+    peak and the acoustic word boundary; it is a single scalar fit once
+    per ``(language, model)`` on the same teacher that selects the heads.
+    """
+    if not offset_s:
+        return list(values)
+    output: list[float | None] = []
+    for value in values:
+        if value is None:
+            output.append(None)
+            continue
+        shifted = float(value) - float(offset_s)
+        shifted = max(0.0, min(shifted, float(audio_duration_s)))
+        output.append(shifted)
+    return output
+
+
+def _enforce_monotone(values: Sequence[float | None]) -> list[float | None]:
+    """Project the end-time sequence onto its monotone envelope.
+
+    A per-token argmax can locally regress even in an otherwise monotone
+    head. The aligner contract requires a monotone word-end sequence, and
+    the cleanest generic fix is a left-to-right running max; we only
+    fill ``None`` forward, never backward, so the fallback does not mask
+    tokens that legitimately fail to align.
+    """
+    output: list[float | None] = []
+    running_max: float = 0.0
+    for value in values:
+        if value is None:
+            output.append(None)
+            continue
+        value = max(float(value), running_max)
+        running_max = value
+        output.append(value)
+    return output
