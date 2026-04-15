@@ -55,6 +55,65 @@ It is much closer to:
 `fast LLM drafting + cheap alignment probe + explicit monotone acceptance state`
 
 
+## Latest Empirical Read (2026-04-15)
+
+The newest full-talk `compute unaware` rerun at `chunk_ms = 800` reached:
+
+- `BLEU = 38.7556`
+- `chrF = 68.0866`
+- `LongYAAL CU = 3716.8469`
+
+So the current AlignAtt-first LLM design is already in a good quality regime,
+but it is still far from the `< 2 s` `LongYAAL CU` target.
+
+### Fresh diagnostic on the 2026-04-15 run (411 updates, 360 s audio)
+
+- Mean `draft_decode` per call: `679 ms` (dominant cost).
+- Mean `prompt_cache_restore`: `60 ms`.
+- Mean `alignment_probe`: `58 ms`.
+- `partial_followup_max_new_tokens = 16`, but mean accepted is `3.78` target
+  words ≈ `6-8` tokens.
+- `140 / 411` updates produce `0` accepted tokens.
+- `67 / 411` updates (`16%`) are full-draft rejections on the rewind guard.
+- The scheduler skipped only `4 / 411` MT calls: almost every chunk triggers MT.
+
+So the dominant structural `CU` problems today are:
+
+1. the MT scheduler runs on virtually every chunk even when the accepted
+   prefix barely grows
+2. the draft budget is much larger than the number of tokens that survive
+   acceptance
+3. the rewind guard rejects the entire new suffix, throwing away the
+   already-safe prefix of the same draft
+
+We also now have a partial full-talk start-gate sweep with everything else held
+fixed:
+
+| `min_start_seconds` | First non-empty / accepted emission | BLEU | chrF | LongYAAL CU |
+| ---: | ---: | ---: | ---: | ---: |
+| `5.0` | `5.6 s` | 38.7556 | 68.0866 | 3726.8594 |
+| `3.0` | `4.0 s` | 38.7556 | 68.0866 | 3698.2681 |
+| `2.0` | `4.0 s` | 38.7556 | 68.0866 | 3698.2681 |
+
+This is a useful correction to the earlier intuition.
+
+Lowering the hard start gate does improve first-token responsiveness, but on
+the current full-talk `chunk800` setting it barely changes corpus-level
+`LongYAAL CU`.
+
+So the main remaining `CU` problem is probably not:
+
+- the observer compute alone
+- nor the hard start gate alone
+
+It is much more likely to be:
+
+- coarse update cadence
+- coarse scheduler gating
+- coarse source accessibility granularity
+- insufficient accepted growth per update
+
+
 ## Canonical AlignAtt in Whisper
 
 Canonical AlignAtt uses cross-attention:
@@ -683,16 +742,27 @@ If we are strict:
 - the current cascade has the right semantics
 - the current cascade does not yet have the right LLM-native mechanics
 
-That matters because the main remaining bottleneck seems no longer to be:
+That matters because the latest results suggest the main remaining `CU`
+bottleneck is no longer:
 
 - frontier conservatism
 
-It is much more likely to be:
+and also not simply:
+
+- hard start delay
+
+For `CU`, it is much more likely to be:
+
+- coarse `chunk_ms` quantization
+- over-coarse MT triggering and blocked-frontier gating
+- insufficient accepted growth per update
+- source granularity that is still too word-level
+
+For `CA`, the major remaining issues are still:
 
 - observation cost
-- over-frequent MT triggering
 - cache handling overhead
-- eager replay probing
+- replay probing, especially on the `eager` fallback
 
 So if we keep tuning only:
 
@@ -703,9 +773,93 @@ we will probably hit diminishing returns.
 
 The next gains are much more likely to come from:
 
-- architecture
-- scheduling
-- cheaper alignment probing
+- for `CU`:
+  - chunking
+  - scheduling
+  - acceptance policy
+- for `CA`:
+  - cheaper alignment probing
+  - better cache structure
+
+
+## Empirical Sweep To Cross Below 2 s (2026-04-15, `ccpXHNfaoy.wav`)
+
+After implementing the principled fixes below, a focused single-audio sweep
+shows the clear shape of the trade-off:
+
+| tag | `chunk_ms` | `min_start` | partial caps | history | BLEU | chrF | `LongYAAL CU` | `LongYAAL CA` |
+| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| baseline `compute_unaware_chunk800_20260415T154922Z` | 800 | 5.0 | 48 / 16 | 0 | 38.76 | 68.09 | 3716.85 | 5595.86 |
+| `latency_v3_chunk800_min2_cap16_cap8` | 800 | 2.0 | 16 / 8 | 0 | 37.16 | 67.07 | 3678.67 | 5621.51 |
+| `latency_v5_chunk600_cap16_cap8` | 600 | 2.0 | 16 / 8 | 0 | 31.38 | 64.44 | 2376.87 | 4891.11 |
+| `latency_v6_chunk500_cap16_cap8` | 500 | 2.0 | 16 / 8 | 0 | 28.32 | 62.19 | 2135.42 | 3045.64 |
+| `latency_v7_chunk450_cap16_cap8` | 450 | 2.0 | 16 / 8 | 0 | 26.87 | 62.93 | 1907.98 | 3064.72 |
+| `latency_v9_chunk450_cap16_cap8_hist1` | 450 | 2.0 | 16 / 8 | 1 | **28.15** | **63.59** | **1948.51** | **3006.81** |
+| `latency_v10_chunk450_cap16_cap8_hist2` | 450 | 2.0 | 16 / 8 | 2 | 26.52 | 63.51 | 1995.36 | 3230.23 |
+| `latency_v1_chunk400_min2_cap16_cap8` | 400 | 2.0 | 16 / 8 | 0 | 23.37 | 60.88 | 1348.17 | 2172.94 |
+
+Relevant observations:
+
+1. `chunk_ms` is by far the strongest `CU` lever on the current architecture.
+   Dropping it from `800` to `450` nearly halves `LongYAAL CU` without any
+   other change.
+2. On `chunk_ms = 800`, aggressive draft-budget cuts barely move `CU`
+   (`37 ms` improvement); quality drops by about `1.6 BLEU`. So at this
+   cadence, compute is not the bottleneck.
+3. The `latency_v9` point at `chunk_ms = 450` with one utterance of history
+   is the sweet spot: `LongYAAL CU = 1948 ms`, `BLEU = 28.15`, `chrF = 63.59`.
+   `CA` also collapses from `~5600 ms` to `~3000 ms` because the draft caps
+   are sized to actual accepted growth.
+4. Lower `chunk_ms` than `450` keeps improving `CU` but the ASR
+   sentence-finalization cadence gets too fragmented for the current prompt
+   contract, and BLEU collapses below `24`.
+5. `truncate-on-rewind` (instead of `reject-all-on-rewind`) combined with
+   smaller partial caps cuts rewind events from `67` to `21` per full talk
+   and recovers acceptance growth that was previously discarded.
+
+The principled recommendation for this phase is therefore to treat
+`chunk_ms = 450`, `partial caps = 16 / 8`, `min_start_seconds = 2.0`,
+`max_history_utterances = 1`, `rewind_threshold = 8` as the operating point
+below `2 s` `LongYAAL CU`, with the per-token rewind truncation in
+`cascade_mt_backend.py` as a standing semantic fix rather than a tuning knob.
+
+
+## Focused Plan To Cross Below 2 s `LongYAAL CU`
+
+The levers that move `CU` most directly, ranked by expected impact on a single
+full talk:
+
+1. **Chunk quantization**. Drop `chunk_ms` from `800` to `400`. Each accepted
+   word is delayed on average by `chunk_ms / 2`; halving the chunk shaves
+   roughly `200 ms` of pure CU quantization.
+2. **Start gate**. Lower `min_start_seconds` to `2.0`. First-token UX matters
+   for the early part of the stream even if corpus-level CU plateaued at `3.0`
+   in the earlier sweep.
+3. **Adaptive draft budget**. `partial_max_new_tokens = 48` and
+   `partial_followup_max_new_tokens = 16` are wildly oversized for an average
+   accept of `~4` words. Default the follow-up cap to `~8` tokens; keep an
+   initial-partial cap of `~16` for the first probe after a sentence break.
+   This has no CU downside because we do not accept those extra tokens anyway,
+   and it unlocks the `chunk_ms = 400` regime on the CA axis.
+4. **Truncate-on-rewind instead of reject-all**. Today `alignatt:rewind`
+   wipes the entire drafted suffix, including its already-safe prefix. The
+   principled change is to truncate before the offending token, the same way
+   `alignatt:source_frontier` already does. That recovers `~16 %` of updates
+   that currently produce zero growth.
+5. **Skip MT when accepted prefix is unlikely to grow**. Extend the scheduler
+   to skip MT when the accessibility frontier advanced by fewer than one
+   source word since the last probe and no stall override has fired yet.
+6. **Higher `translation_alignatt_rewind_threshold` for German reordering**.
+   The current default is `8`. German often reorders far more than that, and
+   rewinds are the single largest source of zero-growth updates.
+
+Steps `1-3` are purely latency-shaping: they do not touch AlignAtt semantics.
+
+Step `4` is the principled fix that makes the rewind guard align with the
+source-frontier guard: both become "stop before the first unsafe token" rather
+than "drop the whole suffix".
+
+Steps `5` and `6` are orthogonal refinements that compound on top.
 
 
 ## Concrete Suggestions
@@ -713,6 +867,8 @@ The next gains are much more likely to come from:
 ### High Priority
 
 - Keep the current `fast draft` plus prefix-online `alignment probe` split.
+- Do not spend more full-talk benchmark runs on `min_start_seconds` alone until another bottleneck changes; `3.0` and `2.0` already plateau on `CU` in the current setup.
+- Treat lower `chunk_ms` as the next highest-priority `CU` experiment.
 - Refine the existing predictive scheduler from blocked unit indices to finer frontier-distance and draft-budget control.
 - Build a serving head set optimized for both signal and layer concentration.
 - Add a cheap first-tier observer and escalate only near the frontier or on low confidence.

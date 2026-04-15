@@ -1051,8 +1051,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
                 accessible_source_token_count=source_map.accessible_source_token_count,
             )
             if unsafe_reason == "rewind":
-                unsafe_target_token_index = 0
-                accepted_candidate_ids = []
+                unsafe_target_token_index = token_index
                 stop_reason = "alignatt:rewind"
                 break
             if unsafe_reason == "source_frontier":

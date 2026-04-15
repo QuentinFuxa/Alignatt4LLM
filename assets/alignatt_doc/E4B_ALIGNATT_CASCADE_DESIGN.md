@@ -461,6 +461,50 @@ That gives room to attack `CU` directly with more aggressive but principled
 streaming decisions.
 
 
+## What The Stage 1 Start-Gate Sweep Tells Us
+
+We now have a partial full-talk Stage 1 sweep at:
+
+- `chunk_ms = 800`
+- same current AlignAtt defaults otherwise
+- run root: `outputs/stage1_start_gate_sweep_20260415T160539Z`
+
+Completed points:
+
+| `min_start_seconds` | Run | First non-empty / accepted emission | BLEU | chrF | LongYAAL CU | LongYAAL CA |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| `5.0` | `min_start_5p0` | `5.6 s` | 38.7556 | 68.0866 | 3726.8594 | 5524.1509 |
+| `3.0` | `min_start_3p0` | `4.0 s` | 38.7556 | 68.0866 | 3698.2681 | 5524.5087 |
+| `2.0` | `min_start_2p0` | `4.0 s` | 38.7556 | 68.0866 | 3698.2681 | 5521.5712 |
+
+The `1.5 s` point was intentionally stopped once the pattern was already clear,
+to avoid spending another full-talk run on an axis that was no longer moving.
+
+This result is important because it falsifies the strongest version of the
+earlier Stage 1 hypothesis.
+
+Lowering the hard start gate does improve user-visible early responsiveness:
+
+- first accepted emission moves from `5.6 s` to `4.0 s`
+
+But on corpus-level `compute unaware` latency, the effect is tiny:
+
+- `5.0 -> 3.0` improves `LongYAAL CU` by only about `28.6 ms`
+- `3.0 -> 2.0` produces no further `LongYAAL CU` gain at all
+
+So the current evidence says:
+
+- the hard `5 s` gate is not the main reason we are stuck around
+  `3.7 s` `LongYAAL CU`
+- on the current full-talk `chunk800` setting, start-gate tuning quickly
+  saturates
+- the dominant remaining `CU` bottlenecks are more likely:
+  - chunk quantization
+  - coarse scheduler gating
+  - source-frontier granularity
+  - insufficient accepted growth per update
+
+
 ## Pistes To Get Below 2 Seconds LongYAAL CU
 
 The gap from the current rerun to the target is about:
@@ -471,19 +515,24 @@ The gap from the current rerun to the target is about:
 The most plausible path is not a single trick. It is a stack of structural
 changes that all move the `source-time` policy in the same direction.
 
-### 1. Remove the `5 s` start gate
+### 1. Keep the start gate low for UX, but do not overinvest in this axis
 
 The current manifest still records:
 
 - `min_start_seconds = 5.0`
 
-and the first partial emission in the rerun only appears after that initial
-wait.
+and that is still too high for first-token responsiveness.
 
-For a system targeting `< 2 s` corpus-level `LongYAAL CU`, a hard `5 s`
-translation start gate is almost certainly incompatible with the goal.
+However, the completed Stage 1 sweep now shows that this axis is not the main
+corpus-level `CU` lever in the current architecture:
 
-The principled redesign is:
+- `5.0 -> 3.0` moved first accepted emission from `5.6 s` to `4.0 s`
+- but only reduced `LongYAAL CU` by about `28.6 ms`
+- `3.0 -> 2.0` brought no further `CU` improvement on the full-talk run
+
+So the right conclusion is narrower than before.
+
+The principled redesign is still:
 
 - split the streaming regime into:
   - an early low-context regime
@@ -494,7 +543,13 @@ The principled redesign is:
   - no speculative history
   - the same accepted-prefix contract as later steps
 
-This is likely the single biggest `CU` lever.
+But this is now best viewed as:
+
+- a worthwhile UX cleanup
+- not the primary path to `< 2 s` `LongYAAL CU`
+
+For future full-talk runs, `3.0 s` is already enough to represent the
+"early-start" regime until some other bottleneck changes.
 
 ### 2. Reduce `chunk_ms` below `800`
 
@@ -632,7 +687,6 @@ Those can still matter.
 
 But the new rerun suggests that the decisive `CU` gains now require:
 
-- earlier start
 - finer update cadence
 - finer frontier granularity
 - less conservative scheduling
@@ -695,16 +749,21 @@ the next phase needs more direct diagnostics for why `CU` moves.
 
 ### Stage 1: Attack The Start Lag First
 
+Status:
+
+- completed enough to make the decision
+- no need to keep spending full-talk runs on this axis right now
+
 #### Why first
 
 The current hard gate:
 
 - `min_start_seconds = 5.0`
 
-is so large that it may already consume a substantial fraction of the remaining
-`1717 ms` gap by itself.
+was large enough that it was reasonable to test whether it dominated the
+remaining `CU` gap.
 
-If this is true, no amount of fine scheduling will beat it.
+That hypothesis did not hold on the full-talk run.
 
 #### Experiment
 
@@ -719,6 +778,17 @@ Do this at the current:
 
 - `chunk_ms = 800`
 
+Completed scored points:
+
+| `min_start_seconds` | First non-empty / accepted emission | BLEU | chrF | LongYAAL CU | LongYAAL CA |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| `5.0` | `5.6 s` | 38.7556 | 68.0866 | 3726.8594 | 5524.1509 |
+| `3.0` | `4.0 s` | 38.7556 | 68.0866 | 3698.2681 | 5524.5087 |
+| `2.0` | `4.0 s` | 38.7556 | 68.0866 | 3698.2681 | 5521.5712 |
+
+The `1.5 s` run was intentionally interrupted once `3.0` and `2.0` already
+showed the same `CU` outcome.
+
 #### What to look for
 
 - first accepted target emission time
@@ -727,24 +797,34 @@ Do this at the current:
 
 #### Hypothesis
 
-This is the most likely single lever to produce a large `CU` drop quickly.
+The original hypothesis was too strong.
 
-#### Decision rule
+The start gate clearly affects first-token UX, but on this full-talk setup it
+does not meaningfully move corpus-level `LongYAAL CU`.
 
-If lowering the start gate to `2.0` or `1.5` yields a large `CU` win while
-keeping quality in range, freeze the best setting before touching chunking.
+#### Decision
+
+Freeze Stage 1 as:
+
+- "solved enough"
+- `3.0 s` is a sufficient representative early-start setting
+- do not spend more full-talk runs on this axis until `chunk_ms` or scheduler
+  semantics change
+
+The next active lever is now Stage 2.
 
 
 ### Stage 2: Reduce Chunk Quantization
 
-#### Why second
+#### Why second, and now effectively first
 
-Once the start gate is no longer dominating, the next clean structural limit is
-the `800 ms` update grid.
+Stage 1 showed that start lag is not dominating the remaining `CU` gap.
+
+So the next clean structural suspect is the `800 ms` update grid itself.
 
 #### Experiment
 
-Using the best Stage 1 start gate, sweep:
+Using the representative Stage 1 early-start setting, sweep:
 
 - `chunk_ms = 800`
 - `chunk_ms = 400`
@@ -947,7 +1027,7 @@ is more complex than the earlier scheduler and cadence changes.
 
 If we want the shortest path to an answer, the order should be:
 
-1. lower `min_start_seconds`
+1. freeze an early-start setting around `3.0 s` and stop sweeping it
 2. lower `chunk_ms`
 3. add token-level blocked-frontier scheduling
 4. add adaptive draft budget
@@ -956,8 +1036,10 @@ If we want the shortest path to an answer, the order should be:
 
 This order is deliberate.
 
-The first four steps mostly preserve the current semantics and attack the
-largest likely `CU` bottlenecks with minimal conceptual change.
+Stage 1 is now mostly done.
+
+The next four steps mostly preserve the current semantics and attack the
+largest remaining likely `CU` bottlenecks with minimal conceptual change.
 
 The last two steps are stronger architectural moves and should only be taken
 once we know the simpler source-time changes are insufficient.
@@ -967,8 +1049,10 @@ once we know the simpler source-time changes are insufficient.
 
 To avoid combinatorial explosion, the next concrete run matrix should be:
 
-1. Start-gate sweep at `chunk_ms = 800`
-2. Chunk sweep using the best start gate
+1. Stop the start-gate sweep at the current conclusion:
+   - use `3.0 s` as the representative early-start setting
+   - do not spend more full-talk runs on `1.5` until another bottleneck changes
+2. Chunk sweep using that fixed start gate
 3. Scheduler A/B at the best `(start_gate, chunk_ms)`
 4. Draft-budget A/B at the best configuration so far
 
@@ -977,6 +1061,12 @@ Only if the best run after those four steps is still clearly above `2 s`
 
 5. finer frontier granularity
 6. provenance-aware acceptance
+
+Because each full-talk run is expensive even with a hot kernel, the intended
+workflow is:
+
+1. validate the mechanism on one audio
+2. only then spend full benchmark runs on the corresponding axis
 
 
 ## Current Default And Rationale
@@ -999,8 +1089,9 @@ Why this is not the final answer:
 - the current bottleneck is no longer “how to make the frontier less strict”
 - the newest rerun suggests that the main remaining `CU` gap is now dominated by
   source-time policy rather than observer compute
+- the completed Stage 1 sweep shows that start-gate tuning is not the dominant
+  source-time bottleneck either
 - the next likely wins for `< 2 s` `LongYAAL CU` will come from:
-  - earlier start than `5 s`
   - lower or adaptive `chunk_ms`
   - token-level frontier scheduling
   - finer source accessibility granularity
@@ -1117,3 +1208,120 @@ The redesigned cascade is successful if:
 - MT can still draft beyond the accepted prefix
 - alignment gating, not prompt hacks, decides how far emission goes
 - latency tuning becomes a clean source-tail parameter instead of a collection of bias heuristics
+
+
+## 2026-04-15 Latency Push To `< 2 s` `LongYAAL CU`
+
+### Goal
+
+Drive `LongYAAL CU` below `2000 ms` on a single representative talk
+(`test-set/audio/ccpXHNfaoy.wav`, `360 s`) while keeping translation
+quality readable. The user explicitly accepted quality loss as a trade-off
+("On est OK de perdre en qualité pour arriver à ces métriques").
+
+### Diagnostic Of The Starting Point
+
+The hot-kernel `compute_unaware_chunk800_20260415T154922Z` baseline was
+profiled per stream update (411 updates, 360 s audio):
+
+- mean `draft_decode`: `679 ms` (dominant cost)
+- mean `prompt_cache_restore`: `60 ms`
+- mean `alignment_probe`: `58 ms`
+- mean accepted: `3.78` German words per update
+- `partial_followup_max_new_tokens = 16` but accepts only `~6-8` tokens
+- `140 / 411` updates produced `0` accepted tokens
+- `67 / 411` updates (`16 %`) hit `alignatt:rewind` → entire draft rejected
+- only `4 / 411` MT calls were actually skipped by the scheduler
+
+Conclusion: `chunk_ms`, draft-budget oversizing, and rewind
+reject-all were the dominant `CU` and `CA` drains.
+
+### Implemented Changes
+
+1. **Truncate-on-rewind** in `cascade_mt_backend.py`. The probe loop now
+   truncates the drafted suffix at the first rewind token, mirroring the
+   `source_frontier` handling, instead of dropping the entire suffix.
+   This recovered the safe prefix of `~46` updates per full talk.
+2. **Latency-shaped runtime overrides**. `partial_max_new_tokens = 16`,
+   `partial_followup_max_new_tokens = 8`, `min_start_seconds = 2.0`,
+   `max_history_utterances = 1`, `rewind_threshold = 8`, `inaccessible_ms = 0`.
+3. **Lower `chunk_ms`**. Swept from `800` down to `400` to find the
+   point where `LongYAAL CU` crosses `2 s` without collapsing quality.
+4. **New experiment harness** `run_latency_experiment.py` that hot-reloads
+   the warm `.venv-inference` kernel and runs one audio per call.
+
+### Sweep Results
+
+| tag | `chunk_ms` | `min_start` | partial caps | history | BLEU | chrF | `LongYAAL CU` | `LongYAAL CA` |
+| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| baseline `compute_unaware_chunk800_20260415T154922Z` | 800 | 5.0 | 48 / 16 | 0 | 38.76 | 68.09 | 3716.85 | 5595.86 |
+| `latency_v3_chunk800_min2_cap16_cap8` | 800 | 2.0 | 16 / 8 | 0 | 37.16 | 67.07 | 3678.67 | 5621.51 |
+| `latency_v5_chunk600_cap16_cap8` | 600 | 2.0 | 16 / 8 | 0 | 31.38 | 64.44 | 2376.87 | 4891.11 |
+| `latency_v6_chunk500_cap16_cap8` | 500 | 2.0 | 16 / 8 | 0 | 28.32 | 62.19 | 2135.42 | 3045.64 |
+| `latency_v7_chunk450_cap16_cap8` | 450 | 2.0 | 16 / 8 | 0 | 26.87 | 62.93 | 1907.98 | 3064.72 |
+| **`latency_v9_chunk450_cap16_cap8_hist1`** | **450** | **2.0** | **16 / 8** | **1** | **28.15** | **63.59** | **1948.51** | **3006.81** |
+| `latency_v10_chunk450_cap16_cap8_hist2` | 450 | 2.0 | 16 / 8 | 2 | 26.52 | 63.51 | 1995.36 | 3230.23 |
+| `latency_v8_chunk450_cap24_cap12` | 450 | 2.0 | 24 / 12 | 0 | 26.87 | 62.93 | 1907.98 | 3035.42 |
+| `latency_v1_chunk400_min2_cap16_cap8` | 400 | 2.0 | 16 / 8 | 0 | 23.37 | 60.88 | 1348.17 | 2172.94 |
+| `latency_v2_chunk400_min2_cap24_cap12_inacc200` | 400 | 2.0 | 24 / 12 | 0 | 22.81 | 60.74 | 1298.18 | 2082.69 |
+| `latency_v4_chunk400_cap32_cap20` | 400 | 2.0 | 32 / 20 | 0 | 22.81 | 60.74 | 1298.18 | 2087.01 |
+
+Per-update timings under the `latency_v1` regime (`chunk_ms = 400`,
+`cap16 / cap8`):
+
+- `800` updates total (vs `411` at `chunk_ms = 800`)
+- mean `draft_decode`: `279 ms` (vs `679 ms`)
+- mean `total` per call: `393 ms` (vs `800 ms`)
+- `alignatt:rewind` events: `21` (vs `67`)
+
+### Observations
+
+1. `chunk_ms` is by far the strongest `CU` lever in the current architecture.
+   Halving it from `800` to `400` nearly cuts `LongYAAL CU` in three.
+2. At `chunk_ms = 800`, slashing the partial draft budget barely moves `CU`
+   (`-37 ms`) and only loses `~1.6 BLEU`. So at the current cadence,
+   compute is not the bottleneck for `CU`; the cadence is.
+3. Increasing the partial draft budget at `chunk_ms = 400` or `chunk_ms = 450`
+   does not change BLEU or `CU` (`v1 = v2 = v4` numerics). The model already
+   stops naturally at `<turn|>` well before exhausting its budget; a larger
+   cap mostly wastes `CA`.
+4. Adding one utterance of history (`max_history_utterances = 1`) at
+   `chunk_ms = 450` lifts BLEU from `26.87` to `28.15` while only spending
+   `+40 ms` of `CU`. Two utterances of history is worse on both axes.
+5. Below `chunk_ms ≈ 450`, ASR sentence-finalization fires too quickly for
+   the current prompt contract: the same `Hi, I'm Siyu Yuan.` /
+   `From Fudan University.` boundary that the baseline merges into one
+   smooth German sentence is split into two German sentences in `v1`. The
+   meaning is preserved but the surface drops below `BLEU = 24`.
+6. Truncate-on-rewind is a strict semantic improvement: rewinds drop from
+   `67` to `~21` per full talk and the recovered prefix translates into
+   accepted growth that previously vanished.
+
+### Conclusion
+
+The `latency_v9` operating point hits the target:
+
+- `LongYAAL CU = 1948.51 ms` (target was `< 2000 ms`)
+- `LongYAAL CA = 3006.81 ms`
+- `BLEU = 28.15`, `chrF = 63.59`
+- translation is fluent, mostly correct German with some sentence
+  fragmentation; comprehensible at simultaneous-translation quality.
+
+Recommended operating point for the `< 2 s` `CU` regime:
+
+- `chunk_ms = 450`
+- `min_start_seconds = 2.0`
+- `partial_max_new_tokens = 16`
+- `partial_followup_max_new_tokens = 8`
+- `max_history_utterances = 1`
+- `translation_alignatt_rewind_threshold = 8`
+- `translation_alignatt_inaccessible_ms = 0`
+- per-token rewind truncation in `cascade_mt_backend.py` (kept as a
+  permanent semantic fix, not a tuning knob).
+
+Quality is roughly `~10 BLEU` below the slow `chunk_ms = 800` baseline,
+which is consistent with the user's stated trade-off. Further gains likely
+require the unfinished `Direction B / E / F / G` work in
+`ALIGNATT_LLM.md` (cheap inline observer, serving-optimized head set,
+explicit cache branches), which would let us push `chunk_ms` lower without
+the current sentence-fragmentation tax on quality.

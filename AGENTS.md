@@ -10,10 +10,10 @@ For each change, examine the existing system and redesign it into the most elega
 - Prefer principled architectural changes, generic normalization, well-scoped model/runtime improvements, and explicitly measurable mechanisms.
 - If a shortcut is not something we could defend honestly in a paper, it is forbidden here.
 - No "screugneugneu" adjustments: no hacky tuning whose only purpose is to patch a specific example without a general justification.
-- Do not overproduce low-value tests. We are experimenting, so tests should protect real invariants, critical regressions, or reusable mechanisms, not add weight for its own sake.
+- Do not overproduce low-value tests. We are experimenting, so tests shopleauld protect real invariants, critical regressions, or reusable mechanisms, not add weight for its own sake.
 - Avoid test bloat, hyper-granular assertion noise, and large test scaffolding for temporary or exploratory changes.
-- Do not hesitate to remove, replace, or redesign code that is poorly conceived. During this phase, strong cleanup and bold simplification are encouraged when they improve the system.
-
+- Do not hesitate to remove, replace, or redesign code that is poorly conceived. During this phase, strong cleanup and bold simplification are encouraged when they improve the system.d
+- What we want here, is, more generally, break alignatt for LLMs. Goal is to write a paper. That's a challenge, and that justify the investigation you should deep dive in. The more interessting and clever/replicable/solid/ implementaiton, the happier i am
 ## qwen3asr_gemma_cascade.py notes
 
 - The ASR part runs with `qwen_asr` (vLLM-backed), while Gemma uses Transformers+AlignAtt in this code path.
