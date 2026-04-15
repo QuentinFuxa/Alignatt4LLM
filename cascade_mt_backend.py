@@ -96,15 +96,10 @@ def build_mt_backend(
     model_name: str,
     runtime_config: SimpleNamespace,
 ) -> "BaseMTBackend":
-    backend_kind = str(getattr(runtime_config, "translation_mt_backend", "vllm"))
-    if backend_kind == "vllm":
-        return VLLMGemmaMTBackend(model_name=model_name, runtime_config=runtime_config)
-    if backend_kind == "transformers_alignatt":
-        return TransformersAlignAttGemmaMTBackend(
-            model_name=model_name,
-            runtime_config=runtime_config,
-        )
-    raise ValueError(f"Unknown translation_mt_backend: {backend_kind}")
+    return TransformersAlignAttGemmaMTBackend(
+        model_name=model_name,
+        runtime_config=runtime_config,
+    )
 
 
 class BaseMTBackend(ABC):
@@ -380,84 +375,6 @@ class AlignAttDecoderPolicy:
         return AlignAttAcceptance(
             accepted_generated_ids=trimmed_generated_ids,
             alignatt_metadata=alignatt_metadata,
-        )
-
-
-class VLLMGemmaMTBackend(BaseMTBackend):
-    def __init__(self, *, model_name: str, runtime_config: SimpleNamespace):
-        super().__init__(model_name=model_name, runtime_config=runtime_config)
-        self.llm = None
-
-    def load(self) -> None:
-        if self.tokenizer is None:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.model_name,
-                trust_remote_code=True,
-                local_files_only=True,
-            )
-        if self.llm is None:
-            from vllm import LLM
-
-            self.llm = LLM(
-                model=self.model_name,
-                tensor_parallel_size=max(1, torch.cuda.device_count()),
-                max_model_len=self.runtime_config.gemma_max_model_len,
-                gpu_memory_utilization=self.runtime_config.gemma_gpu_memory_utilization,
-                enforce_eager=self.runtime_config.gemma_enforce_eager,
-                enable_prefix_caching=self.runtime_config.gemma_enable_prefix_caching,
-                trust_remote_code=True,
-            )
-
-    def translate(
-        self,
-        *,
-        rendered_prompt: RenderedTranslationPrompt,
-        variant: TranslationVariant,
-        is_partial: bool,
-    ) -> MTBackendResult:
-        if self.tokenizer is None or self.llm is None:
-            raise RuntimeError("MT backend is not loaded. Run load() first.")
-        from vllm import SamplingParams
-
-        prompt_package = self.render_prompt_package(rendered_prompt)
-        prompt_num_tokens = len(prompt_package.prompt_token_ids)
-        sampling_kwargs: dict[str, Any] = {
-            "temperature": self.runtime_config.temperature,
-            "max_tokens": self.compute_max_tokens(
-                prompt_tokens=prompt_num_tokens,
-                source_text=rendered_prompt.source_text,
-                is_partial=is_partial,
-                assistant_prefill=rendered_prompt.assistant_prefill,
-            ),
-            "repetition_penalty": self.runtime_config.repetition_penalty,
-            "skip_reading_prefix_cache": False,
-        }
-
-        generation_stop_token_ids = self.resolve_generation_stop_token_ids()
-        if generation_stop_token_ids:
-            sampling_kwargs["stop_token_ids"] = list(generation_stop_token_ids)
-
-        outputs = self.llm.generate(
-            {"prompt_token_ids": list(prompt_package.prompt_token_ids)},
-            SamplingParams(**sampling_kwargs),
-        )
-        request_output = outputs[0]
-        completion = request_output.outputs[0]
-        generated_ids = tuple(int(token_id) for token_id in completion.token_ids)
-        draft_text = self.decode_candidate_text(
-            generated_ids=generated_ids,
-            assistant_prefill=rendered_prompt.assistant_prefill,
-            variant=variant,
-            is_partial=is_partial,
-        )
-        return MTBackendResult(
-            draft_text=draft_text,
-            acceptance_text=draft_text,
-            draft_token_ids=generated_ids,
-            accepted_token_ids=generated_ids,
-            num_cached_tokens=request_output.num_cached_tokens,
-            prompt_num_tokens=prompt_num_tokens,
-            stop_reason=completion.stop_reason,
         )
 
 

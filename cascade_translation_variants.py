@@ -245,22 +245,6 @@ class TranslationVariant:
         )
 
 
-STREAMING_ASR_NOISE_RULE = "The input comes from streaming ASR and may contain recognition noise."
-RETURN_CURRENT_SEGMENT_RULE = "Return only the translation of the current source segment."
-BASELINE_CONTEXT_RULE = "Use any provided context only to keep terminology consistent."
-CONTEXT_DISCOURSE_RULE = (
-    "Use any provided context only to keep terminology and discourse consistent."
-)
-TERMINOLOGY_GUARD_RULES = (
-    "Keep quoted paper titles, model names, dataset names, and product names in the source language unless a standard German form is obvious.",
-    "Preserve technical constraints and discourse markers faithfully; do not paraphrase away details.",
-)
-BASELINE_PARTIAL_SEGMENT_RULE = (
-    "If the segment is incomplete, translate only the portion that is already clear."
-)
-GUARDED_PARTIAL_SEGMENT_RULE = (
-    "If the segment is incomplete, translate only the portion that is already clear and keep the wording easy to continue later."
-)
 PUNCTUATION_STABLE_SEGMENT_RULE = "The current source segment is punctuation-stable."
 
 STRUCTURED_PREFIX_SYSTEM_PROMPT = """
@@ -294,37 +278,6 @@ PREFIX_CONTINUATION_EXAMPLES = (
     ),
 )
 
-
-BASELINE_TRANSLATION_VARIANT = TranslationVariant(
-    variant_id="baseline",
-    description="Translate each segment independently with no previous-utterance context.",
-    max_history_utterances=0,
-    prompt_rules=(
-        STREAMING_ASR_NOISE_RULE,
-        BASELINE_CONTEXT_RULE,
-        RETURN_CURRENT_SEGMENT_RULE,
-    ),
-    partial_segment_rule=BASELINE_PARTIAL_SEGMENT_RULE,
-    stable_segment_rule=PUNCTUATION_STABLE_SEGMENT_RULE,
-)
-
-PROMPT_ONLY_TERMINOLOGY_GUARD_TRANSLATION_VARIANT = TranslationVariant(
-    variant_id="prompt_only_terminology_guard",
-    description=(
-        "Apply terminology and technical-constraint guardrails without previous-utterance context."
-    ),
-    max_history_utterances=0,
-    prompt_rules=(
-        STREAMING_ASR_NOISE_RULE,
-        BASELINE_CONTEXT_RULE,
-        *TERMINOLOGY_GUARD_RULES,
-        RETURN_CURRENT_SEGMENT_RULE,
-    ),
-    partial_segment_rule=GUARDED_PARTIAL_SEGMENT_RULE,
-    stable_segment_rule=PUNCTUATION_STABLE_SEGMENT_RULE,
-)
-
-
 def make_structured_prefix_variant(*, variant_id: str, description: str) -> TranslationVariant:
     return TranslationVariant(
         variant_id=variant_id,
@@ -344,37 +297,9 @@ ALIGNATT_PREFIX_TRANSLATION_VARIANT = make_structured_prefix_variant(
     ),
 )
 
-PROMPT_ONLY_PARTIAL_ANCHOR_TRANSLATION_VARIANT = make_structured_prefix_variant(
-    variant_id="prompt_only_partial_anchor",
-    description=(
-        "Legacy alias of the accepted-prefix variant kept for comparability with earlier experiments."
-    ),
-)
-
-CONTEXT1_TERMINOLOGY_GUARD_TRANSLATION_VARIANT = TranslationVariant(
-    variant_id="context1_terminology_guard",
-    description=(
-        "Reuse one previous committed utterance and guard quoted titles plus technical terms."
-    ),
-    max_history_utterances=1,
-    prompt_rules=(
-        STREAMING_ASR_NOISE_RULE,
-        CONTEXT_DISCOURSE_RULE,
-        *TERMINOLOGY_GUARD_RULES,
-        RETURN_CURRENT_SEGMENT_RULE,
-        "Use the context as reference only and never repeat earlier sentences.",
-    ),
-    partial_segment_rule=GUARDED_PARTIAL_SEGMENT_RULE,
-    stable_segment_rule=PUNCTUATION_STABLE_SEGMENT_RULE,
-)
-
 TRANSLATION_VARIANTS = {
-    BASELINE_TRANSLATION_VARIANT.variant_id: BASELINE_TRANSLATION_VARIANT,
-    PROMPT_ONLY_TERMINOLOGY_GUARD_TRANSLATION_VARIANT.variant_id: PROMPT_ONLY_TERMINOLOGY_GUARD_TRANSLATION_VARIANT,
     ALIGNATT_PREFIX_TRANSLATION_VARIANT.variant_id: ALIGNATT_PREFIX_TRANSLATION_VARIANT,
-    PROMPT_ONLY_PARTIAL_ANCHOR_TRANSLATION_VARIANT.variant_id: PROMPT_ONLY_PARTIAL_ANCHOR_TRANSLATION_VARIANT,
-    CONTEXT1_TERMINOLOGY_GUARD_TRANSLATION_VARIANT.variant_id: CONTEXT1_TERMINOLOGY_GUARD_TRANSLATION_VARIANT,
 }
 
-DEFAULT_TRANSLATION_VARIANT_ID = BASELINE_TRANSLATION_VARIANT.variant_id
+DEFAULT_TRANSLATION_VARIANT_ID = ALIGNATT_PREFIX_TRANSLATION_VARIANT.variant_id
 FOUNDATIONAL_TRANSLATION_VARIANT_ID = ALIGNATT_PREFIX_TRANSLATION_VARIANT.variant_id
