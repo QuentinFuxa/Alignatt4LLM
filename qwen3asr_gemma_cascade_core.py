@@ -179,8 +179,11 @@ config = SimpleNamespace(
     translation_prefix_acceptance="inline_policy_monotonic_prefix",
     translation_alignatt_heads_path="assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-de.json",
     translation_alignatt_top_k_heads=8,
-    translation_alignatt_inaccessible_ms=500.0,
-    translation_alignatt_rewind_threshold=3,
+    # Calibrated for the current latency-first AlignAtt cascade: make newly
+    # timestamped source units accessible immediately, then rely on a more
+    # permissive inline rewind guard to preserve German reordering freedom.
+    translation_alignatt_inaccessible_ms=0.0,
+    translation_alignatt_rewind_threshold=8,
     max_new_tokens=160,
     partial_max_new_tokens=48,
     partial_followup_max_new_tokens=16,
