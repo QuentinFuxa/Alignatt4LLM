@@ -174,9 +174,6 @@ config = SimpleNamespace(
     min_start_seconds=5.0,
     translation_variant_id=FOUNDATIONAL_TRANSLATION_VARIANT_ID,
     max_history_utterances=0,
-    translation_mode="alignatt_source_frontier",
-    translation_mt_backend="transformers_alignatt",
-    translation_prefix_acceptance="inline_policy_monotonic_prefix",
     translation_alignatt_heads_path="assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-de.json",
     translation_alignatt_top_k_heads=8,
     # Calibrated for the current latency-first AlignAtt cascade: make newly
@@ -199,9 +196,7 @@ config = SimpleNamespace(
     temperature=0.0,
     repetition_penalty=1.05,
     asr_gpu_memory_utilization=0.2,
-    gemma_gpu_memory_utilization=0.44,
     gemma_max_model_len=1024,
-    gemma_enforce_eager=True,
     gemma_enable_prefix_caching=True,
     gemma_transformers_device="cuda:0",
     gemma_transformers_dtype="bfloat16",
@@ -215,23 +210,8 @@ mt_backend = None
 state = CascadeState()
 
 
-def get_translation_variant(variant_id: str) -> TranslationVariant:
-    try:
-        return TRANSLATION_VARIANTS[variant_id]
-    except KeyError as exc:
-        known = ", ".join(sorted(TRANSLATION_VARIANTS))
-        raise ValueError(f"Unknown translation variant '{variant_id}'. Known variants: {known}") from exc
-
-
-def available_translation_variants() -> list[TranslationVariant]:
-    return [TRANSLATION_VARIANTS[variant_id] for variant_id in sorted(TRANSLATION_VARIANTS)]
-
-
-def set_translation_variant(variant_id: str) -> TranslationVariant:
-    variant = get_translation_variant(variant_id)
-    config.translation_variant_id = variant.variant_id
-    config.max_history_utterances = variant.max_history_utterances
-    return variant
+def get_translation_variant() -> TranslationVariant:
+    return TRANSLATION_VARIANTS[config.translation_variant_id]
 
 
 # %%
@@ -337,7 +317,7 @@ def build_translation_messages(
     is_partial: bool,
     assistant_prefill: str = "",
 ) -> RenderedTranslationPrompt:
-    variant = get_translation_variant(config.translation_variant_id)
+    variant = get_translation_variant()
     return variant.render_messages(
         source_lang=config.source_lang,
         target_lang=config.target_lang,
@@ -373,7 +353,7 @@ def translate_with_mt(
             acceptance_text=assistant_prefill.rstrip(" \n"),
         )
 
-    variant = get_translation_variant(config.translation_variant_id)
+    variant = get_translation_variant()
     rendered_prompt = build_translation_messages(
         text,
         source_frontier=source_frontier,
@@ -575,10 +555,8 @@ def load_wav(path: str) -> np.ndarray:
 def run_stream_to_artifacts(
     wav_path: str,
     chunk_ms: int = 960,
-    *,
-    translation_variant: str | None = None,
 ) -> InferenceArtifacts:
-    variant = set_translation_variant(translation_variant or config.translation_variant_id)
+    variant = get_translation_variant()
     load_models()
     clear_state()
 
@@ -745,9 +723,6 @@ def run_stream_to_artifacts(
         runtime_config={
             "translation_variant_id": variant.variant_id,
             "translation_variant_description": variant.description,
-            "translation_mode": config.translation_mode,
-            "translation_mt_backend": config.translation_mt_backend,
-            "translation_prefix_acceptance": config.translation_prefix_acceptance,
             "translation_alignatt_heads_path": config.translation_alignatt_heads_path,
             "translation_alignatt_top_k_heads": config.translation_alignatt_top_k_heads,
             "translation_alignatt_inaccessible_ms": config.translation_alignatt_inaccessible_ms,
@@ -769,9 +744,7 @@ def run_stream_to_artifacts(
             "temperature": config.temperature,
             "repetition_penalty": config.repetition_penalty,
             "asr_gpu_memory_utilization": config.asr_gpu_memory_utilization,
-            "gemma_gpu_memory_utilization": config.gemma_gpu_memory_utilization,
             "gemma_max_model_len": config.gemma_max_model_len,
-            "gemma_enforce_eager": config.gemma_enforce_eager,
             "gemma_enable_prefix_caching": config.gemma_enable_prefix_caching,
             "gemma_transformers_device": config.gemma_transformers_device,
             "gemma_transformers_dtype": config.gemma_transformers_dtype,
@@ -784,13 +757,10 @@ def run_stream(
     wav_path: str,
     chunk_ms: int = 960,
     output_dir: str | None = None,
-    *,
-    translation_variant: str | None = None,
 ):
     artifacts = run_stream_to_artifacts(
         wav_path,
         chunk_ms=chunk_ms,
-        translation_variant=translation_variant,
     )
     if output_dir is not None:
         write_inference_artifacts(artifacts, output_dir)
@@ -803,12 +773,10 @@ def run_baseline(
     *,
     output_dir: str = DEFAULT_OUTPUT_DIR,
     chunk_ms: int = 960,
-    translation_variant: str | None = None,
 ):
     artifacts = run_stream_to_artifacts(
         wav_path,
         chunk_ms=chunk_ms,
-        translation_variant=translation_variant,
     )
     written_files = write_inference_artifacts(artifacts, output_dir)
     print(f"\nWrote baseline artifacts to {output_dir}")

@@ -18,8 +18,8 @@ echo "Syncing inference dependencies from pyproject.toml"
 UV_PROJECT_ENVIRONMENT="$ENV_DIR" uv sync --group inference
 
 # qwen_asr's published [vllm] extra is pinned to an older torch/vllm stack.
-# We install qwen_asr via the inference group, then layer the validated vLLM
-# build on top for this repo's runtime.
+# We install qwen_asr via the inference group, then layer a validated vLLM
+# build used by the ASR path on top for this repo's runtime.
 echo "Upgrading to a vLLM build compatible with the CUDA 12.9 stack"
 uv pip install --python "$PYTHON_BIN" -U vllm --pre \
   --extra-index-url https://wheels.vllm.ai/nightly/cu129 \

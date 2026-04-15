@@ -2,7 +2,7 @@ For each change, examine the existing system and redesign it into the most elega
 
 ## qwen3asr_gemma_cascade.py notes
 
-- The script runs with `vLLM` for both Qwen3-ASR and Gemma.
+- The ASR part runs with `qwen_asr` (vLLM-backed), while Gemma uses Transformers+AlignAtt in this code path.
 - Use the repo environment `.venv-inference`.
 
 ### Important assumptions that are now encoded in the code
@@ -11,7 +11,7 @@ For each change, examine the existing system and redesign it into the most elega
 - Extra runtime monkey-patches are still required for this stack:
   - `Qwen3ASRConfig.get_text_config`
   - `_qwen3_asr_default_rope_init`
-- Models are loaded inside `load_models()`, not at import time, to avoid `vLLM` spawn/re-exec issues.
+- Models are loaded inside `load_models()`, not at import time, to avoid long startup/reload issues.
 - The script uses local Hugging Face snapshot paths instead of Hub model ids to avoid flaky network `HEAD`/`504` issues during startup.
 
 ### Current stable settings
@@ -21,16 +21,15 @@ For each change, examine the existing system and redesign it into the most elega
   - `gpu_memory_utilization=0.2`
 - Gemma:
   - `gemma-4-E4B-it`
-  - `gpu_memory_utilization=0.44`
   - `max_model_len=1024`
-  - `enforce_eager=True`
-- These values were needed to fit both `vLLM` engines on one A100 40GB.
+  - `transformers` inference defaults (`device=cuda:0`, `dtype=bfloat16`)
+- These values were tuned to fit ASR + Gemma on one A100 40GB.
 
 ### If it breaks again
 
 - First verify GPU is clean:
   - `nvidia-smi`
-- If old test processes are still alive:
+- If old test processes are still alive (ASR vLLM engine):
   - `pkill -f 'qwen3asr_gemma_cascade.py|VLLM::EngineCore'`
 - If local Hugging Face snapshot hashes changed, update the three snapshot paths in `qwen3asr_gemma_cascade_core.py`.
 - If someone removes the runtime monkey-patches, the old `thinker_config` / RoPE crashes will likely come back.
@@ -39,7 +38,7 @@ For each change, examine the existing system and redesign it into the most elega
 
 - The main compatibility fixes are already in the code, so we should not need to rediscover the same `qwen_asr` bugs again.
 - The most likely future pain point is environment drift:
-  - different `qwen_asr` / `transformers` / `vllm`
+  - different `qwen_asr` / `transformers` / `torch` versions
   - missing local snapshots
   - different GPU memory budget
 
