@@ -535,10 +535,55 @@ commit choice to MT emission granularity.
 | en → it   | 37.75 | 71.81 | 0.770 | 1848 ms     | 1567 ms     | 0.400 |
 | en → zh   | 42.33 | 38.37 | 0.739 | 1781 ms     | 1634 ms     | 0.375 |
 
-No direction-specific runtime breakage; Italian output is qualitatively
-coherent. cs→en was not run because the local `test-set/ref/` has no
-Czech→English reference, and the plan explicitly flagged that as a
-non-blocking limitation.
+No direction-specific runtime breakage on these three. Italian output
+is qualitatively coherent.
+
+cs→en runtime check on `csJIsDTYMW.wav` first attempted with the
+canonical `gemma_vllm_alignatt` MT backend and hit a genuine runtime
+bug: during vLLM's `_initialize_kv_caches` → `_dummy_run` memory
+profiling pass, the AOT-compiled Gemma4 forward raises
+`KeyError: '_alignatt_mt_qk_tensor_observer'`. The MT worker defers
+observer install until `prepare_mt_observer` arms it, and the
+profiling pass runs the forward before that — the patched forward
+tolerates the missing observer via `getattr(..., default=None)`,
+but the **AOT-compiled cached** forward appears to perform a direct
+dict access that bypasses `getattr` and raises `KeyError` when the
+attribute is absent. This is not a cs→en-specific problem; it is
+a torch-compile-cache / observer-init ordering interaction that the
+night's en→de runs happened to avoid because of cache warmth on
+their specific input shapes. See `tmp/cs_en_runtime_check.log` for
+the full trace. Fix for this bug is beyond tonight's scope — it
+would need either (a) teaching the patched forward to survive a
+`KeyError` from the compiled path, or (b) initializing a no-op
+observer before engine init so the attribute is always present on
+the compiled path.
+
+Re-run with `mt_backend_name="gemma_transformers_alignatt"` sidesteps
+the observer/compile-cache issue and exercises the Step 1 language-map
++ heads-path fixes end-to-end. Result on `csJIsDTYMW.wav` (352 s):
+
+| Config                          | Audio dur | RTF   | Updates |
+|---------------------------------|-----------|-------|---------|
+| cs→en Transformers-MT chunk_ms=450 | 352 s  | 1.377 | 444     |
+
+Prediction head (first 300 chars):
+
+> *"Hello, my name is Kaiyuan and I will be presenting our work
+> titled 'When Does Translation Require Context?' a data-driven
+> multilingual exploration. This work was based in collaboration with
+> Patrick Ferdinand, Emil, and Andrej F. Martins and Graham Newbig.
+> Yes. So many translations depend on context."*
+
+Clean coherent English output from Czech speech. Step 1's language
+map + heads-path fix validated end-to-end: `LANGUAGE_CODE_TO_NAME["cs"]
+== "Czech"`, `alignatt_heads_path_for("Czech", "English")` resolves to
+`translation_heads_google_gemma-4-E4B-it_cs-en.json`, cascade produces
+structured output. No quantitative eval (local `test-set/ref/` has no
+cs-en reference).
+
+Artifact: `outputs/night1_cs_en_chunk450/` — also carries the new
+per-update `alignatt_metadata` schema so it is usable for future
+replay work.
 
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
