@@ -132,8 +132,15 @@ By morning, the repo should satisfy all three:
       0.67-0.73, same plateau as 1-feature. The consistent winning
       combination across backends — `max_backward_jump ≥ 9 AND
       unsafe.source_inaccessible ≤ 0` — IS the physical definition
-      of rewind, but the observer doesn't expose the rewind counter
-      that would push the rule to F1 ≈ 1.0.
+      of rewind, but scalars can't express the first-fires-wins
+      loop semantics. v4 loop-replay predictor
+      (`scripts/loop_replay_gate_predictor.py`) replays the MT
+      policy's `should_stop_in_loop` offline on metadata and
+      recovers BOTH gates at F1 = 1.000 exactly across three
+      artifacts. Confirms: observer metadata is complete; the
+      discrete-to-continuous question is specifically about what
+      single-value thresholds can and cannot express about a
+      loop-break decision, not about observer payload.
 
 Use the current local assets for tonight's loop. The repo currently has `test-set/` but not a local official dev-set workflow. Do not block engineering work on that; just keep in mind that final submission still needs dev logs.
 

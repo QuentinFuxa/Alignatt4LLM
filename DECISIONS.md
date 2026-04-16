@@ -778,6 +778,79 @@ rewind counter into `alignatt_metadata`.
 Artifacts: `outputs/night1_*/two_feature_search_alignatt_rewind.txt`.
 Source: `scripts/two_feature_gate_search.py`.
 
+### Step 7 v4: loop-replay predictor — perfect gate recovery, definitive framing
+
+The 1-feature / 2-feature searches told me *rewind* doesn't cleanly
+reduce to a scalar. Before calling it "irreducible" I wanted one
+more bounded check: run the MT policy's loop logic offline against
+`aligned_source_local_positions` and `accessible_source_local_end_exclusive`
+from the metadata.
+
+`scripts/loop_replay_gate_predictor.py` mirrors
+`cascade_mt_backend.policy.should_stop_in_loop`:
+
+```
+last_aligned = None
+for current in aligned:
+    if current is not None and last_aligned is not None:
+        if last_aligned - current > rewind_threshold: return "alignatt:rewind"
+    if current is not None and current >= accessible_end: return "alignatt:source_frontier"
+    if current is not None: last_aligned = current
+return "stop"
+```
+
+Cross-artifact, with `rewind_threshold=8`:
+
+| Artifact                              | `alignatt:rewind` F1 | `alignatt:source_frontier` F1 |
+|---------------------------------------|----------------------|-------------------------------|
+| cs→en vLLM MT (fixed path, n=38/114)  | **1.000**            | **1.000**                     |
+| cs→en Transformers MT (n=64/167)      | **1.000**            | **1.000**                     |
+| en→de K3@700 (n=10/87)                | **1.000**            | **1.000**                     |
+
+**Confusion matrices show zero cross-class errors for the two unsafe
+gates.** `length` / `<turn|>` reasons (loop ran to completion) are
+predicted as `stop`, which is correct for the rewind/source_frontier
+binary question.
+
+**Definitive paper framing on the continuous-confidence question:**
+
+- The observer metadata **does** contain enough information to fully
+  recover the three-gate policy — F1 is exactly 1.0 for both
+  `source_frontier` and `rewind`.
+- That recovery is **not a scalar threshold**. It's a loop replay:
+  "which unsafe condition fires first in the token-by-token scan".
+- Single-feature and 2-feature searches cap at F1 0.73-0.98 because
+  multiple tokens per update may individually satisfy unsafe
+  conditions, but only the **first firing** matters (the policy
+  `break`s). Scalar features cannot express that sequential
+  first-occurrence semantics.
+- So the paper pitch "collapse discrete gates into a single
+  continuous scalar" is **well-posed and well-measured negative**:
+  the policy is a token-level sequential decision, not an
+  update-level scalar judgment. What can be collapsed is the
+  per-token *accessibility* test (that's the
+  `unsafe.source_inaccessible` threshold that gave F1 0.91-0.98 on
+  `source_frontier` — because for source_frontier, any firing token
+  signals the gate). What cannot be collapsed is the interaction
+  between multiple first-fire candidates within one update.
+
+**Paper contribution this supports:**
+
+> A provenance-only continuous confidence scalar absorbs
+> `source_frontier` cleanly (one threshold, F1 0.91-0.98 across two
+> language directions and two MT backends). The same scalar family
+> does not absorb `rewind`, and we show the reason is structural:
+> the three-gate policy is a first-unsafe-wins loop, not an
+> update-level scalar classifier. The full policy is recoverable
+> from the observer metadata via loop replay (F1 exactly 1.0), so
+> the observer contract is complete in what it exposes — the
+> "continuous scalar" question is specifically about what
+> single-value thresholds can and cannot express about a loop-break
+> decision.
+
+Artifacts: `outputs/night1_*/loop_replay_gate_prediction.txt`.
+Source: `scripts/loop_replay_gate_predictor.py`.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +

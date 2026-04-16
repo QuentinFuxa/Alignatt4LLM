@@ -37,6 +37,15 @@ def _finite(x):
 
 
 def monotonicity_features(aligned: list) -> dict:
+    """Summary features of aligned_source_local_positions.
+
+    ``max_backward_jump`` is the max drop across *adjacent* pairs,
+    which is NOT what the online rewind gate checks. The online gate
+    checks ``last_non_none_aligned - current > rewind_threshold`` —
+    a drop vs. the *most recent non-None* aligned position, not just
+    the immediate neighbour. ``max_drop_vs_prev_non_none`` below
+    reproduces the quantity the gate actually uses.
+    """
     if not aligned or len(aligned) < 2:
         return {
             "position_drift": 0.0,
@@ -45,20 +54,38 @@ def monotonicity_features(aligned: list) -> dict:
             "monotonicity_ratio": 1.0,
             "align_first": float(aligned[0]) if aligned else 0.0,
             "align_last": float(aligned[-1]) if aligned else 0.0,
+            "max_drop_vs_prev_non_none": 0.0,
         }
     max_back = 0
     n_back = 0
     for a, b in zip(aligned, aligned[1:]):
+        if a is None or b is None:
+            continue
         if a > b:
             n_back += 1
             max_back = max(max_back, int(a) - int(b))
+
+    max_drop_prev = 0
+    prev_non_none = None
+    for current in aligned:
+        if current is None:
+            continue
+        if prev_non_none is not None and prev_non_none > current:
+            drop = prev_non_none - current
+            if drop > max_drop_prev:
+                max_drop_prev = drop
+        prev_non_none = current
+
+    first = next((x for x in aligned if x is not None), 0)
+    last = next((x for x in reversed(aligned) if x is not None), 0)
     return {
-        "position_drift": float(aligned[-1] - aligned[0]),
+        "position_drift": float(last - first),
         "max_backward_jump": float(max_back),
         "n_backward_pairs": float(n_back),
         "monotonicity_ratio": 1.0 - n_back / max(1, len(aligned) - 1),
-        "align_first": float(aligned[0]),
-        "align_last": float(aligned[-1]),
+        "align_first": float(first),
+        "align_last": float(last),
+        "max_drop_vs_prev_non_none": float(max_drop_prev),
     }
 
 
@@ -168,6 +195,7 @@ def best_threshold(pos, neg, direction: str):
 
 
 FEATURES = [
+    "max_drop_vs_prev_non_none",
     "max_backward_jump",
     "n_backward_pairs",
     "monotonicity_ratio",
