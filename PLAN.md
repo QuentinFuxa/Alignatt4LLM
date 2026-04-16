@@ -1,838 +1,616 @@
-# Gemma-Only Aligner Research Plan
+# Delegated Agent Plan: Audit, De-risk, and Rebuild the Gemma ASR/Aligner Evaluation
 
 ## Mission
 
-Build and evaluate a **Gemma-only source-timestamp alignment mechanism** that can replace the current dependency on `Qwen3-ForcedAligner-0.6B` in the streaming cascade.
+You are not being asked to "make Gemma look good."
 
-The target is not "some timestamps." The target is a mechanism we could defend in a paper:
+You are being asked to determine, rigorously and defensibly:
 
-- principled
-- architecture-aware
-- measurable
-- compatible with streaming partial updates
-- useful for downstream AlignAtt-controlled emission
+1. whether Gemma free-run ASR is actually being used correctly
+2. whether the current negative ASR conclusion is fair
+3. whether the Gemma attention-based aligner result is real and reproducible
+4. whether the current hybrid path is honestly measured
+5. what the clean next architecture should be
 
-The end goal is a clean front-end stack where Gemma provides:
-
-- source transcription
-- source timing / alignment signal
-- enough streaming stability to support the current latency-aware MT cascade
+This plan replaces the earlier broad exploration plan with a **critical execution plan** based on the current implementation and its weaknesses.
 
 
-## Read This First
+## Current Bottom Line
 
-This plan is written for a specialized agent working inside this repository.
+The implementation appears to have achieved something interesting on the **alignment** side, but the **ASR** side is not yet on solid ground.
 
-Before changing code, the agent should internalize the following constraints:
+At the moment, the strongest defensible claim is:
 
-- We are in a research phase, so redesign is allowed when it improves the system.
-- We do not want ad hoc lexical repairs, punctuation-specific hacks, or benchmark-tuned exceptions.
-- We want a mechanism we could explain honestly in a methods section.
-- Full model reloads are expensive.
-- Broad evaluation sweeps are expensive.
-- The preferred workflow is:
-  1. validate on one audio
-  2. iterate until the mechanism behaves correctly
-  3. only then scale out
+- Gemma attention may provide a usable forced-alignment signal.
+
+At the moment, the following claims are **not yet strong enough**:
+
+- Gemma free-run ASR has been benchmarked fairly and still fails.
+- The hybrid cascade numbers cleanly reflect Gemma alignment rather than hidden fallback to Qwen timings.
+- The reported runtime path is using the same calibrated head bundle that produced the best offline numbers.
+
+Your first responsibility is to make the experiment honest.
 
 
-## Documents To Read, In Order
+## Hard Requirements
 
-### Local project documents
+Follow these project constraints:
 
-Read these first:
+1. No heuristic lexical repairs.
+2. No content-aware timestamp nudges.
+3. No ad hoc fixes to make specific examples look better.
+4. No broad benchmark sweeps until the single-audio story is clean.
+5. Reuse hot models whenever possible.
+6. Do not restart or reload expensive models unless necessary and justified.
+7. Prefer structural fixes, explicit diagnostics, and measurable comparisons.
+
+
+## What You Must Read First
+
+Read these before changing any code:
 
 1. [AGENTS.md](/home/fuxa/cascade_simultaneous/AGENTS.md)
 2. [CLAUDE.md](/home/fuxa/cascade_simultaneous/CLAUDE.md)
-3. [assets/alignatt_doc/E4B_ALIGNATT_CASCADE_DESIGN.md](/home/fuxa/cascade_simultaneous/assets/alignatt_doc/E4B_ALIGNATT_CASCADE_DESIGN.md)
+3. [PLAN_RESULT_IMPLEMENTATION.md](/home/fuxa/cascade_simultaneous/PLAN_RESULT_IMPLEMENTATION.md)
 4. [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py)
-5. [Qwen3_aligner.md](/home/fuxa/cascade_simultaneous/Qwen3_aligner.md)
-6. [gemma_stt.py](/home/fuxa/cascade_simultaneous/gemma_stt.py)
+5. [alignment_backend.py](/home/fuxa/cascade_simultaneous/alignment_backend.py)
+6. [qwen_alignment_backend.py](/home/fuxa/cascade_simultaneous/qwen_alignment_backend.py)
+7. [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py)
+8. [hybrid_alignment_backend.py](/home/fuxa/cascade_simultaneous/hybrid_alignment_backend.py)
+9. [run_alignment_single_audio.py](/home/fuxa/cascade_simultaneous/run_alignment_single_audio.py)
+10. [run_streaming_stability.py](/home/fuxa/cascade_simultaneous/run_streaming_stability.py)
+11. [Qwen3_aligner.md](/home/fuxa/cascade_simultaneous/Qwen3_aligner.md)
+12. [gemma_stt.py](/home/fuxa/cascade_simultaneous/gemma_stt.py)
 
-Then inspect supporting local AlignAtt material referenced by the design doc:
+Then consult the official Gemma docs again, specifically for:
 
-1. `assets/alignatt_doc/alignatt_markdown.md`
-2. `assets/alignatt_doc/alignatt_whipser.py`
-
-The specialized agent should treat the current cascade code and design doc as the ground truth for:
-
-- what timestamps are used for
-- which invariants matter
-- what "success" means in the full system
-
-### External documents
-
-The agent should read these before proposing architecture changes:
-
-1. Gemma audio capability docs
-   - https://ai.google.dev/gemma/docs/capabilities/audio
-2. Gemma Hugging Face inference docs
-   - https://ai.google.dev/gemma/docs/core/huggingface_inference
-3. Gemma model cards and processor/model implementation on Hugging Face / Transformers
-   - verify how audio tokens are represented
-   - verify whether the model uses pure causal self-attention over audio+text tokens or a different multimodal block structure
-4. Qwen3 ASR and Qwen forced aligner docs / model cards
-   - especially the forced aligner interface and assumptions
-5. Whisper / AlignAtt references
-   - the original AlignAtt writeup or code used in this repo
-   - Whisper timestamp / attention alignment literature if needed
-6. Any Gemma architecture or multimodal internals references needed to understand:
-   - hidden states
-   - attention maps
-   - token/audio packing
-   - generation-time access to attentions
+1. canonical audio prompt ordering
+2. canonical `generate()` usage
+3. audio length limits
+4. model class / processor expectations
 
 
-## Core Background: What The Current System Actually Needs
+## Critical Findings You Must Treat As Open Problems
 
-The current system uses Qwen for more than "ASR text."
+These are not optional follow-ups. These are the core unresolved issues.
 
-It uses Qwen outputs to obtain:
+### 1. Wrong runtime default for the head bundle
 
-1. a partial transcript for the current tail audio
-2. word-level timestamps for that partial transcript
-3. sentence-end cut times for committed source segments
-4. timestamp-based source accessibility frontiers for the downstream AlignAtt MT policy
+The current config default points to:
 
-This is the crucial distinction.
+- `assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en.json`
 
-The problem is not merely:
+But the best reported results come from:
 
-- "Can Gemma transcribe audio?"
+- `assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json`
 
-The real problem is:
+This is a major integrity issue.
 
-- "Can Gemma provide a stable, word-level temporal alignment signal suitable for partial streaming commitment and downstream source-frontier control?"
+Until fixed, "what the cascade can do today" is ambiguous.
 
-That is the actual research target.
+### 2. Hybrid evaluation is not auditable
 
+The hybrid backend falls back to Qwen timings when Gemma alignment fails.
 
-## What Must Be Preserved
+That is acceptable behavior for robustness.
 
-Any Gemma-only aligner proposal must be judged against the needs of the current cascade.
+What is not acceptable is that current harnesses do not clearly expose:
 
-At minimum, it must support:
+- how often fallback happened
+- on which ticks
+- for what reason
+- whether reported hybrid metrics partially reflect Qwen timings
 
-1. Word-level or unit-level end timestamps for partial hypotheses.
-2. Stable enough timestamps to cut committed utterances.
-3. A source accessibility frontier compatible with the current AlignAtt MT pipeline.
-4. Partial-update behavior that does not create pathological churn.
-5. A monotone-enough notion of progress that the system can emit text safely.
+Until this is visible, hybrid quality and stability numbers are not trustworthy.
 
-If a proposed method only gives:
+### 3. Gemma ASR fairness is unresolved
 
-- full-utterance timestamps after the fact
-- coarse clip-level timing
-- unstable attention maps with no calibration
+The current negative ASR conclusion may be directionally right, but the evaluation is not yet tight enough.
 
-then it is not yet sufficient.
+The implementation currently mixes:
 
+- a manual greedy decoding loop
+- prompt-template changes
+- message-order changes
+- language handling that is partially ignored
+- cookbook and non-cookbook paths
 
-## High-Level Research Hypothesis
+You must isolate these variables and benchmark them cleanly.
 
-The most promising research path is:
+### 4. Reported alignment robustness is still narrow
 
-- derive a timestamp signal from **Gemma's own internal representations**
-- calibrate and validate it against text-audio alignment targets
-- expose it through a reusable alignment backend
+The current "generalization" evidence is promising, but weak:
 
-The likely candidates are:
+- same model
+- same language
+- same speaker
+- same talk
 
-1. attention-based alignment from generated text tokens to audio token positions
-2. lightweight learned alignment heads on top of frozen Gemma hidden states
-3. distillation from the current Qwen aligner into a Gemma-based alignment module
+This is not enough to claim robustness.
 
-The plan should investigate them in that order of increasing complexity, but with a strict rule:
+### 5. Long-audio behavior is unsafe
 
-- do not keep a weak method just because it is simpler
-- prefer the cleanest method that actually satisfies the downstream invariants
+The implementation notes already admit silent truncation risk around the 30-second audio cap.
 
-
-## Explicit Non-Goals
-
-Do not solve this by:
-
-- punctuation heuristics standing in for alignment
-- lexical anchoring rules
-- hand-written phrase tables
-- dataset-specific repairs
-- content-aware timestamp nudges
-- forcing the MT side to compensate for missing alignment quality
-
-Also do not quietly redefine success from:
-
-- "usable streaming aligner"
-
-to:
-
-- "produces some plausible-looking timestamps"
-
-
-## Success Criteria
-
-The project is successful only if all of the following are eventually true.
-
-### Alignment quality
-
-- Word or unit timestamps are meaningfully correlated with actual speech timing.
-- Boundary error is low enough to support clean utterance cutting.
-- Timestamps remain usable on partial updates, not only on final transcripts.
-
-### Streaming behavior
-
-- The aligner produces stable enough progress across repeated partial decodes.
-- Timestamp drift under incremental context extension remains bounded.
-- Prefix churn is low enough not to destroy downstream emission quality.
-
-### Downstream usefulness
-
-- The source accessibility frontier built from Gemma-only timings supports the current AlignAtt cascade.
-- Translation emission remains monotone enough to be usable.
-- Latency-quality tradeoffs are at least competitive with the current setup, or the failure mode is clearly characterized.
-
-### Research defensibility
-
-- The method can be described as a generic mechanism.
-- The method does not depend on ad hoc examples or benchmark patches.
-- The evaluation is clean and reproducible.
+This must be fixed before any real deployment or cascade claim.
 
 
 ## Deliverables
 
-The specialized agent should aim to produce the following deliverables.
+You should aim to produce the following deliverables.
 
-### Required deliverables
+### Required
 
-1. A short design note describing the final Gemma-only aligner method.
-2. A clean alignment backend interface in code.
-3. An experimental harness for single-audio evaluation.
-4. A metrics script or notebook for timestamp and streaming stability evaluation.
-5. A downstream cascade integration path behind a flag.
-6. A failure analysis note if the approach does not work.
+1. A corrected and auditable Gemma alignment runtime path.
+2. A fair Gemma ASR benchmark harness.
+3. A short written verdict on whether Gemma ASR was previously misused.
+4. A short written verdict on whether the Gemma aligner result is real.
+5. A revised recommendation for the architecture:
+   - Gemma-only
+   - hybrid
+   - or stop
 
-### Strongly preferred deliverables
+### Strongly preferred
 
-1. Saved diagnostic artifacts:
-   - attention maps
-   - predicted alignments
-   - source/token timing traces
-   - partial-update traces over time
-2. A comparison table against:
-   - Qwen aligner baseline
-   - no-aligner or coarse baseline
-3. A clear ablation story.
+1. Artifact bundles for all key comparisons.
+2. A fallback audit report.
+3. A small multi-clip robustness table.
+4. A list of exactly which claims are defensible and which are not.
 
 
-## Proposed Work Breakdown
+## Success Criteria
 
-## Phase 0: Orientation And Reproducibility
+The task is successful only if the following are true:
+
+1. The default runtime path matches the best calibrated method, or fails loudly if not configured.
+2. Hybrid metrics explicitly report Gemma-vs-fallback usage.
+3. Gemma ASR is benchmarked through a clean and controlled comparison matrix.
+4. Any negative conclusion about Gemma ASR is based on fair evidence.
+5. Long-audio truncation is either prevented or handled explicitly.
+6. The final recommendation is based on measured evidence, not optimism or pessimism.
+
+
+## Work Plan
+
+## Phase 0: Freeze The Story Before Changing It
 
 Objective:
 
-- understand the current codepath and isolate the minimum alignment contract Gemma must satisfy
+- establish the exact current state and avoid drifting into undocumented re-interpretation
 
 Tasks:
 
-1. Read the documents listed above in the specified order.
-2. Trace the current alignment data flow in [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py):
-   - ASR call
-   - timestamp normalization
-   - utterance boundary cut
-   - source frontier construction
-   - downstream MT use
-3. Write down the exact data structure currently consumed by the cascade:
-   - text
-   - per-word start/end timestamps
-   - current audio time
-   - accessible unit count
-4. Identify the narrowest interface that a Gemma aligner must implement.
+1. Read `PLAN_RESULT_IMPLEMENTATION.md` closely.
+2. Extract all reported claims into a checklist:
+   - offline MAE
+   - streaming drift
+   - free-run ASR failure
+   - cross-content generalization
+   - hybrid readiness
+3. For each claim, mark:
+   - directly supported by code and artifacts
+   - partially supported
+   - unsupported or ambiguous
+4. Preserve current artifact paths and filenames.
 
 Exit criterion:
 
-- a clear interface spec exists for "alignment backend output"
+- you have a one-page audit note stating exactly what the repo currently claims
 
 
-## Phase 1: Build A Clean Alignment Abstraction
+## Phase 1: Fix Experimental Integrity Before Chasing More Results
 
 Objective:
 
-- decouple alignment from Qwen so experiments are possible without contaminating the cascade
+- make the runtime and measurement paths honest
 
 Tasks:
 
-1. Introduce an internal abstraction such as:
-   - `ASRBackend`
-   - `AlignmentBackend`
-   - or a combined `SpeechFrontEndResult` with pluggable providers
-2. Ensure the cascade does not assume the aligner is Qwen-specific.
-3. Preserve the current Qwen path as the baseline implementation.
-4. Add a Gemma experimental path behind a clear runtime flag.
+1. Correct the runtime default head path.
+   - Either set the default to the forced-calibrated bundle.
+   - Or require explicit selection and raise if the wrong bundle would be used silently.
+2. Propagate backend diagnostics through all relevant harnesses.
+3. In the hybrid backend and all evaluation scripts, log:
+   - whether Gemma alignment succeeded
+   - whether fallback to Qwen timings occurred
+   - reason for fallback
+   - head bundle used
+   - offset used
+4. Ensure all reports include this metadata.
 
 Important:
 
-- This refactor should be structural, not cosmetic.
-- The alignment representation should be generic:
-  - source text units
-  - timestamps
-  - confidence or diagnostics
-  - partial/final mode metadata
+- Do not hide fallback behind “robustness.”
+- If a metric partially comes from fallback, the report must say so.
 
 Exit criterion:
 
-- the current Qwen setup still exists as a baseline backend, and Gemma experiments can plug into the same contract
+- every hybrid result can be decomposed into Gemma-aligned ticks vs fallback ticks
 
 
-## Phase 2: Establish The Strong Baselines
+## Phase 2: Build A Fair Gemma ASR Benchmark Harness
 
 Objective:
 
-- know exactly what must be beaten or matched
+- answer the specific question: “Was Gemma ASR actually used correctly?”
+
+This is the most important unresolved question.
+
+You need a **controlled matrix** that isolates implementation choices.
+
+Compare at least the following dimensions:
+
+1. Decoding path
+   - official `model.generate()`
+   - current manual greedy token-by-token loop
+2. Prompt ordering
+   - audio-before-text
+   - text-before-audio
+3. Prompt wording
+   - cookbook “original language”
+   - explicit English transcription wording
+4. Model class entrypoint
+   - canonical auto class used by current docs
+   - any alternate auto class only if it truly resolves differently
+5. Input casting path
+   - cookbook-style `.to(device)`
+   - any manual float casting only if needed and justified
+6. Candidate Gemma checkpoints
+   - current E4B-it
+   - optionally E2B or another plausible audio-capable Gemma checkpoint if available locally
 
 Tasks:
 
-1. Define the baseline front ends:
-   - `Qwen ASR + Qwen aligner`
-   - `Gemma ASR + Qwen aligner`
-   - `Gemma ASR only` with no timestamp-aware frontier, if useful as a negative control
-2. On one carefully chosen audio, collect:
-   - transcript text
-   - word timestamps
-   - utterance cut points
-   - partial-update traces
-3. Save artifacts for later comparison.
-4. Measure downstream effects on the existing cascade.
+1. Build one script dedicated only to free-run Gemma transcription fairness.
+2. Reuse one short audio first.
+3. Produce exact outputs and WER/CER against a trusted reference.
+4. Save all prompt variants and outputs to JSON.
 
-Why this phase matters:
+Important:
 
-- It separates "Gemma transcription quality" from "Gemma alignment quality."
-- It prevents the project from confusing ASR failures with alignment failures.
+- This must be a transcription harness, not an alignment harness pretending to be one.
+- Do not mix free-run ASR benchmarking with alignment head calibration.
 
 Exit criterion:
 
-- there is a single-audio baseline bundle that can be reused for every later comparison
+- you can state, with evidence, whether Gemma ASR was misused previously
 
 
-## Phase 3: Gemma Internal Instrumentation
+## Phase 3: Revalidate The Attention Aligner Under The Correct Prompting Contract
 
 Objective:
 
-- determine what internal signal is even available for alignment
+- determine whether the reported alignment result survives after cookbook-consistent prompting
+
+The current implementation notes already admit a critical mismatch:
+
+- the strong forced-alignment numbers were obtained under the old ordering
+- the free-run path now uses the cookbook ordering
+
+You must resolve this.
 
 Tasks:
 
-1. Inspect the Gemma Hugging Face implementation and verify:
-   - exact model class being used
-   - how audio is encoded
-   - whether audio is converted into discrete tokens, embeddings, or projected frames
-   - where those representations enter the model
-   - how generated text attends to the audio-derived context
-2. Verify what can be extracted during generation:
-   - per-layer attentions
-   - per-head attentions
-   - hidden states
-   - logits over time
-3. Confirm whether there is a stable mapping from audio encoder positions to real time.
-4. Determine whether there is a direct conversion from:
-   - audio token index
-   - frame index
-   - latent chunk index
-   to milliseconds.
+1. Recalibrate heads under the current intended prompting contract.
+2. Re-estimate the global offset.
+3. Compare:
+   - old ordering / old calibration
+   - new ordering / new calibration
+4. Report:
+   - MAE
+   - median
+   - P90
+   - monotonicity
+   - streaming drift
 
-Critical question:
+Important:
 
-- Are there audio positions with usable temporal semantics, or only a pooled/opaque conditioning representation?
-
-If the answer is "opaque only," then a pure attention-argmax aligner is much less plausible, and a learned head may be required earlier.
+- Do not keep an old calibration just because it scores better if the runtime path has changed.
+- Runtime and evaluation must match.
 
 Exit criterion:
 
-- a technical note exists explaining which internal Gemma tensors are candidates for alignment
+- the best reported alignment number corresponds to the actual intended runtime configuration
 
 
-## Phase 4: Attention-Probing Prototype
+## Phase 4: Make The Hybrid Evaluation Honest
 
 Objective:
 
-- test the lightest plausible Gemma-only aligner first
-
-Method hypothesis:
-
-- generated transcription tokens may attend in a structured way to temporally ordered audio representations
-- selected heads and layers may reveal monotone alignment similar in spirit to AlignAtt
+- determine the actual performance of the deployable hybrid architecture
 
 Tasks:
 
-1. Implement a diagnostic path that runs Gemma transcription while collecting attentions.
-2. For each generated text token:
-   - isolate its attention to audio-derived positions only
-   - aggregate over candidate heads/layers
-   - compute an aligned audio position
-3. Convert aligned audio positions into milliseconds.
-4. Aggregate token-level alignments into word-level timestamps.
-5. Save visualizations:
-   - layer/head heatmaps
-   - token-to-time traces
-   - monotonicity plots
+1. Run the hybrid backend on one audio with full fallback logging.
+2. Quantify:
+   - fallback rate by tick
+   - fallback rate by word
+   - fallback reasons
+3. Report hybrid stability both:
+   - including fallback
+   - excluding fallback-only ticks if meaningful
+4. Clearly label whether reported numbers reflect:
+   - pure Gemma alignment behavior
+   - mixed Gemma/Qwen behavior
 
-Initial aggregation recipes to try:
+Important:
 
-1. raw per-head argmax on audio positions
-2. mean over heads, then argmax
-3. selected-head average with median filtering on the source axis
-4. cumulative or monotonic smoothing over token positions
-
-This phase is exploratory, but still principled:
-
-- no manual per-example rules
-- no lexical correction
-- no punctuation-only alignment shortcuts
+- The hybrid path may still be the right answer.
+- But if so, its value must be described honestly:
+  - “replace the external forced aligner most of the time”
+  - not “Gemma aligner solved it” unless that is truly what the logs show
 
 Exit criterion:
 
-- evidence for or against usable attention-derived alignment on one audio
+- the hybrid result is auditable and reproducible
 
 
-## Phase 5: Head Selection And Calibration
+## Phase 5: Fix Long-Audio Safety
 
 Objective:
 
-- turn noisy attention probing into a reproducible alignment method if Phase 4 shows promise
+- prevent silent invalid behavior
 
 Tasks:
 
-1. Search for heads/layers that yield the strongest monotone audio-text correspondence.
-2. Define a generic selection criterion, such as:
-   - monotonicity score
-   - correlation with external alignment labels
-   - word boundary consistency
-3. Decide whether head selection is:
-   - fixed globally
-   - fixed per language
-   - fixed per model size
-4. Apply generic smoothing / filtering if justified:
-   - median filter
-   - monotonic regression
-   - local non-decreasing constraint
-5. Calibrate audio-position to milliseconds if required.
+1. Identify the true effective audio cap for the Gemma path.
+2. Add an explicit guard in:
+   - free-run Gemma transcription
+   - teacher-forced Gemma alignment
+3. Decide on one policy:
+   - fail loudly
+   - explicit truncation with metadata
+   - or a principled chunk/window mechanism
+4. Document the chosen policy in code and in the report.
 
-Important constraint:
+Important:
 
-- If a calibration step is used, it must be generic and measurable.
-- Do not hide poor alignment under hand-tuned post-processing.
+- Silent truncation is not acceptable.
+- If chunking is introduced, it must be principled and measurable.
 
 Exit criterion:
 
-- a fully specified attention-based alignment recipe exists, with fixed head/layer selection and a documented scoring rationale
+- there is no silent over-length behavior left in the Gemma path
 
 
-## Phase 6: Lightweight Learned Aligner On Top Of Gemma
+## Phase 6: Run The Minimum Robustness Check
 
 Objective:
 
-- move to a stronger method if raw attention is insufficient
+- determine whether the alignment result is local or real
 
-This phase becomes the main path if:
+Do not do a broad sweep.
 
-- attention-based alignment is too noisy
-- the time mapping is unstable
-- partial-update consistency is too weak
+Use a **small but deliberately diverse** set:
 
-Candidate clean methods:
-
-1. Frozen Gemma + alignment probe
-   - input:
-     - Gemma hidden states at audio positions
-     - Gemma hidden states at generated text positions
-   - output:
-     - token-to-audio alignment distribution
-     - or token end-time prediction
-2. Frozen Gemma + monotonic alignment head
-   - enforce monotone structure directly in the predictor
-3. Distillation head
-   - train on targets produced by Qwen forced aligner, possibly filtered for confidence
+1. the original short clip
+2. one different segment from the same talk
+3. at least one different speaker or accent if available
+4. optionally one cleaner clip and one harder clip
 
 Tasks:
 
-1. Define the prediction target:
-   - token-aligned frame index
-   - word end time
-   - token-to-frame distribution
-2. Decide the supervision source:
-   - Qwen forced aligner pseudo-labels
-   - external forced-alignment labels if available
-   - manual spot checks for calibration
-3. Build a minimal train/eval dataset.
-4. Keep the model lightweight and modular.
-5. Prefer frozen Gemma with a small trainable probe before considering end-to-end finetuning.
+1. Re-run the best calibrated aligner on this small set.
+2. Save all artifact bundles.
+3. Report:
+   - word-end MAE
+   - median
+   - P90
+   - monotonicity
+   - drift
+4. Note whether the same head cluster remains best.
 
-Research preference:
+Important:
 
-- A small, explicit alignment head on top of frozen Gemma is more defensible than an opaque pile of heuristics.
-
-Exit criterion:
-
-- there is a learned Gemma-based aligner prototype that produces explicit timestamp predictions
-
-
-## Phase 7: Partial Streaming Stability
-
-Objective:
-
-- test the property that matters most for the cascade: repeated partial updates
-
-Tasks:
-
-1. Simulate the current streaming pattern:
-   - repeatedly extend available audio
-   - rerun partial transcription/alignment
-   - compare the predicted timings across updates
-2. Record:
-   - transcript prefix stability
-   - word timestamp drift
-   - utterance cut drift
-   - frontier accessible-unit drift
-3. Measure whether the aligner supports stable commitment under:
-   - sentence growth
-   - clause completion
-   - punctuation appearance
-4. Identify failure modes such as:
-   - large backward jumps
-   - jitter on the last few words
-   - unstable cut points near punctuation
-   - early or late unlocking of source units
+- The purpose is not to maximize numbers.
+- The purpose is to learn whether Layer 23 + one scalar offset is genuinely robust or just local.
 
 Exit criterion:
 
-- the agent knows whether the Gemma-only aligner is stable enough for streaming use, not just offline timestamping
+- you can describe robustness honestly without overclaiming
 
 
-## Phase 8: Downstream Cascade Integration
+## Phase 7: Reassess The Architecture Decision
 
 Objective:
 
-- determine whether the aligner is actually good enough where it matters
+- recommend the correct next architecture based on evidence
 
-Tasks:
+At this point, choose one of the following and justify it cleanly.
 
-1. Plug the Gemma-only aligner into the current source frontier builder.
-2. Reuse the existing AlignAtt MT stack unchanged as much as possible.
-3. Compare against the Qwen baseline on one audio first.
-4. Evaluate:
-   - emitted translation stability
-   - latency to first useful target words
-   - target churn
-   - pathological truncation
-   - sentence boundary behavior
-5. Only after a convincing single-audio result, expand to more clips.
+### Option A: Gemma free-run ASR is actually viable
 
-This phase is essential:
+Choose this only if:
 
-- A front-end aligner that looks reasonable in isolation but fails to support source-frontier control is not yet a success.
+- the fair ASR benchmark shows competitive transcription quality
+- and the aligner remains usable
+
+### Option B: Hybrid is the correct architecture
+
+Choose this if:
+
+- Qwen remains clearly better for transcription
+- Gemma alignment remains useful
+- fallback rate is acceptable
+- the hybrid path is operationally honest and stable
+
+### Option C: Stop or downgrade the Gemma aligner line
+
+Choose this if:
+
+- the aligner result collapses under correct prompting
+- or it depends too heavily on fallback
+- or it does not generalize enough to justify the added complexity
 
 Exit criterion:
 
-- the agent can show either:
-  - usable downstream behavior
-  - or a precise reason the method fails
+- a short final recommendation note exists with evidence, tradeoffs, and confidence level
 
 
-## Phase 9: Ablations And Paper-Quality Evidence
+## Specific Questions You Must Answer
 
-Objective:
+Your work is not complete until you can answer these clearly.
 
-- produce a defensible empirical story
-
-Required comparisons:
-
-1. `Qwen ASR + Qwen aligner`
-2. `Gemma ASR + Qwen aligner`
-3. `Gemma ASR + Gemma attention aligner`
-4. `Gemma ASR + Gemma learned aligner`
-5. Optional negative control:
-   - `Gemma ASR` with no timestamp-aware alignment
-
-Required ablations:
-
-1. head selection on vs off
-2. smoothing on vs off
-3. monotonic constraint on vs off
-4. learned head with and without Qwen pseudo-label distillation
-5. partial-update evaluation vs final-only evaluation
-
-Required outputs:
-
-1. tables
-2. a few clean visualizations
-3. error analysis on representative cases
+1. Was the previous Gemma ASR evaluation fair?
+2. Does `generate()` agree with the manual greedy loop on the same prompt?
+3. Does prompt ordering materially change transcription quality?
+4. Does explicit language wording materially change transcription quality?
+5. Is the current reported aligner result attached to the runtime path actually used in the cascade?
+6. What percentage of hybrid ticks use Gemma timings vs fallback timings?
+7. Does the forced-calibrated head bundle remain best under the final intended prompt contract?
+8. Is the alignment signal robust beyond one speaker in one talk?
+9. What is the cleanest architecture we can defend in a paper right now?
 
 
 ## Metrics
 
-The specialized agent should not rely on one metric.
+Use these metrics at minimum.
 
-Use at least the following metric families.
+### For ASR fairness
 
-### Alignment metrics
+1. WER
+2. CER
+3. exact transcript output snapshots
+4. prompt-template metadata
+5. decode-path metadata
 
-1. Word end-time MAE
-2. Word end-time median absolute error
-3. P90 / P95 timestamp error
-4. Boundary detection error for utterance cuts
-5. Correlation between predicted and reference timing order
+### For alignment
 
-### Streaming stability metrics
+1. word-end MAE
+2. median absolute error
+3. P90
+4. monotonicity
+5. offset value used
 
-1. Prefix stability across partial updates
-2. Timestamp drift for already-seen words
-3. Number and magnitude of backward timing jumps
-4. Accessible frontier churn
-5. Time-to-stable-word metric
+### For streaming
 
-### Downstream cascade metrics
+1. mean drift stdev
+2. median drift stdev
+3. mean drift range
+4. backward jumps
+5. time-to-stable
 
-1. Emitted target prefix stability
-2. Latency to first accepted translation material
-3. Over-eager emission rate
-4. Over-conservative blocking rate
-5. Human-readable qualitative trace on one clip
+### For hybrid integrity
 
-### Research diagnostics
+1. fallback rate per tick
+2. fallback rate overall
+3. reasons for fallback
+4. metrics with and without fallback contribution
 
-1. Head monotonicity score
-2. Alignment sharpness / entropy
-3. Calibration error from latent position to milliseconds
-4. Failure mode counts by category
 
+## Testing Strategy
 
-## Reference Labels And Testing Strategy
+## Stage A: Single-Audio Cleanup
 
-## Stage A: Single-Audio Deep Dive
+Do this first.
 
-This is the default mode until the mechanism works.
+Goals:
 
-Tasks:
+- correct the runtime wiring
+- audit fallback
+- benchmark Gemma ASR fairly
 
-1. Pick one audio clip with:
-   - clean speech
-   - enough sentence structure to test boundaries
-   - enough length to observe partial updates
-2. Produce a complete artifact bundle:
-   - waveform
-   - final transcript
-   - Qwen word timestamps
-   - Gemma transcript
-   - partial-update traces
-   - candidate Gemma alignments
-3. Diagnose failures manually.
+Do not move on until the single-audio story is coherent.
 
-This stage is where most iteration should happen.
+## Stage B: Small Robustness Set
 
-## Stage B: Small Controlled Set
+Only after Stage A is clean.
 
-Only after Stage A is convincing.
+Goals:
 
-Tasks:
+- check whether the alignment signal persists across a few diverse clips
 
-1. Expand to a small, diverse set:
-   - different speakers
-   - different rates
-   - punctuation-rich and punctuation-poor cases
-   - at least some harder segments
-2. Keep the set small enough for fast iteration.
+## Stage C: Full Cascade Comparison
 
-## Stage C: Broader Evaluation
+Only after Stage B supports the method.
 
-Only when the mechanism is already close to usable.
+Goals:
 
-Tasks:
+- compare Qwen baseline vs audited hybrid on one talk
+- only then consider broader evaluation
 
-1. Run the broader comparison table.
-2. Prepare paper-ready figures and examples.
 
+## Suggested File-Level Responsibilities
 
-## Where Supervision Should Come From
+You will likely need to touch these files.
 
-The cleanest supervision hierarchy is:
+### Likely modifications
 
-1. external human-labeled forced alignment data if available
-2. Qwen forced aligner pseudo-labels
-3. manual spot checks for sanity, not for per-example tuning
+1. [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py)
+   - fix default head bundle or force explicit selection
+   - expose runtime config honestly
+2. [hybrid_alignment_backend.py](/home/fuxa/cascade_simultaneous/hybrid_alignment_backend.py)
+   - make fallback diagnostics explicit and durable
+3. [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py)
+   - separate clean ASR benchmarking path from alignment path
+   - add explicit long-audio guard
+   - align runtime path with benchmarked calibration
+4. [run_alignment_single_audio.py](/home/fuxa/cascade_simultaneous/run_alignment_single_audio.py)
+   - preserve metadata for reproducible comparisons
+5. [run_streaming_stability.py](/home/fuxa/cascade_simultaneous/run_streaming_stability.py)
+   - include backend diagnostics and fallback accounting
 
-If using Qwen pseudo-labels:
+### Likely additions
 
-- treat them as teacher labels, not ground truth
-- quantify agreement and disagreement
-- do not overclaim "true" alignment quality from teacher-matching alone
+1. a dedicated Gemma ASR fairness benchmark script
+2. a concise audit results note
+3. possibly a small helper for metric aggregation
 
 
-## Recommended Research Order
+## Artifact Requirements
 
-This is the recommended order of attack.
+For every key comparison, save:
 
-1. Decouple alignment backend from Qwen.
-2. Build baseline comparisons on one audio.
-3. Instrument Gemma internals.
-4. Try attention-based alignment first.
-5. If attention is weak, move quickly to a frozen-Gemma learned aligner.
-6. Evaluate streaming stability before scaling out.
-7. Integrate into the full cascade only after the aligner is credible in isolation.
+1. wav path
+2. clip start/end or duration
+3. prompt variant
+4. decode path
+5. model path
+6. transcript text
+7. word timings if applicable
+8. backend diagnostics
+9. fallback metadata if applicable
 
-This order keeps the project honest and avoids wasting time polishing a mechanism that cannot satisfy the true contract.
+Do not rely on prose summaries alone.
 
 
-## Concrete Questions The Agent Must Answer
+## What Not To Do
 
-The project is not complete until the specialized agent can answer these clearly.
+Do not:
 
-1. What exactly are Gemma's audio-time-bearing internal positions?
-2. Can generated transcript tokens be aligned reliably to those positions?
-3. Are there specific layers/heads with stable monotone alignment behavior?
-4. Can word-level end timestamps be recovered with low enough error?
-5. Are partial-update timestamps stable enough for utterance cutting?
-6. Does the resulting source frontier behave well enough for AlignAtt MT?
-7. If the answer is no, where exactly does the failure happen?
-   - transcription instability
-   - weak attention semantics
-   - poor time calibration
-   - streaming drift
-   - downstream integration mismatch
+1. claim Gemma ASR failure without the fair comparison matrix
+2. claim hybrid success without fallback accounting
+3. use the old calibration with a new runtime prompt contract without revalidation
+4. quietly keep the wrong default bundle
+5. patch poor ASR with heuristic string repairs
+6. run broad evaluation before the single-audio story is fixed
 
 
-## Suggested Code Organization
+## Final Output Expected From You
 
-The agent should prefer explicit modularity.
+At the end of this task, produce:
 
-Suggested components:
+1. a short audit summary
+2. a list of code changes made
+3. a table for Gemma ASR fairness
+4. a table for Gemma aligner validity
+5. a hybrid fallback audit
+6. a final recommendation:
+   - proceed with Gemma-only
+   - proceed with hybrid
+   - or stop
 
-1. `alignment_backend.py`
-   - shared interfaces / dataclasses
-2. `gemma_alignment_probe.py`
-   - attention extraction and diagnostics
-3. `gemma_alignment_calibration.py`
-   - generic calibration logic if needed
-4. `gemma_alignment_model.py`
-   - lightweight learned head or probe
-5. `alignment_eval.py`
-   - metrics and artifact generation
-6. `alignment_debug_artifacts.py`
-   - plots / trace dumping
+The final recommendation should be blunt, honest, and paper-defensible.
 
-The exact filenames may differ, but the responsibilities should stay separated.
 
+## Immediate First Steps
 
-## Suggested Artifact Schema
+Do these first, in order:
 
-The agent should persist enough information for later analysis.
+1. verify the current default head bundle vs the forced-calibrated bundle
+2. instrument fallback visibility in the hybrid path and harnesses
+3. build the fair Gemma ASR comparison matrix on one short clip
+4. re-calibrate the aligner under the intended final prompt contract
+5. only then decide whether to keep pushing Gemma ASR or to formalize the hybrid architecture
 
-For each run, save:
-
-1. source audio id
-2. transcript text
-3. token list
-4. word list
-5. predicted token timestamps
-6. predicted word timestamps
-7. reference timestamps if available
-8. layer/head diagnostics
-9. partial-update index
-10. current visible audio duration
-11. any confidence or entropy signals
-
-This matters because the hardest part of alignment work is failure diagnosis.
-
-
-## Risks And Likely Failure Modes
-
-The agent should expect these failure modes.
-
-### Architecture risk
-
-Gemma audio internals may not expose temporally localizable positions strongly enough for direct attention alignment.
-
-### Generation risk
-
-Generated token attention may be diffuse or semantically useful without being temporally faithful.
-
-### Streaming risk
-
-A method that works for final transcripts may be too unstable for repeated partial updates.
-
-### Supervision risk
-
-Teacher-distilled alignments may replicate Qwen biases rather than uncover genuine Gemma structure.
-
-### Integration risk
-
-Even decent timestamps may not be precise enough for source-frontier control in the downstream MT policy.
-
-
-## Decision Rules
-
-The specialized agent should make crisp go/no-go decisions.
-
-### Continue with raw attention if:
-
-- head/layer patterns are clearly structured
-- time calibration is straightforward
-- partial-update drift is manageable
-
-### Escalate to a learned aligner if:
-
-- raw attention is noisy
-- monotonicity is poor
-- word timing is unstable
-- downstream frontier behavior is unusable
-
-### Stop the Gemma-only path if:
-
-- Gemma internals do not provide enough temporal structure
-- even a learned lightweight probe cannot support streaming stability
-- the method becomes too contrived to defend cleanly
-
-If the project stops, the agent should document the negative result clearly. That is still useful.
-
-
-## What A Strong Final Outcome Looks Like
-
-A strong outcome would be:
-
-- Gemma transcribes audio
-- Gemma provides alignment via a generic attention-based or lightweight learned mechanism
-- the cascade no longer depends on Qwen's external forced aligner
-- the system remains compatible with the current timestamp-based source frontier
-- the method is simple enough to explain and strong enough to evaluate rigorously
-
-A weaker but still publishable outcome could be:
-
-- raw Gemma attention is insufficient
-- a small learned aligner on top of frozen Gemma works
-- the result clarifies what multimodal LLM internals do and do not provide for streaming alignment
-
-
-## Immediate First Actions For The Specialized Agent
-
-If starting from scratch, do these first:
-
-1. Read the local documents in the order listed above.
-2. Write down the exact current alignment contract from the cascade code.
-3. Refactor the code so alignment is a backend rather than a Qwen assumption.
-4. Build the one-audio baseline artifact bundle.
-5. Instrument Gemma attentions and verify whether there is a meaningful audio-position axis.
-
-Do not start with broad benchmark runs.
-Do not start with heuristics.
-Do not start by tuning the MT side.
-Start by isolating the alignment problem and making it observable.
-
-
-## Final Reminder
-
-This project should be approached as a serious systems-and-representation question:
-
-- can a multimodal LLM's own internals support streaming-quality source alignment?
-
-That is the paper-worthy question.
-
-The implementation should make that question sharper, not blurrier.
-
-When everything is correctly done, you can stop the Ralph loop with 'I meet all the Success Criterias !'
+This is the shortest path to truth.

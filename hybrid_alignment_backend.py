@@ -57,24 +57,41 @@ class HybridQwenAsrGemmaAlignerBackend(AlignmentBackend):
         if not transcript:
             return asr_result
 
-        gemma_result = self.gemma_backend.align_transcript(
-            audio,
-            sample_rate=sample_rate,
-            language=language,
-            transcript=transcript,
-        )
+        gemma_result = None
+        gemma_error: str | None = None
+        try:
+            gemma_result = self.gemma_backend.align_transcript(
+                audio,
+                sample_rate=sample_rate,
+                language=language,
+                transcript=transcript,
+            )
+        except Exception as exc:  # noqa: BLE001 — surface reason in diagnostics
+            gemma_error = f"{type(exc).__name__}: {exc}"
+
         if gemma_result is None or not gemma_result.words:
+            if gemma_error is not None:
+                fallback_reason = "gemma_exception"
+            elif gemma_result is None:
+                fallback_reason = "gemma_returned_none"
+            else:
+                fallback_reason = "gemma_returned_no_words"
             # Fall back to whatever the ASR backend produced (may be empty
-            # when the ASR is run without its own forced aligner).
+            # when the ASR is run without its own forced aligner). The
+            # caller can audit fallback rate via ``gemma_alignment_used``
+            # and ``fallback_reason``.
             return AlignmentResult(
                 text=transcript,
                 words=asr_result.words,
                 audio_duration_s=asr_result.audio_duration_s,
                 diagnostics={
                     "backend": self.name,
-                    "fallback": "asr_backend_timings",
                     "asr_backend": self.asr_backend.name,
                     "aligner_backend": self.gemma_backend.name,
+                    "gemma_alignment_used": False,
+                    "fallback_reason": fallback_reason,
+                    "gemma_error": gemma_error,
+                    "asr_word_count": len(asr_result.words),
                 },
             )
 
@@ -84,9 +101,11 @@ class HybridQwenAsrGemmaAlignerBackend(AlignmentBackend):
         # ``text`` field, so we align counts by truncating whichever side
         # is longer. This is a generic shape guarantee, not a content fix.
         words = gemma_result.words
+        word_count_truncated = False
         if asr_result.words and len(words) != len(asr_result.words):
             n = min(len(words), len(asr_result.words))
             words = words[:n]
+            word_count_truncated = True
 
         return AlignmentResult(
             text=transcript,
@@ -96,9 +115,14 @@ class HybridQwenAsrGemmaAlignerBackend(AlignmentBackend):
                 "backend": self.name,
                 "asr_backend": self.asr_backend.name,
                 "aligner_backend": self.gemma_backend.name,
+                "gemma_alignment_used": True,
+                "fallback_reason": None,
+                "gemma_error": None,
                 "asr_word_count": len(asr_result.words),
                 "gemma_word_count": len(gemma_result.words),
+                "word_count_truncated": word_count_truncated,
                 "gemma_monotonicity": gemma_result.diagnostics.get("monotonicity"),
                 "gemma_offset_s": gemma_result.diagnostics.get("word_end_offset_s"),
+                "gemma_audio_span_length": gemma_result.diagnostics.get("audio_span_length"),
             },
         )

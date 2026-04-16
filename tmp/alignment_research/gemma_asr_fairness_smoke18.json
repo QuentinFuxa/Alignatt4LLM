@@ -1,0 +1,64 @@
+{
+  "wav_path": "tmp/alignatt_smoke18.wav",
+  "audio_duration_s": 18.0,
+  "reference": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step",
+  "model": "/home/fuxa/.cache/huggingface/hub/models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c",
+  "max_new_tokens": 256,
+  "variants": [
+    {
+      "variant": {
+        "decode_path": "generate",
+        "prompt_order": "audio_first",
+        "prompt_wording": "cookbook_original_language",
+        "input_cast": "to_device"
+      },
+      "transcript": "Hi, I'm a student from University of Nottingham and I'm interning at Global Logistics for Sustainable Planning. I'm really interested in how AI can optimize supply chain logistics.",
+      "wer": 0.8285714285714286,
+      "cer": 0.6717948717948717
+    },
+    {
+      "variant": {
+        "decode_path": "manual_greedy",
+        "prompt_order": "audio_first",
+        "prompt_wording": "cookbook_original_language",
+        "input_cast": "to_device"
+      },
+      "transcript": "Hi, I'm a student from University of Nottingham and I'm interning at Global Logistics for Sustainable Planning. I'm really interested in how AI can optimize supply chain logistics.",
+      "wer": 0.8285714285714286,
+      "cer": 0.6717948717948717
+    },
+    {
+      "variant": {
+        "decode_path": "generate",
+        "prompt_order": "text_first",
+        "prompt_wording": "cookbook_original_language",
+        "input_cast": "to_device"
+      },
+      "transcript": "Hi, sir. For the university, I need to do the work. This is not for the university. In the name of Professor Sanchez, for the language learning. In the name of Professor Sanchez, for the language learning.",
+      "wer": 0.9428571428571428,
+      "cer": 0.6666666666666666
+    },
+    {
+      "variant": {
+        "decode_path": "generate",
+        "prompt_order": "audio_first",
+        "prompt_wording": "explicit_english",
+        "input_cast": "to_device"
+      },
+      "transcript": "Hi, I'm a student from University of Nottingham and I'm interested in learning about sustainable farming practices in India. What are some of the advancements or projects that are being done in this area?",
+      "wer": 0.8857142857142857,
+      "cer": 0.7282051282051282
+    },
+    {
+      "variant": {
+        "decode_path": "generate",
+        "prompt_order": "audio_first",
+        "prompt_wording": "cookbook_original_language",
+        "input_cast": "to_device_and_dtype"
+      },
+      "transcript": "Hi, I'm a student from University of Nottingham and I'm interning at Global Logistics for Sustainable Planning. I'm really interested in how AI can optimize supply chain logistics.",
+      "wer": 0.8285714285714286,
+      "cer": 0.6717948717948717
+    }
+  ]
+}

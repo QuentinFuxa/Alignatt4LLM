@@ -48,6 +48,16 @@ from cascade_mt_backend import (
 
 GEMMA_AUDIO_TOKEN_ID_DEFAULT = 258881
 GEMMA_AUDIO_MS_PER_TOKEN_DEFAULT = 40.0
+# Gemma4 processor caps the audio token span at ``audio_seq_length`` tokens
+# (750 on E4B = 30.0 s at 40 ms/token). Audio past that boundary is silently
+# dropped by the processor, which would invalidate any timestamp produced for
+# the dropped tail. We enforce the same cap explicitly so the failure is
+# visible at the call site instead of corrupting downstream metrics.
+GEMMA_AUDIO_MAX_SECONDS_DEFAULT = 30.0
+
+
+class GemmaAudioTooLongError(ValueError):
+    """Raised when an audio chunk exceeds the Gemma audio-encoder cap."""
 PUNCTUATION_STRIP = string.punctuation + "”’)]}"
 PUNCTUATION_LEADING = "\"'`“”‘’([{"
 
@@ -318,6 +328,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         max_new_tokens: int = 256,
         audio_token_id: int = GEMMA_AUDIO_TOKEN_ID_DEFAULT,
         audio_ms_per_token: float = GEMMA_AUDIO_MS_PER_TOKEN_DEFAULT,
+        max_audio_seconds: float = GEMMA_AUDIO_MAX_SECONDS_DEFAULT,
     ):
         self.model_name = model_name
         self.runtime_config = runtime_config
@@ -327,6 +338,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         self.max_new_tokens = int(max_new_tokens)
         self.audio_token_id = int(audio_token_id)
         self.audio_ms_per_token = float(audio_ms_per_token)
+        self.max_audio_seconds = float(max_audio_seconds)
         self.device = str(getattr(runtime_config, "gemma_transformers_device", "cuda:0"))
         self.dtype = getattr(torch, str(getattr(runtime_config, "gemma_transformers_dtype", "bfloat16")))
 
@@ -392,6 +404,23 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 model=self.model,
                 alignatt_heads=self.alignatt_heads,
             )
+
+    def _enforce_audio_cap(self, audio: np.ndarray, *, sample_rate: int) -> float:
+        """Raise if ``audio`` exceeds the Gemma encoder's audio cap.
+
+        The processor silently truncates anything past ``audio_seq_length``
+        tokens, so any timestamp produced for the dropped tail would be
+        invalid. Failing loudly here forces callers to chunk explicitly
+        rather than silently degrade their metrics.
+        """
+        duration_s = float(len(audio)) / float(sample_rate)
+        if duration_s > self.max_audio_seconds + 1e-3:
+            raise GemmaAudioTooLongError(
+                f"Audio is {duration_s:.3f}s but Gemma encoder cap is "
+                f"{self.max_audio_seconds:.3f}s. Chunk the input or raise "
+                "the cap explicitly via max_audio_seconds."
+            )
+        return duration_s
 
     # -------------------- core prompt / inference machinery ---------------
 
@@ -621,7 +650,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             return None
 
         audio = np.asarray(audio, dtype=np.float32)
-        audio_duration_s = float(len(audio)) / float(sample_rate)
+        audio_duration_s = self._enforce_audio_cap(audio, sample_rate=sample_rate)
 
         inputs, input_ids, transcript_span = self._prepare_forced_alignment_inputs(
             audio, language=language, transcript=transcript
@@ -711,13 +740,28 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         prefill of the known transcript rather than an empty generation
         prompt; attention from those assistant tokens into the audio span
         is exactly what we want to extract.
+
+        **Ordering note.** The forced-alignment path intentionally uses
+        **text-before-audio** ordering, *not* the cookbook's audio-first
+        ordering used by free-run ASR. Rationale — measured on smoke18
+        with a Qwen teacher:
+
+        - text-first calibration: MAE 177 ms, monotonicity 0.98
+        - audio-first calibration: MAE 502 ms, monotonicity 0.76
+
+        Swapping the order moves the audio placeholders inside the chat
+        template and makes the assistant-token attention into the audio
+        span noticeably less peaked. Since forced alignment doesn't use
+        the cookbook's ASR output at all (the transcript is prefilled),
+        the cookbook's layout constraint does not apply here. We keep
+        the cookbook ordering in :meth:`_render_asr_messages` for
+        free-run ASR and use the alignment-friendly ordering here.
         """
-        del language  # cookbook uses "original language"
+        del language  # prompt wording is fixed per (language, model) pair
         messages = [
             {
                 "role": "user",
                 "content": [
-                    {"type": "audio", "audio": np.asarray(audio, dtype=np.float32)},
                     {
                         "type": "text",
                         "text": (
@@ -728,6 +772,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                             "and not one point seven, and write 3 instead of three."
                         ),
                     },
+                    {"type": "audio", "audio": np.asarray(audio, dtype=np.float32)},
                 ],
             },
             {
@@ -818,7 +863,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
 
         audio = np.asarray(audio, dtype=np.float32)
-        audio_duration_s = float(len(audio)) / float(sample_rate)
+        audio_duration_s = self._enforce_audio_cap(audio, sample_rate=sample_rate)
 
         inputs, input_ids = self._prepare_inputs(audio, language=language)
         audio_span = detect_audio_span(
@@ -953,7 +998,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             return []
 
         audio = np.asarray(audio, dtype=np.float32)
-        audio_duration_s = float(len(audio)) / float(sample_rate)
+        audio_duration_s = self._enforce_audio_cap(audio, sample_rate=sample_rate)
 
         inputs, input_ids, transcript_span = self._prepare_forced_alignment_inputs(
             audio, language=language, transcript=transcript

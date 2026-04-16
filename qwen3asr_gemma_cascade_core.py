@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from pathlib import Path
 from time import perf_counter
 import os
 from types import SimpleNamespace
@@ -242,8 +243,15 @@ config = SimpleNamespace(
     gemma_transformers_prompt_kv_reuse=True,
     translation_scheduler_stall_seconds=1.2,
     alignment_backend_name="qwen",
+    # Default to the *_forced.json bundle: that is the only one calibrated
+    # against the teacher-forced alignment path the runtime actually takes.
+    # The plain en.json bundle was scored against free-run Gemma ASR (which
+    # hallucinates on conference clips) and produces materially worse word
+    # timings at inference, so wiring it in as the default would silently
+    # degrade the cascade. ``build_alignment_backend`` raises if the
+    # configured bundle is missing rather than falling back silently.
     gemma_audio_alignment_heads_path=(
-        "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en.json"
+        "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
     ),
     gemma_audio_alignment_top_k_heads=8,
     gemma_audio_alignment_filter_width=7,
@@ -270,6 +278,21 @@ def build_alignment_backend() -> AlignmentBackend:
       the one-clip calibration).
     """
     name = str(getattr(config, "alignment_backend_name", "qwen"))
+
+    def _resolve_calibrated_heads_path() -> str | None:
+        path = getattr(config, "gemma_audio_alignment_heads_path", None)
+        if path is None:
+            return None
+        if not Path(path).exists():
+            raise FileNotFoundError(
+                f"Configured Gemma alignment heads bundle not found: {path!r}. "
+                "Set config.gemma_audio_alignment_heads_path to a calibrated "
+                "bundle (e.g. the *_forced.json file produced by "
+                "run_alignment_single_audio.py gemma_calibrate_heads_forced) "
+                "or set it to None to run uncalibrated."
+            )
+        return str(path)
+
     if name == "qwen":
         from qwen_alignment_backend import QwenAlignmentBackend
 
@@ -284,7 +307,7 @@ def build_alignment_backend() -> AlignmentBackend:
         return GemmaAttentionAlignmentBackend(
             model_name=gemma_model_name,
             runtime_config=config,
-            audio_heads_path=getattr(config, "gemma_audio_alignment_heads_path", None),
+            audio_heads_path=_resolve_calibrated_heads_path(),
             audio_heads_top_k=int(getattr(config, "gemma_audio_alignment_top_k_heads", 8)),
             filter_width=int(getattr(config, "gemma_audio_alignment_filter_width", 7)),
             max_new_tokens=int(getattr(config, "gemma_audio_alignment_max_new_tokens", 256)),
@@ -302,7 +325,7 @@ def build_alignment_backend() -> AlignmentBackend:
         gemma_backend = GemmaAttentionAlignmentBackend(
             model_name=gemma_model_name,
             runtime_config=config,
-            audio_heads_path=getattr(config, "gemma_audio_alignment_heads_path", None),
+            audio_heads_path=_resolve_calibrated_heads_path(),
             audio_heads_top_k=int(getattr(config, "gemma_audio_alignment_top_k_heads", 8)),
             filter_width=int(getattr(config, "gemma_audio_alignment_filter_width", 7)),
             max_new_tokens=int(getattr(config, "gemma_audio_alignment_max_new_tokens", 256)),

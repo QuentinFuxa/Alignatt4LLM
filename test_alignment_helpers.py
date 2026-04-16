@@ -106,6 +106,101 @@ def test_monotonicity_score_rewards_forward_progress():
     assert monotonicity_score([None, None]) == 0.0
 
 
+def test_audio_too_long_raises_with_explicit_error():
+    """Long-audio guard must fail loudly (PLAN.md Phase 5)."""
+    import numpy as np
+    from gemma_alignment_probe import (
+        GemmaAttentionAlignmentBackend,
+        GemmaAudioTooLongError,
+    )
+
+    # Build a backend without loading the model; only the guard is exercised.
+    backend = GemmaAttentionAlignmentBackend.__new__(GemmaAttentionAlignmentBackend)
+    backend.max_audio_seconds = 30.0
+    audio = np.zeros(31 * 16000, dtype=np.float32)  # 31 s
+
+    raised = False
+    try:
+        backend._enforce_audio_cap(audio, sample_rate=16000)
+    except GemmaAudioTooLongError as exc:
+        raised = True
+        assert "31" in str(exc) and "30" in str(exc)
+    assert raised, "audio past cap must raise GemmaAudioTooLongError, not silently truncate"
+
+    # In-cap audio returns the duration without raising.
+    short = np.zeros(5 * 16000, dtype=np.float32)
+    assert abs(backend._enforce_audio_cap(short, sample_rate=16000) - 5.0) < 1e-6
+
+
+def test_hybrid_fallback_diagnostics_distinguish_gemma_vs_qwen():
+    """Hybrid backend must mark each tick as gemma-aligned or fallback."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from hybrid_alignment_backend import HybridQwenAsrGemmaAlignerBackend
+
+    asr_words = (
+        WordAlignment(text="hello", start_time=0.0, end_time=0.5),
+        WordAlignment(text="world", start_time=0.5, end_time=1.0),
+    )
+    asr_result = AlignmentResult(
+        text="hello world",
+        words=asr_words,
+        audio_duration_s=1.0,
+        diagnostics={},
+    )
+
+    class StubAsr:
+        name = "stub_asr"
+        def transcribe_and_align(self, *a, **k):
+            return asr_result
+
+    class StubGemmaAligner:
+        name = "stub_gemma"
+        def __init__(self, mode):
+            self.mode = mode
+        def align_transcript(self, *a, **k):
+            if self.mode == "ok":
+                return AlignmentResult(
+                    text="hello world",
+                    words=asr_words,
+                    audio_duration_s=1.0,
+                    diagnostics={"monotonicity": 0.9, "word_end_offset_s": 0.48},
+                )
+            if self.mode == "none":
+                return None
+            if self.mode == "empty":
+                return AlignmentResult(text="hello world", words=(), audio_duration_s=1.0)
+            if self.mode == "raise":
+                raise RuntimeError("boom")
+            raise AssertionError(self.mode)
+
+    import numpy as np
+    audio = np.zeros(16000, dtype=np.float32)
+
+    def run(mode):
+        h = HybridQwenAsrGemmaAlignerBackend(
+            asr_backend=StubAsr(), gemma_backend=StubGemmaAligner(mode)
+        )
+        return h.transcribe_and_align(audio, sample_rate=16000, language="English")
+
+    ok = run("ok").diagnostics
+    assert ok["gemma_alignment_used"] is True
+    assert ok["fallback_reason"] is None
+    assert ok["gemma_error"] is None
+
+    none_diag = run("none").diagnostics
+    assert none_diag["gemma_alignment_used"] is False
+    assert none_diag["fallback_reason"] == "gemma_returned_none"
+
+    empty_diag = run("empty").diagnostics
+    assert empty_diag["gemma_alignment_used"] is False
+    assert empty_diag["fallback_reason"] == "gemma_returned_no_words"
+
+    raise_diag = run("raise").diagnostics
+    assert raise_diag["gemma_alignment_used"] is False
+    assert raise_diag["fallback_reason"] == "gemma_exception"
+    assert "RuntimeError" in raise_diag["gemma_error"]
+
+
 def _run_all() -> None:
     failures = []
     for name, fn in sorted(globals().items()):

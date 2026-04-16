@@ -1,0 +1,244 @@
+{
+  "tag": "gemma_forced_align",
+  "wav_path": "tmp/alignatt_smoke18.wav",
+  "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step",
+  "audio_duration_s": 18.0,
+  "words": [
+    {
+      "text": "Hi",
+      "start_time": 1.3999999999999995,
+      "end_time": 1.3999999999999995
+    },
+    {
+      "text": "I'm",
+      "start_time": 1.3999999999999995,
+      "end_time": 2.0799999999999996
+    },
+    {
+      "text": "Siyu",
+      "start_time": 2.119999999999999,
+      "end_time": 2.7199999999999993
+    },
+    {
+      "text": "Yuan",
+      "start_time": 3.8,
+      "end_time": 3.8
+    },
+    {
+      "text": "from",
+      "start_time": 3.8,
+      "end_time": 3.8
+    },
+    {
+      "text": "Fudan",
+      "start_time": 3.8,
+      "end_time": 3.8
+    },
+    {
+      "text": "University",
+      "start_time": 3.919999999999999,
+      "end_time": 3.919999999999999
+    },
+    {
+      "text": "I'm",
+      "start_time": 4.8,
+      "end_time": 4.999999999999999
+    },
+    {
+      "text": "here",
+      "start_time": 5.279999999999999,
+      "end_time": 5.279999999999999
+    },
+    {
+      "text": "to",
+      "start_time": 5.3999999999999995,
+      "end_time": 5.3999999999999995
+    },
+    {
+      "text": "introduce",
+      "start_time": 8.76,
+      "end_time": 8.76
+    },
+    {
+      "text": "our",
+      "start_time": 8.76,
+      "end_time": 8.76
+    },
+    {
+      "text": "work",
+      "start_time": 8.76,
+      "end_time": 8.76
+    },
+    {
+      "text": "distilling",
+      "start_time": 8.76,
+      "end_time": 8.76
+    },
+    {
+      "text": "script",
+      "start_time": 8.76,
+      "end_time": 8.76
+    },
+    {
+      "text": "knowledge",
+      "start_time": 8.76,
+      "end_time": 8.76
+    },
+    {
+      "text": "from",
+      "start_time": 9.08,
+      "end_time": 9.08
+    },
+    {
+      "text": "large",
+      "start_time": 9.44,
+      "end_time": 9.44
+    },
+    {
+      "text": "language",
+      "start_time": 9.719999999999999,
+      "end_time": 9.719999999999999
+    },
+    {
+      "text": "models",
+      "start_time": 10.479999999999999,
+      "end_time": 10.479999999999999
+    },
+    {
+      "text": "for",
+      "start_time": 10.84,
+      "end_time": 10.84
+    },
+    {
+      "text": "constrained",
+      "start_time": 11.16,
+      "end_time": 11.16
+    },
+    {
+      "text": "language",
+      "start_time": 11.6,
+      "end_time": 11.6
+    },
+    {
+      "text": "planning",
+      "start_time": 11.959999999999999,
+      "end_time": 11.959999999999999
+    },
+    {
+      "text": "In",
+      "start_time": 13.719999999999999,
+      "end_time": 13.719999999999999
+    },
+    {
+      "text": "everyday",
+      "start_time": 13.879999999999999,
+      "end_time": 13.879999999999999
+    },
+    {
+      "text": "life",
+      "start_time": 14.479999999999999,
+      "end_time": 14.479999999999999
+    },
+    {
+      "text": "humans",
+      "start_time": 14.879999999999999,
+      "end_time": 14.879999999999999
+    },
+    {
+      "text": "often",
+      "start_time": 15.36,
+      "end_time": 15.36
+    },
+    {
+      "text": "plan",
+      "start_time": 15.879999999999999,
+      "end_time": 15.879999999999999
+    },
+    {
+      "text": "their",
+      "start_time": 15.919999999999998,
+      "end_time": 15.919999999999998
+    },
+    {
+      "text": "actions",
+      "start_time": 16.12,
+      "end_time": 16.12
+    },
+    {
+      "text": "by",
+      "start_time": 16.12,
+      "end_time": 16.12
+    },
+    {
+      "text": "following",
+      "start_time": 16.12,
+      "end_time": 16.12
+    },
+    {
+      "text": "step-by-step",
+      "start_time": 17.36,
+      "end_time": 17.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "gemma_attention_aligner",
+    "mode": "forced_alignment",
+    "audio_span_length": 450,
+    "audio_ms_per_token": 40.0,
+    "monotonicity": 0.8571428571428571,
+    "aligned_audio_positions": [
+      50,
+      15,
+      41,
+      57,
+      67,
+      68,
+      83,
+      110,
+      97,
+      102,
+      102,
+      113,
+      134,
+      135,
+      136,
+      140,
+      147,
+      150,
+      234,
+      223,
+      190,
+      190,
+      203,
+      212,
+      233,
+      242,
+      251,
+      258,
+      277,
+      286,
+      294,
+      305,
+      314,
+      4,
+      358,
+      362,
+      377,
+      377,
+      387,
+      399,
+      412,
+      413,
+      418,
+      0,
+      5,
+      449,
+      449,
+      30,
+      31,
+      449
+    ],
+    "transcript_token_count": 50,
+    "word_end_offset_s": 0.6400000000000006
+  }
+}

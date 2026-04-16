@@ -45,6 +45,7 @@ class StreamingTick:
     tick_s: float
     text: str
     words: list[dict]
+    diagnostics: dict | None = None
 
 
 def run_streaming_ticks(
@@ -79,16 +80,30 @@ def run_streaming_ticks(
             )
         if result is None:
             continue
+        diagnostics = dict(getattr(result, "diagnostics", {}) or {})
+        # Drop verbose per-token arrays before serializing — they bloat the
+        # tick log and the per-tick aggregate metrics don't read them.
+        diagnostics.pop("aligned_audio_positions", None)
         ticks.append(
             StreamingTick(
                 tick_s=float(tick_s),
                 text=result.text,
                 words=[asdict(w) for w in result.words],
+                diagnostics=diagnostics,
             )
         )
+        gemma_used = diagnostics.get("gemma_alignment_used")
+        fallback_reason = diagnostics.get("fallback_reason")
+        usage_tag = ""
+        if gemma_used is not None:
+            usage_tag = (
+                f"  gemma_used={gemma_used}"
+                + (f" reason={fallback_reason}" if fallback_reason else "")
+            )
         print(
             f"[{backend.name}] tick={tick_s:5.2f}s  "
             f"words={len(result.words):2d}  text='{result.text[:60]}...'"
+            f"{usage_tag}"
         )
     return ticks
 
@@ -171,6 +186,30 @@ def compute_streaming_metrics(
 
     stdevs = [w["stdev_end_s"] for w in per_word_stats if w["stdev_end_s"] is not None]
     drift_ranges = [w["drift_range_s"] for w in per_word_stats]
+
+    # Fallback accounting: a hybrid backend tags every tick with
+    # ``gemma_alignment_used``; aggregate so the report makes the
+    # Gemma-vs-fallback split explicit instead of hiding it behind a
+    # single mean stability number.
+    fallback_total = 0
+    gemma_used_total = 0
+    fallback_reasons: dict[str, int] = {}
+    fallback_aware_ticks = 0
+    for tick in ticks:
+        diag = tick.diagnostics or {}
+        if "gemma_alignment_used" not in diag:
+            continue
+        fallback_aware_ticks += 1
+        if diag.get("gemma_alignment_used"):
+            gemma_used_total += 1
+        else:
+            fallback_total += 1
+            reason = str(diag.get("fallback_reason") or "unknown")
+            fallback_reasons[reason] = fallback_reasons.get(reason, 0) + 1
+    fallback_rate = (
+        fallback_total / fallback_aware_ticks if fallback_aware_ticks else None
+    )
+
     return {
         "num_ticks": len(ticks),
         "num_words_tracked": len(per_word_stats),
@@ -185,6 +224,11 @@ def compute_streaming_metrics(
             float(statistics.mean(time_to_stable)) if time_to_stable else 0.0
         ),
         "stability_threshold_s": stability_threshold_s,
+        "fallback_aware_ticks": fallback_aware_ticks,
+        "gemma_used_ticks": gemma_used_total,
+        "fallback_ticks": fallback_total,
+        "fallback_rate": fallback_rate,
+        "fallback_reasons": fallback_reasons,
         "per_word_stats": per_word_stats,
     }
 
