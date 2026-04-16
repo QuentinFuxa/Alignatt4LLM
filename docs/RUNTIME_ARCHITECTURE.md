@@ -87,11 +87,21 @@ CascadeRuntimeConfig                       # immutable-ish experiment config
 
 Bundle caching: `CascadeAlignAttProcessor._bundle_key(config)` includes `alignment_backend_name`, `mt_backend_name`, language pair, and heads path. Flipping backends rebuilds the bundle cleanly.
 
-## AlignAtt-frontier commit rule (`asr_commit_mode="alignatt_frontier"`, default)
+## ASR-side commit rule (`asr_commit_mode`)
 
-Replaces the earlier punctuation-LCP rule. Commit every contiguous prefix of words whose AlignAtt-aligned `end_time` is at least `asr_alignatt_frontier_margin_ms` (default 500 ms) behind the current audio frontier. Mono-mechanism: MT-side acceptance already uses the same frontier semantics.
+Two rules available, different tradeoffs:
 
-Legacy rule preserved as `asr_commit_mode="punctuation_lcp"` for ablation. Details and empirical justification in `DECISIONS.md` section 2 (2026-04-16 session).
+- **`punctuation_lcp` (default).** Commit when the longest common prefix of two consecutive ASR hypotheses contains a sentence-terminal punctuation mark. Works well with Qwen3-ASR (which emits clean punctuation) and gives MT a complete sentence to translate before committing. **This is the default for every shipped Qwen3-ASR path and for submission runs.**
+- **`alignatt_frontier` (opt-in).** Commit every contiguous prefix of words whose AlignAtt-aligned `end_time` is at least `asr_alignatt_frontier_margin_ms` (default 500 ms) behind the current audio frontier. Model-agnostic and strictly symmetric to the MT-side accessibility rule. Needed for ASR models that do **not** emit sentence-terminal punctuation on our clips (Gemma-4-E4B in particular — without this rule `utt_timestamps` never advances and the prompt overflows `max_model_len`).
+
+Empirical justification for keeping `punctuation_lcp` as default: on en→de, `ccpXHNfaoy.wav` (360 s), Qwen3-ASR + Gemma vLLM MT, chunk_ms=450, EOS-flush on:
+
+| Commit rule | BLEU | chrF | COMET | LongYAAL CU | LongYAAL CA |
+|---|---|---|---|---|---|
+| `punctuation_lcp` | **27.51** | **63.54** | **0.861** | 1766 | 1483 |
+| `alignatt_frontier` | 15.78 | 54.43 | 0.558 | 1328 | 1048 |
+
+AlignAtt-frontier on Qwen trades ~440 ms CA for −11.7 BLEU / −9 chrF / −0.30 COMET. The word-by-word commits feed MT fragmented sub-sentence context that the model can't translate as fluently. See `DECISIONS.md` for the history (it was briefly the default to unblock the Gemma-ASR path).
 
 ## Latency/quality knob (today)
 

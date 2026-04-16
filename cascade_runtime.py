@@ -196,15 +196,22 @@ class CascadeRuntimeConfig:
     # that `find_end_time` relies on for sentence commits.
     asr_streaming_rollback_words: int = 2
     asr_streaming_unfixed_chunks: int = 2
-    # Commit mode for the ASR side of the cascade. The legacy behaviour is
-    # "punctuation_lcp": commit when the longest common prefix of two
-    # consecutive hypotheses contains a sentence-terminal punctuation mark.
-    # The new default "alignatt_frontier" commits every contiguous prefix of
-    # words whose AlignAtt-aligned audio end_time is far enough from the
-    # current audio frontier — strictly symmetric to the MT-side accessibility
-    # rule. It is model-agnostic and does not depend on the model emitting
-    # punctuation. The legacy mode is kept for ablation only.
-    asr_commit_mode: str = "alignatt_frontier"
+    # Commit mode for the ASR side of the cascade.
+    # - ``punctuation_lcp`` (default) commits when the longest common prefix
+    #   of two consecutive hypotheses contains a sentence-terminal punctuation
+    #   mark. Works well with Qwen3-ASR which emits clean punctuation; gives
+    #   MT a complete sentence to translate before a commit happens.
+    # - ``alignatt_frontier`` commits every contiguous prefix of words whose
+    #   AlignAtt-aligned audio end_time is far enough from the current audio
+    #   frontier — strictly symmetric to the MT-side accessibility rule. Used
+    #   for models like Gemma-4 ASR that don't emit sentence-terminal
+    #   punctuation on the test clips (`utt_timestamps` never advances
+    #   otherwise and the prompt overflows `max_model_len`).
+    # Empirically on en→de with Qwen3-ASR + Gemma vLLM MT on ccpXHNfaoy.wav
+    # (360 s): punctuation_lcp → BLEU 27.51 / COMET 0.861 / LongYAAL CU 1766
+    # vs alignatt_frontier → BLEU 15.78 / COMET 0.558 / CU 1328. The latency
+    # win (~440 ms CU) is not worth the quality cliff for Qwen-ASR paths.
+    asr_commit_mode: str = "punctuation_lcp"
     # Safety margin between a word's aligned end_time and the current audio
     # frontier, in milliseconds. A word with end_time <= frontier - margin is
     # considered committable. Only used when asr_commit_mode="alignatt_frontier".
@@ -984,7 +991,17 @@ class CascadeSession:
             prompt_cache_state=self.mt_prompt_cache,
         )
 
-    def transcribe_audio(self) -> str | None:
+    def transcribe_audio(self, *, is_final_chunk: bool = False) -> str | None:
+        """Run ASR on the currently-uncommitted audio tail and apply the commit rule.
+
+        ``is_final_chunk=True`` (used by ``finalize_stream``) switches the commit
+        rule to an **EOS flush**: no more audio is coming, so the
+        "safely behind the frontier" guarantee is vacuously satisfied and every
+        aligned word should commit. Without this flush, the last
+        ``asr_alignatt_frontier_margin_ms`` of every clip is never committed and
+        the public hypothesis is truncated by the trailing 1-2 words (which
+        costs BLEU/chrF/COMET on every submission).
+        """
         alignment_backend = self.bundle.ensure_alignment_backend()
         audio = np.array(
             self.state.source[self.state.utt_timestamps[-1] :], dtype=np.float32
@@ -1035,11 +1052,18 @@ class CascadeSession:
 
         if self.config.asr_commit_mode == "alignatt_frontier":
             committed = self._try_commit_alignatt_frontier(
-                asr_hypo=asr_hypo, result=result, lcp_text=asr_segment, audio=audio
+                asr_hypo=asr_hypo,
+                result=result,
+                lcp_text=asr_segment,
+                audio=audio,
+                is_final_chunk=is_final_chunk,
             )
         else:
             committed = self._try_commit_punctuation_lcp(
-                asr_hypo=asr_hypo, result=result, lcp_text=asr_segment
+                asr_hypo=asr_hypo,
+                result=result,
+                lcp_text=asr_segment,
+                is_final_chunk=is_final_chunk,
             )
         if committed is _COMMIT_ABORT:
             return asr_hypo.strip()
@@ -1049,8 +1073,28 @@ class CascadeSession:
         return normalize_partial_asr_hypothesis(self.state.asr_hypotheses[-1])
 
     def _try_commit_punctuation_lcp(
-        self, *, asr_hypo: str, result: "AlignmentResult", lcp_text: str
+        self,
+        *,
+        asr_hypo: str,
+        result: "AlignmentResult",
+        lcp_text: str,
+        is_final_chunk: bool = False,
     ) -> "object":
+        if is_final_chunk:
+            # EOS flush: commit the whole current hypothesis, even without
+            # sentence-final punctuation. No more audio is coming, so waiting
+            # for a punctuation signal would lose the trailing words.
+            words = result.words or ()
+            if not asr_hypo.strip() or not words:
+                return None
+            last_word_end = float(words[-1].end_time) if words else 0.0
+            self._apply_commit(
+                committed_text=asr_hypo.strip(),
+                remainder_text="",
+                end_time_s=last_word_end,
+            )
+            return None
+
         if n_utterances(lcp_text) < 1:
             return None
         rightest_punct_idx = max(
@@ -1079,6 +1123,7 @@ class CascadeSession:
         result: "AlignmentResult",
         lcp_text: str,
         audio: np.ndarray,
+        is_final_chunk: bool = False,
     ) -> "object":
         words = result.words
         if not words:
@@ -1087,21 +1132,31 @@ class CascadeSession:
             # Word-count invariant broken; fall back to no commit this chunk.
             return None
 
-        n_lcp_words = len(remove_punctuation(lcp_text).strip().split())
-        if n_lcp_words <= 0:
-            return None
+        if is_final_chunk:
+            # EOS flush: commit every aligned word. The margin gate guards
+            # against committing words whose end_time is not safely behind the
+            # current audio frontier; at EOS there is no further audio so the
+            # guarantee is trivially satisfied. The LCP gate is likewise
+            # meaningless at EOS because there is no next hypothesis to
+            # compare against.
+            k_commit = len(words)
+            last_end_time_s = float(words[-1].end_time)
+        else:
+            n_lcp_words = len(remove_punctuation(lcp_text).strip().split())
+            if n_lcp_words <= 0:
+                return None
 
-        audio_frontier_s = float(len(audio)) / float(SAMPLE_RATE)
-        margin_s = max(0.0, float(self.config.asr_alignatt_frontier_margin_ms) / 1000.0)
-        safe_end_time_s = audio_frontier_s - margin_s
+            audio_frontier_s = float(len(audio)) / float(SAMPLE_RATE)
+            margin_s = max(0.0, float(self.config.asr_alignatt_frontier_margin_ms) / 1000.0)
+            safe_end_time_s = audio_frontier_s - margin_s
 
-        k_commit = 0
-        last_end_time_s = 0.0
-        for word in words[:n_lcp_words]:
-            if word.end_time > safe_end_time_s:
-                break
-            k_commit += 1
-            last_end_time_s = float(word.end_time)
+            k_commit = 0
+            last_end_time_s = 0.0
+            for word in words[:n_lcp_words]:
+                if word.end_time > safe_end_time_s:
+                    break
+                k_commit += 1
+                last_end_time_s = float(word.end_time)
         if k_commit <= 0:
             return None
 
@@ -1216,7 +1271,16 @@ class CascadeSession:
         )
 
     def finalize_stream(self) -> SessionProcessingResult:
-        final_asr = self.transcribe_audio() or self.render_public_asr_text()
+        # is_final_chunk=True lets the commit rule flush the tail past the
+        # frontier margin (alignatt_frontier) or without a sentence-final
+        # punctuation cue (punctuation_lcp). Without it the last ~500 ms of
+        # every clip stay "partial" and never make it into the hypothesis.
+        # Env flag CASCADE_DISABLE_EOS_FLUSH=1 lets the A/B compare the fix.
+        eos_flush = os.environ.get("CASCADE_DISABLE_EOS_FLUSH", "") != "1"
+        final_asr = (
+            self.transcribe_audio(is_final_chunk=eos_flush)
+            or self.render_public_asr_text()
+        )
         final_raw_translation, final_translation_result = self.render_translation()
         return SessionProcessingResult(
             asr_text=final_asr,

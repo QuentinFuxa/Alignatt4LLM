@@ -14,7 +14,7 @@ Ship, measure, and write up:
 
 - ASR side: `qwen_forced` (Qwen3-ASR-1.7B + Qwen3-ForcedAligner-0.6B) via vLLM.
 - MT side: `gemma_vllm_alignatt` (Gemma-4-E4B MT) via vLLM with an engine-native MT AlignAtt observer.
-- Commit rule on both sides: **AlignAtt-frontier** (mono-mechanism).
+- ASR commit rule: `punctuation_lcp` (default). `alignatt_frontier` remains available as an opt-in for paths where the ASR model doesn't emit sentence-terminal punctuation (Gemma-4 ASR). AlignAtt-frontier is *not* a drop-in replacement on Qwen ASR — it costs ~11 BLEU / 0.3 COMET on en→de for a ~440 ms CA gain (measured on `ccpXHNfaoy.wav`).
 
 Gemma ASR is reachable via `gemma_onepass_qk_fast` or `gemma_vllm_qk_fast` and works end-to-end, but Gemma-4-E4B as a standalone ASR model is intrinsically weaker than Qwen3-ASR-1.7B on our clips (hallucinations, regurgitation of training examples). This is a model-intrinsic property, not a cascade-infrastructure issue, so Gemma ASR stays as an experimental option rather than the default.
 

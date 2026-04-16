@@ -232,12 +232,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--asr-commit-mode",
         choices=("alignatt_frontier", "punctuation_lcp"),
-        default="alignatt_frontier",
+        default="punctuation_lcp",
         help=(
-            "ASR-side commit rule. 'alignatt_frontier' (default) commits words "
-            "whose AlignAtt-aligned end_time is margin ms behind the current audio "
-            "frontier — model-agnostic, symmetric to the MT side. "
-            "'punctuation_lcp' is the legacy punctuation-based rule kept for ablation."
+            "ASR-side commit rule. 'punctuation_lcp' (default) commits when the "
+            "LCP of two consecutive ASR hypotheses contains a sentence-terminal "
+            "punctuation mark; works well with Qwen3-ASR. 'alignatt_frontier' is "
+            "the model-agnostic fallback for ASR backends that do not emit "
+            "punctuation (e.g. Gemma-4 ASR). See docs/RESULTS.md for the BLEU/CA "
+            "tradeoff measured on en→de."
         ),
     )
     parser.add_argument(

@@ -1220,12 +1220,30 @@ def test_split_text_at_word_boundary_beyond_total_returns_full_text():
     assert len(remove_punctuation(committed).split()) == 2
 
 
-def test_alignatt_frontier_commit_config_defaults():
+def test_asr_commit_mode_defaults_to_punctuation_lcp_for_qwen_path():
+    # On the Qwen3-ASR + Gemma vLLM MT submission path, punctuation_lcp is the
+    # default because alignatt_frontier's word-by-word commits give MT
+    # fragmented context and cost ~11 BLEU / ~0.3 COMET on en→de (measured on
+    # ccpXHNfaoy.wav at the same SHA + same EOS-flush path). alignatt_frontier
+    # stays available as an explicit opt-in for Gemma-ASR paths.
     from cascade_runtime import CascadeRuntimeConfig
 
     config = CascadeRuntimeConfig(alignment_backend_name="qwen_forced")
-    assert config.asr_commit_mode == "alignatt_frontier"
+    assert config.asr_commit_mode == "punctuation_lcp"
+    # The margin knob is still exposed and keeps its default even when the
+    # current commit mode doesn't use it — flipping mode at session time must
+    # not require also passing a margin.
     assert config.asr_alignatt_frontier_margin_ms == 500.0
+
+
+def test_asr_commit_mode_alignatt_frontier_is_opt_in():
+    from cascade_runtime import CascadeRuntimeConfig
+
+    config = CascadeRuntimeConfig(
+        alignment_backend_name="qwen_forced",
+        asr_commit_mode="alignatt_frontier",
+    )
+    assert config.asr_commit_mode == "alignatt_frontier"
 
 
 def test_asr_commit_mode_rejects_unknown_value():

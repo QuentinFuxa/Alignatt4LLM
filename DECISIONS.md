@@ -308,3 +308,53 @@ See `PLAN.md` "Immediate next steps":
 5. Reopen MT vLLM prefix caching behind a cache-native observer port.
 6. Investigate Phase 2/3 numerical drift on provenance magnitudes
    (argmax agrees, sums don't).
+
+---
+
+## 2026-04-16 (night) — IWSLT prep: EOS flush + commit-rule default rollback
+
+### EOS flush for end-of-stream
+
+Both ASR commit rules have a failure mode at end-of-stream:
+
+- `alignatt_frontier`: the last ~500 ms of words sit past the
+  `asr_alignatt_frontier_margin_ms` gate and never commit.
+- `punctuation_lcp`: if the last sentence has no terminal period,
+  nothing after the last observed period commits.
+
+`CascadeSession.finalize_stream` now calls `transcribe_audio(is_final_chunk=True)`
+which threads through to both commit helpers. On a final chunk both helpers
+flush the whole current hypothesis (alignatt_frontier: commit every aligned
+word ignoring margin and LCP; punctuation_lcp: commit the whole hypothesis
+regardless of terminal punctuation). Eight new unit tests in
+`test_eos_flush.py` pin the fix without needing a GPU. On-clip effect is
+small when the speaker ends with a natural pause (`ccpXHNfaoy.wav`:
+732 → 733 words, +0.09 BLEU under alignatt_frontier) but net positive.
+
+### Rolled back `asr_commit_mode` default from `alignatt_frontier` to `punctuation_lcp`
+
+While validating the EOS fix on `ccpXHNfaoy.wav`, ran a same-SHA A/B
+with only the commit rule changed. Measured en→de on the canonical clip:
+
+| Commit rule | BLEU | chrF | COMET | LongYAAL CU | LongYAAL CA | RTF |
+|---|---|---|---|---|---|---|
+| `punctuation_lcp` | **27.51** | **63.54** | **0.861** | 1766 | 1483 | 0.42 |
+| `alignatt_frontier` | 15.78 | 54.43 | 0.558 | 1328 | 1048 | 0.43 |
+
+AlignAtt-frontier buys ~440 ms LongYAAL CA at the cost of
+**−11.7 BLEU / −9 chrF / −0.30 COMET**. That ratio is not worth it for
+any Qwen-ASR submission path. The earlier switch to `alignatt_frontier`
+(morning session, commit `81c0376`) was correct for the Gemma-ASR path
+— Gemma-4-E4B doesn't emit sentence-terminal punctuation on smoke18, so
+`utt_timestamps` never advanced — but it's catastrophic for Qwen, whose
+clean punctuation output gives MT complete sentences to translate.
+
+Rolled back the global default; AlignAtt-frontier is now opt-in via
+`--asr-commit-mode alignatt_frontier`. The pivot in `PLAN.md` (Qwen ASR
+as default, Gemma ASR experimental) makes this a clean swap: default
+submission path regains its pre-rollout quality, Gemma-ASR still works
+by explicit opt-in.
+
+Test updates: `test_alignment_helpers.py` assertions flipped accordingly;
+new test confirms `alignatt_frontier` remains accepted as an opt-in
+value.
