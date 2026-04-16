@@ -988,6 +988,420 @@ def test_build_alignment_backend_dispatches_to_gemma_vllm():
     assert backend.worker_mode == "custom_tensor"
 
 
+def _make_session_for_streaming_prefix_tests():
+    """Build a CascadeSession without touching any model.
+
+    LoadedModelBundle is instantiable from config alone; CascadeSession only
+    reads ``bundle.config`` in its __init__. That is enough to exercise the
+    pure-Python streaming-prefix helpers.
+    """
+    from cascade_runtime import CascadeRuntimeConfig, CascadeSession, LoadedModelBundle
+
+    config = CascadeRuntimeConfig(
+        alignment_backend_name="gemma_vllm_qk_fast",
+        asr_streaming_prefix_enabled=True,
+        asr_streaming_rollback_words=2,
+        asr_streaming_unfixed_chunks=2,
+    )
+    return CascadeSession(LoadedModelBundle(config))
+
+
+def _make_words(pairs):
+    from alignment_backend import WordAlignment
+
+    return tuple(
+        WordAlignment(text=txt, start_time=start, end_time=end)
+        for txt, start, end in pairs
+    )
+
+
+def test_streaming_prefix_rejected_for_non_vllm_backend():
+    """PLAN step 2: fast-fail validation must reject asr_streaming_prefix_enabled
+    with a backend other than gemma_vllm_qk_fast. Today this is caught only
+    later via NotImplementedError deep in the backend call."""
+    import pytest
+
+    from cascade_runtime import CascadeRuntimeConfig
+
+    for name in ("qwen_forced", "gemma_onepass_qk_fast"):
+        with pytest.raises(ValueError, match="asr_streaming_prefix_enabled"):
+            CascadeRuntimeConfig(
+                alignment_backend_name=name,
+                asr_streaming_prefix_enabled=True,
+            )
+
+    # Setting the flag via apply_overrides must also revalidate.
+    config = CascadeRuntimeConfig(alignment_backend_name="qwen_forced")
+    with pytest.raises(ValueError, match="asr_streaming_prefix_enabled"):
+        config.apply_overrides(asr_streaming_prefix_enabled=True)
+
+
+def test_gemma_vllm_force_generate_api_rejected_for_non_vllm_backend():
+    """The ablation knob should not silently succeed with the wrong backend."""
+    import pytest
+
+    from cascade_runtime import CascadeRuntimeConfig
+
+    with pytest.raises(ValueError, match="gemma_vllm_force_generate_api"):
+        CascadeRuntimeConfig(
+            alignment_backend_name="qwen_forced",
+            gemma_vllm_force_generate_api=True,
+        )
+
+
+def test_gemma_vllm_force_generate_api_default_is_off():
+    from cascade_runtime import CascadeRuntimeConfig
+
+    config = CascadeRuntimeConfig(alignment_backend_name="gemma_vllm_qk_fast")
+    assert config.gemma_vllm_force_generate_api is False
+
+
+def test_compute_streaming_prefix_preserves_word_count_invariant():
+    """Core invariant: for the prefix returned by _compute_streaming_prefix,
+    ``len(remove_punctuation(prefix_text).split()) == len(prefix_words)``.
+    If this fails, find_end_time in the sentence-commit path returns None
+    and the streaming branch breaks silently at the runtime level."""
+    from cascade_runtime import remove_punctuation
+
+    session = _make_session_for_streaming_prefix_tests()
+    session._asr_streaming_last_text = "Hello, world how are you"
+    session._asr_streaming_last_words = _make_words(
+        [("Hello", 0.0, 0.3), ("world", 0.4, 0.7),
+         ("how", 0.8, 1.0), ("are", 1.1, 1.2), ("you", 1.3, 1.5)]
+    )
+    session._asr_streaming_chunk_count = 5  # >= unfixed_chunks
+
+    prefix_text, kept_words = session._compute_streaming_prefix(None)
+    assert len(kept_words) == 3  # 5 - rollback(2)
+    assert len(remove_punctuation(prefix_text).split()) == len(kept_words)
+    assert [w.text for w in kept_words] == ["Hello", "world", "how"]
+
+
+def test_compute_streaming_prefix_preserves_trailing_punctuation():
+    """A period immediately after the last kept word must be carried in the
+    prefix so sentence-terminal signals are preserved. After stripping
+    punctuation the word count still matches."""
+    from cascade_runtime import remove_punctuation
+
+    session = _make_session_for_streaming_prefix_tests()
+    session._asr_streaming_last_text = "Hello world. How are you today"
+    session._asr_streaming_last_words = _make_words(
+        [("Hello", 0.0, 0.3), ("world", 0.4, 0.7),
+         ("How", 0.9, 1.0), ("are", 1.1, 1.2),
+         ("you", 1.3, 1.4), ("today", 1.5, 1.8)]
+    )
+    session._asr_streaming_chunk_count = 5
+    session.config.asr_streaming_rollback_words = 4  # keep "Hello world"
+
+    prefix_text, kept_words = session._compute_streaming_prefix(None)
+    assert prefix_text == "Hello world."
+    assert [w.text for w in kept_words] == ["Hello", "world"]
+    assert len(remove_punctuation(prefix_text).split()) == len(kept_words)
+
+
+def test_compute_streaming_prefix_handles_repeated_words():
+    """Repeated words are resolved positionally via the cursor-based find,
+    not by identity. This was the concrete bug that token-level rollback hit."""
+    from cascade_runtime import remove_punctuation
+
+    session = _make_session_for_streaming_prefix_tests()
+    session._asr_streaming_last_text = "the the cat sat on the mat"
+    session._asr_streaming_last_words = _make_words(
+        [("the", 0.0, 0.1), ("the", 0.2, 0.3),
+         ("cat", 0.4, 0.6), ("sat", 0.7, 0.9),
+         ("on", 1.0, 1.1), ("the", 1.2, 1.3), ("mat", 1.4, 1.7)]
+    )
+    session._asr_streaming_chunk_count = 5
+    session.config.asr_streaming_rollback_words = 2  # keep first 5 words
+
+    prefix_text, kept_words = session._compute_streaming_prefix(None)
+    assert len(kept_words) == 5
+    assert [w.text for w in kept_words] == ["the", "the", "cat", "sat", "on"]
+    assert prefix_text == "the the cat sat on"
+    assert len(remove_punctuation(prefix_text).split()) == len(kept_words)
+
+
+def test_compute_streaming_prefix_returns_empty_before_unfixed_chunks():
+    """The first ``asr_streaming_unfixed_chunks`` chunks must run without a
+    prefix so the model sees enough context to anchor the hypothesis."""
+    session = _make_session_for_streaming_prefix_tests()
+    session._asr_streaming_last_text = "Hello world"
+    session._asr_streaming_last_words = _make_words(
+        [("Hello", 0.0, 0.3), ("world", 0.4, 0.7)]
+    )
+    session._asr_streaming_chunk_count = 1  # < unfixed_chunks (2)
+
+    prefix_text, kept_words = session._compute_streaming_prefix(None)
+    assert prefix_text == ""
+    assert kept_words == ()
+
+
+def test_compute_streaming_prefix_returns_empty_when_rollback_exceeds_words():
+    """Rollback larger than the kept word count is the degenerate case; the
+    session must fall back to cold decoding instead of emitting an empty
+    prefix that still triggers the generate-API path."""
+    session = _make_session_for_streaming_prefix_tests()
+    session._asr_streaming_last_text = "Hello world"
+    session._asr_streaming_last_words = _make_words(
+        [("Hello", 0.0, 0.3), ("world", 0.4, 0.7)]
+    )
+    session._asr_streaming_chunk_count = 3
+    session.config.asr_streaming_rollback_words = 5  # > len(last_words)
+
+    prefix_text, kept_words = session._compute_streaming_prefix(None)
+    assert prefix_text == ""
+    assert kept_words == ()
+
+
+def test_streaming_state_resets_on_session_clear():
+    """session.clear() must wipe streaming state so the next utterance
+    starts cold. This is what guarantees the streaming branch cannot leak
+    prefix text across speech_id boundaries."""
+    session = _make_session_for_streaming_prefix_tests()
+    session._asr_streaming_last_text = "something"
+    session._asr_streaming_last_words = _make_words([("something", 0.0, 0.3)])
+    session._asr_streaming_chunk_count = 7
+
+    session.clear()
+
+    assert session._asr_streaming_last_text == ""
+    assert session._asr_streaming_last_words == ()
+    assert session._asr_streaming_chunk_count == 0
+
+
+def test_streaming_state_resets_on_explicit_reset():
+    """The session-internal reset helper clears the Python-side state even
+    when reset_backend=False; this is the branch taken on in-process
+    sentence commits."""
+    session = _make_session_for_streaming_prefix_tests()
+    session._asr_streaming_last_text = "prior"
+    session._asr_streaming_last_words = _make_words([("prior", 0.0, 0.3)])
+    session._asr_streaming_chunk_count = 4
+
+    session._reset_asr_streaming_state(reset_backend=False)
+
+    assert session._asr_streaming_last_text == ""
+    assert session._asr_streaming_last_words == ()
+    assert session._asr_streaming_chunk_count == 0
+
+
+def test_split_text_at_word_boundary_preserves_word_count_invariant():
+    """split_text_at_word_boundary must preserve the invariant that the
+    cascade's find_end_time / commit path relies on."""
+    from cascade_runtime import remove_punctuation, split_text_at_word_boundary
+
+    text = "Hello, world. How are you today?"
+    # total words: Hello world How are you today = 6
+    committed, remainder = split_text_at_word_boundary(text, 3)
+    assert len(remove_punctuation(committed).split()) == 3
+    assert len(remove_punctuation(remainder).split()) == 3
+    # Trailing punctuation of the 3rd word carries into the committed part.
+    # "Hello, world. How" is the first 3 words with their attached commas/dots.
+    assert committed == "Hello, world. How"
+    assert remainder == "are you today?"
+
+
+def test_split_text_at_word_boundary_zero_words_returns_only_remainder():
+    from cascade_runtime import split_text_at_word_boundary
+
+    committed, remainder = split_text_at_word_boundary("hello world", 0)
+    assert committed == ""
+    assert remainder == "hello world"
+
+
+def test_split_text_at_word_boundary_beyond_total_returns_full_text():
+    from cascade_runtime import remove_punctuation, split_text_at_word_boundary
+
+    committed, remainder = split_text_at_word_boundary("one two", 5)
+    assert committed == "one two"
+    assert remainder == ""
+    # Word count should match what the caller asked for the committed side if
+    # it exists; otherwise it returns the whole text (graceful fallback).
+    assert len(remove_punctuation(committed).split()) == 2
+
+
+def test_alignatt_frontier_commit_config_defaults():
+    from cascade_runtime import CascadeRuntimeConfig
+
+    config = CascadeRuntimeConfig(alignment_backend_name="qwen_forced")
+    assert config.asr_commit_mode == "alignatt_frontier"
+    assert config.asr_alignatt_frontier_margin_ms == 500.0
+
+
+def test_asr_commit_mode_rejects_unknown_value():
+    import pytest
+
+    from cascade_runtime import CascadeRuntimeConfig
+
+    with pytest.raises(ValueError, match="asr_commit_mode"):
+        CascadeRuntimeConfig(
+            alignment_backend_name="qwen_forced",
+            asr_commit_mode="stability_window",
+        )
+
+
+def _session_with_audio_and_hypothesis(
+    *,
+    audio_duration_s: float,
+    words: "tuple",
+    text: str,
+    margin_ms: float = 500.0,
+    commit_mode: str = "alignatt_frontier",
+):
+    """Build a CascadeSession primed with synthetic state for commit tests."""
+    import numpy as np
+
+    from cascade_runtime import (
+        CascadeRuntimeConfig,
+        CascadeSession,
+        LoadedModelBundle,
+    )
+    from cascade_source_frontier import normalize_word_timestamps_ms
+
+    SAMPLE_RATE = 16000
+    config = CascadeRuntimeConfig(
+        alignment_backend_name="qwen_forced",
+        asr_commit_mode=commit_mode,
+        asr_alignatt_frontier_margin_ms=margin_ms,
+    )
+    bundle = LoadedModelBundle(config)
+    session = CascadeSession(bundle)
+    # Fake audio of the right duration so len(audio)/SAMPLE_RATE matches
+    # the synthetic word timings used by the test.
+    n_samples = int(audio_duration_s * SAMPLE_RATE)
+    session.state.source = np.zeros(n_samples, dtype=np.float32)
+    # The commit path reads the LCP of the last two hypotheses; provide an
+    # earlier identical hypothesis so the LCP = text.
+    session.state.asr_hypotheses = [text, text]
+    session.state.partial_word_timestamps_ms = normalize_word_timestamps_ms(words)
+    return session, words
+
+
+def test_alignatt_frontier_commits_only_words_past_margin():
+    """With margin=500ms and audio_frontier=2.0s, only words with
+    end_time <= 1.5s are safe. The cascade must commit exactly those."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from cascade_runtime import CascadeSession
+
+    words = (
+        WordAlignment("Hello", 0.0, 0.4),
+        WordAlignment("world", 0.5, 0.9),
+        WordAlignment("how", 1.0, 1.4),   # 1.4 <= 1.5, safe
+        WordAlignment("are", 1.6, 1.9),   # 1.9 > 1.5, unsafe
+        WordAlignment("you", 2.0, 2.0),   # unsafe
+    )
+    session, _ = _session_with_audio_and_hypothesis(
+        audio_duration_s=2.0,
+        words=words,
+        text="Hello world how are you",
+        margin_ms=500.0,
+    )
+    result = AlignmentResult(
+        text="Hello world how are you",
+        words=words,
+        audio_duration_s=2.0,
+    )
+
+    ret = session._try_commit_alignatt_frontier(
+        asr_hypo="Hello world how are you",
+        result=result,
+        lcp_text="Hello world how are you",
+        audio=session.state.source,
+    )
+    assert ret is None  # successful commit path, no abort
+
+    # 3 words committed: Hello, world, how
+    assert session.state.utt_sources[1:] == ["Hello world how"]
+    assert session.state.asr_hypotheses == ["are you"]
+    # utt_timestamps advanced to the end_time of the last committed word (1.4s).
+    SAMPLE_RATE = 16000
+    expected = int(1.4 * SAMPLE_RATE)
+    assert session.state.utt_timestamps[-1] == expected
+
+
+def test_alignatt_frontier_does_not_commit_when_no_word_is_safe():
+    """Every word's end_time is past the frontier - margin boundary.
+    No commit should fire; the hypothesis stays as a partial."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from cascade_runtime import CascadeSession
+
+    words = (
+        WordAlignment("too", 1.2, 1.6),
+        WordAlignment("close", 1.7, 1.9),
+    )
+    session, _ = _session_with_audio_and_hypothesis(
+        audio_duration_s=2.0,
+        words=words,
+        text="too close",
+        margin_ms=500.0,
+    )
+    result = AlignmentResult(text="too close", words=words, audio_duration_s=2.0)
+
+    ret = session._try_commit_alignatt_frontier(
+        asr_hypo="too close",
+        result=result,
+        lcp_text="too close",
+        audio=session.state.source,
+    )
+    assert ret is None  # no abort
+    # No commit occurred.
+    assert session.state.utt_sources == [""]
+    assert session.state.utt_timestamps == [0]
+
+
+def test_alignatt_frontier_no_commit_without_punctuation_is_unblocked():
+    """The commit mechanism must not depend on a sentence-terminal period.
+    A long hypothesis with no punctuation whose end_times are all safe still
+    commits — exactly the case that killed the streaming branch on Gemma."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from cascade_runtime import CascadeSession
+
+    words = tuple(
+        WordAlignment(f"word{i}", i * 0.3, i * 0.3 + 0.25)
+        for i in range(10)
+    )
+    text = " ".join(w.text for w in words)  # no punctuation anywhere
+    # audio_frontier = 5.0s, margin 500ms -> safe up to end_time 4.5s
+    # word 14 has end_time 14 * 0.3 + 0.25 = ... lets compute which ones are safe:
+    # word i end_time = 0.3*i + 0.25; <= 4.5 -> i <= (4.5 - 0.25) / 0.3 = 14.1666
+    # but we only have 10 words, so all 10 are safe.
+    session, _ = _session_with_audio_and_hypothesis(
+        audio_duration_s=5.0,
+        words=words,
+        text=text,
+        margin_ms=500.0,
+    )
+    result = AlignmentResult(text=text, words=words, audio_duration_s=5.0)
+
+    ret = session._try_commit_alignatt_frontier(
+        asr_hypo=text, result=result, lcp_text=text, audio=session.state.source,
+    )
+    assert ret is None
+    assert session.state.utt_sources[1:] == [text]
+    assert session.state.asr_hypotheses == [""]
+
+
+def test_alignatt_frontier_returns_none_when_lcp_is_empty():
+    """If two consecutive hypotheses share no prefix, we must not commit."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from cascade_runtime import CascadeSession
+
+    words = (WordAlignment("only", 0.0, 0.4),)
+    session, _ = _session_with_audio_and_hypothesis(
+        audio_duration_s=2.0,
+        words=words,
+        text="only",
+        margin_ms=500.0,
+    )
+    result = AlignmentResult(text="only", words=words, audio_duration_s=2.0)
+
+    ret = session._try_commit_alignatt_frontier(
+        asr_hypo="only", result=result, lcp_text="", audio=session.state.source,
+    )
+    assert ret is None
+    assert session.state.utt_sources == [""]
+
+
 def _run_all() -> None:
     failures = []
     for name, fn in sorted(globals().items()):

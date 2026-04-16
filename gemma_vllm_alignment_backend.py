@@ -1200,6 +1200,9 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         self.enable_prefix_caching = bool(
             getattr(runtime_config, "gemma_vllm_enable_prefix_caching", False)
         )
+        self.force_generate_api = bool(
+            getattr(runtime_config, "gemma_vllm_force_generate_api", False)
+        )
         self._prompt_observer_cache: dict[str, _PromptObserverCacheEntry] = {}
         self._last_generated_token_ids: list[int] | None = None
 
@@ -1639,6 +1642,11 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         audio_duration_s = self._enforce_audio_cap(audio, sample_rate=sample_rate)
 
         use_streaming_prefix = bool(streaming_prefix_text)
+        # Ablation control for PLAN.md step 1: when force_generate_api is
+        # set, use the llm.generate(prompt_token_ids, multi_modal_data)
+        # call shape even with an empty prefix. This isolates the API path
+        # change from the prefix-prefill decode-delta effect.
+        use_generate_api = use_streaming_prefix or self.force_generate_api
 
         prompt_build_start = perf_counter()
         # Replicate Qwen3-ASR's streaming_transcribe pattern for the
@@ -1709,9 +1717,10 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         )
 
         generate_start = perf_counter()
-        if use_streaming_prefix:
-            # Qwen3-ASR-style call: prompt_token_ids (user turn tokens +
-            # tokenized text suffix) + raw audio via multi_modal_data.
+        if use_generate_api:
+            # Qwen3-ASR-style call: prompt_token_ids (user turn tokens,
+            # optionally + tokenized text suffix) + raw audio via
+            # multi_modal_data.
             inp = {
                 "prompt_token_ids": prompt_token_ids,
                 "multi_modal_data": {
@@ -1852,6 +1861,8 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
             "compile_cache_dir": self.compile_cache_dir,
             "disable_compile_cache": self.disable_compile_cache,
             "enable_prefix_caching": self.enable_prefix_caching,
+            "force_generate_api": self.force_generate_api,
+            "invocation_path": "generate" if use_generate_api else "chat",
             "selected_head_count": len(self.alignatt_heads),
             "prompt_token_count": len(prompt_token_ids),
             "request_prompt_token_count": (

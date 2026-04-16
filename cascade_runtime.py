@@ -62,6 +62,11 @@ VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast", "gemma_
 # vLLM backend is opt-in until validated under the full SimulStream loop.
 STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast")
 
+# Sentinel returned by the commit helpers when the current chunk must not
+# produce a cascade-visible update (e.g. the word-count invariant is broken
+# and find_end_time refused to return an end time).
+_COMMIT_ABORT = object()
+
 
 def _resolve_hf_snapshot(repo_subpath: str) -> str:
     candidates = [
@@ -157,7 +162,13 @@ class CascadeRuntimeConfig:
     gemma_vllm_enable_prefix_caching: bool = False
     gemma_vllm_cudagraph_mode: str | None = "full"
     gemma_vllm_gpu_memory_utilization: float = 0.5
-    # Step 5: Qwen-style prompt-prefix streaming for the Gemma ASR backend.
+    # Ablation knob for PLAN.md step 1 (same-SHA A/B control). When True
+    # (gemma_vllm_qk_fast only) and no streaming prefix is requested, the
+    # backend still invokes llm.generate(prompt_token_ids=..., multi_modal_data=...)
+    # with an empty prefix instead of llm.chat(). This isolates the input-path
+    # change from the prefix-prefill decode-delta effect.
+    gemma_vllm_force_generate_api: bool = False
+    # Qwen-style prompt-prefix streaming for the Gemma ASR backend.
     # When enabled (gemma_vllm_qk_fast only), the previously decoded text
     # (minus asr_streaming_rollback_words tail words) is injected as an
     # assistant-turn prefix so the model only decodes the text delta.
@@ -169,15 +180,54 @@ class CascadeRuntimeConfig:
     # that `find_end_time` relies on for sentence commits.
     asr_streaming_rollback_words: int = 2
     asr_streaming_unfixed_chunks: int = 2
+    # Commit mode for the ASR side of the cascade. The legacy behaviour is
+    # "punctuation_lcp": commit when the longest common prefix of two
+    # consecutive hypotheses contains a sentence-terminal punctuation mark.
+    # The new default "alignatt_frontier" commits every contiguous prefix of
+    # words whose AlignAtt-aligned audio end_time is far enough from the
+    # current audio frontier — strictly symmetric to the MT-side accessibility
+    # rule. It is model-agnostic and does not depend on the model emitting
+    # punctuation. The legacy mode is kept for ablation only.
+    asr_commit_mode: str = "alignatt_frontier"
+    # Safety margin between a word's aligned end_time and the current audio
+    # frontier, in milliseconds. A word with end_time <= frontier - margin is
+    # considered committable. Only used when asr_commit_mode="alignatt_frontier".
+    asr_alignatt_frontier_margin_ms: float = 500.0
 
     def __post_init__(self) -> None:
         if self.translation_alignatt_heads_path is None:
             self.translation_alignatt_heads_path = alignatt_heads_path_for(
                 self.source_lang, self.target_lang
             )
+        self._validate()
+
+    def _validate(self) -> None:
         if self.alignment_backend_name not in VALID_ALIGNMENT_BACKEND_NAMES:
             raise ValueError(
                 f"Unknown alignment_backend_name: {self.alignment_backend_name!r}"
+            )
+        if (
+            self.asr_streaming_prefix_enabled
+            and self.alignment_backend_name != "gemma_vllm_qk_fast"
+        ):
+            raise ValueError(
+                "asr_streaming_prefix_enabled=True is only supported with "
+                "alignment_backend_name='gemma_vllm_qk_fast' "
+                f"(got {self.alignment_backend_name!r})."
+            )
+        if (
+            self.gemma_vllm_force_generate_api
+            and self.alignment_backend_name != "gemma_vllm_qk_fast"
+        ):
+            raise ValueError(
+                "gemma_vllm_force_generate_api=True is only meaningful with "
+                "alignment_backend_name='gemma_vllm_qk_fast' "
+                f"(got {self.alignment_backend_name!r})."
+            )
+        if self.asr_commit_mode not in ("alignatt_frontier", "punctuation_lcp"):
+            raise ValueError(
+                "asr_commit_mode must be one of {'alignatt_frontier', 'punctuation_lcp'}, "
+                f"got {self.asr_commit_mode!r}."
             )
 
     def apply_overrides(self, **overrides) -> None:
@@ -189,6 +239,7 @@ class CascadeRuntimeConfig:
             self.translation_alignatt_heads_path = alignatt_heads_path_for(
                 self.source_lang, self.target_lang
             )
+        self._validate()
 
 
 @dataclass
@@ -249,6 +300,39 @@ def find_end_time(word_alignments, position: int, text: str):
         return None
     n_words_right = len(remove_punctuation(text[position + 1 :]).strip().split())
     return word_alignments[-n_words_right - 1].end_time
+
+
+def split_text_at_word_boundary(text: str, n_words: int) -> tuple[str, str]:
+    """Split ``text`` after the ``n_words``-th word, carrying trailing punctuation.
+
+    Returns ``(committed, remainder)`` such that:
+      - ``committed`` contains the first ``n_words`` words together with any
+        punctuation immediately following them;
+      - ``remainder`` is the rest of the text with leading whitespace stripped;
+      - ``remove_punctuation(committed).split()`` has length ``n_words``;
+      - ``remove_punctuation(remainder).split()`` has length ``max(0, N - n_words)``
+        where ``N`` is the original text word count.
+
+    This preserves the word-count invariant ``find_end_time`` and the
+    cascade's downstream logic assume.
+    """
+    if n_words <= 0:
+        return "", text.strip()
+    tokens = text.split()
+    committed_tokens: list[str] = []
+    cum_word_count = 0
+    last_committed_idx = -1
+    for i, tok in enumerate(tokens):
+        if remove_punctuation(tok).strip():
+            cum_word_count += 1
+        committed_tokens.append(tok)
+        last_committed_idx = i
+        if cum_word_count == n_words:
+            break
+    if cum_word_count < n_words:
+        return text, ""
+    remainder_tokens = tokens[last_committed_idx + 1 :]
+    return " ".join(committed_tokens), " ".join(remainder_tokens)
 
 
 def n_utterances(text: str) -> int:
@@ -925,37 +1009,103 @@ class CascadeSession:
                 f"lcp[-60:]={asr_segment[-60:]!r}",
                 flush=True,
             )
-        if n_utterances(asr_segment) >= 1:
-            rightest_punct_idx = max(
-                asr_segment.rfind(". "),
-                asr_segment.rfind("! "),
-                asr_segment.rfind("? "),
-            )
-            if rightest_punct_idx == -1 and asr_segment.endswith((".", "!", "?")):
-                rightest_punct_idx = len(asr_segment) - 1
 
-            end_time = find_end_time(result.words, rightest_punct_idx, asr_hypo)
-            if end_time is None:
-                return asr_hypo.strip()
-
-            utt_end_time = int(end_time * SAMPLE_RATE) + self.state.utt_timestamps[-1]
-            utt_end_time = min(utt_end_time, len(self.state.source))
-            self.state.utt_timestamps.append(utt_end_time)
-            self.state.utt_sources.append(asr_segment[: rightest_punct_idx + 1])
-            remainder = asr_hypo[rightest_punct_idx + 1 :].strip()
-            n_words_right = len(remove_punctuation(remainder).strip().split())
-            self.state.asr_hypotheses = [remainder]
-            self.state.partial_word_timestamps_ms = (
-                self.state.partial_word_timestamps_ms[-n_words_right:]
-                if n_words_right > 0
-                else []
+        if self.config.asr_commit_mode == "alignatt_frontier":
+            committed = self._try_commit_alignatt_frontier(
+                asr_hypo=asr_hypo, result=result, lcp_text=asr_segment, audio=audio
             )
-            if self.config.asr_streaming_prefix_enabled:
-                self._reset_asr_streaming_state(reset_backend=True)
+        else:
+            committed = self._try_commit_punctuation_lcp(
+                asr_hypo=asr_hypo, result=result, lcp_text=asr_segment
+            )
+        if committed is _COMMIT_ABORT:
+            return asr_hypo.strip()
 
         if self.state.utt_sources[1:]:
             return self.render_public_asr_text()
         return normalize_partial_asr_hypothesis(self.state.asr_hypotheses[-1])
+
+    def _try_commit_punctuation_lcp(
+        self, *, asr_hypo: str, result: "AlignmentResult", lcp_text: str
+    ) -> "object":
+        if n_utterances(lcp_text) < 1:
+            return None
+        rightest_punct_idx = max(
+            lcp_text.rfind(". "),
+            lcp_text.rfind("! "),
+            lcp_text.rfind("? "),
+        )
+        if rightest_punct_idx == -1 and lcp_text.endswith((".", "!", "?")):
+            rightest_punct_idx = len(lcp_text) - 1
+
+        end_time = find_end_time(result.words, rightest_punct_idx, asr_hypo)
+        if end_time is None:
+            return _COMMIT_ABORT
+
+        self._apply_commit(
+            committed_text=lcp_text[: rightest_punct_idx + 1],
+            remainder_text=asr_hypo[rightest_punct_idx + 1 :].strip(),
+            end_time_s=float(end_time),
+        )
+        return None
+
+    def _try_commit_alignatt_frontier(
+        self,
+        *,
+        asr_hypo: str,
+        result: "AlignmentResult",
+        lcp_text: str,
+        audio: np.ndarray,
+    ) -> "object":
+        words = result.words
+        if not words:
+            return None
+        if len(words) != len(remove_punctuation(asr_hypo).split()):
+            # Word-count invariant broken; fall back to no commit this chunk.
+            return None
+
+        n_lcp_words = len(remove_punctuation(lcp_text).strip().split())
+        if n_lcp_words <= 0:
+            return None
+
+        audio_frontier_s = float(len(audio)) / float(SAMPLE_RATE)
+        margin_s = max(0.0, float(self.config.asr_alignatt_frontier_margin_ms) / 1000.0)
+        safe_end_time_s = audio_frontier_s - margin_s
+
+        k_commit = 0
+        last_end_time_s = 0.0
+        for word in words[:n_lcp_words]:
+            if word.end_time > safe_end_time_s:
+                break
+            k_commit += 1
+            last_end_time_s = float(word.end_time)
+        if k_commit <= 0:
+            return None
+
+        committed_text, remainder_text = split_text_at_word_boundary(asr_hypo, k_commit)
+        self._apply_commit(
+            committed_text=committed_text.strip(),
+            remainder_text=remainder_text.strip(),
+            end_time_s=last_end_time_s,
+        )
+        return None
+
+    def _apply_commit(
+        self, *, committed_text: str, remainder_text: str, end_time_s: float
+    ) -> None:
+        utt_end_time = int(end_time_s * SAMPLE_RATE) + self.state.utt_timestamps[-1]
+        utt_end_time = min(utt_end_time, len(self.state.source))
+        self.state.utt_timestamps.append(utt_end_time)
+        self.state.utt_sources.append(committed_text)
+        n_words_right = len(remove_punctuation(remainder_text).strip().split())
+        self.state.asr_hypotheses = [remainder_text]
+        self.state.partial_word_timestamps_ms = (
+            self.state.partial_word_timestamps_ms[-n_words_right:]
+            if n_words_right > 0
+            else []
+        )
+        if self.config.asr_streaming_prefix_enabled:
+            self._reset_asr_streaming_state(reset_backend=True)
 
     def _compute_streaming_prefix(
         self,

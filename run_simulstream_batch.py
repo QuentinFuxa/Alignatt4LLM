@@ -213,6 +213,32 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--asr-streaming-rollback-words", default=2, type=int)
     parser.add_argument("--asr-streaming-unfixed-chunks", default=2, type=int)
+    parser.add_argument(
+        "--gemma-vllm-force-generate-api",
+        action="store_true",
+        help=(
+            "Ablation control for PLAN.md step 1: force gemma_vllm_qk_fast to use "
+            "llm.generate(prompt_token_ids, multi_modal_data) even without a "
+            "streaming prefix. Isolates the API path change from prefix-prefill."
+        ),
+    )
+    parser.add_argument(
+        "--asr-commit-mode",
+        choices=("alignatt_frontier", "punctuation_lcp"),
+        default="alignatt_frontier",
+        help=(
+            "ASR-side commit rule. 'alignatt_frontier' (default) commits words "
+            "whose AlignAtt-aligned end_time is margin ms behind the current audio "
+            "frontier — model-agnostic, symmetric to the MT side. "
+            "'punctuation_lcp' is the legacy punctuation-based rule kept for ablation."
+        ),
+    )
+    parser.add_argument(
+        "--asr-alignatt-frontier-margin-ms",
+        type=float,
+        default=500.0,
+        help="Safety margin (ms) for alignatt_frontier commit rule. Default 500.",
+    )
     return parser.parse_args()
 
 
@@ -243,6 +269,9 @@ def main() -> None:
         asr_streaming_prefix_enabled=args.asr_streaming_prefix_enabled,
         asr_streaming_rollback_words=args.asr_streaming_rollback_words,
         asr_streaming_unfixed_chunks=args.asr_streaming_unfixed_chunks,
+        gemma_vllm_force_generate_api=args.gemma_vllm_force_generate_api,
+        asr_commit_mode=args.asr_commit_mode,
+        asr_alignatt_frontier_margin_ms=args.asr_alignatt_frontier_margin_ms,
     )
 
     print("Loading models ...")
@@ -304,6 +333,8 @@ def main() -> None:
         "temperature", "repetition_penalty",
         "asr_streaming_prefix_enabled", "asr_streaming_rollback_words",
         "asr_streaming_unfixed_chunks",
+        "gemma_vllm_force_generate_api",
+        "asr_commit_mode", "asr_alignatt_frontier_margin_ms",
     ]:
         runtime_config[key] = getattr(processor.session.config, key, None)
 

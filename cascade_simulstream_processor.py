@@ -72,6 +72,9 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "asr_streaming_prefix_enabled",
             "asr_streaming_rollback_words",
             "asr_streaming_unfixed_chunks",
+            "gemma_vllm_force_generate_api",
+            "asr_commit_mode",
+            "asr_alignatt_frontier_margin_ms",
         ]
         overrides = {
             key: getattr(config, key)
