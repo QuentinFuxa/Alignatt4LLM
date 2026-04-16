@@ -9,6 +9,7 @@ from cascade_mt_backend import (
     LayerInputCapture,
     MTBackendResult,
     SelectedLayerInputRecorder,
+    TokenProvenanceBreakdown,
     compute_alignatt_source_argmaxes,
     compute_prefix_online_alignatt_source_argmaxes,
     extract_source_attention_rows_per_token_from_fast_path,
@@ -330,7 +331,7 @@ def test_extract_source_attention_rows_per_token_from_fast_path_matches_causal_s
         )
     ]
 
-    rows_per_token = extract_source_attention_rows_per_token_from_fast_path(
+    rows_per_token, provenance = extract_source_attention_rows_per_token_from_fast_path(
         layer_inputs_by_layer=layer_inputs,
         prompt_kv_snapshot=prompt_kv_snapshot,
         alignatt_heads=[AlignAttHead(layer=3, head=0, ts=1.0)],
@@ -348,6 +349,7 @@ def test_extract_source_attention_rows_per_token_from_fast_path_matches_causal_s
     assert len(rows_per_token) == 2
     assert torch.allclose(rows_per_token[0], expected[0].unsqueeze(0), atol=1e-6)
     assert torch.allclose(rows_per_token[1], expected[1].unsqueeze(0), atol=1e-6)
+    assert provenance == []
 
 
 def test_resolve_prompt_and_suffix_key_states_for_layer_prefers_runtime_cache_for_full_attention():
@@ -1022,3 +1024,122 @@ def test_structured_prompt_header_tracks_source_language_label():
     current_user_message = rendered.messages[1]["content"]
     assert "[Current English ASR prefix]" in current_user_message
     assert rendered.messages[-1] == {"role": "assistant", "content": "因为我"}
+
+
+def test_provenance_partitions_attention_mass_into_four_regions():
+    """Provenance masses must sum to ~1.0 and respect the source partition.
+
+    Uses the same fixture as the causal-softmax test (2 prompt positions both
+    in source, 2 draft tokens, 1 head) with accessible_source_token_count=1
+    so position 0 is accessible and position 1 is inaccessible. Since every
+    prompt position is a source position, non_source_prompt should be ~0.
+    """
+    module = FakeAttentionModule()
+    hidden_states = torch.tensor(
+        [
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+            ]
+        ],
+        dtype=torch.float32,
+    )
+    cos = torch.ones(1, 2, 2, dtype=torch.float32)
+    sin = torch.zeros(1, 2, 2, dtype=torch.float32)
+    layer_inputs = {
+        3: LayerInputCapture(
+            module=module,
+            hidden_states=hidden_states,
+            position_embeddings=(cos, sin),
+        )
+    }
+    prompt_kv_snapshot = [
+        (
+            3,
+            torch.tensor(
+                [
+                    [
+                        [[1.0, 0.0], [0.0, 1.0]],
+                        [[0.0, 0.0], [0.0, 0.0]],
+                    ]
+                ],
+                dtype=torch.float32,
+            ),
+            torch.zeros(1, 2, 2, 2, dtype=torch.float32),
+            2,
+        )
+    ]
+
+    _, provenance = extract_source_attention_rows_per_token_from_fast_path(
+        layer_inputs_by_layer=layer_inputs,
+        prompt_kv_snapshot=prompt_kv_snapshot,
+        alignatt_heads=[AlignAttHead(layer=3, head=0, ts=1.0)],
+        source_positions=[0, 1],
+        accessible_source_token_count=1,
+    )
+
+    assert len(provenance) == 2
+    for p in provenance:
+        total = p.source_accessible + p.source_inaccessible + p.non_source_prompt + p.suffix
+        assert abs(total - 1.0) < 1e-5, f"masses sum to {total}"
+        assert p.non_source_prompt < 1e-5
+
+    e = float(torch.exp(torch.tensor(1.0)))
+    assert abs(provenance[0].source_accessible - e / (2 * e + 1)) < 1e-5
+    assert abs(provenance[0].source_inaccessible - 1 / (2 * e + 1)) < 1e-5
+    assert abs(provenance[1].suffix - 0.5) < 1e-5
+
+
+def test_provenance_weak_acceptance_stops_at_low_source_mass_token():
+    """When min_source_mass is set, tokens with weak source support are rejected.
+
+    This exercises the Phase 5 "source-safe" acceptance gate: even if the
+    argmax source position is within the accessible frontier, a token whose
+    attention mass is mostly non-source should not be blindly accepted.
+    """
+    from types import SimpleNamespace
+
+    runtime_config = SimpleNamespace(
+        translation_alignatt_rewind_threshold=3,
+        translation_alignatt_min_source_mass=0.5,
+    )
+    policy = AlignAttDecoderPolicy(tokenizer=None, runtime_config=runtime_config)
+
+    provenance_per_token = [
+        TokenProvenanceBreakdown(source_accessible=0.7, source_inaccessible=0.1, non_source_prompt=0.1, suffix=0.1),
+        TokenProvenanceBreakdown(source_accessible=0.6, source_inaccessible=0.1, non_source_prompt=0.2, suffix=0.1),
+        TokenProvenanceBreakdown(source_accessible=0.3, source_inaccessible=0.1, non_source_prompt=0.4, suffix=0.2),
+        TokenProvenanceBreakdown(source_accessible=0.8, source_inaccessible=0.0, non_source_prompt=0.1, suffix=0.1),
+    ]
+
+    draft_token_ids = [101, 102, 103, 104]
+    aligned_positions = [0, 2, 4, 6]
+    accessible_source_token_count = 10
+
+    accepted: list[int] = []
+    unsafe_reason = None
+    last_aligned: int | None = None
+    min_source_mass = float(runtime_config.translation_alignatt_min_source_mass)
+
+    for token_index, (token_id, aligned) in enumerate(
+        zip(draft_token_ids, aligned_positions)
+    ):
+        unsafe_reason, _, _, _ = policy.should_stop_in_loop(
+            current_source_local_position=aligned,
+            last_aligned_source_local_position=last_aligned,
+            accessible_source_token_count=accessible_source_token_count,
+        )
+        if unsafe_reason in {"rewind", "source_frontier"}:
+            break
+        if (
+            min_source_mass > 0.0
+            and token_index < len(provenance_per_token)
+            and provenance_per_token[token_index].source_accessible < min_source_mass
+        ):
+            unsafe_reason = "provenance_weak"
+            break
+        accepted.append(token_id)
+        last_aligned = aligned
+
+    assert unsafe_reason == "provenance_weak"
+    assert accepted == [101, 102]

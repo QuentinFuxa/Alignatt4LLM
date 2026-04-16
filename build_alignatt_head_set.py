@@ -103,6 +103,15 @@ def resolve_direction_paths(overrides: list[str]) -> dict[str, str]:
     return resolved
 
 
+def _report_head_set_cost(heads, regime_label: str) -> None:
+    """Print cost-aware summary: head count, distinct layers, layer list."""
+    layers = sorted({h.layer for h in heads})
+    print(f"  {regime_label}: {len(heads)} heads across {len(layers)} layers")
+    print(f"  layers touched: {layers}")
+    for h in heads:
+        print(f"    L{h.layer:>2} H{h.head:>2}  ts={h.ts:.3f}")
+
+
 def main() -> None:
     args = parse_args()
     direction_paths = resolve_direction_paths(args.direction_path)
@@ -126,6 +135,7 @@ def main() -> None:
             },
         )
         print(f"Wrote {len(heads)} heads for {args.direction} to {written}")
+        _report_head_set_cost(heads, f"per_direction({args.direction})")
         return
 
     heads_by_direction = load_alignatt_heads_by_direction(
@@ -148,6 +158,7 @@ def main() -> None:
             f"Wrote shared kernel of {len(heads)} heads "
             f"(from {sorted(heads_by_direction)} @ top_k={args.top_k}) to {written}"
         )
+        _report_head_set_cost(heads, "shared_kernel")
         return
 
     heads = multilingual_union_alignatt_heads(
@@ -169,6 +180,7 @@ def main() -> None:
         f"(from {sorted(heads_by_direction)} @ top_k={args.top_k}, "
         f"max_heads={args.max_heads}) to {written}"
     )
+    _report_head_set_cost(heads, "multilingual_union")
 
 
 if __name__ == "__main__":

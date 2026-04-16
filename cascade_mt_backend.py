@@ -41,6 +41,15 @@ class DraftDecodingResult:
     timings_ms: dict[str, float] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class TokenProvenanceBreakdown:
+    """Per-token attention mass distribution across prompt regions."""
+    source_accessible: float
+    source_inaccessible: float
+    non_source_prompt: float
+    suffix: float
+
+
 @dataclass
 class AlignAttProbeResult:
     accepted_candidate_ids: list[int]
@@ -53,6 +62,7 @@ class AlignAttProbeResult:
     rewind_to_local_position: int | None = None
     stop_reason: str | int | None = None
     probe_backend: str | None = None
+    provenance: list[TokenProvenanceBreakdown] | None = None
     timings_ms: dict[str, float] = field(default_factory=dict)
 
 
@@ -955,7 +965,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
         prompt_num_tokens: int,
         prompt_kv_snapshot,
         source_map: PromptSourceMap,
-    ) -> tuple[list[torch.Tensor], float]:
+    ) -> tuple[list[torch.Tensor], float, list[TokenProvenanceBreakdown]]:
         if self.alignatt_layer_input_recorder is None:
             raise RuntimeError("AlignAtt layer-input recorder is not initialized.")
 
@@ -971,15 +981,16 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
             self.qk_fast_probe_supported = True
         else:
             self.qk_fast_probe_supported = False
-        source_attention_rows_per_token = extract_source_attention_rows_per_token_from_fast_path(
+        source_attention_rows_per_token, provenance = extract_source_attention_rows_per_token_from_fast_path(
             layer_inputs_by_layer=captured_layer_inputs,
             prompt_kv_snapshot=prompt_kv_snapshot,
             runtime_past_key_values=None if outputs is None else outputs.past_key_values,
             alignatt_heads=self.alignatt_heads,
             source_positions=source_map.source_token_positions,
+            accessible_source_token_count=source_map.accessible_source_token_count,
         )
         probe_ms = (perf_counter() - probe_start) * 1000.0
-        return source_attention_rows_per_token, probe_ms
+        return source_attention_rows_per_token, probe_ms, provenance
 
     def _probe_source_attention_rows_eager(
         self,
@@ -988,7 +999,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
         prompt_num_tokens: int,
         prompt_kv_snapshot,
         source_map: PromptSourceMap,
-    ) -> tuple[list[torch.Tensor], float]:
+    ) -> tuple[list[torch.Tensor], float, list[TokenProvenanceBreakdown]]:
         if self.alignatt_recorder is None:
             raise RuntimeError("AlignAtt recorder is not initialized.")
 
@@ -1006,7 +1017,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
             source_positions=source_map.source_token_positions,
         )
         probe_ms = (perf_counter() - probe_start) * 1000.0
-        return source_attention_rows_per_token, probe_ms
+        return source_attention_rows_per_token, probe_ms, []
 
     def probe_alignatt(
         self,
@@ -1043,8 +1054,9 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
             raise RuntimeError("Prompt KV snapshot is required for AlignAtt replay probing.")
 
         probe_backend = self.alignatt_probe_mode
+        provenance: list[TokenProvenanceBreakdown] = []
         if probe_backend == "qk_fast" and self.qk_fast_probe_supported is False:
-            source_attention_rows_per_token, probe_ms = self._probe_source_attention_rows_eager(
+            source_attention_rows_per_token, probe_ms, provenance = self._probe_source_attention_rows_eager(
                 draft_generated_ids=draft_generated_ids,
                 prompt_num_tokens=prompt_num_tokens,
                 prompt_kv_snapshot=prompt_kv_snapshot,
@@ -1052,14 +1064,14 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
             )
             probe_backend = "eager_fast_unavailable"
         elif probe_backend == "qk_fast":
-            source_attention_rows_per_token, probe_ms = self._probe_source_attention_rows_qk_fast(
+            source_attention_rows_per_token, probe_ms, provenance = self._probe_source_attention_rows_qk_fast(
                 draft_generated_ids=draft_generated_ids,
                 prompt_num_tokens=prompt_num_tokens,
                 prompt_kv_snapshot=prompt_kv_snapshot,
                 source_map=source_map,
             )
             if not source_attention_rows_per_token:
-                source_attention_rows_per_token, probe_ms = self._probe_source_attention_rows_eager(
+                source_attention_rows_per_token, probe_ms, provenance = self._probe_source_attention_rows_eager(
                     draft_generated_ids=draft_generated_ids,
                     prompt_num_tokens=prompt_num_tokens,
                     prompt_kv_snapshot=prompt_kv_snapshot,
@@ -1067,7 +1079,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
                 )
                 probe_backend = "eager_fallback"
         else:
-            source_attention_rows_per_token, probe_ms = self._probe_source_attention_rows_eager(
+            source_attention_rows_per_token, probe_ms, provenance = self._probe_source_attention_rows_eager(
                 draft_generated_ids=draft_generated_ids,
                 prompt_num_tokens=prompt_num_tokens,
                 prompt_kv_snapshot=prompt_kv_snapshot,
@@ -1095,6 +1107,9 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
         rewind_to_local_position: int | None = None
         stop_reason = upstream_stop_reason
         last_aligned_source_local_position: int | None = None
+        min_source_mass = float(
+            getattr(self.runtime_config, "translation_alignatt_min_source_mass", 0.0)
+        )
 
         for token_index, (token_id, current_source_local_position) in enumerate(
             zip(draft_generated_ids, aligned_source_local_positions)
@@ -1122,6 +1137,16 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
                 )
                 stop_reason = "alignatt:source_frontier"
                 break
+            if (
+                min_source_mass > 0.0
+                and provenance
+                and token_index < len(provenance)
+                and provenance[token_index].source_accessible < min_source_mass
+            ):
+                unsafe_reason = "provenance_weak"
+                unsafe_target_token_index = token_index
+                stop_reason = "alignatt:provenance_weak"
+                break
             accepted_candidate_ids.append(int(token_id))
             if current_source_local_position is not None:
                 last_aligned_source_local_position = current_source_local_position
@@ -1137,6 +1162,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
             rewind_to_local_position=rewind_to_local_position,
             stop_reason=stop_reason,
             probe_backend=probe_backend,
+            provenance=provenance or None,
             timings_ms={
                 "alignment_probe": probe_ms,
             },
@@ -1210,6 +1236,16 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
             )
             accepted_token_ids = self.encode_semantic_target_token_ids(acceptance_text)
             alignatt_metadata = acceptance.alignatt_metadata
+            if probe_result.provenance:
+                alignatt_metadata["provenance_per_draft_token"] = [
+                    {
+                        "source_accessible": p.source_accessible,
+                        "source_inaccessible": p.source_inaccessible,
+                        "non_source_prompt": p.non_source_prompt,
+                        "suffix": p.suffix,
+                    }
+                    for p in probe_result.provenance
+                ]
             stop_reason = probe_result.stop_reason
             timings_ms = {
                 "prompt_render": prompt_render_ms,
@@ -1691,9 +1727,10 @@ def extract_source_attention_rows_per_token_from_fast_path(
     runtime_past_key_values=None,
     alignatt_heads: Sequence[AlignAttHead],
     source_positions: Sequence[int],
-) -> list[torch.Tensor]:
+    accessible_source_token_count: int | None = None,
+) -> tuple[list[torch.Tensor], list[TokenProvenanceBreakdown]]:
     if not layer_inputs_by_layer or not prompt_kv_snapshot or not alignatt_heads or not source_positions:
-        return []
+        return [], []
 
     prompt_key_cache_by_layer = snapshot_to_layer_key_cache(prompt_kv_snapshot)
     runtime_key_cache_by_layer = runtime_cache_to_layer_key_cache(runtime_past_key_values)
@@ -1704,6 +1741,12 @@ def extract_source_attention_rows_per_token_from_fast_path(
     query_states_by_layer: dict[int, torch.Tensor] = {}
     resolved_key_states_by_layer: dict[int, tuple[torch.Tensor, torch.Tensor]] = {}
     head_row_matrices: list[torch.Tensor] = []
+
+    compute_provenance = accessible_source_token_count is not None
+    accessible_source_idxs: torch.Tensor | None = None
+    inaccessible_source_idxs: torch.Tensor | None = None
+    provenance_mass_sums: torch.Tensor | None = None
+    provenance_head_count = 0
 
     for alignatt_head in alignatt_heads:
         layer_idx = int(alignatt_head.layer)
@@ -1796,11 +1839,61 @@ def extract_source_attention_rows_per_token_from_fast_path(
             row_matrix[:, prompt_valid] = full_weights[:, source_index_tensor[prompt_valid]]
         head_row_matrices.append(row_matrix)
 
+        if compute_provenance:
+            prompt_length = int(prompt_key_head.shape[0])
+            nq = int(full_weights.shape[0])
+            if provenance_mass_sums is None:
+                provenance_mass_sums = torch.zeros(nq, 4, device=full_weights.device)
+                accessible_source_idxs = torch.tensor(
+                    list(source_positions[:accessible_source_token_count]),
+                    device=full_weights.device, dtype=torch.long,
+                )
+                inaccessible_source_idxs = torch.tensor(
+                    list(source_positions[accessible_source_token_count:]),
+                    device=full_weights.device, dtype=torch.long,
+                )
+
+            suffix_mass = full_weights[:, prompt_length:].sum(dim=-1)
+
+            acc_valid = (accessible_source_idxs >= 0) & (accessible_source_idxs < prompt_length)
+            accessible_mass = torch.zeros(nq, device=full_weights.device)
+            if acc_valid.any():
+                accessible_mass = full_weights[:, accessible_source_idxs[acc_valid]].sum(dim=-1)
+
+            inaccessible_mass = torch.zeros(nq, device=full_weights.device)
+            if inaccessible_source_idxs.numel() > 0:
+                inacc_valid = (inaccessible_source_idxs >= 0) & (inaccessible_source_idxs < prompt_length)
+                if inacc_valid.any():
+                    inaccessible_mass = full_weights[:, inaccessible_source_idxs[inacc_valid]].sum(dim=-1)
+
+            non_source_mass = (1.0 - accessible_mass - inaccessible_mass - suffix_mass).clamp_min(0.0)
+
+            provenance_mass_sums[:, 0] += accessible_mass
+            provenance_mass_sums[:, 1] += inaccessible_mass
+            provenance_mass_sums[:, 2] += non_source_mass
+            provenance_mass_sums[:, 3] += suffix_mass
+            provenance_head_count += 1
+
     if not head_row_matrices:
-        return []
+        return [], []
 
     stacked = torch.stack(head_row_matrices, dim=0)
-    return [stacked[:, query_index, :] for query_index in range(stacked.shape[1])]
+    source_rows = [stacked[:, query_index, :] for query_index in range(stacked.shape[1])]
+
+    provenance: list[TokenProvenanceBreakdown] = []
+    if provenance_mass_sums is not None and provenance_head_count > 0:
+        avg = provenance_mass_sums / float(provenance_head_count)
+        provenance = [
+            TokenProvenanceBreakdown(
+                source_accessible=float(avg[q, 0]),
+                source_inaccessible=float(avg[q, 1]),
+                non_source_prompt=float(avg[q, 2]),
+                suffix=float(avg[q, 3]),
+            )
+            for q in range(avg.shape[0])
+        ]
+
+    return source_rows, provenance
 
 
 def extract_source_qk_rows_per_token(

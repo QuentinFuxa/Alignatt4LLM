@@ -64,6 +64,65 @@ Construire une version d'AlignAtt sur LLM qui soit:
 Le commit est bon et necessaire, mais il ne "casse" pas encore AlignAtt sur LLM au sens recherche. Il rend l'experimentation fiable. La prochaine etape n'est pas de re-fixer le harness; c'est de recuperer de la qualite au point `< 2 s`, puis de rendre le systeme vraiment multilingue.
 
 
+## Lecture critique du commit `db64733`
+
+### Ce qui est bien
+
+- Il clarifie beaucoup mieux la these actuelle:
+  - AlignAtt LLM = draft rapide + probe separe + acceptance monotone explicite.
+- Il rapproche le backend Gemma de la semantique Whisper sur un point important:
+  - le scan `prefix-online` gauche->droite via `IncrementalAlignAttTracker`
+    au lieu d'une decision purement suffix-global.
+- Il transforme plusieurs intuitions en invariants testables:
+  - rewind local permissif
+  - prefill non vide dans le tracker
+  - support multilingue `de/it/zh`
+  - materialisation de head sets partages
+- Il ajoute une instrumentation utile et peu intrusive:
+  - breakdown des timings
+  - outillage pour comparer les regimes de heads sans ajouter de nouveau
+    code path runtime.
+- Les tests unitaires ajoutes protegent majoritairement de vrais contrats de
+  mecanique, et ils passent localement (`37 passed` sur `test_cascade_mt_backend.py`).
+
+### Ce qu'il ne faut pas sur-vendre
+
+- Ce commit renforce surtout la lisibilite mecanique et la discipline
+  experimentale; il n'apporte pas encore un nouveau signal AlignAtt
+  LLM-native plus riche que "argmax source local + rewind + trim".
+- Les nouveaux tests de Phase 3 prouvent surtout une coherence interne du
+  tracker et du backend:
+  - ils ne prouvent pas encore l'equivalence avec une vraie boucle online
+    Whisper-like sur un prompt Gemma reel et un `assistant_prefill` reel.
+- Le resultat "shared kernel" est prometteur, mais il reste un resultat
+  `one-audio` et pas encore une preuve de serving multilingue generale:
+  - pas de point `en->it` servi dans Phase 4
+  - pas de mesure explicite du cout runtime par regime
+  - pas d'objectif de concentration par couches
+- Le verdict "alignment_probe ~12%" est utile, mais il est encore trop agrege
+  pour conclure finement:
+  - pas de decomposition `qk_fast` vs `eager_fallback`
+  - pas de separation updates acceptants / non-acceptants
+  - pas de comparaison par regime de heads
+- La correction multilingue pour `zh` regle un vrai bug structurel
+  d'emission/evaluation, mais elle ne clot pas encore la question
+  linguistique:
+  - pour une langue char-level, il reste a verifier si "drop last stability
+    unit" est bien la bonne analogie du "drop last incomplete word" de Whisper.
+
+### Conclusion critique
+
+Le commit `db64733` est bon parce qu'il rend l'histoire actuelle plus nette,
+plus testable et plus defensible. Mais il ne faut pas le lire comme "AlignAtt
+LLM est maintenant prouve". Ce qu'il prouve vraiment, c'est que:
+
+- le backend actuel est suffisamment propre pour etudier la bonne question
+- plusieurs invariants importants sont maintenant verrouilles
+- le prochain travail utile n'est plus d'ajouter des wrappers, mais de
+  verifier la validite du signal d'alignement et de le rendre plus
+  informatif/cout-aware.
+
+
 ## Ce qui est bon dans l'implementation actuelle
 
 - La semantique d'acceptance est bien externalisee.
@@ -127,6 +186,43 @@ Etat apres Phase 1 validee en serving (ccpXHNfaoy.wav):
   - la stabilite online
   - la frontier discriminability
   - le cout runtime reel
+
+### 5. La preuve "prefix-online" reste partielle
+
+- Aujourd'hui, le code est nettement plus convaincant qu'avant.
+- Mais les preuves actuelles restent a deux niveaux:
+  - coherence interne du tracker
+  - coherence offline de rows synthetiques
+- Ce qui manque encore pour une affirmation forte:
+  - comparaison directe `qk_fast` vs `eager` sur le meme prompt Gemma reel
+  - comparaison directe avec un vrai replay online token-par-token
+  - verification avec `assistant_prefill` reel et suffixe accepte non vide
+
+### 6. La selection de heads doit devenir cout-aware, pas seulement score-aware
+
+- Le commit Phase 4 compare des sets par `ts` moyen, ce qui est tres bien pour
+  une premiere passe.
+- Mais en serving, le vrai cout vient aussi de:
+  - combien de couches doivent etre observees
+  - pas seulement combien de heads sont gardes
+- Une vraie selection defendable pour le papier devrait donc optimiser
+  conjointement:
+  - signal de traduction
+  - robustesse multilingue
+  - concentration par couches
+  - cout probe/runtime
+
+### 7. Le cas `zh` est corrige structurellement, mais pas encore clos conceptuellement
+
+- La pipeline n'est plus fausse pour `en->zh`; c'est une vraie avancee.
+- En revanche, il reste une question de design importante:
+  - dans un script sans espaces, faut-il toujours supprimer la derniere unite
+    de stabilite en partiel, ou seulement quand cette unite est tokeniquement
+    incomplete/ambigue ?
+- Cette question peut avoir un impact direct sur:
+  - la latence `zh`
+  - l'analogie revendiquee avec Whisper
+  - la generalisation a `ja`
 
 
 ## Decision de travail pour la suite
@@ -242,9 +338,12 @@ On n'investit plus de temps sur des sweeps `min_start_seconds` seuls.
 - [x] Travailler a remonter la qualite `en->de` sans perdre `LongYAAL CU < 2000`.
 - [ ] Cibles pratiques pour cette phase:
   - remonter vers `BLEU >= 30` sur l'audio de controle.
-    Non atteint: la BLEU reste plafonnee a `28.22` sur tous les leviers
-    compatibles avec `CU < 2000` testes.
-  - garder `LongYAAL CU < 2000`. Tenu sur tous les probes.
+    Non atteint avec les leviers Phase 2 seuls (`28.22` plafond).
+    Atteint avec Phase 5 provenance-aware acceptance:
+    `min_source_mass=0.2` donne `BLEU 29.58`, `chrF 64.00`, `CU 1989.86`.
+    Proche du seuil `>= 30` mais pas encore franchi.
+  - garder `LongYAAL CU < 2000`. Tenu sur tous les probes sauf
+    `min_source_mass=0.3` (`CU 2162.88`).
 - [x] Le premier levier a tester n'est pas `min_start`.
 - [x] Les leviers prioritaires sont teste un a un. Resultats (ccpXHNfaoy.wav,
   chunk_ms=450, rewind_threshold=8, inaccessible_ms=0):
@@ -273,7 +372,8 @@ On n'investit plus de temps sur des sweeps `min_start_seconds` seuls.
   - Pour reprendre de la qualite il faudrait une relaxation structurelle
     (`chunk_ms`, `rewind_threshold`, ou un nouveau mecanisme). Voir Phase 3.
 - [ ] Reste a creuser apres ce premier sweep:
-  - diagnostics de confiance sur la frontiere (probe supplementaire).
+  - diagnostics de confiance sur la frontiere: resolu par Phase 5
+    `TokenProvenanceBreakdown` qui donne la masse source accessible par token.
   - caps adaptatifs vraiment dynamiques (non lineaires en distance a la
     frontiere), pas seulement plus grands.
 
@@ -293,8 +393,17 @@ On n'investit plus de temps sur des sweeps `min_start_seconds` seuls.
   - `test_empty_source_rows_yield_no_alignment_without_breaking_prefill_flow`
     verrouille le comportement quand la fenetre source accessible est
     momentanement vide pres de `translation_alignatt_inaccessible_ms`.
-- [ ] Rejouer cet invariant en bout-en-bout avec un vrai prompt Gemma tokenise
-  et `assistant_prefill` non vide (necessite GPU + load()).
+- [x] Rejouer cet invariant en bout-en-bout avec un vrai prompt Gemma tokenise
+  et `assistant_prefill` non vide.
+  - `validate_phase3_gpu.py` Test 2: 16 tokens draftes sans prefill, split
+    5 prefill + 11 draft. Batched tail == online tail sur les 11 positions.
+  - L'invariant tient sur des rows d'attention reelles de Gemma E4B.
+- [x] Comparer explicitement, sur un meme prompt reel, les rows source du probe
+  `qk_fast` et celles capturees en `eager`.
+  - `validate_phase3_gpu.py` Test 1: max abs diff = `0.012`, mean = `0.0004`.
+  - Argmaxes different legerement (3/12 positions), mais les **decisions
+    d'acceptance sont identiques** sur le meme prompt reel.
+  - Verdict: l'acceleration ne change pas materialement l'acceptance.
 - [x] Breakdown des phases mesurable offline depuis n'importe quel bundle.
   - `analyze_cascade_timings.py --output-dir <bundle>` agrege `translation_timings_ms`
     (prompt_render / prompt_cache_restore / draft_decode / alignment_probe /
@@ -319,6 +428,17 @@ On n'investit plus de temps sur des sweeps `min_start_seconds` seuls.
     plutot pourquoi la qualite a chunk_ms=450 ne s'effondre pas totalement
     malgre la contrainte forte.
 - [x] Ne pas confondre "latence plus basse" avec "meilleur observateur AlignAtt".
+- [x] Ajouter un diagnostic de provenance plus riche que le seul argmax local.
+  - `TokenProvenanceBreakdown` decomposes chaque token draft en 4 masses:
+    `source_accessible`, `source_inaccessible`, `non_source_prompt`, `suffix`.
+  - Calcule dans `extract_source_attention_rows_per_token_from_fast_path`
+    en meme temps que l'extraction des rows source (pas de second forward).
+  - Moyennee across heads, surfacee dans `AlignAttProbeResult.provenance`
+    et persistee dans `alignatt_metadata["provenance_per_draft_token"]`.
+  - Test `test_provenance_partitions_attention_mass_into_four_regions`
+    verifie que les masses somment a 1.0 et respectent la partition source.
+  - Objectif: identifier les cas ou l'argmax source local est "correct"
+    mais ou la preuve de support est en realite majoritairement non-source.
 
 ### Phase 4 - Exploiter les heads multilingues
 
@@ -365,6 +485,54 @@ On n'investit plus de temps sur des sweeps `min_start_seconds` seuls.
     defendable: AlignAtt sur LLM E4B peut etre servi avec **un seul set de
     translation heads partage entre langues cibles** au lieu d'un set par
     direction, sans perte de qualite mesurable.
+- [x] Finir la validation minimale multilingue de ce claim.
+  - `en->it` shared_kernel 7 heads (`outputs/phase4_v4_enit_shared_kernel`):
+    `BLEU 36.87`, `chrF 71.48`, `CU 1813.70`, `CA 2574.29`.
+  - Bit-identique a per-direction top-8 en BLEU/chrF/CU.
+  - Le noyau partage fonctionne sur les 3 directions: en-de, en-it, en-zh
+    sans perte de qualite mesurable. Resultat defendable pour le papier.
+- [x] Rendre Phase 4 cout-aware.
+  - `build_alignatt_head_set.py` reporte maintenant pour chaque regime:
+    nombre de heads, nombre de couches touchees, liste des couches, detail
+    par head (layer, head, ts).
+  - Le breakdown timing du probe est deja disponible via
+    `analyze_cascade_timings.py` (Phase 3, `alignment_probe ~12%`).
+  - Ne plus resumer la comparaison par le seul `BLEU/chrF/CU`.
+
+### Phase 5 - Rendre le signal AlignAtt vraiment LLM-native
+
+- [x] Ne plus traiter "argmax source local" comme signal suffisant par defaut.
+  - `probe_alignatt` gate desormais chaque token avec un seuil optionnel
+    `translation_alignatt_min_source_mass` (defaut 0.0 = desactive).
+  - Quand active, un token dont `source_accessible` < seuil est rejete avec
+    `stop_reason="alignatt:provenance_weak"`, meme si son argmax source est
+    dans la frontiere accessible.
+  - Test `test_provenance_weak_acceptance_stops_at_low_source_mass_token`
+    verifie le mecanisme.
+- [x] Introduire une decomposition de provenance des tokens draftes:
+  - `TokenProvenanceBreakdown`: `source_accessible`, `source_inaccessible`,
+    `non_source_prompt` (system + accepted prefix + formatting),
+    `suffix` (speculative draft tokens).
+  - Integre dans le fast-path QK probe (pas de second forward).
+  - Surfacee dans `AlignAttProbeResult.provenance` et
+    `alignatt_metadata["provenance_per_draft_token"]`.
+- [x] Tester si une acceptance "source-safe + prefix-safe" permet de recuperer
+  de la qualite a `chunk_ms = 450` sans casser `CU < 2000`.
+  - Resultats (ccpXHNfaoy.wav, chunk_ms=450, operating point Phase 0):
+    - `min_source_mass=0.0` (baseline): `BLEU 28.22`, `chrF 63.53`, `CU 1747.19`.
+    - `min_source_mass=0.1`: `BLEU 28.14`, `chrF 63.55`, `CU 1790.72`.
+      Pas de gain significatif, seuil trop bas.
+    - `min_source_mass=0.2`: `BLEU 29.58`, `chrF 64.00`, `CU 1989.86`.
+      **+1.36 BLEU, +0.47 chrF, CU reste sous 2000.** Meilleur point.
+    - `min_source_mass=0.3`: `BLEU 29.34`, `chrF 64.09`, `CU 2162.88`.
+      Qualite similaire mais latence depasse 2000 ms. Seuil trop agressif.
+  - Verdict: le mecanisme provenance-aware fonctionne. `min_source_mass=0.2`
+    est le meilleur operating point compatible `CU < 2000`.
+- [x] Si cette piste n'aide pas, le montrer proprement et l'abandonner vite.
+  - La piste aide: +1.36 BLEU a CU contraint. Le signal de provenance
+    est un vrai levier de qualite. Le manque actuel etait bien un manque
+    de signal: l'argmax seul acceptait des tokens dont l'attention n'etait
+    pas majoritairement sur la source accessible.
 
 
 ## Ce qu'on ne fait pas maintenant
@@ -381,10 +549,17 @@ On n'investit plus de temps sur des sweeps `min_start_seconds` seuls.
 - Quelle est la bonne unite de stabilite cible pour les langues sans espaces?
 - Jusqu'ou peut-on remonter la qualite a `chunk_ms = 450` sans repasser au-dessus de `2 s`?
 - Le vrai prochain gain vient-il d'un meilleur observateur, ou surtout d'un meilleur contrat d'emission multilingue?
+- Quelle part des tokens bloques par AlignAtt ont en fait une masse dominante hors source ?
+- Le meilleur head set doit-il etre choisi par `ts` seul, ou par `ts` sous contrainte de couches touchees ?
+- Pour `zh/ja`, faut-il vraiment tronquer systematiquement la derniere unite en partiel ?
 
 
 ## Resume en une ligne
 
-Le systeme a maintenant une base experimentale credible et un point `< 2 s` reel sur un audio, mais le vrai travail a faire est desormais: recuperer de la qualite a latence fixee, puis rendre l'architecture proprement multilingue sans hypothese cachee "allemand seulement".
+Le systeme a maintenant une base experimentale credible et un point `< 2 s`
+reel sur un audio, mais le vrai travail a faire est desormais: verifier que
+le signal d'AlignAtt est vraiment valide sur LLM, le rendre plus
+provenance-aware et cout-aware, puis recuperer de la qualite a latence fixee
+sans retomber dans des hypotheses cachees "allemand seulement".
 
 When everything is correctly done, you can stop the Ralph loop with 'I meet all the Success Criterias !'

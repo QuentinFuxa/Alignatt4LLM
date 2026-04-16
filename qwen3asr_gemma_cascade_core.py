@@ -210,6 +210,7 @@ config = SimpleNamespace(
     # permissive inline rewind guard to preserve German reordering freedom.
     translation_alignatt_inaccessible_ms=0.0,
     translation_alignatt_rewind_threshold=8,
+    translation_alignatt_min_source_mass=0.0,
     max_new_tokens=160,
     partial_max_new_tokens=48,
     partial_followup_max_new_tokens=16,

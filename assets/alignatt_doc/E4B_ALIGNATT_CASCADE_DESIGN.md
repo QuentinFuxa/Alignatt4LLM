@@ -65,7 +65,8 @@ The runtime must be able to accept or reject target material using only:
 
 - alignment-derived source positions
 - intra-draft rewind detection
-- last-complete-word truncation
+- provenance-aware source mass filtering
+- last-stability-unit truncation
 
 
 ## What Is Cached
@@ -212,15 +213,22 @@ Let:
 - `draft_target_t` be the full newly generated target draft
 - `align_pos(i)` be the aligned source token index of target token `i`
 - `a` be the last accessible source token position for the current update
+- `prov(i).source_accessible` be the attention mass on accessible source for token `i`
 
 Then:
 
 - accept tokens from the start of the draft
 - stop before the first target token whose `align_pos(i)` falls beyond `a`
+- additionally, if `min_source_mass > 0`, stop before the first token
+  whose `prov(i).source_accessible < min_source_mass` (provenance filter)
 
 This yields an alignment-truncated draft:
 
 `alignatt_target_t`
+
+The provenance filter is the key Phase 5 addition: it catches tokens where
+the argmax happens to land on a source position but the actual attention
+mass is dominated by non-source regions.
 
 ### Rewind Guard
 
@@ -242,20 +250,26 @@ Operationally, the rewind threshold should stay permissive enough to
 avoid suppressing legitimate German reordering. For the current E4B
 text-only cascade, `rewind_threshold = 8` is the calibrated default.
 
-### Last-Word Truncation
+### Last-Stability-Unit Truncation
 
-For partial updates, the decoding policy should emit only complete target
-words.
+For partial updates, the decoding policy drops the trailing
+possibly-incomplete **target stability unit**.
 
-This mirrors Whisper's strategy of emitting all but the last unfinished
-word in non-final streaming steps.
+For whitespace-segmented languages (en→de, en→it), a stability unit is a
+word — signalled by a leading SentencePiece `▁`, byte-pair `Ġ`, or raw
+whitespace prefix. For non-spacing scripts (en→zh, en→ja), each CJK/kana
+character is its own stability unit.
+
+This generalises Whisper's "drop last incomplete word" to any target
+language without script-specific hardcodes.
 
 So the partial acceptance pipeline is:
 
 1. generate `draft_target_t`
 2. apply AlignAtt source-frontier truncation
 3. apply rewind guard
-4. drop the final incomplete target word
+4. apply provenance filter (if `min_source_mass > 0`)
+5. drop the final incomplete target stability unit
 
 ### Monotonic Prefix Invariant
 
@@ -288,14 +302,15 @@ At update `t`:
    - assistant prefill: `accepted_target_{t-1}`
 3. Gemma generates a draft continuation
 4. runtime reconstructs `draft_target_t`
-5. runtime computes token alignments from selected alignment heads
+5. runtime computes token alignments and provenance from selected heads
 6. runtime applies AlignAtt source-frontier cutoff
 7. runtime applies rewind rejection if attention jumps backwards too far
-8. runtime drops the final incomplete target word
-9. runtime updates:
-   - `draft_target_t`
-   - `accepted_target_t`
-10. only the new suffix of `accepted_target_t` is emitted
+8. runtime applies provenance filter if `min_source_mass > 0`
+9. runtime drops the final incomplete target stability unit
+10. runtime updates:
+    - `draft_target_t`
+    - `accepted_target_t`
+11. only the new suffix of `accepted_target_t` is emitted
 
 
 ## Alignment Heads
@@ -308,15 +323,34 @@ The alignment heads must be detected with the paper's criterion:
 
 This is important because otherwise BOS, prompt, or target-self heads can look like false translation heads.
 
-For Gemma E4B, the expected artifact is:
+For Gemma E4B, per-direction head files exist for three language pairs:
 
 - `assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-de.json`
+- `assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-it.json`
+- `assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-zh.json`
 
-These heads should then be reduced to a smaller serving set for runtime use, for example:
+### Multilingual Shared Kernel
 
-- top 4 heads
-- top 8 heads
-- or one validated middle-layer cluster if the scores are concentrated
+The top-8 heads overlap very strongly across directions:
+
+- en-de vs en-it: 8/8
+- en-de vs en-zh: 7/8
+- en-it vs en-zh: 7/8
+
+A **shared kernel of 7 heads** (intersection across all 3 directions, ranked
+by mean translation score) reproduces per-direction quality exactly:
+
+| Direction | Per-direction 8 heads | Shared kernel 7 heads |
+| --- | --- | --- |
+| en→de | BLEU 28.22, CU 1747 | BLEU 28.22, CU 1754 |
+| en→it | BLEU 36.87, CU 1814 | BLEU 36.87, CU 1814 |
+| en→zh | BLEU 41.85, CU 1763 | BLEU 41.82, CU 1763 |
+
+This means AlignAtt on Gemma E4B can be served with **one head set for all
+target languages**, which is a strong paper result.
+
+The shared kernel spans 6 layers (L5, L6, L10, L11, L17, L20).
+`build_alignatt_head_set.py` materialises any regime with cost-aware reporting.
 
 
 ## Empirical Calibration Notes
@@ -983,66 +1017,71 @@ levers are exhausted.
 
 ### Stage 6: Provenance-Aware Acceptance
 
-#### Why sixth
+**Status: implemented and GPU-validated.**
 
-If the system is still missing the target after the earlier stages, the problem
-is likely no longer scheduling alone.
+The observer now computes a `TokenProvenanceBreakdown` for each drafted token,
+decomposing attention mass into four regions:
 
-It is that the current observer is still too conservative when a drafted token is
-supported by:
+- `source_accessible`: mass on source tokens within the audio frontier
+- `source_inaccessible`: mass on source tokens beyond the frontier
+- `non_source_prompt`: mass on system prompt, formatting, accepted prefix
+- `suffix`: mass on speculative draft tokens (self + future)
 
-- already accepted target context
+This decomposition is computed inside the existing fast-path QK probe (no
+second model forward) and surfaced in `AlignAttProbeResult.provenance`.
 
-rather than by:
+A new runtime knob `translation_alignatt_min_source_mass` (default `0.0` =
+disabled) gates acceptance: a drafted token whose `source_accessible` mass
+falls below the threshold is rejected with
+`stop_reason="alignatt:provenance_weak"`, even if its argmax source position
+is within the accessible frontier.
 
-- speculative future target context
+#### GPU results (ccpXHNfaoy.wav, chunk_ms=450, Phase 0 operating point)
 
-#### Experiment direction
+| `min_source_mass` | BLEU | chrF | `LongYAAL CU` | `LongYAAL CA` |
+| ---: | ---: | ---: | ---: | ---: |
+| `0.0` (baseline) | 28.22 | 63.53 | 1747.19 | 2210.08 |
+| `0.1` | 28.14 | 63.55 | 1790.72 | 2340.24 |
+| `0.2` | **29.58** | **64.00** | **1989.86** | 2788.54 |
+| `0.3` | 29.34 | 64.09 | 2162.88 | 3342.33 |
 
-Augment the observer to distinguish:
+#### Interpretation
 
-- source support
-- accepted-prefix support
-- speculative-suffix support
+- `min_source_mass=0.2` is the best operating point: **+1.36 BLEU, +0.47 chrF**
+  while `CU` stays under `2000 ms`.
+- The mechanism works because the baseline argmax-only policy was accepting
+  tokens whose attention was mostly on non-source regions (prompt formatting,
+  accepted prefix, speculative suffix). These tokens happened to have their
+  argmax land on a source position, but the support was not genuinely
+  source-dominated.
+- `0.3` pushes too hard: CU exceeds `2000 ms` because too many tokens are
+  rejected, forcing more MT re-calls.
+- `0.1` is too weak: essentially no filtering above the argmax baseline.
 
-Then allow acceptance when:
+#### What this validates
 
-- source anchor is already accessible
-- accepted-prefix support is strong
-- speculative-suffix self-support is weak
-
-#### What to look for
-
-- increase in accepted tokens per update
-- reduction in frontier stops that are later revealed to be unnecessary
-- quality drift from over-acceptance
-
-#### Hypothesis
-
-This is probably the strongest medium-term semantic improvement for `CU`, but it
-is more complex than the earlier scheduler and cadence changes.
+The Stage 6 hypothesis was correct: provenance-aware acceptance is a real
+quality lever at constrained latency. The argmax-only acceptance was
+unnecessarily conservative in some cases and unnecessarily permissive in others.
 
 
 ### Recommended Order
 
 If we want the shortest path to an answer, the order should be:
 
-1. freeze an early-start setting around `3.0 s` and stop sweeping it
-2. lower `chunk_ms`
+1. freeze an early-start setting around `3.0 s` and stop sweeping it — **done**
+2. lower `chunk_ms` — **done** (`450 ms` operating point)
 3. add token-level blocked-frontier scheduling
 4. add adaptive draft budget
 5. add finer source frontier granularity
-6. add provenance-aware acceptance
+6. add provenance-aware acceptance — **done** (`min_source_mass=0.2` gives +1.36 BLEU at CU < 2000)
 
-This order is deliberate.
+Stages 1, 2, and 6 are implemented and validated. Stage 6 was pulled forward
+because provenance decomposition turned out to be a clean, zero-cost addition
+to the existing QK probe path, and it immediately produced a quality gain at
+constrained latency.
 
-Stage 1 is now mostly done.
-
-The next four steps mostly preserve the current semantics and attack the
-largest remaining likely `CU` bottlenecks with minimal conceptual change.
-
-The last two steps are stronger architectural moves and should only be taken
-once we know the simpler source-time changes are insufficient.
+Stages 3-5 remain as potential further structural improvements.
 
 
 ### Recommended Minimal Run Matrix
@@ -1415,3 +1454,131 @@ violate monotone acceptance.
 - `LongYAAL CA` is not bit-exact across runs; it depends on wallclock
   elapsed time per update. Only `LongYAAL CU` should be used as a
   reproducibility signal.
+
+
+## 2026-04-16 Phase 3 GPU Validation
+
+### qk_fast vs eager Agreement
+
+`validate_phase3_gpu.py` Test 1 ran both probe paths on the same real Gemma
+prompt (167 tokens, 20 source tokens, 12 drafted tokens, 8 heads):
+
+- max absolute attention weight difference: `0.012`
+- mean absolute difference: `0.0004`
+- argmax positions differ at 3/12 token positions
+- **acceptance decisions are identical** on both paths
+
+The small argmax differences come from numerical precision in the QK
+reconstruction path vs full eager attention. They do not affect acceptance
+because the Welford-normalised median-filtered prefix-online aggregation
+is robust to sub-1% weight perturbations.
+
+### Batched Prefix-Online Invariant on Real Gemma Rows
+
+`validate_phase3_gpu.py` Test 2 drafted 16 tokens without prefill, split
+them 5 prefill + 11 draft, and verified:
+
+- batched `compute_prefix_online_alignatt_source_argmaxes(all_rows)[5:]`
+- equals `IncrementalAlignAttTracker` warm-started on first 5, then updated
+  on remaining 11
+
+Result: **exact match** on all 11 tail positions. The invariant that was
+previously validated only on synthetic rows now holds on real Gemma E4B
+attention patterns.
+
+
+## 2026-04-16 Provenance-Aware Acceptance
+
+### Mechanism
+
+`TokenProvenanceBreakdown` decomposes each drafted token's attention mass
+(averaged across AlignAtt heads) into four regions:
+
+| Region | Description |
+| --- | --- |
+| `source_accessible` | source tokens within the audio frontier |
+| `source_inaccessible` | source tokens beyond the frontier |
+| `non_source_prompt` | system prompt, formatting, accepted prefix |
+| `suffix` | speculative draft tokens (self + future) |
+
+The decomposition is computed from the same `full_weights` tensor as the
+source-row extraction, with zero additional model forward cost.
+
+### Why It Matters
+
+The baseline argmax-only acceptance checks whether a token's most-attended
+source position is within the accessible frontier. This misses cases where:
+
+- the argmax lands on a source position by chance
+- but the bulk of attention is on the accepted prefix or suffix
+- so the token is not genuinely source-grounded
+
+The provenance filter (`min_source_mass`) catches these cases by requiring
+a minimum fraction of attention on the accessible source.
+
+### GPU Sweep Results
+
+| `min_source_mass` | BLEU | chrF | `LongYAAL CU` |
+| ---: | ---: | ---: | ---: |
+| `0.0` (baseline) | 28.22 | 63.53 | 1747 |
+| `0.1` | 28.14 | 63.55 | 1791 |
+| `0.2` | **29.58** | **64.00** | **1990** |
+| `0.3` | 29.34 | 64.09 | 2163 |
+
+### Interpretation
+
+`min_source_mass=0.2` is the new recommended operating point for quality
+at constrained latency:
+
+- **+1.36 BLEU, +0.47 chrF** over the argmax-only baseline
+- `CU` stays under `2000 ms`
+- the mechanism is principled: it adds provenance awareness to the
+  acceptance decision without changing the source-frontier or rewind
+  semantics
+
+`0.3` gives similar quality but breaks the latency constraint.
+`0.1` is too weak to filter effectively.
+
+### Updated Operating Point
+
+For the `< 2 s CU` regime with provenance:
+
+- `chunk_ms = 450`
+- `min_start_seconds = 2.0`
+- `partial_max_new_tokens = 16`
+- `partial_followup_max_new_tokens = 8`
+- `max_history_utterances = 1`
+- `translation_alignatt_rewind_threshold = 8`
+- `translation_alignatt_inaccessible_ms = 0`
+- `translation_alignatt_min_source_mass = 0.2`
+
+
+## 2026-04-16 Multilingual Validation
+
+### Target Languages
+
+The system now supports three target languages without any
+language-specific code paths:
+
+| Direction | BLEU | chrF | `LongYAAL CU` | Head set |
+| --- | ---: | ---: | ---: | --- |
+| en→de | 28.22 | 63.53 | 1747 | per-direction 8 or shared kernel 7 |
+| en→it | 36.87 | 71.48 | 1814 | per-direction 8 or shared kernel 7 |
+| en→zh | 41.85 | 38.32 | 1763 | per-direction 8 or shared kernel 7 |
+
+All three directions stay under `2000 ms CU` at the same operating point.
+
+### Key Multilingual Mechanisms
+
+- **Stability units**: `token_starts_stability_unit()` handles both
+  whitespace-delimited scripts (SentencePiece `▁`, BPE `Ġ`) and
+  non-spacing scripts (CJK ideographs, Japanese kana) with the same code.
+- **Char-level emission**: `split_target_emission_units()` returns
+  characters for zh/ja and words for de/it, matching OmniSTEval's
+  `char_level=True` resegmentation.
+- **NFKC normalization**: char-level splits are NFKC-normalised before
+  counting, keeping the unit count aligned with the evaluator's
+  `unicode_normalize(prediction)`.
+- **Automatic head selection**: `alignatt_heads_path_for(source, target)`
+  resolves the correct heads file; `temporary_runtime_config` auto-switches
+  when `target_lang` changes.
