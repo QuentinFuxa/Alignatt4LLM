@@ -276,6 +276,9 @@ def build_alignment_backend() -> AlignmentBackend:
       Gemma E4B's free-run ASR is unreliable on streaming-quality clips
       while its attention-based alignment is competitive (~177 ms MAE on
       the one-clip calibration).
+    - ``"gemma_two_pass"``: full-Gemma two-pass frontend. Pass 1 uses default
+      attention for ASR, pass 2 uses eager attention for forced alignment.
+      Removes the Qwen ASR dependency entirely.
     """
     name = str(getattr(config, "alignment_backend_name", "qwen"))
 
@@ -335,6 +338,19 @@ def build_alignment_backend() -> AlignmentBackend:
             gemma_backend=gemma_backend,
             strict=bool(getattr(config, "hybrid_strict_mode", False)),
         )
+    if name == "gemma_two_pass":
+        from gemma_alignment_probe import GemmaAttentionAlignmentBackend
+        from gemma_two_pass_frontend import GemmaTwoPassAlignmentBackend
+
+        gemma_backend = GemmaAttentionAlignmentBackend(
+            model_name=gemma_model_name,
+            runtime_config=config,
+            audio_heads_path=_resolve_calibrated_heads_path(),
+            audio_heads_top_k=int(getattr(config, "gemma_audio_alignment_top_k_heads", 8)),
+            filter_width=int(getattr(config, "gemma_audio_alignment_filter_width", 7)),
+            max_new_tokens=int(getattr(config, "gemma_audio_alignment_max_new_tokens", 256)),
+        )
+        return GemmaTwoPassAlignmentBackend(gemma_backend=gemma_backend)
     raise ValueError(f"Unknown alignment_backend_name: {name!r}")
 
 

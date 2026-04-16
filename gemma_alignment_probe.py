@@ -456,6 +456,42 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         ]
 
     @contextmanager
+    def _default_attention_implementation(self):
+        """Force default (non-eager) attention for free-run ASR quality.
+
+        The ablation in run_gemma_asr_fairness.py showed that eager attention
+        destroys free-run ASR (WER 0.81+) while default attention produces
+        correct transcripts (WER 0.03-0.26). This context manager ensures
+        default attention regardless of how the model was loaded.
+        """
+        if self.model is None:
+            raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
+
+        configs: list[object] = []
+        candidates = (
+            self.model,
+            getattr(self.model, "model", None),
+            getattr(getattr(self.model, "model", None), "language_model", None),
+        )
+        seen_ids: set[int] = set()
+        for candidate in candidates:
+            config = getattr(candidate, "config", None)
+            if config is None or id(config) in seen_ids:
+                continue
+            seen_ids.add(id(config))
+            configs.append(config)
+        original_impls = [getattr(c, "_attn_implementation", None) for c in configs]
+        for config in configs:
+            if hasattr(config, "_attn_implementation"):
+                config._attn_implementation = "sdpa"
+        try:
+            yield
+        finally:
+            for config, original in zip(configs, original_impls):
+                if original is not None and hasattr(config, "_attn_implementation"):
+                    config._attn_implementation = original
+
+    @contextmanager
     def _eager_attention_implementation(self):
         """Force eager attention so attention weights are materialized.
 
@@ -625,6 +661,50 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         if isinstance(end_of_turn, int) and end_of_turn >= 0:
             stops.add(end_of_turn)
         return tuple(sorted(stops))
+
+    # -------------------- default-attention ASR ----------------------------
+
+    def transcribe(
+        self,
+        audio: np.ndarray,
+        *,
+        sample_rate: int,
+        language: str,
+    ) -> str | None:
+        """Free-run ASR with default (non-eager) attention.
+
+        Uses model.generate() directly rather than step-by-step decoding
+        with attention hooks. This produces correct transcripts (WER 0.03-0.26)
+        whereas eager attention hallucinates (WER 0.81+).
+        """
+        if self.model is None or self.processor is None:
+            raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
+
+        audio = np.asarray(audio, dtype=np.float32)
+        self._enforce_audio_cap(audio, sample_rate=sample_rate)
+
+        messages = self._render_asr_messages(audio, language=language)
+        inputs = self.processor.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            tokenize=True,
+            return_dict=True,
+            return_tensors="pt",
+        )
+        inputs = inputs.to(self.model.device)
+        input_len = inputs["input_ids"].shape[-1]
+
+        with self._default_attention_implementation(), torch.no_grad():
+            outputs = self.model.generate(
+                **dict(inputs),
+                max_new_tokens=self.max_new_tokens,
+                do_sample=False,
+            )
+
+        text = self.processor.decode(
+            outputs[0][input_len:], skip_special_tokens=True
+        ).strip()
+        return text if text else None
 
     # -------------------- forced alignment --------------------------------
 

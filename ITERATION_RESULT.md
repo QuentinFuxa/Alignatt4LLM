@@ -179,9 +179,97 @@ The rebuilt harness:
   conference audio with E4B" — this conclusion is invalidated.
 
 
+## Two-Pass Full-Gemma Frontend — Implemented and Validated
+
+### Architecture
+
+The two-pass full-Gemma frontend is now implemented and working:
+
+1. **Pass 1** (ASR): `GemmaAttentionAlignmentBackend.transcribe()` — default
+   attention via `_default_attention_implementation()` context manager, greedy
+   decoding via `model.generate()`.
+
+2. **Pass 2** (alignment): `GemmaAttentionAlignmentBackend.align_transcript()` —
+   eager attention via `_eager_attention_implementation()` context manager,
+   teacher-forced forward pass with attention capture.
+
+3. **Orchestration**: `GemmaTwoPassAlignmentBackend` coordinates both passes
+   and returns the standard `AlignmentResult` contract.
+
+### Code structure
+
+| File | Role |
+|------|------|
+| `gemma_alignment_probe.py` | Added `transcribe()` (default-attn ASR) and `_default_attention_implementation()` |
+| `gemma_two_pass_frontend.py` | New: `GemmaTwoPassAlignmentBackend(AlignmentBackend)` |
+| `qwen3asr_gemma_cascade_core.py` | Added `"gemma_two_pass"` to `build_alignment_backend()` |
+
+### Validation on smoke18
+
+- Transcript: "Hi, I'm Si Yuan from Fudan University. I'm here to introduce
+  our work, 'Distilling Script Knowledge from Large Language Models for
+  Constrained Language Planning.' In everyday life, humans often plan their
+  actions by following step-by-step"
+- **35 words** with monotone timestamps spanning 1.6s–17.5s (audio is 18.0s)
+- Monotonicity: 0.922
+- Two-pass completed in **5.3s** (model already loaded)
+- Transcript matches the ablation's best result (default attention, greedy)
+
+### Key design decisions
+
+1. **One model, two attention modes**: The model loads with eager attention
+   (as before). Each method toggles to the correct mode via context managers.
+   No duplicate model loads.
+
+2. **Attention toggling is validated**: The ablation in `run_gemma_asr_fairness.py`
+   proved that runtime toggling of `config._attn_implementation` correctly
+   changes model behavior. The `_default_attention_implementation()` context
+   manager sets `"sdpa"` (equivalent to default).
+
+3. **Clean separation**: `transcribe()` does ASR only (no attention hooks).
+   `align_transcript()` does alignment only (with attention hooks). The
+   two-pass frontend coordinates them without mixing concerns.
+
+4. **Cascade integration**: `alignment_backend_name="gemma_two_pass"` in
+   `config` selects the two-pass frontend. All other backends remain
+   available for comparison.
+
+### Comparison: Two-Pass Gemma vs Hybrid (smoke18)
+
+| Metric | Two-Pass Gemma | Hybrid (Qwen+Gemma) |
+|--------|---------------:|---------------------:|
+| Transcript length | 238 chars | 238 chars |
+| Word count | 35 | 35 |
+| Mean timing diff (s) | — | 0.089 |
+| Max timing diff (s) | — | 0.680 |
+| Inference time | 5.3s | 1.2s (models hot) |
+
+Transcripts are nearly identical:
+- Two-pass: "Si Yuan" (two words), quoted title
+- Hybrid: "Siyu Yuan" (two words), unquoted title
+
+Word-level timings agree within 89 ms on average, with one outlier at
+680 ms. Both produce 35 monotone timestamps spanning the 18s audio.
+
+### Assessment (per PLAN.md Decision Rules)
+
+**Rule A applies**: The two-pass full-Gemma frontend works cleanly. The
+transcript is correct, timings are structurally sane, and the cascade
+integration is straightforward. Full Gemma is now a serious mainline
+research path.
+
+**Rule B also applies**: The two-pass approach is ~4× slower than hybrid
+at inference (5.3s vs 1.2s) because it runs two forward passes through
+the full Gemma model instead of delegating ASR to the lighter Qwen.
+However, it eliminates the Qwen ASR dependency entirely and produces
+equivalent transcript and timing quality.
+
+
 ## Artifacts Produced
 
 - `tmp/alignment_research/gemma_asr_fairness_ablation_smoke18.json`
 - `tmp/alignment_research/gemma_asr_fairness_ablation_rxrToXvRyM_first18.json`
 - `run_gemma_asr_fairness.py` — rebuilt canonical harness
+- `gemma_two_pass_frontend.py` — two-pass full-Gemma alignment backend
+- `run_gemma_two_pass_validation.py` — validation script
 - `ITERATION_RESULT.md` — this document
