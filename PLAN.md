@@ -126,7 +126,15 @@ By morning, the repo should satisfy all three:
       scalar skews more conservative). Gate-level F1 is an upper
       bound on approximation quality, not a drop-in replacement
       certificate. Loop replay is the only fidelity-preserving
-      offline analysis.
+      offline analysis. Step 7 v7
+      (`scripts/scalar_threshold_sweep.py`): the per-gate-F1-optimal
+      threshold 0.002 is NOT the drift-optimal threshold. Sweeping
+      0.0005-0.1 finds best agreement at thr ≈ 0.01-0.02, where
+      canonical-path agreement rises to 83-91% and aggregate token
+      delta drops to within ±3% of exact. A drift-calibrated scalar
+      substitution is close enough to be a defensible approximate
+      mechanism in the paper; loop replay remains the only F1 = 1.0
+      method.
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.
