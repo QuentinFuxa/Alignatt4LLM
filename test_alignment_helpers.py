@@ -1591,6 +1591,37 @@ def test_stable_and_accessible_eos_flush_commits_everything_aligned():
     assert session.state.asr_hypotheses == [""]
 
 
+def test_stable_and_accessible_ignores_empty_sentinel_in_k_window():
+    """CascadeState seeds asr_hypotheses with [""]; a naive last-K slice
+    would include that empty sentinel and collapse the LCP to "". The
+    K-stability check must treat only non-empty hypotheses as
+    observations, so with K=3 and 3 real hypotheses behind the sentinel
+    a commit still fires on chunk 3, not chunk 4."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from cascade_runtime import CascadeSession
+
+    words = (
+        WordAlignment("one", 0.0, 0.3),
+        WordAlignment("two", 0.4, 0.7),
+        WordAlignment("three", 0.8, 1.1),
+    )
+    text = "one two three"
+    session = _session_with_hypothesis_history(
+        audio_duration_s=5.0,
+        words=words,
+        # The empty sentinel followed by K real observations.
+        hypotheses=["", text, text, text],
+        k=3,
+    )
+    result = AlignmentResult(text=text, words=words, audio_duration_s=5.0)
+
+    ret = session._try_commit_stable_and_accessible(
+        asr_hypo=text, result=result, audio=session.state.source,
+    )
+    assert ret is None
+    assert session.state.utt_sources[1:] == [text]
+
+
 def test_stable_and_accessible_k2_matches_alignatt_frontier_behavior():
     """K=2 is the weakest non-trivial stability signal and must reproduce the
     commit boundary of the existing ``alignatt_frontier`` rule exactly."""

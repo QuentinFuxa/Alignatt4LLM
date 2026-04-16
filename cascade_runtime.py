@@ -1283,11 +1283,18 @@ class CascadeSession:
             last_end_time_s = float(words[-1].end_time)
         else:
             k_stable = max(2, int(self.config.asr_stability_k))
-            hypotheses = self.state.asr_hypotheses
-            if len(hypotheses) < k_stable:
+            # CascadeState seeds asr_hypotheses with a single empty-string
+            # sentinel (and _apply_commit resets to [remainder_text], which
+            # may itself be empty). Those empty slots are not "real" ASR
+            # observations — they would poison the K-LCP to the empty
+            # string. Consider only non-empty hypotheses for the K-stability
+            # window.
+            non_empty_hypotheses = [h for h in self.state.asr_hypotheses if h]
+            if len(non_empty_hypotheses) < k_stable:
                 return None
-            stable_prefix = hypotheses[-k_stable]
-            for hypo in hypotheses[-k_stable + 1 :]:
+            window = non_empty_hypotheses[-k_stable:]
+            stable_prefix = window[0]
+            for hypo in window[1:]:
                 stable_prefix = longest_common_prefix(stable_prefix, hypo)
                 if not stable_prefix:
                     break
