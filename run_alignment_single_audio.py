@@ -13,6 +13,9 @@ Modes:
 - ``gemma_inspect`` runs the Gemma attention aligner on the same clip,
   using previously calibrated heads if available, and writes its
   transcript + word timestamps + per-token audio positions.
+- ``gemma_forced_align`` runs teacher-forced Gemma alignment on a known
+  transcript; ``--probe-mode eager|qk_fast`` selects the attention
+  extraction backend explicitly.
 - ``gemma_calibrate_heads`` runs Gemma once with full-attention capture
   and ranks every (layer, head) against the Qwen teacher, writing the
   top-K into ``assets/attention_heads/audio_alignment_heads_*.json``.
@@ -98,7 +101,7 @@ def deserialize_alignment(payload: dict) -> AlignmentResult:
 def build_runtime_config() -> SimpleNamespace:
     from qwen3asr_gemma_cascade_core import config
 
-    return config
+    return SimpleNamespace(**vars(config))
 
 
 def build_qwen_backend() -> AlignmentBackend:
@@ -117,11 +120,18 @@ def build_qwen_backend() -> AlignmentBackend:
     return backend
 
 
-def build_gemma_backend(*, heads_path: str | None, top_k: int):
+def build_gemma_backend(
+    *,
+    heads_path: str | None,
+    top_k: int,
+    probe_mode: str | None = None,
+):
     from gemma_alignment_probe import GemmaAttentionAlignmentBackend
     from qwen3asr_gemma_cascade_core import gemma_model_name
 
     runtime_config = build_runtime_config()
+    if probe_mode is not None:
+        runtime_config.gemma_audio_align_probe_mode = str(probe_mode)
     backend = GemmaAttentionAlignmentBackend(
         model_name=gemma_model_name,
         runtime_config=runtime_config,
@@ -163,6 +173,7 @@ def cmd_gemma_forced_align(args: argparse.Namespace) -> None:
     backend = build_gemma_backend(
         heads_path=args.heads_path or None,
         top_k=int(args.top_k),
+        probe_mode=args.probe_mode,
     )
     result = backend.align_transcript(
         audio,
@@ -252,6 +263,7 @@ def _estimate_word_end_offset(
     prev_heads = list(backend.alignatt_heads)
     prev_offset = backend.word_end_offset_s
     prev_recorder = backend.alignatt_recorder
+    prev_layer_input_recorder = getattr(backend, "alignatt_layer_input_recorder", None)
     try:
         backend.alignatt_heads = [
             AlignAttHead(layer=int(h["layer"]), head=int(h["head"]), ts=float(h["ts"]))
@@ -259,6 +271,7 @@ def _estimate_word_end_offset(
         ]
         backend.word_end_offset_s = 0.0
         backend.alignatt_recorder = None  # let align_transcript rebuild
+        backend.alignatt_layer_input_recorder = None  # idem for qk_fast replay
         result = backend.align_transcript(
             audio,
             sample_rate=sample_rate,
@@ -278,6 +291,7 @@ def _estimate_word_end_offset(
         backend.alignatt_heads = prev_heads
         backend.word_end_offset_s = prev_offset
         backend.alignatt_recorder = prev_recorder
+        backend.alignatt_layer_input_recorder = prev_layer_input_recorder
 
 
 def cmd_gemma_calibrate_heads(args: argparse.Namespace) -> None:
@@ -430,6 +444,12 @@ def build_cli() -> argparse.ArgumentParser:
     forced.add_argument("--teacher", required=True)
     forced.add_argument("--heads-path", default=None)
     forced.add_argument("--top-k", type=int, default=8)
+    forced.add_argument(
+        "--probe-mode",
+        choices=("eager", "qk_fast"),
+        default="eager",
+        help="Forced-alignment attention extraction backend.",
+    )
     forced.add_argument("--output", required=True)
     forced.set_defaults(func=cmd_gemma_forced_align)
 

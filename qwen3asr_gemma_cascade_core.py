@@ -276,6 +276,7 @@ config = SimpleNamespace(
     gemma_audio_alignment_heads_path=(
         "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
     ),
+    gemma_audio_align_probe_mode="eager",
     gemma_audio_alignment_top_k_heads=8,
     gemma_audio_alignment_filter_width=7,
     gemma_audio_alignment_max_new_tokens=256,
@@ -299,8 +300,9 @@ def build_alignment_backend() -> AlignmentBackend:
       full-Gemma path. Gemma's attention-based alignment is competitive
       (~177 ms MAE on the one-clip calibration).
     - ``"gemma_two_pass"``: full-Gemma two-pass frontend. Pass 1 uses default
-      attention for ASR, pass 2 uses eager attention for forced alignment.
-      Removes the Qwen ASR dependency entirely.
+      attention for ASR, pass 2 uses the probe backend selected by
+      ``config.gemma_audio_align_probe_mode`` (default: eager) for forced
+      alignment. Removes the Qwen ASR dependency entirely.
     """
     name = str(getattr(config, "alignment_backend_name", "qwen"))
 
@@ -1163,6 +1165,7 @@ def run_stream_to_artifacts(
             "gemma_transformers_dtype": config.gemma_transformers_dtype,
             "gemma_transformers_fast_attention": config.gemma_transformers_fast_attention,
             "gemma_transformers_prompt_kv_reuse": config.gemma_transformers_prompt_kv_reuse,
+            "gemma_audio_align_probe_mode": config.gemma_audio_align_probe_mode,
             "translation_scheduler_stall_seconds": config.translation_scheduler_stall_seconds,
         },
         run_provenance=_enrich_provenance(run_provenance),

@@ -47,6 +47,7 @@ class GemmaTwoPassAlignmentBackend(AlignmentBackend):
         )
         if alignment is None or not alignment.words:
             audio_duration_s = float(len(audio)) / float(sample_rate)
+            alignment_diag = {} if alignment is None else alignment.diagnostics
             return AlignmentResult(
                 text=transcript,
                 words=(),
@@ -54,7 +55,8 @@ class GemmaTwoPassAlignmentBackend(AlignmentBackend):
                 diagnostics={
                     "backend": self.name,
                     "asr_attention": "default",
-                    "alignment_attention": "eager",
+                    "alignment_attention": alignment_diag.get("alignment_attention"),
+                    "gemma_probe_backend": alignment_diag.get("probe_backend"),
                     "alignment_failed": True,
                 },
             )
@@ -66,10 +68,14 @@ class GemmaTwoPassAlignmentBackend(AlignmentBackend):
             diagnostics={
                 "backend": self.name,
                 "asr_attention": "default",
-                "alignment_attention": "eager",
+                "alignment_attention": alignment.diagnostics.get("alignment_attention"),
+                "gemma_probe_backend": alignment.diagnostics.get("probe_backend"),
                 "gemma_monotonicity": alignment.diagnostics.get("monotonicity"),
                 "gemma_offset_s": alignment.diagnostics.get("word_end_offset_s"),
                 "gemma_audio_span_length": alignment.diagnostics.get("audio_span_length"),
+                "gemma_qk_fast_reconstruction_succeeded": alignment.diagnostics.get(
+                    "qk_fast_reconstruction_succeeded"
+                ),
                 "word_count": len(alignment.words),
             },
         )

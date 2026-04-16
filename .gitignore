@@ -151,3 +151,4 @@ outputs/
 acl-speech/*
 # Claude local loop state
 .claude/ralph-loop.local.md
+**/artifacts/*
