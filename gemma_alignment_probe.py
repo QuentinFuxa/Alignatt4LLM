@@ -40,9 +40,14 @@ import torch
 from alignment_backend import AlignmentBackend, AlignmentResult, WordAlignment
 from cascade_mt_backend import (
     AlignAttHead,
+    LayerInputCapture,
     SelectedAttentionRecorder,
+    SelectedLayerInputRecorder,
     compute_alignatt_source_argmaxes,
+    compute_key_states_from_layer_input_capture,
+    compute_query_states_from_layer_input_capture,
     extract_source_attention_rows_per_token,
+    map_attention_head_to_key_value_head,
 )
 
 
@@ -351,6 +356,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         # (language, model) alongside the heads file. Defaults to 0 so
         # uncalibrated runs still work.
         self.word_end_offset_s: float = 0.0
+        self.alignatt_layer_input_recorder: SelectedLayerInputRecorder | None = None
 
     def load(self) -> None:
         from transformers import (
@@ -404,6 +410,11 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 )
         if self.alignatt_recorder is None and self.alignatt_heads:
             self.alignatt_recorder = SelectedAttentionRecorder(
+                model=self.model,
+                alignatt_heads=self.alignatt_heads,
+            )
+        if self.alignatt_layer_input_recorder is None and self.alignatt_heads:
+            self.alignatt_layer_input_recorder = SelectedLayerInputRecorder(
                 model=self.model,
                 alignatt_heads=self.alignatt_heads,
             )
@@ -748,11 +759,6 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         if transcript_span is None or transcript_span[1] <= transcript_span[0]:
             return None
 
-        # One forward pass with all-layer capture.
-        per_token_captures = self._run_forward_capture_transcript_attention(
-            inputs=inputs,
-            transcript_span=transcript_span,
-        )
         transcript_token_ids = input_ids[transcript_span[0] : transcript_span[1]]
 
         if not self.alignatt_heads:
@@ -768,10 +774,29 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 },
             )
 
-        token_audio_positions = self._aggregate_audio_positions(
-            per_token_captures=per_token_captures,
-            audio_span=audio_span,
-        )
+        # qk_fast: capture hidden states at selected layers only, compute
+        # Q*K for selected heads.  Avoids the all-42-layer attention recorder.
+        # Falls back to all-layer eager capture if empty.
+        probe_backend = "eager"
+        token_audio_positions = None
+        if self.alignatt_layer_input_recorder is not None:
+            token_audio_positions = self._run_forward_extract_audio_positions_qk_fast(
+                inputs=inputs,
+                audio_span=audio_span,
+                transcript_span=transcript_span,
+            )
+            if token_audio_positions:
+                probe_backend = "qk_fast"
+        if not token_audio_positions:
+            per_token_captures = self._run_forward_capture_transcript_attention(
+                inputs=inputs,
+                transcript_span=transcript_span,
+            )
+            token_audio_positions = self._aggregate_audio_positions(
+                per_token_captures=per_token_captures,
+                audio_span=audio_span,
+            )
+
         token_end_times_s = [
             audio_position_to_end_seconds(
                 pos,
@@ -801,6 +826,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             diagnostics={
                 "backend": self.name,
                 "mode": "forced_alignment",
+                "probe_backend": probe_backend,
                 "audio_span_length": audio_span.length,
                 "audio_ms_per_token": audio_span.ms_per_token,
                 "monotonicity": monotonicity_score(token_audio_positions),
@@ -1054,6 +1080,158 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             per_token_rows, filter_width=self.filter_width
         )
         return [int(pos) if pos is not None else None for pos in argmaxes]
+
+    # -------------------- qk_fast audio alignment -------------------------
+
+    def _run_forward_extract_audio_positions_qk_fast(
+        self,
+        *,
+        inputs: dict,
+        audio_span: AudioSpan,
+        transcript_span: tuple[int, int],
+    ) -> list[int | None]:
+        """Forward pass with eager attention, extract audio alignment via Q*K.
+
+        Runs the model with eager attention (same implementation the heads
+        were calibrated against), but captures only the selected layers'
+        hidden states via ``SelectedLayerInputRecorder`` instead of building
+        an all-layer attention recorder.  This avoids retaining ~42 full
+        attention matrices and computes Q*K^T only for the selected
+        alignment heads at transcript-to-audio positions.
+        """
+        if self.alignatt_layer_input_recorder is None:
+            return []
+
+        with self._eager_attention_implementation(), torch.no_grad():
+            with self.alignatt_layer_input_recorder.capture() as captured_layer_inputs:
+                _ = self.model(
+                    **inputs,
+                    use_cache=False,
+                    return_dict=True,
+                )
+
+        if not captured_layer_inputs:
+            return []
+
+        per_token_audio_rows = self._extract_audio_attention_rows_qk_fast(
+            captured_layer_inputs=captured_layer_inputs,
+            audio_span=audio_span,
+            transcript_span=transcript_span,
+        )
+        if not per_token_audio_rows:
+            return []
+
+        argmaxes = compute_alignatt_source_argmaxes(
+            per_token_audio_rows, filter_width=self.filter_width
+        )
+        return [int(pos) if pos is not None else None for pos in argmaxes]
+
+    def _extract_audio_attention_rows_qk_fast(
+        self,
+        *,
+        captured_layer_inputs: dict[int, LayerInputCapture],
+        audio_span: AudioSpan,
+        transcript_span: tuple[int, int],
+    ) -> list[torch.Tensor]:
+        """Compute per-transcript-token attention over audio positions via Q*K.
+
+        For each selected alignment head: project hidden states to Q (at
+        transcript positions) and K (at all positions), compute the scaled
+        dot-product logits, apply a causal + sliding-window mask, softmax
+        over the full key dimension, then extract the audio-span columns.
+
+        Returns a list of tensors (one per transcript token), each shaped
+        ``(num_selected_heads, audio_span_length)`` — the same contract as
+        :meth:`_aggregate_audio_positions` produces from the eager path.
+        """
+        transcript_start, transcript_end = transcript_span
+        num_transcript_tokens = transcript_end - transcript_start
+        if num_transcript_tokens <= 0:
+            return []
+
+        audio_start = audio_span.prompt_start
+        audio_end = audio_span.prompt_end
+        if audio_end <= audio_start:
+            return []
+
+        first_capture = next(iter(captured_layer_inputs.values()))
+        device = first_capture.hidden_states.device
+
+        audio_index_tensor = torch.arange(
+            audio_start, audio_end, device=device, dtype=torch.long,
+        )
+
+        query_states_by_layer: dict[int, torch.Tensor] = {}
+        key_states_by_layer: dict[int, torch.Tensor] = {}
+        head_row_matrices: list[torch.Tensor] = []
+
+        for head in self.alignatt_heads:
+            layer_idx = int(head.layer)
+            capture = captured_layer_inputs.get(layer_idx)
+            if capture is None:
+                continue
+
+            qs = query_states_by_layer.get(layer_idx)
+            if qs is None:
+                qs = compute_query_states_from_layer_input_capture(capture)
+                if qs is None:
+                    continue
+                query_states_by_layer[layer_idx] = qs
+
+            ks = key_states_by_layer.get(layer_idx)
+            if ks is None:
+                ks = compute_key_states_from_layer_input_capture(capture)
+                if ks is None:
+                    continue
+                key_states_by_layer[layer_idx] = ks
+
+            num_attention_heads = int(qs.shape[1])
+            num_key_value_heads = int(ks.shape[1])
+            head_index = int(head.head)
+            if head_index < 0 or head_index >= num_attention_heads:
+                continue
+
+            kv_head_index = map_attention_head_to_key_value_head(
+                head_index,
+                num_attention_heads=num_attention_heads,
+                num_key_value_heads=num_key_value_heads,
+            )
+
+            q_head = qs[0, head_index, transcript_start:transcript_end, :].float()
+            k_all = ks[0, kv_head_index, :, :].float()
+            full_seq_len = k_all.shape[0]
+
+            full_logits = torch.matmul(q_head, k_all.transpose(0, 1))
+
+            scaling = float(getattr(capture.module, "scaling", 1.0))
+            if scaling != 1.0:
+                full_logits = full_logits * scaling
+
+            # Causal mask: transcript token i (absolute pos transcript_start+i)
+            # can only attend to key positions 0 .. transcript_start+i.
+            query_abs = transcript_start + torch.arange(
+                num_transcript_tokens, device=device,
+            )
+            key_pos = torch.arange(full_seq_len, device=device)
+            causal_mask = key_pos.unsqueeze(0) > query_abs.unsqueeze(1)
+
+            sliding_window = getattr(capture.module, "sliding_window", None)
+            if sliding_window is not None and int(sliding_window) > 0:
+                min_key = (query_abs - int(sliding_window) + 1).clamp_min(0)
+                causal_mask = causal_mask | (key_pos.unsqueeze(0) < min_key.unsqueeze(1))
+
+            full_logits = full_logits.masked_fill(causal_mask, float("-inf"))
+            full_weights = torch.softmax(full_logits, dim=-1)
+
+            audio_weights = full_weights[:, audio_index_tensor]
+            head_row_matrices.append(audio_weights)
+
+        if not head_row_matrices:
+            return []
+
+        # (num_heads, num_transcript, num_audio) -> per-token list of (num_heads, num_audio)
+        stacked = torch.stack(head_row_matrices, dim=0)
+        return [stacked[:, i, :] for i in range(num_transcript_tokens)]
 
     # -------------------- forced-alignment calibration --------------------
 
