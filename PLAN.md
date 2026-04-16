@@ -33,31 +33,159 @@ Phases 0–5 of the "move Gemma MT from Transformers to vLLM" plan are delivered
 
 Phase 6 (measurement) is in progress — one-clip numbers on `ccpXHNfaoy.wav` and a chunk-size calibration curve on `OiqEWDVtWk.wav` are in [`docs/RESULTS.md`](docs/RESULTS.md).
 
-## Immediate next steps
+## Architectural review findings (2026-04-16 audit)
 
-1. **Multi-clip measurement** on the 20-clip English test-set at the two operating points:
-   - `chunk_ms = 450` (sub-2 s LongYAAL CU regime)
-   - `chunk_ms = 700` (sub-4 s LongYAAL CA regime — calibrated on `OiqEWDVtWk.wav`)
-   Expected runtime ~1 hour each at RTF ~0.5. Write results into `docs/RESULTS.md`.
+- **There is a real `cs->en` correctness risk in the runtime surface.** `LANGUAGE_CODE_TO_NAME` is built before `Czech` is added to `LANGUAGE_NAME_TO_CODE`, and heads-path refresh currently keys off `target_lang` changes but not `source_lang` changes. This is a submission blocker, not cleanup.
 
-2. **Multilingual generalisation:** repeat the two operating points for en→it and en→zh. Head files and references already exist; the runtime auto-resolves via `alignatt_heads_path_for(source, target)`. en→cs is partially blocked (needs `test-set/ref/cs.txt`).
+- **The runtime mixes backend-build config with live policy config.** Engine-construction knobs and per-session thresholds share the same config object, but bundle reuse fingerprints only a subset. That is bad for reproducible ablations and dangerous for an overnight autonomous agent.
 
-3. **End-of-audio flush** for `alignatt_frontier`: the final N words before EOS never satisfy "margin behind the frontier" and so never commit. A final chunk should commit everything remaining. Short follow-up; see `DECISIONS.md` for context.
+- **The current latency story is mostly scheduler-driven.** In practice `chunk_ms` is the main latency knob; `translation_alignatt_inaccessible_ms` has near-zero effect in the current architecture. We should not overclaim "AlignAtt controls latency" unless we actually make scheduling frontier-aware.
 
-4. **Margin sweep on Qwen ASR** (`asr_alignatt_frontier_margin_ms ∈ {0, 250, 500, 1000, 2000}`) on one clip to characterise the latency-quality curve of the commit rule itself. Good paper figure.
+- **The current paper story is asymmetrical on the source side.** The elegant source rule is `alignatt_frontier`, but the best submission path on Qwen is still `punctuation_lcp`. The overnight mechanism work should either close that gap or explicitly accept the asymmetry.
 
-5. **Reopen prefix caching for MT vLLM.** Currently `mt_vllm_enable_prefix_caching=False`. The ASR-side host-side prompt-observer cache should be ported and keyed to the MT observer identity. Before this lands, add a vLLM compile-cache invalidation hook so switching between ASR-observer and MT-observer variants in the same environment doesn't require a manual `rm -rf ~/.cache/vllm/torch_compile_cache` (see `docs/TROUBLESHOOTING.md`).
+- **The biggest remaining levers are clear, but they are not equally suitable for tonight.**
+  - `mt_vllm_enable_prefix_caching` is the highest-upside compute-aware systems improvement, but it is backend-risky.
+  - Better long-form / PDF context is likely the highest-upside quality improvement, but it is too broad for tonight.
+  - A source commit rule that combines stability and accessibility is local, testable, and directly addresses the paper-elegance gap.
 
-6. **Phase 2/3 numerical drift investigation.** Acceptance decisions agree, but provenance *magnitudes* drift between vLLM's fused-QKV + proportional-RoPE path and Transformers' separate-projection path. Not a blocker (argmax is robust, downstream policy works), but would be nice to understand before writing up provenance-based claims.
+- **Several policy knobs are not yet defended by measurements.** `translation_alignatt_min_source_mass`, `translation_alignatt_filter_width`, `translation_alignatt_rewind_threshold`, `translation_emit_policy`, and `asr_alignatt_frontier_margin_ms` should be treated as ablation candidates, not settled defaults.
+
+- **The compact observer contract is still only half-landed.** `alignment_backend.py` already points toward a clean typed observer surface, but the MT runtime still exposes large ad hoc `alignatt_metadata` dicts. Unifying ASR and MT around the same compact observer contract remains an important cleanup target for a paper-defensible system.
+
+- **The observer currently captures more structure than policy consumes.** That is not necessarily bad, but it means three promising paper branches remain open: per-head weighting instead of uniform averaging, a continuous confidence scalar instead of three discrete gates, and a provenance contract that is load-bearing rather than mostly diagnostic.
+
+## Overnight objective
+
+By morning, the repo should satisfy all three:
+
+1. **No obvious submission trap** in the runtime surface (`cs->en`, heads refresh, backend reuse identity).
+2. **Two defensible operating points** for the canonical submission pair:
+   - low latency: `chunk_ms = 450`
+   - high latency: `chunk_ms = 700`
+3. **Exactly one additional mechanism branch** explored with evidence, not a grab-bag of speculative edits.
+
+Use the current local assets for tonight's loop. The repo currently has `test-set/` but not a local official dev-set workflow. Do not block engineering work on that; just keep in mind that final submission still needs dev logs.
+
+## Autonomous loop policy
+
+The overnight agent should **not go idle after the first success**. If a step finishes early or a branch gets blocked, it should continue to the next admissible item in the execution order rather than stopping.
+
+Operationally:
+
+- Keep moving until all reachable items in this plan are either completed, explicitly blocked, or clearly not worth the remaining night budget.
+- If a GPU run is in flight or cooling down, use the meantime for no-GPU work: tests, replay analyses, docs, plan hygiene, result summarization, or preparing the next run.
+- If the default mechanism branch fails quickly, switch to the fallback branch instead of stalling.
+- If the main path is clean ahead of schedule, proceed to the stretch / paper branches rather than terminating early.
+- Prefer one more bounded, measurable experiment over ending the night with unused iteration budget.
+- Update `DECISIONS.md` as work progresses so a human waking up mid-run can see what has already been tried, what is currently running, and what remains next.
+
+## Execution order for an autonomous night run
+
+### Step 1 — Submission hardening (no GPU)
+
+Fix the runtime-surface issues first:
+
+- Rebuild `LANGUAGE_CODE_TO_NAME` from the final language map.
+- Recompute `translation_alignatt_heads_path` when either `source_lang` or `target_lang` changes.
+- Expand backend identity / bundle fingerprint so engine semantics cannot silently drift under hot reuse.
+- Add small config-only regression tests for the above.
+
+**Acceptance gate:** tests pass without loading models, and the resulting behaviour is obvious from the code and test names.
+
+### Step 2 — Re-anchor the current baseline before changing ideas
+
+Do not start from broad sweeps. Re-validate the shipped pair first:
+
+- Pair: `qwen_forced` ASR + `gemma_vllm_alignatt` MT only.
+- First smoke check: `tmp/alignatt_smoke18.wav` only if needed to catch breakage quickly.
+- Then one long clip: `test-set/audio/ccpXHNfaoy.wav`.
+- Operating points: `chunk_ms = 450` and `chunk_ms = 700`.
+
+**Acceptance gate:** both runs complete cleanly, produce coherent outputs, and land in the intended low/high latency regimes without reopening architectural questions.
+
+### Step 3 — Widen only after Step 2 is clean
+
+Once the canonical pair is re-anchored:
+
+- Sanity-check one clip each for `en->it` and `en->zh`.
+- Do **not** start a full multilingual sweep if a single-clip sanity check is already unstable.
+- Treat `cs->en` as a first-class direction for code correctness, but do not let a missing local eval workflow block the night.
+
+**Acceptance gate:** no direction-specific runtime breakage and no missing-heads / missing-reference surprises in the local paths we actually use.
+
+### Step 4 — One mechanism branch only
+
+Pick **one** branch for tonight. Default choice:
+
+- **Default branch:** prototype `stable_and_accessible` as a third ASR commit rule.
+  A source unit becomes committable only when it is both behind the audio frontier and stable across consecutive ASR hypotheses.
+
+Why this branch first:
+
+- It directly addresses the biggest conceptual gap in the current paper story.
+- It is local to the runtime and easier to reason about than MT-engine surgery.
+- It can be falsified quickly on one clip.
+
+**Acceptance gate:** evaluate on one long clip only. Keep it only if it clearly improves the quality/latency tradeoff over pure `alignatt_frontier` without collapsing Qwen quality toward the old −11 BLEU regime.
+
+### Step 5 — If Step 4 fails early, use one fallback branch
+
+Fallback branch, only if the default branch is clearly a dead end:
+
+- Reopen MT prefix caching with observer-safe cache identity.
+
+This branch is valuable but riskier. If it turns into compile-cache / worker-debugging churn, stop and log the blocker rather than burning the whole night.
+
+### Step 6 — Cheap follow-ups only if the main branch succeeded early
+
+Only after Steps 1–4 are clean:
+
+- `translation_alignatt_min_source_mass` sweep on one clip.
+- `FREEZE_NONEXPANDING_MAJOR_REWRITES` vs `RAW_PASSTHROUGH` A/B, ideally via replay where possible.
+
+These are worthwhile, but they are not the main overnight objective.
+
+### Step 7 — Stretch / paper branches if the night is going unusually well
+
+These are explicitly non-critical for submission hardening, but they are good branches to preserve in the plan so an autonomous agent can opportunistically pick one if the main path finishes early.
+
+- **PDF / extra-context retrieval branch.**
+  - Main-track version: retrieve from previously committed sentence pairs within the same talk instead of relying on a tiny FIFO only.
+  - Extra-context version: preprocess ACL PDFs into compact reusable chunks (title / abstract / section headers / top-k retrieved spans) and inject retrieved snippets only.
+  - Goal: improve long-form consistency and open a path to the IWSLT extra-context sub-track without turning the runtime into ad hoc RAG glue.
+
+- **Observer-contract cleanup branch.**
+  - Replace MT-side free-form `alignatt_metadata` dict accretion with a typed compact observer surface parallel to `alignment_backend.py`.
+  - Goal: make the runtime and the paper tell the same story about what the observer is allowed to expose.
+
+- **Head-weighting branch.**
+  - Replace uniform averaging across selected heads with a principled weighting scheme using quantities already captured: peak mass, inverse variance, or cross-head argmax agreement.
+  - Goal: turn "top-k heads" from a static heuristic into a measurable effective-head mechanism.
+
+- **Continuous confidence branch.**
+  - Replace the current discrete gate trio (`rewind`, `source_frontier`, `provenance_weak`) with a single confidence scalar derived from the same observed rows.
+  - Goal: collapse several loosely-related knobs into one cleaner paper mechanism.
+  - Best first implementation path: offline replay from existing `stream_updates.jsonl` / provenance captures before touching the online runtime.
+
+## Not tonight
+
+- Do **not** revive Gemma ASR as the main path.
+- Do **not** launch broad benchmark sweeps before the current single-clip objective is already clean.
 
 ## Hard rules
 
 - Do **not** silently make `gemma_vllm_alignatt` the MT default. Keep `STABLE_MT_BACKEND_NAMES = ("gemma_transformers_alignatt",)`.
 - Do **not** re-enable MT vLLM prefix caching without the cache-native observer port.
-- Do **not** widen to a full benchmark sweep before the two-clip sanity check is clean.
+- Do **not** widen to a full benchmark sweep before the single-clip sanity check is clean.
 - Do **not** conflate ASR-side and MT-side observer work. They are two separate substrates that happen to share a design pattern.
 - Do **not** revive Gemma ASR fine-tuning inside this repo. The pivot is: keep Qwen ASR, put vLLM experimentation on the MT side.
 
-## Paper-level framing (target claim)
+## Paper-level framing
 
-*A multimodal causal LLM with an **ASR-side AlignAtt observer** (audio K + decode Q, `cudagraph=full`) and a matching **MT-side AlignAtt observer** (prompt K + decode Q + decode K, engine-native 4-way provenance), both based on a compact per-token contract, survives real vLLM execution and plugs into a single-process simultaneous speech translator whose emission on both sides is governed by the same AlignAtt-frontier rule. Runs at sub-2 s LongYAAL CU on `ccpXHNfaoy.wav` en→de, with a clean chunk-size calibration curve up to >4 s CA where BLEU / COMET saturate.*
+**What is already defensible today**
+
+*A simultaneous speech-translation cascade can run with engine-native AlignAtt observers under real vLLM execution on the MT side, while keeping Qwen ASR as the strong source frontend. The system admits clean low/high latency operating points (`chunk_ms = 450 / 700`) and produces stable end-to-end SimulStream artefacts with a compact observer substrate rather than Python-side attention dumps.*
+
+**What the overnight mechanism branch is trying to earn**
+
+*Replace the current "punctuation on the source, AlignAtt on the target" asymmetry with a more principled source commit rule based on stability plus accessibility, without paying the quality cliff of naive `alignatt_frontier`.*
