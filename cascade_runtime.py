@@ -49,6 +49,7 @@ os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 
 LANGUAGE_NAME_TO_CODE = {
+    "Czech": "cs",
     "English": "en",
     "German": "de",
     "Italian": "it",
@@ -93,14 +94,6 @@ forced_aligner_model_name = _resolve_hf_snapshot(
 gemma_model_name = _resolve_hf_snapshot(
     "models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c"
 )
-
-LANGUAGE_NAME_TO_CODE = {
-    "Czech": "cs",
-    "English": "en",
-    "German": "de",
-    "Italian": "it",
-    "Chinese": "zh",
-}
 
 
 def alignatt_heads_path_for(source_lang: str, target_lang: str) -> str:
@@ -262,11 +255,66 @@ class CascadeRuntimeConfig:
             if not hasattr(self, key):
                 raise AttributeError(f"Unknown runtime config override: {key}")
             setattr(self, key, value)
-        if "target_lang" in overrides and "translation_alignatt_heads_path" not in overrides:
+        lang_changed = "source_lang" in overrides or "target_lang" in overrides
+        if lang_changed and "translation_alignatt_heads_path" not in overrides:
             self.translation_alignatt_heads_path = alignatt_heads_path_for(
                 self.source_lang, self.target_lang
             )
         self._validate()
+
+    def alignment_backend_fingerprint(self) -> tuple:
+        """Identity under which a loaded ASR backend is safe to reuse.
+
+        Contains engine-construction knobs only. Live policy knobs
+        (commit mode, thresholds, heads path) must not participate —
+        they're read per-session, not baked into the engine.
+        """
+        name = self.alignment_backend_name
+        if name == "qwen_forced":
+            return (name, float(self.asr_gpu_memory_utilization))
+        if name == "gemma_onepass_qk_fast":
+            return (
+                name,
+                self.gemma_transformers_device,
+                self.gemma_transformers_dtype,
+                self.gemma_transformers_fast_attention,
+            )
+        if name == "gemma_vllm_qk_fast":
+            return (
+                name,
+                bool(self.gemma_vllm_enforce_eager),
+                bool(self.gemma_vllm_enable_prefix_caching),
+                self.gemma_vllm_cudagraph_mode,
+                float(self.asr_gpu_memory_utilization),
+                int(self.gemma_max_model_len),
+                bool(self.asr_streaming_prefix_enabled),
+            )
+        return (name,)
+
+    def mt_backend_fingerprint(self) -> tuple:
+        """Identity under which a loaded MT backend is safe to reuse.
+
+        See alignment_backend_fingerprint for the engine-vs-policy split.
+        """
+        name = self.mt_backend_name
+        if name == "gemma_transformers_alignatt":
+            return (
+                name,
+                self.gemma_transformers_device,
+                self.gemma_transformers_dtype,
+                self.gemma_transformers_fast_attention,
+                bool(self.gemma_transformers_prompt_kv_reuse),
+            )
+        if name == "gemma_vllm_alignatt":
+            return (
+                name,
+                bool(self.mt_vllm_enforce_eager),
+                bool(self.mt_vllm_enable_prefix_caching),
+                self.mt_vllm_cudagraph_mode,
+                float(self.mt_vllm_gpu_memory_utilization),
+                int(self.gemma_max_model_len),
+            )
+        return (name,)
 
 
 @dataclass
@@ -572,14 +620,15 @@ class LoadedModelBundle:
         self.gemma_path = gemma_model_name
         self.alignment_backend: AlignmentBackend | None = None
         self.mt_backend = None
-        self._alignment_backend_id: str | None = None
-        self._mt_backend_id: str | None = None
+        self._alignment_backend_fp: tuple | None = None
+        self._mt_backend_fp: tuple | None = None
         self._mt_heads_path: str | None = None
 
     def ensure_alignment_backend(self) -> AlignmentBackend:
+        current_fp = self.config.alignment_backend_fingerprint()
         if (
             self.alignment_backend is None
-            or self._alignment_backend_id != self.config.alignment_backend_name
+            or self._alignment_backend_fp != current_fp
         ):
             self.alignment_backend = build_alignment_backend(
                 self.config,
@@ -588,7 +637,7 @@ class LoadedModelBundle:
                 gemma_path=self.gemma_path,
             )
             self.alignment_backend.load()
-            self._alignment_backend_id = self.config.alignment_backend_name
+            self._alignment_backend_fp = current_fp
         else:
             runtime_config = getattr(self.alignment_backend, "runtime_config", None)
             if runtime_config is not None:
@@ -596,15 +645,15 @@ class LoadedModelBundle:
         return self.alignment_backend
 
     def ensure_mt_backend(self):
-        current_backend_id = getattr(self.config, "mt_backend_name", "gemma_transformers_alignatt")
-        if self.mt_backend is None or self._mt_backend_id != current_backend_id:
+        current_fp = self.config.mt_backend_fingerprint()
+        if self.mt_backend is None or self._mt_backend_fp != current_fp:
             self.mt_backend = build_mt_backend(
                 model_name=self.gemma_path,
                 runtime_config=self.config,
             )
             self.mt_backend.load()
             self._mt_heads_path = self.config.translation_alignatt_heads_path
-            self._mt_backend_id = current_backend_id
+            self._mt_backend_fp = current_fp
         else:
             self.mt_backend.runtime_config = self.config
             current_heads_path = self.config.translation_alignatt_heads_path
@@ -1544,7 +1593,8 @@ def temporary_runtime_config(
         original_values[key] = getattr(config, key)
         setattr(config, key, value)
 
-    if "target_lang" in overrides and "translation_alignatt_heads_path" not in overrides:
+    lang_changed = "source_lang" in overrides or "target_lang" in overrides
+    if lang_changed and "translation_alignatt_heads_path" not in overrides:
         original_values.setdefault(
             "translation_alignatt_heads_path",
             getattr(config, "translation_alignatt_heads_path"),

@@ -150,6 +150,142 @@ def test_new_sessions_keep_mutable_state_isolated():
     assert first.translation_units is not second.translation_units
 
 
+def test_language_code_to_name_includes_czech():
+    # cs->en is a first-class direction. Historical bug: LANGUAGE_CODE_TO_NAME
+    # was built from an early map that didn't include Czech, so cs silently
+    # passed through as the raw code and broke downstream consumers that
+    # expected an English-name label.
+    from cascade_runtime import LANGUAGE_CODE_TO_NAME, LANGUAGE_NAME_TO_CODE
+    assert LANGUAGE_CODE_TO_NAME["cs"] == "Czech"
+    assert LANGUAGE_NAME_TO_CODE["Czech"] == "cs"
+    # Reverse map must be derived from the one source of truth.
+    for name, code in LANGUAGE_NAME_TO_CODE.items():
+        assert LANGUAGE_CODE_TO_NAME[code] == name
+
+
+def test_apply_overrides_recomputes_heads_path_on_source_or_target_change():
+    # Historical bug: heads-path recompute keyed only off target_lang, so a
+    # cs->en switch kept the English-source heads file.
+    from cascade_runtime import CascadeRuntimeConfig
+
+    config = CascadeRuntimeConfig(source_lang="English", target_lang="German")
+    original = config.translation_alignatt_heads_path
+    assert "en-de" in original
+
+    config.apply_overrides(target_lang="Italian")
+    assert "en-it" in config.translation_alignatt_heads_path
+
+    config.apply_overrides(source_lang="Czech", target_lang="English")
+    assert "cs-en" in config.translation_alignatt_heads_path
+
+    config.apply_overrides(source_lang="English")
+    assert "en-en" in config.translation_alignatt_heads_path
+
+    # Explicit override must still win.
+    config.apply_overrides(
+        source_lang="German",
+        translation_alignatt_heads_path="assets/custom.json",
+    )
+    assert config.translation_alignatt_heads_path == "assets/custom.json"
+
+
+def test_runtime_config_overrides_context_manager_refreshes_on_source_lang():
+    # Mirrors the apply_overrides fix for the temporary-overrides surface.
+    from cascade_runtime import CascadeRuntimeConfig, temporary_runtime_config
+
+    config = CascadeRuntimeConfig(source_lang="English", target_lang="German")
+    baseline = config.translation_alignatt_heads_path
+
+    with temporary_runtime_config(config, source_lang="Czech", target_lang="English"):
+        assert "cs-en" in config.translation_alignatt_heads_path
+    # Context must restore the original heads path.
+    assert config.translation_alignatt_heads_path == baseline
+
+    with temporary_runtime_config(config, target_lang="Italian"):
+        assert "en-it" in config.translation_alignatt_heads_path
+    assert config.translation_alignatt_heads_path == baseline
+
+    with temporary_runtime_config(config, source_lang="German"):
+        assert "de-de" in config.translation_alignatt_heads_path
+    assert config.translation_alignatt_heads_path == baseline
+
+
+def test_backend_fingerprints_flip_on_engine_knobs_but_not_policy_knobs():
+    # The bundle reuse check must discriminate on engine-construction config
+    # (memory budget, prefix caching, cudagraph mode, max_model_len,
+    # prompt-KV reuse, ...) but not on live policy (commit mode, frontier
+    # margin, heads path, rewind thresholds).
+    from cascade_runtime import CascadeRuntimeConfig
+
+    base = CascadeRuntimeConfig(
+        alignment_backend_name="qwen_forced",
+        mt_backend_name="gemma_vllm_alignatt",
+    )
+    base_asr_fp = base.alignment_backend_fingerprint()
+    base_mt_fp = base.mt_backend_fingerprint()
+
+    # Engine knobs must flip fingerprints:
+    assert (
+        CascadeRuntimeConfig(
+            alignment_backend_name="qwen_forced",
+            mt_backend_name="gemma_vllm_alignatt",
+            asr_gpu_memory_utilization=0.3,
+        ).alignment_backend_fingerprint()
+        != base_asr_fp
+    )
+    assert (
+        CascadeRuntimeConfig(
+            alignment_backend_name="qwen_forced",
+            mt_backend_name="gemma_vllm_alignatt",
+            mt_vllm_gpu_memory_utilization=0.6,
+        ).mt_backend_fingerprint()
+        != base_mt_fp
+    )
+    assert (
+        CascadeRuntimeConfig(
+            alignment_backend_name="qwen_forced",
+            mt_backend_name="gemma_vllm_alignatt",
+            mt_vllm_enable_prefix_caching=True,
+        ).mt_backend_fingerprint()
+        != base_mt_fp
+    )
+    assert (
+        CascadeRuntimeConfig(
+            alignment_backend_name="qwen_forced",
+            mt_backend_name="gemma_vllm_alignatt",
+            gemma_max_model_len=2048,
+        ).mt_backend_fingerprint()
+        != base_mt_fp
+    )
+
+    # Policy / session-level knobs must NOT flip fingerprints: changing them
+    # should keep the hot backend.
+    for policy_override in [
+        dict(asr_commit_mode="alignatt_frontier"),
+        dict(asr_alignatt_frontier_margin_ms=250.0),
+        dict(translation_alignatt_rewind_threshold=4),
+        dict(translation_alignatt_min_source_mass=0.3),
+        dict(translation_alignatt_inaccessible_ms=500.0),
+        dict(translation_alignatt_filter_width=5),
+        dict(translation_alignatt_heads_path="assets/other.json"),
+        dict(source_lang="Czech", target_lang="English"),
+    ]:
+        cfg = CascadeRuntimeConfig(
+            alignment_backend_name="qwen_forced",
+            mt_backend_name="gemma_vllm_alignatt",
+            **policy_override,
+        )
+        assert cfg.alignment_backend_fingerprint() == base_asr_fp, policy_override
+        assert cfg.mt_backend_fingerprint() == base_mt_fp, policy_override
+
+    # Changing the backend name itself obviously flips the fingerprint.
+    alt = CascadeRuntimeConfig(
+        alignment_backend_name="qwen_forced",
+        mt_backend_name="gemma_transformers_alignatt",
+    )
+    assert alt.mt_backend_fingerprint() != base_mt_fp
+
+
 def test_processor_runtime_config_propagates_backend_and_audio_probe_settings():
     from cascade_simulstream_processor import CascadeAlignAttProcessor
 
