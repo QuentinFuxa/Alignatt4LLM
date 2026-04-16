@@ -66,6 +66,7 @@ HYMT_PROMPTS = {
     "en-it": "Translate the following text into Italian, please only output the translated result without additional explanation:\n\n",
     "en-fr": "Translate the following text into French, please only output the translated result without additional explanation:\n\n",
     "cs-en": "Translate the following text into English, please only output the translated result without additional explanation:\n\n",
+    "en-cs": "Translate the following text into Czech, please only output the translated result without additional explanation:\n\n",
 }
 HYMT_PLACEHOLDER = "<｜hy_place▁holder▁no▁0｜>"
 
