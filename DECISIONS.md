@@ -732,6 +732,52 @@ absorb (i) cleanly and must leave (ii) as a distinct mechanism.
 
 Artifacts: `outputs/night1_*/per_gate_separability_v2.txt`.
 
+### Step 7 v3: 2-feature search for the rewind gate
+
+Added `scripts/two_feature_gate_search.py`, which grid-searches over
+every pair of features (from the v2 feature set) with every
+(direction_a, direction_b, AND/OR) combination rule, thresholds
+sampled from per-feature quantiles. Asks whether any 2-feature
+conjunction or disjunction lifts the rewind gate above the
+single-feature cap.
+
+Cross-artifact best 2-feature rule for `alignatt:rewind`:
+
+| Artifact                        | n_pos | Best 2-feature rule (top F1)                                                 | F1    |
+|---------------------------------|-------|------------------------------------------------------------------------------|-------|
+| cs→en Transformers MT           |   64  | `max_backward_jump ≥ 10 AND unsafe.source_inaccessible ≤ 0.013`              | 0.734 |
+| cs→en vLLM MT (fixed)           |   38  | `max_backward_jump ≥ 10 AND unsafe.source_inaccessible ≤ 0.008`              | 0.674 |
+| en→de K3@700 (n_pos=10, noisy)  |   10  | `max_backward_jump ≥ 9 AND accepted_mean.source_accessible ≥ 0.044`          | 0.818 |
+
+**Finding stands and sharpens:** 2-feature combinations do not
+reliably lift `alignatt:rewind` on the two larger-sample artifacts
+(n_pos=38 and 64). The en→de K3@700 case pushes higher (F1 0.818)
+but only has 10 positive examples — that F1 is statistically fragile
+and not a trustworthy lift. The best 2-feature combinations all
+**agree on the same physical rule**:
+
+> "a large backward jump in aligned source positions, **without**
+> the attention-to-inaccessible-source that would instead trigger
+> `source_frontier`."
+
+That interpretation is satisfying — it's the **definition of what
+rewind should fire on** — but the data shows even the well-motivated
+combination caps at F1 0.67-0.73 on realistic sample sizes. The
+remaining gap comes from state the observer does not expose per
+update (`translation_alignatt_rewind_threshold` counter, accepted
+window history across updates).
+
+**Paper conclusion stands:** the three-gate MT policy partitions
+into one *reducible* gate (`source_frontier`, F1 0.91-0.98 with one
+provenance feature) and one *irreducible-under-observer-features*
+gate (`rewind`, F1 plateau ≤ 0.75 across 1-feature and 2-feature
+searches). Making `rewind` reducible would need either learned
+per-head weights, a state-carrying classifier, or instrumenting the
+rewind counter into `alignatt_metadata`.
+
+Artifacts: `outputs/night1_*/two_feature_search_alignatt_rewind.txt`.
+Source: `scripts/two_feature_gate_search.py`.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +

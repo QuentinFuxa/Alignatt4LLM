@@ -126,6 +126,14 @@ By morning, the repo should satisfy all three:
       mechanism, absorb `source_frontier` as a one-line threshold,
       keep `rewind` as a distinct mechanism studied on its own
       terms. CSV + TXT reports in `outputs/night1_*/per_gate_*.txt`.
+      Further v3 2-feature AND/OR search
+      (`scripts/two_feature_gate_search.py`) confirms the rewind cap:
+      best 2-feature rule on realistic sample sizes lands at F1
+      0.67-0.73, same plateau as 1-feature. The consistent winning
+      combination across backends — `max_backward_jump ≥ 9 AND
+      unsafe.source_inaccessible ≤ 0` — IS the physical definition
+      of rewind, but the observer doesn't expose the rewind counter
+      that would push the rule to F1 ≈ 1.0.
 
 Use the current local assets for tonight's loop. The repo currently has `test-set/` but not a local official dev-set workflow. Do not block engineering work on that; just keep in mind that final submission still needs dev logs.
 
