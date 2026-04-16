@@ -1,4 +1,4 @@
-"""Quick test to verify an OpenAI API key works."""
+"""Quick test to verify an OpenAI API key works for GPT-5-mini."""
 import os
 import sys
 
@@ -18,12 +18,12 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 try:
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": "Say hello in one word."}],
-        max_tokens=10,
+    response = client.responses.create(
+        model="gpt-5-mini",
+        input="Say hello in one word.",
+        max_output_tokens=16,
     )
     print("Token is valid!")
-    print(f"Response: {response.choices[0].message.content}")
+    print(f"Response: {response.output_text}")
 except Exception as e:
     print(f"Token check failed: {e}")

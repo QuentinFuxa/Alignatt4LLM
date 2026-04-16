@@ -1,0 +1,14 @@
+{
+  "source_corpus": "Europarl v6 cs-en",
+  "source_url": "https://www.statmt.org/europarl/v6/cs-en.tgz",
+  "sampling": "reservoir",
+  "seed": 13,
+  "sample_size": 5000,
+  "input_pairs_seen": 462351,
+  "eligible_pairs_after_filters": 372417,
+  "filters": {
+    "min_words_per_side": 6,
+    "max_words_per_side": 40,
+    "max_chars_per_side": 260
+  }
+}

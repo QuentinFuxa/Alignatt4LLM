@@ -84,6 +84,14 @@ gemma_model_name = _resolve_hf_snapshot(
     "models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c"
 )
 
+LANGUAGE_NAME_TO_CODE = {
+    "Czech": "cs",
+    "English": "en",
+    "German": "de",
+    "Italian": "it",
+    "Chinese": "zh",
+}
+
 
 def alignatt_heads_path_for(source_lang: str, target_lang: str) -> str:
     source_code = LANGUAGE_NAME_TO_CODE.get(source_lang, source_lang.lower())
