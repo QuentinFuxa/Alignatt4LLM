@@ -187,13 +187,23 @@ def main() -> None:
             word_elapsed_ms,
             target_lang_code=target_lang_code,
         )
-        register_translation_words(
+        eos_new_words = register_translation_words(
             last_translation,
             final_translation,
             audio_duration_ms,
             word_delays_ms,
             target_lang_code=target_lang_code,
         )
+        stream_updates.append({
+            "update_idx": len(stream_updates),
+            "audio_processed_ms": audio_duration_ms,
+            "wallclock_elapsed_ms": final_elapsed_ms,
+            "translation_text": final_translation,
+            "new_words": eos_new_words,
+            "new_string": eos_output.new_string,
+            "deleted_string": eos_output.deleted_string,
+            "is_eos": True,
+        })
 
     # Get final ASR from core state
     core = CascadeAlignAttProcessor._get_core()

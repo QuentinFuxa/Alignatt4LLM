@@ -669,6 +669,32 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
     def reset_caches(self) -> None:
         self.prompt_cache = PromptCacheState()
 
+    def refresh_alignatt_artifacts(self) -> None:
+        """Reload AlignAtt heads from the current config path and re-register hooks."""
+        if self.alignatt_recorder is not None:
+            for hook in self.alignatt_recorder._hooks:
+                hook.remove()
+            self.alignatt_recorder = None
+        if self.alignatt_layer_input_recorder is not None:
+            for hook in self.alignatt_layer_input_recorder._hooks:
+                hook.remove()
+            self.alignatt_layer_input_recorder = None
+
+        self.alignatt_heads = load_alignatt_heads(
+            getattr(self.runtime_config, "translation_alignatt_heads_path"),
+            top_k=int(getattr(self.runtime_config, "translation_alignatt_top_k_heads", 8)),
+        )
+        if self.model is not None:
+            self.alignatt_recorder = SelectedAttentionRecorder(
+                model=self.model,
+                alignatt_heads=self.alignatt_heads,
+            )
+            self.alignatt_layer_input_recorder = SelectedLayerInputRecorder(
+                model=self.model,
+                alignatt_heads=self.alignatt_heads,
+            )
+        self.qk_fast_probe_supported = None
+
     def load(self) -> None:
         if self.tokenizer is None:
             self.tokenizer = AutoTokenizer.from_pretrained(

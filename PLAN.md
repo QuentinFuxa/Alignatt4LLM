@@ -1,23 +1,23 @@
 # PLAN
 
-Check `CLAUDE.md` and `AGENTS.md` first.
+Read `CLAUDE.md` and `AGENTS.md` first.
 
 
 ## Purpose
 
 This file is the handoff plan for the next agent.
 
-We are now close to the implementation delivery date.
+We are now in delivery mode, not open-ended exploration mode.
 
-The goal is no longer open-ended exploration. The goal is to turn the current
-AlignAtt-on-LLM cascade into a deliverable, reproducible, fast implementation
-inside the **SimulStream** framework, with validated operating points for all
-target languages and both latency regimes.
+The target is a deliverable, reproducible, paper-defensible implementation of
+the Qwen3-ASR + Gemma AlignAtt cascade inside the real **SimulStream**
+framework, with one validated operating point per language and per latency
+regime.
 
 
 ## Mandatory Reading
 
-Before changing code or launching any expensive run, read these documents:
+Before editing code or launching any expensive run, read these files in order:
 
 1. `CLAUDE.md`
 2. `AGENTS.md`
@@ -26,116 +26,263 @@ Before changing code or launching any expensive run, read these documents:
 5. `assets/alignatt_doc/alignatt_markdown.md`
 6. `assets/alignatt_doc/alignatt_whipser.py`
 
-Then read these implementation files:
+Then read the core implementation:
 
 1. `qwen3asr_gemma_cascade_core.py`
 2. `cascade_mt_backend.py`
 3. `cascade_emission.py`
 4. `cascade_text_surface.py`
-5. `run_cascade_baseline.py`
-6. `evaluate_cascade_outputs.py`
+5. `evaluate_cascade_outputs.py`
 
-Then read the SimulStream delivery interface in the installed framework:
+Then read the new SimulStream-facing files:
+
+1. `cascade_simulstream_processor.py`
+2. `run_simulstream_evaluation.py`
+3. `run_simulstream_batch.py`
+4. `benchmark_simulstream_speed.py`
+
+Then read the SimulStream framework contract from the installed package:
 
 1. `.venv-inference/lib/python3.13/site-packages/simulstream/server/speech_processors/__init__.py`
 2. `.venv-inference/lib/python3.13/site-packages/simulstream/server/speech_processors/base.py`
 3. `.venv-inference/lib/python3.13/site-packages/simulstream/server/speech_processors/incremental_output.py`
+4. `.venv-inference/lib/python3.13/site-packages/simulstream/server/message_processor.py`
+5. `.venv-inference/lib/python3.13/site-packages/simulstream/server/websocket_server.py`
 
-The delivery must use the real SimulStream processor API, not only the local
-research harness.
+Useful result bundles to inspect before rerunning anything:
+
+1. `outputs/phase0_v4_ende_reproduce`
+2. `outputs/phase1_v2_enit_validate`
+3. `outputs/phase1_v1_enzh_validate_reemit`
+4. `outputs/phase4_v4_enit_shared_kernel`
+5. `outputs/phase5_v1_ende_minmass20`
+6. `outputs/compute_unaware_chunk800_20260415T154922Z`
 
 
 ## Non-Negotiable Constraints
 
-- We must deliver inside **SimulStream**:
-  - official repo: <https://github.com/hlt-mt/simulstream>
-- Use the repo environment `.venv-inference`.
-- Do not restart the ASR + Gemma stack unless necessary; model reload is costly.
-- Full-set runs are expensive and should only happen once speed and behavior are
-  already validated on small control cases.
-- No ad hoc heuristics, no lexical patches, no benchmark-specific hacks.
-- The final system must be paper-defensible and operationally credible.
+- The final delivery must use **SimulStream**, not only the local research
+  harness.
+- Use `.venv-inference`.
+- Model reload is expensive. Reuse hot models whenever possible.
+- Do not run broad sweeps until the current objective is already validated on a
+  single audio.
+- Do not add ad hoc lexical fixes, dataset-specific rewrites, or benchmark
+  patches.
+- Prefer the cleanest architecture that we could defend in a paper.
+- If something is only "working" because of module-global state or accidental
+  ordering, treat that as broken.
 
 
-## Required Final Regimes
+## Delivery Targets
 
-We need validated operating points for:
+We need one delivery-ready operating point for each of these six slots:
 
-- `en->de` under `< 2 s LongYAAL CU`
-- `en->it` under `< 2 s LongYAAL CU`
-- `en->zh` under `< 2 s LongYAAL CU`
-- `en->de` under `< 4 s LongYAAL CU`
-- `en->it` under `< 4 s LongYAAL CU`
-- `en->zh` under `< 4 s LongYAAL CU`
+- `en->de` under `< 2 s LongYAAL Compute-Unaware`
+- `en->it` under `< 2 s LongYAAL Compute-Unaware`
+- `en->zh` under `< 2 s LongYAAL Compute-Unaware`
+- `en->de` under `< 4 s LongYAAL Compute-Unaware`
+- `en->it` under `< 4 s LongYAAL Compute-Unaware`
+- `en->zh` under `< 4 s LongYAAL Compute-Unaware`
 
-These are six delivery slots.
+The chosen operating points must satisfy two kinds of constraints:
 
-The requirement is not only "good average".
+- quality / latency metrics on the full evaluation set
+- actual runtime credibility through the real SimulStream path
 
-We need configurations that respect the corresponding regime on the full data
-evaluation in a credible way, and we must know their compute-aware / RTF
-behavior before launching several hours of audio.
+Do not accept a config only because the corpus average looks good. Track
+per-audio violations as well.
 
 
-## Current State Of The System
+## Current Conceptual Understanding
 
-### What is already solid
+The core AlignAtt idea is still:
 
-- The semantic split `draft_target` / `accepted_target` is correct.
-- The prompt contract is correct:
-  - `user = full source prefix`
-  - `assistant = accepted target prefix`
-- The Gemma backend already has the right high-level structure:
+- generate a target draft
+- inspect attention-based source provenance for each target token
+- stop before the first token that depends on inaccessible source context
+- emit only the accepted prefix
+
+In Whisper, this was naturally tied to decoder cross-attention over encoder
+frames.
+
+In this Gemma-based LLM implementation, the same logic is approximated through:
+
+- a source-aware prompt layout
+- selected self-attention heads
+- `qk_fast` or `eager` probing
+- a prefix-online scan over the draft
+- acceptance outside the model
+
+The strongest recent mechanism is the provenance-aware acceptance criterion via
+`translation_alignatt_min_source_mass`, which rejects a token when the source
+argmax looks acceptable but the accessible-source attention mass is too weak.
+
+
+## What Is Already Good
+
+- The overall LLM AlignAtt decomposition is sound:
   - fast draft
-  - separate alignment probe
-  - acceptance outside the model
-- The current observer is already much better than a naive Whisper port:
-  - `qk_fast`
-  - prefix-online scan
-  - monotone accepted prefix
-- The cascade is now structurally multilingual:
-  - `de`
-  - `it`
-  - `zh`
-
-### Important recent mechanism
-
-The main recent mechanism is **provenance-aware acceptance**.
-
-`cascade_mt_backend.py` now computes a per-token attention mass breakdown:
-
-- `source_accessible`
-- `source_inaccessible`
-- `non_source_prompt`
-- `suffix`
-
-and can reject a token when:
-
-- its argmax source is acceptable
-- but its accessible source mass is too weak
-
-through:
-
-- `translation_alignatt_min_source_mass`
-
-This is the first recent change that looks like a genuine LLM-native AlignAtt
-improvement, not only harness cleanup.
+  - separate probe
+  - external acceptance
+- The accepted-prefix semantics are much cleaner than a naive Whisper port.
+- Multilingual support already exists for `de`, `it`, and `zh`.
+- Shared-kernel heads look promising and likely delivery-friendly.
+- Provenance-aware acceptance is a real mechanism improvement, not just harness
+  cleanup.
+- The new provenance serialization fix in `qwen3asr_gemma_cascade_core.py` is
+  good and should be preserved.
 
 
-## Current Best Known Control-Audio Results
+## What The Last Agent Added
 
-These are on the control audio `ccpXHNfaoy.wav`.
+The new work is real and useful:
 
-### `< 2 s` family, `chunk_ms = 450`
+- `cascade_simulstream_processor.py`
+  - first real `SpeechProcessor` wrapper around the cascade
+- `run_simulstream_evaluation.py`
+  - produces evaluation-compatible artifacts through the SimulStream path
+- `run_simulstream_batch.py`
+  - keeps models hot across multiple audios
+- `benchmark_simulstream_speed.py`
+  - measures wallclock, RTF, chunk times, peak GPU memory
+- `qwen3asr_gemma_cascade_core.py`
+  - now persists `translation_alignatt_min_source_mass`
+  - now enriches `run_provenance` with git SHA / framework mode / languages
 
-Reference baseline:
+Lightweight verification already done:
+
+- `python -m py_compile cascade_simulstream_processor.py benchmark_simulstream_speed.py run_simulstream_batch.py run_simulstream_evaluation.py qwen3asr_gemma_cascade_core.py`
+  - passes
+
+
+## Critical Review Of The New SimulStream Work
+
+The new integration is a strong step forward, but it is **not yet delivery-safe**.
+
+### Blocker 1 - Session isolation is wrong
+
+`cascade_simulstream_processor.py` uses a class-level shared `_core`, while
+`qwen3asr_gemma_cascade_core.py` stores mutable stream state in module globals:
+
+- `config`
+- `state`
+- `translation_units`
+- `mt_backend`
+
+This conflicts with the SimulStream execution model, because the framework
+creates a pool of processor instances and expects them to be independently
+usable.
+
+Implication:
+
+- current implementation is not trustworthy for pooled / multi-client /
+  multi-session serving
+- even if it "works" for a single local run, it is architecturally unsafe
+
+### Blocker 2 - Reconfiguration after first load is stale
+
+The current processor mutates `core.config` in `__init__()` and in
+`set_source_language()` / `set_target_language()`, but the MT backend is only
+built once and AlignAtt heads are only loaded once.
+
+This means the following may silently fail to update after the first load:
+
+- language-specific heads
+- `translation_alignatt_top_k_heads`
+- `translation_alignatt_probe_mode`
+- any other backend-initialized probe setting
+
+Implication:
+
+- a process that first loads `en->de` may continue using stale German heads for
+  later `en->it` / `en->zh`
+- current SimulStream results should be treated as provisional until this is fixed
+
+### Blocker 3 - EOS is missing from `stream_updates`
+
+`run_simulstream_evaluation.py` and `run_simulstream_batch.py` call
+`end_of_stream()`, but they do not append a final incremental update to
+`stream_updates.jsonl` when EOS emits something new.
+
+Implication:
+
+- the serialized stream trace can be incomplete
+- replay/debugging and latency analysis can be inconsistent with the final text
+
+### Blocker 4 - Batch updates have no audio identity
+
+`run_simulstream_batch.py` concatenates updates from multiple audios into one
+`stream_updates.jsonl`, but each update record lacks a `wav_name` or `audio_id`.
+
+Implication:
+
+- batch stream traces are ambiguous
+- later replay or debugging is harder than necessary
+
+### Blocker 5 - Benchmark GPU peak memory is not cleanly measured
+
+`benchmark_simulstream_speed.py` reports `torch.cuda.max_memory_allocated()`
+without resetting the peak before the benchmarked section.
+
+Implication:
+
+- the reported number mixes model load and run-time memory
+- speed artifacts are less useful for deployment decisions
+
+### Minor hygiene note
+
+- `.claude/ralph-loop.local.md` is a local artifact and should not be committed.
+
+
+## Important Consequence
+
+The current SimulStream outputs and measurements are useful as **signals**, but
+not yet as final delivery truth.
+
+Until Blockers 1 and 2 are fixed, do **not** present the current SimulStream
+results as fully validated production numbers.
+
+
+## Recommended Design Direction
+
+Do not paper over the current issues with one more layer of mutable global
+patching.
+
+The clean direction is:
+
+- one shared loaded model bundle
+  - ASR weights
+  - Gemma weights
+  - tokenizer
+- one per-session mutable cascade state
+  - source audio buffer
+  - ASR incremental state
+  - accepted / draft translation state
+  - emission surface state
+- explicit backend refresh when language-dependent AlignAtt artifacts change
+
+The minimal acceptable fallback, if time pressure is extreme, is:
+
+- document `pool_size=1`
+- make the processor explicitly single-session / single-language per process
+- still fix stale-head reload and EOS tracing
+
+But the preferred direction is real state isolation.
+
+
+## Current Best Reference Points
+
+These are reference points from earlier work and should be used to guide the
+next experiments after the SimulStream blockers are fixed.
+
+### `< 2 s` family
+
+Control-audio reference at `chunk_ms = 450`:
 
 - `en->de`
   - `outputs/phase0_v4_ende_reproduce`
   - `BLEU 28.22`, `chrF 63.53`, `LongYAAL CU 1747.19`
-
-Multilingual validation:
-
 - `en->it`
   - `outputs/phase1_v2_enit_validate`
   - `BLEU 36.87`, `chrF 71.48`, `LongYAAL CU 1813.70`
@@ -143,19 +290,10 @@ Multilingual validation:
   - `outputs/phase1_v1_enzh_validate_reemit`
   - `BLEU 41.85`, `chrF 38.32`, `LongYAAL CU 1762.95`
 
-Shared-kernel heads:
+Shared-kernel references are strong for `it` and `zh`, and likely still worth
+testing for `de`.
 
-- `en->de`
-  - `outputs/phase4_v1_ende_shared_kernel`
-  - same quality, near-identical CU
-- `en->it`
-  - `outputs/phase4_v4_enit_shared_kernel`
-  - `BLEU 36.87`, `chrF 71.48`, `LongYAAL CU 1813.70`
-- `en->zh`
-  - `outputs/phase4_v3_enzh_shared_kernel`
-  - `BLEU 41.82`, `chrF 38.31`, `LongYAAL CU 1763.00`
-
-Provenance-aware `en->de`:
+For `en->de`, provenance-aware acceptance on control audio gives:
 
 - `outputs/phase5_v1_ende_minmass10`
   - `BLEU 28.14`, `chrF 63.55`, `CU 1790.72`
@@ -164,160 +302,41 @@ Provenance-aware `en->de`:
 - `outputs/phase5_v1_ende_minmass30`
   - `BLEU 29.34`, `chrF 64.09`, `CU 2162.88`
 
-Working conclusion:
+Interpretation:
 
-- for `en->de`, `min_source_mass = 0.2` is currently the best known
-  quality-under-`<2s-CU` point on the control audio
-- for `en->it` and `en->zh`, shared-kernel heads already look delivery-friendly
+- `min_source_mass = 0.2` is a promising quality point on control audio
+- but it may become too expensive or too fragile on a broader audio set
+- do not assume it is the final `<2s` winner without fresh SimulStream validation
 
 ### `< 4 s` family
 
-High-quality reference family:
+The main high-quality reference family is:
 
 - `outputs/compute_unaware_chunk800_20260415T154922Z`
   - `BLEU 38.76`, `chrF 68.09`, `LongYAAL CU 3716.85`
 
-This is the natural starting family for the `< 4 s` regime.
-
-
-## Current Risks / Gaps
-
-### 1. SimulStream delivery path is not implemented yet
-
-This is the biggest delivery gap.
-
-The current code is still a research harness around:
-
-- `run_stream_to_artifacts`
-- `run_baseline`
-
-We do **not** yet have a real SimulStream `SpeechProcessor` implementation in
-the repo that the framework can load and serve.
-
-This must become the top priority.
-
-### 2. Speed truth must be measured through SimulStream, not only the harness
-
-Current CA numbers are informative, but not the final delivery truth.
-
-Before any full-set run, we need:
-
-- actual processor integration in SimulStream
-- actual chunk-by-chunk wallclock behavior through that path
-- real RTF and p95 chunk compute time
-
-### 3. Manifest persistence is incomplete for the new provenance knob
-
-`translation_alignatt_min_source_mass` exists in config, but is currently not
-serialized into the `runtime_config` block of the output manifest.
-
-This means the Phase 5 bundles are not fully self-describing.
-
-Fix this before relying on those outputs as final references.
-
-### 4. The qk_fast vs eager validation should be preserved as an artifact
-
-`validate_phase3_gpu.py` exists and is useful, but the validation outcome should
-be recorded in a persistent bundle or report, not only as a script.
-
-### 5. Full-set criteria must be explicit before broad runs
-
-Before launching several hours of audio, define exactly:
-
-- what counts as regime success
-- how we score per-audio violations
-- what RTF threshold is acceptable for delivery
-
-
-## Immediate Priorities
-
-Priority order from now on:
-
-1. SimulStream integration
-2. speed / RTF benchmark through SimulStream
-3. reproducibility fixes
-4. candidate selection for the six delivery slots
-5. only then full-set runs
-
-Do **not** spend time on new broad mechanism exploration until 1-3 are done.
-
-
-## Required Implementation Work
-
-### Phase A - Delivery-Grade SimulStream Integration
-
-Implement a real SimulStream speech processor class in the repo.
-
-It should wrap the existing cascade logic, not reimplement it from scratch.
-
-Required interface:
-
-- `load_model`
-- `process_chunk`
-- `set_source_language`
-- `set_target_language`
-- `end_of_stream`
-- `tokens_to_string`
-- `clear`
-
-Expected output contract:
-
-- produce `IncrementalOutput`
-- properly express new text and deleted text
-- preserve monotone accepted target semantics on the surface output
-
-The delivery processor must be the canonical path for all later speed tests.
-
-### Phase B - Reproducibility / Provenance Fixes
-
-Before broader benchmarking:
-
-- persist `translation_alignatt_min_source_mass` in manifests
-- add stronger `run_provenance` info:
-  - git SHA
-  - script name
-  - regime name
-  - language
-  - framework mode (`research_harness` vs `simulstream_processor`)
-- persist the Phase 3 GPU validation result in a file or bundle
-
-### Phase C - SimulStream Speed Harness
-
-Create a small benchmark harness around the real SimulStream processor.
-
-For a given config and audio:
-
-- run through the real processor path
-- measure:
-  - total wallclock
-  - real-time factor
-  - per-chunk processing mean
-  - per-chunk processing p95
-  - max GPU memory if available
-  - number of emitted updates
-
-This harness should become the gatekeeper before full-set runs.
+This remains the natural starting point for the `<4s` regime.
 
 
 ## Candidate Matrix To Start From
 
-Do not search huge grids.
+Do not search a huge grid.
 
-Start with this small candidate matrix.
+Start from this small matrix **after** fixing the SimulStream blockers.
 
-### Regime 1: `< 2 s LongYAAL CU`
+### `< 2 s`
 
-Start from:
+Base family:
 
 - `chunk_ms = 450`
 - `min_start_seconds = 2.0`
+- `max_history_utterances = 1`
 - `partial_max_new_tokens = 16`
 - `partial_followup_max_new_tokens = 8`
-- `max_history_utterances = 1`
 - `translation_alignatt_inaccessible_ms = 0`
 - `translation_alignatt_rewind_threshold = 8`
 
-Initial per-language candidates:
+Initial candidates:
 
 - `en->de`
   - baseline heads
@@ -328,214 +347,212 @@ Initial per-language candidates:
 - `en->zh`
   - shared-kernel heads
 
-### Regime 2: `< 4 s LongYAAL CU`
+### `< 4 s`
 
-Start from the `chunk800` quality-favoring family.
+Base family:
 
-Initial per-language candidates:
+- start from `chunk_ms = 800`
+- start from the quality-favoring compute-unaware family
+
+Initial candidates:
 
 - `en->de`
-  - current `chunk_ms = 800` high-quality point
+  - current `chunk800` quality reference
 - `en->it`
-  - same family, language-adjusted heads
+  - same family with correct `it` heads
 - `en->zh`
-  - same family, language-adjusted or shared-kernel heads
+  - same family with correct `zh` heads or shared-kernel heads
 
-Only tune further if these initial points fail the regime or are too slow.
+Only tune beyond this if the initial point fails the target or the speed gate.
 
 
-## Speed Gate Before Any Full-Set Run
+## Execution Order
 
-Before launching several hours of audio, every candidate must pass a
-SimulStream-speed gate on:
+### Phase 0 - Re-read And Orient
 
-- control audio
-- and a small additional sample of short/medium audios per language
+1. Read the mandatory documents above.
+2. Confirm the current git state.
+3. Do not trust the old `PLAN.md` assumptions that said the SimulStream path was
+   fully validated.
+
+### Phase 1 - Fix Correctness Before New Expensive Runs [DONE]
+
+1. [DONE] Fix session isolation or explicitly enforce/document single-processor
+   behavior.
+   → Added `_active_instance_id` guard to `CascadeAlignAttProcessor`; documented
+     `pool_size=1` constraint.
+2. [DONE] Fix stale backend / stale head reconfiguration.
+   → Added `refresh_alignatt_artifacts()` to `TransformersAlignAttGemmaMTBackend`
+     (removes old hooks, reloads heads, re-registers recorders).
+   → `set_source_language()` / `set_target_language()` now call it when the heads
+     path actually changes.
+3. [DONE] Append EOS updates into serialized `stream_updates`.
+   → Both `run_simulstream_evaluation.py` and `run_simulstream_batch.py` now
+     append a final update with `is_eos: true` when EOS produces new output.
+4. [DONE] Add `wav_name` or equivalent identity to batch `stream_updates`.
+   → Every stream update in `run_simulstream_batch.py` now carries `wav_name`.
+5. [DONE] Reset GPU peak-memory counters before benchmark timing.
+   → `benchmark_simulstream_speed.py` calls `torch.cuda.reset_peak_memory_stats()`
+     before the timed section.
+6. [DONE] Keep `.claude/ralph-loop.local.md` out of commits.
+   → Added to `.gitignore`.
+
+### Phase 2 - Cheap Verification [PARTIAL]
+
+Run cheap checks first:
+
+- [DONE] `py_compile` on all touched Python files — passes
+- only minimal targeted tests if they protect a real invariant
+
+Good invariants to protect:
+
+- language change really refreshes the heads/backend
+- final EOS emission is serialized
+- batch updates include an audio identifier
+
+Do not write lots of low-value tests.
+
+### Phase 3 - Single-Audio SimulStream Smoke Validation [DONE]
+
+Control audio `ccpXHNfaoy.wav` through the real SimulStream path:
+
+1. [DONE] `en->de` `<2s` — BLEU 28.22, chrF 63.53, CU 1747.19 (exact match)
+2. [DONE] `en->de` `<4s` — BLEU 38.01, chrF 67.17, CU 3339.69 (close to ref)
+3. [DONE] `en->it` `<2s` — BLEU 36.87, chrF 71.48, CU 1813.70 (exact match)
+4. [DONE] `en->zh` `<2s` — BLEU 41.85, chrF 38.32, CU 1762.95 (exact match)
+
+RTF concern: all configs at ~1.0 RTF on 360s control audio. This is the
+speed gate question for Phase 4.
+
+Artifacts in `outputs/phase3_simulstream_*`.
+
+### Phase 4 - Real Speed Gate
+
+Before any full-set run, benchmark each surviving candidate through the real
+SimulStream processor on:
+
+- the control audio
+- a tiny extra sanity set of short/medium audios per language
 
 Record:
 
-- `LongYAAL CU`
-- `LongYAAL CA`
 - `BLEU`
 - `chrF`
+- `LongYAAL CU`
+- `LongYAAL CA`
 - `RTF`
-- mean chunk compute time
-- p95 chunk compute time
+- mean chunk time
+- p95 chunk time
+- max chunk time
+- EOS time
+- peak GPU memory
 
-Recommended operational rule:
+Operational rule of thumb:
 
 - reject if `RTF >= 1.0`
 - strongly prefer `RTF <= 0.6`
 - reject if p95 chunk compute time is too close to or above the chunk interval
 
-The exact threshold may be adjusted, but do not start full-set runs without an
-explicit speed gate.
+### Phase 5 - Full-Set Selection
 
+Only after the fixed SimulStream path passes the speed gate:
 
-## Full-Set Evaluation Strategy
+1. run the small candidate matrix on the full audio set
+2. compare all six delivery slots
+3. choose one winner per slot
 
-Once SimulStream integration and speed are validated:
-
-1. run the small candidate matrix on the full data
-2. compare per language and per regime
-3. select one winner for each of the six delivery slots
-
-Do not only inspect global averages.
-
-Track:
+Track both:
 
 - corpus-level metrics
 - per-audio regime violations
-- count of violating audios
 
-If a config is excellent on average but repeatedly breaks the target on some
-audios, it is not a safe delivery config.
-
-
-## What Not To Do Now
-
-- Do not start broad benchmark sweeps before SimulStream integration exists.
-- Do not launch several-hour runs before RTF is measured on the real processor path.
-- Do not invent new heuristics to rescue isolated examples.
-- Do not restart the hot model stack unless necessary.
-- Do not treat harness CA numbers as final delivery speed numbers.
+If a config is good on average but breaks the target on too many audios, it is
+not a safe delivery config.
 
 
-## Concrete Next Actions For The Next Agent
+## Practical Commands
 
-1. ~~Read the mandatory docs listed above.~~ **DONE**
-2. ~~Implement the SimulStream processor class.~~ **DONE** → `cascade_simulstream_processor.py`
-3. ~~Fix manifest serialization for `translation_alignatt_min_source_mass`.~~ **DONE**
-4. ~~Add a SimulStream benchmark harness for RTF / p95 chunk compute.~~ **DONE** → `benchmark_simulstream_speed.py`
-5. ~~Validate the initial `<2s` candidates through SimulStream on control audio.~~ **DONE**
-6. ~~Validate the initial `<4s` candidates through SimulStream on control audio.~~ **DONE**
-7. Expand to a very small multi-audio sanity set per language.
-8. Only then launch full-set evaluation for the surviving candidates.
+Use these as starting points, after the correctness fixes.
 
-
-## SimulStream Validated Control-Audio Results (2026-04-16)
-
-All six delivery slots validated through `run_simulstream_evaluation.py` on
-`ccpXHNfaoy.wav`. Results match research harness baselines.
-
-### `< 2 s` regime (`chunk_ms = 450`, `max_history_utterances = 1`)
-
-| Direction | BLEU | chrF | LongYAAL CU | LongYAAL CA | RTF |
-| --------- | ----: | ----: | ----------: | ----------: | ---: |
-| `en->de` | 28.22 | 63.53 | 1747.19 | 2221.42 | 1.02 |
-| `en->it` | 36.87 | 71.48 | 1813.70 | 2646.65 | 1.03 |
-| `en->zh` | 41.85 | 38.32 | 1762.95 | 1981.70 | 0.86 |
-
-Artifacts: `outputs/simulstream_en{de,it,zh}_2s_v1/`
-
-### `< 4 s` regime (`chunk_ms = 800`, `max_history_utterances = 0`)
-
-| Direction | BLEU | chrF | LongYAAL CU | LongYAAL CA | RTF |
-| --------- | ----: | ----: | ----------: | ----------: | ---: |
-| `en->de` | 37.89 | 67.18 | 3451.71 | 4256.27 | 0.94 |
-| `en->it` | 49.13 | 74.93 | 3400.09 | 4170.28 | 0.93 |
-| `en->zh` | 41.86 | 38.17 | 3114.72 | 3463.89 | 0.84 |
-
-Artifacts: `outputs/simulstream_en{de,it,zh}_4s_v1/`
-
-### Speed observations
-
-- RTF ~1.0 at `chunk_ms=450` for de/it — borderline real-time.
-- RTF ~0.85-0.94 at `chunk_ms=800` — comfortable margin.
-- en->zh is consistently fastest (fewer MT tokens).
-- All CU values are comfortably within their target regimes.
-
-
-## New Deliverables Added
-
-1. `cascade_simulstream_processor.py` — Real SimulStream `SpeechProcessor`
-   subclass wrapping the cascade. Loadable via
-   `cascade_simulstream_processor.CascadeAlignAttProcessor`.
-2. `run_simulstream_evaluation.py` — Runs audio through the SimulStream
-   processor and produces `hypothesis.jsonl` / `manifest.json` compatible with
-   `evaluate_cascade_outputs.py`.
-3. `benchmark_simulstream_speed.py` — Speed harness reporting RTF, mean/p95/max
-   chunk compute, peak GPU memory.
-4. Provenance fixes in `qwen3asr_gemma_cascade_core.py`:
-   - `translation_alignatt_min_source_mass` now in manifest `runtime_config`
-   - `_enrich_provenance()` auto-populates `git_sha`, `framework_mode`,
-     `source_lang`, `target_lang`
-
-
-## Success Criteria
-
-We can consider the implementation handoff-ready when all of the following are true:
-
-- ~~the cascade runs as a real SimulStream speech processor~~ **DONE**
-- ~~every evaluated bundle is fully self-describing~~ **DONE**
-- ~~we have real SimulStream speed measurements~~ **DONE**
-- ~~we have one selected operating point for each of the six delivery slots~~ **DONE** (control audio)
-- those operating points are credible on the full data
-- the final choices remain paper-defensible and do not depend on ad hoc fixes
-
-
-## Multi-Audio Sanity Results (2026-04-16)
-
-3-audio sanity set: `myfXyntFYL.wav`, `ccpXHNfaoy.wav`, `DyXpuURBMP.wav`
-
-### `< 2 s` regime (`chunk_ms = 450`, `mass = 0.0`)
-
-| Direction | BLEU | chrF | LongYAAL CU | LongYAAL CA | RTF |
-| --------- | ----: | ----: | ----------: | ----------: | ---: |
-| `en->de` | 26.92 | 62.67 | 2041.72 | 3165.39 | 1.10 |
-| `en->it` | 36.84 | 68.09 | 2091.72 | 3390.45 | 1.11 |
-
-### `< 2 s` regime, `en->de`, `mass = 0.2` variant
-
-| BLEU | chrF | LongYAAL CU | LongYAAL CA | RTF |
-| ----: | ----: | ----------: | ----------: | ---: |
-| 27.60 | 62.76 | 2230.14 | 3639.16 | 1.16 |
-
-**Observations:**
-- CU rises ~300ms from control-audio to 3-audio, now borderline above 2s.
-- `mass=0.2` improves BLEU by ~0.7 but worsens CU by ~190ms — rejected for <2s.
-- RTF ~1.1 on this hardware — borderline real-time at chunk_ms=450.
-- The baseline (mass=0.0) remains the selected candidate for all <2s slots.
-
-
-## Batch Runner
-
-`run_simulstream_batch.py` runs multiple WAV files in a single process,
-keeping models hot. For full-set evaluation:
+Syntax check:
 
 ```bash
-# Full-set <2s en->de
-.venv-inference/bin/python run_simulstream_batch.py \
-    --wav-dir test-set/audio/ \
-    --output-dir outputs/fullset_ende_2s \
-    --chunk-ms 450 --target de \
-    --min-start-seconds 2.0 --max-history-utterances 1 \
-    --partial-max-new-tokens 16 --partial-followup-max-new-tokens 8
-
-# Full-set <4s en->de
-.venv-inference/bin/python run_simulstream_batch.py \
-    --wav-dir test-set/audio/ \
-    --output-dir outputs/fullset_ende_4s \
-    --chunk-ms 800 --target de \
-    --min-start-seconds 2.0 --max-history-utterances 0 \
-    --partial-max-new-tokens 16 --partial-followup-max-new-tokens 8
+.venv-inference/bin/python -m py_compile \
+  cascade_simulstream_processor.py \
+  run_simulstream_evaluation.py \
+  run_simulstream_batch.py \
+  benchmark_simulstream_speed.py \
+  qwen3asr_gemma_cascade_core.py
 ```
 
-Replace `--target de` with `it` or `zh` for other languages. Each full-set
-run processes ~105 min of audio; expect ~2 hours wallclock per direction at
-RTF ~1.1.
+Single-audio SimulStream eval:
+
+```bash
+.venv-inference/bin/python run_simulstream_evaluation.py \
+  --wav test-set/audio/ccpXHNfaoy.wav \
+  --output-dir outputs/tmp_simulstream_check \
+  --chunk-ms 450 \
+  --source en \
+  --target de \
+  --min-start-seconds 2.0 \
+  --max-history-utterances 1 \
+  --partial-max-new-tokens 16 \
+  --partial-followup-max-new-tokens 8
+```
+
+Speed benchmark:
+
+```bash
+.venv-inference/bin/python benchmark_simulstream_speed.py \
+  --wav test-set/audio/ccpXHNfaoy.wav \
+  --chunk-ms 450 \
+  --source en \
+  --target de
+```
+
+Small batch run:
+
+```bash
+.venv-inference/bin/python run_simulstream_batch.py \
+  --wavs test-set/audio/myfXyntFYL.wav test-set/audio/ccpXHNfaoy.wav \
+  --output-dir outputs/tmp_simulstream_batch \
+  --chunk-ms 450 \
+  --source en \
+  --target de
+```
 
 
-## Remaining Work
+## What Not To Do
 
-1. ~~Multi-audio sanity set per language (step 7 above).~~ **DONE** (de, it validated)
-2. Full-set evaluation for the six surviving candidates.
-3. Per-audio regime violation analysis on the full data.
-4. Final winner selection per delivery slot.
+- Do not launch full-set runs before fixing the SimulStream blockers.
+- Do not trust current SimulStream numbers as final delivery truth yet.
+- Do not run large grids.
+- Do not restart the hot model stack unless necessary.
+- Do not patch isolated examples with heuristics.
+- Do not let "delivery urgency" justify architecture we could not defend in a
+  paper.
 
 
-## One-Line Summary
+## Definition Of Done
 
-SimulStream integration is complete, all six slots validated on control audio,
-multi-audio sanity confirms candidates are stable. Next: full-set evaluation
-using `run_simulstream_batch.py --wav-dir test-set/audio/`.
+We are handoff-ready only when all of the following are true:
+
+- the SimulStream processor is architecturally correct enough to trust
+- per-session behavior is isolated or explicitly constrained and documented
+- language/head reconfiguration is deterministic and not stale
+- SimulStream artifacts faithfully include final EOS emissions
+- speed measurements come from the real SimulStream path
+- every result bundle is self-describing
+- one operating point is selected for each of the six delivery slots
+- those operating points survive full-set evaluation credibly
+
+
+## First Task For The Next Agent
+
+Do this first:
+
+1. read the mandatory files
+2. inspect the current SimulStream implementation
+3. fix the state-isolation and stale-head problems before any new broad run
+
+If you do nothing else, do not skip that.

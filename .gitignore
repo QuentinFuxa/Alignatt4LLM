@@ -147,3 +147,6 @@ cython_debug/
 
 # Generated cascade artifacts
 outputs/
+
+# Claude local loop state
+.claude/ralph-loop.local.md

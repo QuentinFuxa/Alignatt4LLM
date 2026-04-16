@@ -121,6 +121,7 @@ def run_single_audio(
             )
             stream_updates.append({
                 "update_idx": len(stream_updates),
+                "wav_name": Path(wav_path).name,
                 "audio_processed_ms": audio_processed_ms,
                 "wallclock_elapsed_ms": wallclock_elapsed_ms,
                 "translation_text": current_translation,
@@ -139,11 +140,20 @@ def run_single_audio(
             final_elapsed_ms, word_elapsed_ms,
             target_lang_code=target_lang_code,
         )
-        register_translation_words(
+        eos_new_words = register_translation_words(
             last_translation, final_translation,
             audio_duration_ms, word_delays_ms,
             target_lang_code=target_lang_code,
         )
+        stream_updates.append({
+            "update_idx": len(stream_updates),
+            "wav_name": Path(wav_path).name,
+            "audio_processed_ms": audio_duration_ms,
+            "wallclock_elapsed_ms": final_elapsed_ms,
+            "translation_text": final_translation,
+            "new_words": eos_new_words,
+            "is_eos": True,
+        })
 
     core = CascadeAlignAttProcessor._get_core()
     final_asr = core.render_public_asr_text()

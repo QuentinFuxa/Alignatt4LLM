@@ -108,6 +108,13 @@ def main() -> None:
     total_new_tokens = 0
     total_deleted_tokens = 0
 
+    try:
+        import torch as _torch
+        if _torch.cuda.is_available():
+            _torch.cuda.reset_peak_memory_stats()
+    except Exception:
+        pass
+
     run_start = perf_counter()
     for start_sample in range(0, len(audio), chunk_size):
         chunk = audio[start_sample : start_sample + chunk_size].astype(np.float32)

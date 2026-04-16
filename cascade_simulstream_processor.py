@@ -24,13 +24,29 @@ LANGUAGE_CODE_TO_NAME = {
 
 
 class CascadeAlignAttProcessor(SpeechProcessor):
-    """SimulStream processor backed by the Qwen3-ASR + Gemma AlignAtt cascade."""
+    """SimulStream processor backed by the Qwen3-ASR + Gemma AlignAtt cascade.
+
+    This processor wraps the module-global mutable state in
+    ``qwen3asr_gemma_cascade_core``.  Because that state is not yet
+    per-instance, only **one active processor** is safe at a time
+    (``pool_size=1``).  Creating a second instance while the first is
+    still in use will raise.
+    """
 
     _core = None
     _models_loaded = False
+    _active_instance_id: int | None = None
 
     def __init__(self, config: SimpleNamespace):
         super().__init__(config)
+        cls = type(self)
+        if cls._active_instance_id is not None and cls._active_instance_id != id(self):
+            raise RuntimeError(
+                "CascadeAlignAttProcessor is single-session: only one active "
+                "instance is supported (pool_size=1).  Call clear() on the "
+                "previous instance before creating a new one."
+            )
+        cls._active_instance_id = id(self)
         self._emitted_units: list[str] = []
         self._last_asr: str = ""
         self._last_committed_segments: int = 0
@@ -134,20 +150,26 @@ class CascadeAlignAttProcessor(SpeechProcessor):
     def set_source_language(self, language: str) -> None:
         core = self._get_core()
         lang_name = LANGUAGE_CODE_TO_NAME.get(language, language)
+        old_heads_path = core.config.translation_alignatt_heads_path
         core.config.source_lang = lang_name
         self._source_lang_code = language
         core.config.translation_alignatt_heads_path = core.alignatt_heads_path_for(
             lang_name, core.config.target_lang
         )
+        if core.config.translation_alignatt_heads_path != old_heads_path and core.mt_backend is not None:
+            core.mt_backend.refresh_alignatt_artifacts()
 
     def set_target_language(self, language: str) -> None:
         core = self._get_core()
         lang_name = LANGUAGE_CODE_TO_NAME.get(language, language)
+        old_heads_path = core.config.translation_alignatt_heads_path
         core.config.target_lang = lang_name
         self._target_lang_code = language
         core.config.translation_alignatt_heads_path = core.alignatt_heads_path_for(
             core.config.source_lang, lang_name
         )
+        if core.config.translation_alignatt_heads_path != old_heads_path and core.mt_backend is not None:
+            core.mt_backend.refresh_alignatt_artifacts()
 
     def tokens_to_string(self, tokens: List[str]) -> str:
         if not tokens:
@@ -163,6 +185,7 @@ class CascadeAlignAttProcessor(SpeechProcessor):
         self._emitted_units = []
         self._last_asr = ""
         self._last_committed_segments = 0
+        type(self)._active_instance_id = id(self)
 
     def _current_emitted_text(self) -> str:
         return self.tokens_to_string(self._emitted_units)
