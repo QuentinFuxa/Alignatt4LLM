@@ -1,20 +1,18 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
+from typing import Any
 import os
-import subprocess
-from types import SimpleNamespace
-from typing import Any, List
 import string
+import subprocess
 import wave
 
 import numpy as np
-import torch
-import patch_qwen_asr_for_transformers5
-from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS
 
-from alignment_backend import AlignmentBackend, AlignmentResult, WordAlignment
+from alignment_backend import AlignmentBackend
 from cascade_artifacts import (
     DEFAULT_OUTPUT_DIR,
     DEFAULT_WAV_PATH,
@@ -28,7 +26,7 @@ from cascade_emission import (
     register_translation_timestamps,
     register_translation_words,
 )
-from cascade_mt_backend import MTBackendResult, build_mt_backend
+from cascade_mt_backend import MTBackendResult, PromptCacheState, build_mt_backend
 from cascade_source_frontier import (
     SourceAccessibilityFrontier,
     build_source_accessibility_frontier,
@@ -42,6 +40,7 @@ from cascade_translation_variants import (
     TRANSLATION_VARIANTS,
     TranslationVariant,
 )
+from simulstream.server.speech_processors import SAMPLE_RATE
 
 
 # Avoid repeated HF HEAD requests for optional files that are already cached as absent.
@@ -49,142 +48,19 @@ os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 
-patch_qwen_asr_for_transformers5.main()
-
-from qwen_asr import Qwen3ASRModel
-from qwen_asr.core.transformers_backend.configuration_qwen3_asr import Qwen3ASRConfig
-from qwen_asr.core.transformers_backend import modeling_qwen3_asr
-from simulstream.server.speech_processors import SAMPLE_RATE
-
-
-def _qwen3_asr_default_rope_init(config, device=None, seq_len=None, layer_type=None):
-    standardize = getattr(config, "standardize_rope_params", None)
-    if callable(standardize):
-        standardize()
-
-    rope_parameters = getattr(config, "rope_parameters", None) or {}
-    if layer_type is not None and isinstance(rope_parameters, dict) and layer_type in rope_parameters:
-        rope_parameters = rope_parameters[layer_type]
-
-    base = rope_parameters.get("rope_theta", getattr(config, "rope_theta", 10000.0))
-    partial_rotary_factor = rope_parameters.get("partial_rotary_factor", 1.0)
-    head_dim = getattr(config, "head_dim", None) or config.hidden_size // config.num_attention_heads
-    dim = int(head_dim * partial_rotary_factor)
-    inv_freq = 1.0 / (
-        base
-        ** (
-            torch.arange(0, dim, 2, dtype=torch.int64).to(device=device, dtype=torch.float)
-            / dim
-        )
-    )
-    return inv_freq, 1.0
-
-
-modeling_qwen3_asr._qwen3_asr_default_rope_init = _qwen3_asr_default_rope_init
-if "default" not in ROPE_INIT_FUNCTIONS:
-    ROPE_INIT_FUNCTIONS["default"] = _qwen3_asr_default_rope_init
-
-
-def _patched_qwen3_asr_get_text_config(self, decoder=False):
-    thinker_config = getattr(self, "thinker_config", None)
-    if thinker_config is not None:
-        return thinker_config.get_text_config()
-
-    text_config = getattr(self, "text_config", None)
-    if text_config is not None:
-        return text_config
-
-    return self
-
-
-Qwen3ASRConfig.get_text_config = _patched_qwen3_asr_get_text_config
-
-
-def longest_common_prefix(s1: str, s2: str) -> str:
-    for i in range(min(len(s1), len(s2))):
-        if s1[i] != s2[i]:
-            return s1[:i]
-    return s1[: min(len(s1), len(s2))]
-
-
-def remove_punctuation(text: str) -> str:
-    return text.translate(str.maketrans("", "", string.punctuation))
-
-
-def find_end_time(word_alignments, position: int, text: str):
-    """End-time (seconds) of the word immediately before ``position`` in ``text``.
-
-    Works with any object exposing ``end_time`` — ``Qwen3ForcedAligner``
-    timestamps and :class:`alignment_backend.WordAlignment` both qualify.
-    """
-    if len(word_alignments) != len(remove_punctuation(text).split()):
-        return None
-    n_words_right = len(remove_punctuation(text[position + 1 :]).strip().split())
-    return word_alignments[-n_words_right - 1].end_time
-
-
-def n_utterances(text: str) -> int:
-    n_utt = text.count(". ") + text.count("! ") + text.count("? ")
-    if text.endswith((".", "!", "?")):
-        n_utt += 1
-    return n_utt
-
-
-def normalize_partial_asr_hypothesis(text: str) -> str:
-    text = text.rstrip()
-    while text.endswith((".", "!", "?")):
-        text = text[:-1].rstrip()
-    return text
-
-
-def render_public_asr_text() -> str:
-    committed_segments = [segment.strip() for segment in state.utt_sources[1:] if segment.strip()]
-    partial_segment = ""
-    if state.asr_hypotheses:
-        partial_segment = normalize_partial_asr_hypothesis(state.asr_hypotheses[-1])
-    if partial_segment:
-        committed_segments.append(partial_segment)
-    return " ".join(committed_segments).strip()
-
-
-@dataclass
-class PartialTranslationState:
-    source_prefix: str = ""
-    draft_target: str = ""
-    draft_token_ids: tuple[int, ...] = ()
-    accepted_target: str = ""
-    accepted_token_ids: tuple[int, ...] = ()
-    source_accessible_unit_count: int = 0
-    source_total_unit_count: int = 0
-    last_num_cached_tokens: int | None = None
-    last_prompt_num_tokens: int | None = None
-    last_accept_audio_seconds: float = 0.0
-    last_mt_audio_seconds: float = 0.0
-    last_alignatt_metadata: dict[str, Any] | None = None
-    blocked_source_local_position: int | None = None
-    blocked_source_unit_index: int | None = None
-
-
-@dataclass
-class CascadeState:
-    speech_id: int = 0
-    source: np.ndarray = field(default_factory=lambda: np.zeros(0, dtype=np.float32))
-    utt_timestamps: List[int] = field(default_factory=lambda: [0])
-    utt_sources: List[str] = field(default_factory=lambda: [""])
-    utt_translations: List[str] = field(default_factory=lambda: [""])
-    asr_hypotheses: List[str] = field(default_factory=lambda: [""])
-    partial_word_timestamps_ms: List[tuple[float | None, float | None]] = field(default_factory=list)
-    partial_translation: PartialTranslationState = field(default_factory=PartialTranslationState)
+LANGUAGE_NAME_TO_CODE = {
+    "English": "en",
+    "German": "de",
+    "Italian": "it",
+    "Chinese": "zh",
+}
+LANGUAGE_CODE_TO_NAME = {
+    code: name for name, code in LANGUAGE_NAME_TO_CODE.items()
+}
+VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast")
 
 
 def _resolve_hf_snapshot(repo_subpath: str) -> str:
-    """Resolve a local HF snapshot path under either ``/home/.cache`` or ``~/.cache``.
-
-    The original cascade code hardcoded ``/home/.cache/...``; on hosts where
-    that path doesn't exist we silently fall back to ``~/.cache/...``. This
-    keeps the snapshot paths portable across the various dev machines that
-    map the HF cache differently.
-    """
     candidates = [
         os.path.join("/home/.cache/huggingface/hub", repo_subpath),
         os.path.join(os.path.expanduser("~/.cache/huggingface/hub"), repo_subpath),
@@ -227,336 +103,175 @@ def target_lang_code_for(target_lang: str) -> str:
     return LANGUAGE_NAME_TO_CODE.get(target_lang, target_lang.lower())
 
 
-config = SimpleNamespace(
-    source_lang="English",
-    target_lang="German",
-    latency_unit="word",
-    min_start_seconds=5.0,
-    translation_variant_id=FOUNDATIONAL_TRANSLATION_VARIANT_ID,
-    max_history_utterances=0,
-    translation_alignatt_heads_path=alignatt_heads_path_for("English", "German"),
-    translation_alignatt_top_k_heads=8,
-    translation_alignatt_filter_width=7,
-    translation_alignatt_probe_mode="qk_fast",
-    # Calibrated for the current latency-first AlignAtt cascade: make newly
-    # timestamped source units accessible immediately, then rely on a more
-    # permissive inline rewind guard to preserve German reordering freedom.
-    translation_alignatt_inaccessible_ms=0.0,
-    translation_alignatt_rewind_threshold=8,
-    translation_alignatt_min_source_mass=0.0,
-    max_new_tokens=160,
-    partial_max_new_tokens=48,
-    partial_followup_max_new_tokens=16,
-    translation_min_new_tokens=32,
-    translation_token_budget_ratio=3.0,
-    translation_token_budget_buffer=24,
-    partial_translation_min_new_tokens=4,
-    partial_translation_token_budget_ratio=1.0,
-    partial_translation_token_budget_buffer=8,
-    translation_generation_margin=8,
-    translation_emit_policy=RAW_PASSTHROUGH,
-    translation_max_tail_rewrite_words=14,
-    temperature=0.0,
-    repetition_penalty=1.05,
-    asr_gpu_memory_utilization=0.2,
-    gemma_max_model_len=1024,
-    gemma_enable_prefix_caching=True,
-    gemma_transformers_device="cuda:0",
-    gemma_transformers_dtype="bfloat16",
-    gemma_transformers_fast_attention="sdpa",
-    gemma_transformers_prompt_kv_reuse=True,
-    translation_scheduler_stall_seconds=1.2,
-    alignment_backend_name="qwen",
-    # Default to the *_forced.json bundle: that is the only one calibrated
-    # against the teacher-forced alignment path the runtime actually takes.
-    # The plain en.json bundle was scored against free-run Gemma ASR (which
-    # hallucinates on conference clips) and produces materially worse word
-    # timings at inference, so wiring it in as the default would silently
-    # degrade the cascade. ``build_alignment_backend`` raises if the
-    # configured bundle is missing rather than falling back silently.
-    gemma_audio_alignment_heads_path=(
+@dataclass
+class CascadeRuntimeConfig:
+    source_lang: str = "English"
+    target_lang: str = "German"
+    latency_unit: str = "word"
+    min_start_seconds: float = 5.0
+    translation_variant_id: str = FOUNDATIONAL_TRANSLATION_VARIANT_ID
+    max_history_utterances: int = 0
+    translation_alignatt_heads_path: str | None = None
+    translation_alignatt_top_k_heads: int = 8
+    translation_alignatt_filter_width: int = 7
+    translation_alignatt_probe_mode: str = "qk_fast"
+    translation_alignatt_inaccessible_ms: float = 0.0
+    translation_alignatt_rewind_threshold: int = 8
+    translation_alignatt_min_source_mass: float = 0.0
+    max_new_tokens: int = 160
+    partial_max_new_tokens: int = 48
+    partial_followup_max_new_tokens: int = 16
+    translation_min_new_tokens: int = 32
+    translation_token_budget_ratio: float = 3.0
+    translation_token_budget_buffer: int = 24
+    partial_translation_min_new_tokens: int = 4
+    partial_translation_token_budget_ratio: float = 1.0
+    partial_translation_token_budget_buffer: int = 8
+    translation_generation_margin: int = 8
+    translation_emit_policy: str = RAW_PASSTHROUGH
+    translation_max_tail_rewrite_words: int = 14
+    temperature: float = 0.0
+    repetition_penalty: float = 1.05
+    asr_gpu_memory_utilization: float = 0.2
+    gemma_max_model_len: int = 1024
+    gemma_enable_prefix_caching: bool = True
+    gemma_transformers_device: str = "cuda:0"
+    gemma_transformers_dtype: str = "bfloat16"
+    gemma_transformers_fast_attention: str = "sdpa"
+    gemma_transformers_prompt_kv_reuse: bool = True
+    translation_scheduler_stall_seconds: float = 1.2
+    alignment_backend_name: str = "qwen_forced"
+    gemma_audio_alignment_heads_path: str | None = (
         "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
-    ),
-    gemma_audio_align_probe_mode="eager",
-    gemma_audio_alignment_top_k_heads=8,
-    gemma_audio_alignment_filter_width=7,
-    gemma_audio_alignment_max_new_tokens=256,
-)
+    )
+    gemma_audio_align_probe_mode: str = "qk_fast"
+    gemma_audio_alignment_top_k_heads: int = 8
+    gemma_audio_alignment_filter_width: int = 7
+    gemma_audio_alignment_max_new_tokens: int = 256
 
-asr = None
-gemma_tokenizer = None
-gemma_llm = None
-mt_backend = None
-alignment_backend: AlignmentBackend | None = None
-state = CascadeState()
-
-
-def build_alignment_backend() -> AlignmentBackend:
-    """Construct the alignment backend selected by ``config.alignment_backend_name``.
-
-    - ``"qwen"``: current Qwen3-ASR + Qwen3-ForcedAligner baseline.
-    - ``"gemma_attention"``: experimental Gemma-only free-run ASR + attention aligner.
-    - ``"hybrid_qwen_asr_gemma_aligner"``: Qwen3-ASR transcript, Gemma attention
-      timings (forced alignment). Single-pass alternative to the two-pass
-      full-Gemma path. Gemma's attention-based alignment is competitive
-      (~177 ms MAE on the one-clip calibration).
-    - ``"gemma_two_pass"``: full-Gemma two-pass frontend. Pass 1 uses default
-      attention for ASR, pass 2 uses the probe backend selected by
-      ``config.gemma_audio_align_probe_mode`` (default: eager) for forced
-      alignment. Removes the Qwen ASR dependency entirely.
-    """
-    name = str(getattr(config, "alignment_backend_name", "qwen"))
-
-    def _resolve_calibrated_heads_path() -> str | None:
-        path = getattr(config, "gemma_audio_alignment_heads_path", None)
-        if path is None:
-            return None
-        if not Path(path).exists():
-            raise FileNotFoundError(
-                f"Configured Gemma alignment heads bundle not found: {path!r}. "
-                "Set config.gemma_audio_alignment_heads_path to a calibrated "
-                "bundle (e.g. the *_forced.json file produced by "
-                "run_alignment_single_audio.py gemma_calibrate_heads_forced) "
-                "or set it to None to run uncalibrated."
+    def __post_init__(self) -> None:
+        if self.translation_alignatt_heads_path is None:
+            self.translation_alignatt_heads_path = alignatt_heads_path_for(
+                self.source_lang, self.target_lang
             )
-        return str(path)
+        if self.alignment_backend_name not in VALID_ALIGNMENT_BACKEND_NAMES:
+            raise ValueError(
+                f"Unknown alignment_backend_name: {self.alignment_backend_name!r}"
+            )
 
-    if name == "qwen":
-        from qwen_alignment_backend import QwenAlignmentBackend
-
-        return QwenAlignmentBackend(
-            asr_model_path=asr_model_name,
-            forced_aligner_model_path=forced_aligner_model_name,
-            runtime_config=config,
-        )
-    if name == "gemma_attention":
-        from gemma_alignment_probe import GemmaAttentionAlignmentBackend
-
-        return GemmaAttentionAlignmentBackend(
-            model_name=gemma_model_name,
-            runtime_config=config,
-            audio_heads_path=_resolve_calibrated_heads_path(),
-            audio_heads_top_k=int(getattr(config, "gemma_audio_alignment_top_k_heads", 8)),
-            filter_width=int(getattr(config, "gemma_audio_alignment_filter_width", 7)),
-            max_new_tokens=int(getattr(config, "gemma_audio_alignment_max_new_tokens", 256)),
-        )
-    if name == "hybrid_qwen_asr_gemma_aligner":
-        from gemma_alignment_probe import GemmaAttentionAlignmentBackend
-        from hybrid_alignment_backend import HybridQwenAsrGemmaAlignerBackend
-        from qwen_alignment_backend import QwenAlignmentBackend
-
-        asr_backend = QwenAlignmentBackend(
-            asr_model_path=asr_model_name,
-            forced_aligner_model_path=forced_aligner_model_name,
-            runtime_config=config,
-        )
-        gemma_backend = GemmaAttentionAlignmentBackend(
-            model_name=gemma_model_name,
-            runtime_config=config,
-            audio_heads_path=_resolve_calibrated_heads_path(),
-            audio_heads_top_k=int(getattr(config, "gemma_audio_alignment_top_k_heads", 8)),
-            filter_width=int(getattr(config, "gemma_audio_alignment_filter_width", 7)),
-            max_new_tokens=int(getattr(config, "gemma_audio_alignment_max_new_tokens", 256)),
-        )
-        return HybridQwenAsrGemmaAlignerBackend(
-            asr_backend=asr_backend,
-            gemma_backend=gemma_backend,
-            strict=bool(getattr(config, "hybrid_strict_mode", False)),
-        )
-    if name == "gemma_two_pass":
-        from gemma_alignment_probe import GemmaAttentionAlignmentBackend
-        from gemma_two_pass_frontend import GemmaTwoPassAlignmentBackend
-
-        gemma_backend = GemmaAttentionAlignmentBackend(
-            model_name=gemma_model_name,
-            runtime_config=config,
-            audio_heads_path=_resolve_calibrated_heads_path(),
-            audio_heads_top_k=int(getattr(config, "gemma_audio_alignment_top_k_heads", 8)),
-            filter_width=int(getattr(config, "gemma_audio_alignment_filter_width", 7)),
-            max_new_tokens=int(getattr(config, "gemma_audio_alignment_max_new_tokens", 256)),
-        )
-        return GemmaTwoPassAlignmentBackend(gemma_backend=gemma_backend)
-    raise ValueError(f"Unknown alignment_backend_name: {name!r}")
+    def apply_overrides(self, **overrides) -> None:
+        for key, value in overrides.items():
+            if not hasattr(self, key):
+                raise AttributeError(f"Unknown runtime config override: {key}")
+            setattr(self, key, value)
+        if "target_lang" in overrides and "translation_alignatt_heads_path" not in overrides:
+            self.translation_alignatt_heads_path = alignatt_heads_path_for(
+                self.source_lang, self.target_lang
+            )
 
 
-def get_translation_variant() -> TranslationVariant:
-    return TRANSLATION_VARIANTS[config.translation_variant_id]
+@dataclass
+class PartialTranslationState:
+    source_prefix: str = ""
+    draft_target: str = ""
+    draft_token_ids: tuple[int, ...] = ()
+    accepted_target: str = ""
+    accepted_token_ids: tuple[int, ...] = ()
+    source_accessible_unit_count: int = 0
+    source_total_unit_count: int = 0
+    last_num_cached_tokens: int | None = None
+    last_prompt_num_tokens: int | None = None
+    last_accept_audio_seconds: float = 0.0
+    last_mt_audio_seconds: float = 0.0
+    last_alignatt_metadata: dict[str, Any] | None = None
+    blocked_source_local_position: int | None = None
+    blocked_source_unit_index: int | None = None
 
 
-@contextmanager
-def temporary_runtime_config(**overrides):
-    if not overrides:
-        yield
-        return
-
-    original_values: dict[str, Any] = {}
-    for key, value in overrides.items():
-        if not hasattr(config, key):
-            raise AttributeError(f"Unknown runtime config override: {key}")
-        original_values[key] = getattr(config, key)
-        setattr(config, key, value)
-
-    # If the caller switched target_lang but did not explicitly pin a heads
-    # path, realign it to the matching per-direction file so we do not silently
-    # re-use en-de heads for en-it / en-zh.
-    if "target_lang" in overrides and "translation_alignatt_heads_path" not in overrides:
-        original_values.setdefault(
-            "translation_alignatt_heads_path",
-            getattr(config, "translation_alignatt_heads_path"),
-        )
-        config.translation_alignatt_heads_path = alignatt_heads_path_for(
-            config.source_lang, config.target_lang
-        )
-
-    try:
-        yield
-    finally:
-        for key, value in original_values.items():
-            setattr(config, key, value)
-
-
-# %%
-def load_models():
-    global asr, gemma_tokenizer, gemma_llm, mt_backend, alignment_backend, state
-
-    if alignment_backend is None:
-        alignment_backend = build_alignment_backend()
-
-    alignment_backend.load()
-    # ``asr`` stays exposed for legacy hot-reload helpers and notebooks;
-    # the cascade itself only talks to ``alignment_backend``.
-    asr = getattr(alignment_backend, "asr", asr)
-
-    if mt_backend is None:
-        mt_backend = build_mt_backend(
-            model_name=gemma_model_name,
-            runtime_config=config,
-        )
-        mt_backend.load()
-        gemma_tokenizer = mt_backend.tokenizer
-        gemma_llm = getattr(mt_backend, "llm", None) or getattr(mt_backend, "model", None)
-
-    state = CascadeState(speech_id=state.speech_id)
-
-# %%
-def clear_state():
-    global state
-    state = CascadeState(speech_id=state.speech_id)
-    if mt_backend is not None:
-        mt_backend.reset_caches()
-    if alignment_backend is not None:
-        alignment_backend.reset_caches()
-
-
-def rebuild_mt_backend_preserving_weights(existing_backend=None) -> None:
-    """Rebuild the MT backend from the current module while keeping the loaded model/tokenizer.
-
-    The hot-reload harness uses this to make sure backend code changes take effect
-    without paying the cost of reloading Gemma weights. `existing_backend` lets the
-    caller pass a pre-reload reference that is otherwise lost when the module-level
-    `mt_backend` is re-initialized to None by `importlib.reload`.
-    """
-    global mt_backend, gemma_tokenizer, gemma_llm
-    source_backend = existing_backend if existing_backend is not None else mt_backend
-    saved_model = getattr(source_backend, "model", None) if source_backend is not None else None
-    saved_tokenizer = getattr(source_backend, "tokenizer", None) if source_backend is not None else None
-    mt_backend = build_mt_backend(
-        model_name=gemma_model_name,
-        runtime_config=config,
+@dataclass
+class CascadeState:
+    speech_id: int = 0
+    source: np.ndarray = field(default_factory=lambda: np.zeros(0, dtype=np.float32))
+    utt_timestamps: list[int] = field(default_factory=lambda: [0])
+    utt_sources: list[str] = field(default_factory=lambda: [""])
+    utt_translations: list[str] = field(default_factory=lambda: [""])
+    asr_hypotheses: list[str] = field(default_factory=lambda: [""])
+    partial_word_timestamps_ms: list[tuple[float | None, float | None]] = field(
+        default_factory=list
     )
-    mt_backend.model = saved_model
-    mt_backend.tokenizer = saved_tokenizer
-    mt_backend.load()
-    gemma_tokenizer = mt_backend.tokenizer
-    gemma_llm = getattr(mt_backend, "model", None)
-
-def transcribe_audio():
-    if alignment_backend is None:
-        raise RuntimeError("Alignment backend is not loaded. Run load_models() first.")
-
-    audio = np.array(state.source[state.utt_timestamps[-1] :], dtype=np.float32)
-    result = alignment_backend.transcribe_and_align(
-        audio,
-        sample_rate=SAMPLE_RATE,
-        language=config.source_lang,
+    partial_translation: PartialTranslationState = field(
+        default_factory=PartialTranslationState
     )
-    if result is None:
+
+
+@dataclass
+class SessionProcessingResult:
+    asr_text: str
+    raw_translation_text: str
+    translation_result: MTBackendResult | None
+    committed_segments: int
+
+
+def longest_common_prefix(s1: str, s2: str) -> str:
+    for i in range(min(len(s1), len(s2))):
+        if s1[i] != s2[i]:
+            return s1[:i]
+    return s1[: min(len(s1), len(s2))]
+
+
+def remove_punctuation(text: str) -> str:
+    return text.translate(str.maketrans("", "", string.punctuation))
+
+
+def find_end_time(word_alignments, position: int, text: str):
+    if len(word_alignments) != len(remove_punctuation(text).split()):
         return None
-
-    asr_hypo = result.text
-    state.asr_hypotheses.append(asr_hypo)
-    state.partial_word_timestamps_ms = normalize_word_timestamps_ms(result.words)
-
-    asr_segment = longest_common_prefix(state.asr_hypotheses[-2], state.asr_hypotheses[-1])
-    if n_utterances(asr_segment) >= 1:
-        rightest_punct_idx = max(
-            asr_segment.rfind(". "),
-            asr_segment.rfind("! "),
-            asr_segment.rfind("? "),
-        )
-        if rightest_punct_idx == -1 and asr_segment.endswith((".", "!", "?")):
-            rightest_punct_idx = len(asr_segment) - 1
-
-        end_time = find_end_time(result.words, rightest_punct_idx, asr_hypo)
-        if end_time is None:
-            return asr_hypo.strip()
-
-        utt_end_time = int(end_time * SAMPLE_RATE) + state.utt_timestamps[-1]
-        utt_end_time = min(utt_end_time, len(state.source))
-        state.utt_timestamps.append(utt_end_time)
-        state.utt_sources.append(asr_segment[: rightest_punct_idx + 1])
-        remainder = asr_hypo[rightest_punct_idx + 1 :].strip()
-        n_words_right = len(remove_punctuation(remainder).strip().split())
-        state.asr_hypotheses = [remainder]
-        state.partial_word_timestamps_ms = (
-            state.partial_word_timestamps_ms[-n_words_right:] if n_words_right > 0 else []
-        )
-
-    if state.utt_sources[1:]:
-        return render_public_asr_text()
-    return normalize_partial_asr_hypothesis(state.asr_hypotheses[-1])
+    n_words_right = len(remove_punctuation(text[position + 1 :]).strip().split())
+    return word_alignments[-n_words_right - 1].end_time
 
 
-def translation_history_window(items: List[str], end_exclusive: int) -> List[str]:
-    if config.max_history_utterances <= 0:
+def n_utterances(text: str) -> int:
+    n_utt = text.count(". ") + text.count("! ") + text.count("? ")
+    if text.endswith((".", "!", "?")):
+        n_utt += 1
+    return n_utt
+
+
+def normalize_partial_asr_hypothesis(text: str) -> str:
+    text = text.rstrip()
+    while text.endswith((".", "!", "?")):
+        text = text[:-1].rstrip()
+    return text
+
+
+def translation_history_window(
+    items: list[str],
+    end_exclusive: int,
+    *,
+    max_history_utterances: int,
+) -> list[str]:
+    if max_history_utterances <= 0:
         return []
 
-    start = max(1, end_exclusive - config.max_history_utterances)
+    start = max(1, end_exclusive - max_history_utterances)
     return [item.strip() for item in items[start:end_exclusive] if item.strip()]
 
 
-def normalized_source_history_window(items: List[str], end_exclusive: int) -> List[str]:
+def normalized_source_history_window(
+    items: list[str],
+    end_exclusive: int,
+    *,
+    max_history_utterances: int,
+) -> list[str]:
     return [
         normalize_source_text_for_mt(item.strip()).text
-        for item in translation_history_window(items, end_exclusive)
+        for item in translation_history_window(
+            items,
+            end_exclusive,
+            max_history_utterances=max_history_utterances,
+        )
         if item.strip()
     ]
-
-
-def build_translation_messages(
-    text: str,
-    *,
-    source_frontier: SourceAccessibilityFrontier | None,
-    source_history: List[str],
-    translation_history: List[str],
-    is_partial: bool,
-    assistant_prefill: str = "",
-) -> RenderedTranslationPrompt:
-    variant = get_translation_variant()
-    return variant.render_messages(
-        source_lang=config.source_lang,
-        target_lang=config.target_lang,
-        text=text,
-        source_frontier=source_frontier,
-        source_history=source_history,
-        translation_history=translation_history,
-        is_partial=is_partial,
-        assistant_prefill=assistant_prefill,
-    )
-
-
-def current_audio_seconds() -> float:
-    return len(state.source) / SAMPLE_RATE
 
 
 def should_run_partial_mt_update(
@@ -581,7 +296,10 @@ def should_run_partial_mt_update(
     ):
         if source_prefix == previous_state.source_prefix:
             return False, "source_prefix_unchanged"
-        stalled_seconds = max(0.0, current_audio_seconds_value - previous_state.last_mt_audio_seconds)
+        stalled_seconds = max(
+            0.0,
+            current_audio_seconds_value - previous_state.last_mt_audio_seconds,
+        )
         if stalled_seconds >= float(stall_seconds):
             return True, "stall_probe"
         return False, "blocked_frontier_not_reached"
@@ -590,7 +308,10 @@ def should_run_partial_mt_update(
     if source_prefix == previous_state.source_prefix:
         return False, "source_prefix_unchanged"
 
-    stalled_seconds = max(0.0, current_audio_seconds_value - previous_state.last_mt_audio_seconds)
+    stalled_seconds = max(
+        0.0,
+        current_audio_seconds_value - previous_state.last_mt_audio_seconds,
+    )
     if stalled_seconds >= float(stall_seconds):
         return True, "stall_probe"
     return False, "frontier_not_advanced"
@@ -618,289 +339,6 @@ def derive_monotone_partial_acceptance(
     if candidate_ids[: len(previous_accepted_ids)] != previous_accepted_ids:
         return previous_state.accepted_target, previous_accepted_ids
     return candidate_text, candidate_ids
-
-
-def translate_with_mt(
-    text: str,
-    *,
-    source_frontier: SourceAccessibilityFrontier | None = None,
-    source_history: List[str] | None = None,
-    translation_history: List[str] | None = None,
-    is_partial: bool = False,
-    assistant_prefill: str = "",
-) -> MTBackendResult:
-    if mt_backend is None:
-        raise RuntimeError("MT backend is not loaded. Run load_models() first.")
-
-    text = text.strip()
-    if not text:
-        prefixed_text = assistant_prefill.rstrip(" \n")
-        semantic_token_ids: tuple[int, ...] = ()
-        if mt_backend is not None and hasattr(mt_backend, "encode_semantic_target_token_ids"):
-            semantic_token_ids = tuple(mt_backend.encode_semantic_target_token_ids(prefixed_text))
-        return MTBackendResult(
-            draft_text=prefixed_text,
-            acceptance_text=prefixed_text,
-            draft_token_ids=semantic_token_ids,
-            accepted_token_ids=semantic_token_ids,
-        )
-
-    variant = get_translation_variant()
-    rendered_prompt = build_translation_messages(
-        text,
-        source_frontier=source_frontier,
-        source_history=source_history or [],
-        translation_history=translation_history or [],
-        is_partial=is_partial,
-        assistant_prefill=assistant_prefill,
-    )
-    return mt_backend.translate(
-        rendered_prompt=rendered_prompt,
-        variant=variant,
-        is_partial=is_partial,
-    )
-
-
-class TranslationUnitManager:
-    def __init__(self, runtime_config: SimpleNamespace):
-        self.runtime_config = runtime_config
-
-    def reset_partial_state(self) -> None:
-        state.partial_translation = PartialTranslationState()
-
-    def normalize_source_text(
-        self,
-        source_text: str,
-        *,
-        is_final: bool,
-    ) -> NormalizedSourceText:
-        return normalize_source_text_for_mt(
-            source_text.strip(),
-            word_timestamps_ms=(None if is_final else state.partial_word_timestamps_ms),
-        )
-
-    def build_source_frontier(
-        self,
-        source_text: NormalizedSourceText,
-        *,
-        is_final: bool,
-    ) -> SourceAccessibilityFrontier:
-        return build_source_accessibility_frontier(
-            source_text.text,
-            word_timestamps_ms=source_text.word_timestamps_ms,
-            current_audio_ms=current_audio_seconds() * 1000.0,
-            inaccessible_ms=float(self.runtime_config.translation_alignatt_inaccessible_ms),
-            is_final=is_final,
-        )
-
-    def current_accepted_prefill(self, source_text: str) -> str:
-        source_text = source_text.strip()
-        partial_state = state.partial_translation
-        if not source_text:
-            self.reset_partial_state()
-            return ""
-        if partial_state.source_prefix and not source_text.startswith(partial_state.source_prefix):
-            self.reset_partial_state()
-        return state.partial_translation.accepted_target
-
-    def should_run_partial_mt(
-        self,
-        *,
-        source_text: str,
-        source_frontier: SourceAccessibilityFrontier,
-    ) -> tuple[bool, str]:
-        return should_run_partial_mt_update(
-            previous_state=state.partial_translation,
-            source_prefix=source_text,
-            accessible_unit_count=source_frontier.accessible_unit_count,
-            current_audio_seconds_value=current_audio_seconds(),
-            stall_seconds=float(self.runtime_config.translation_scheduler_stall_seconds),
-        )
-
-    def snapshot_skipped_partial_result(
-        self,
-        *,
-        source_frontier: SourceAccessibilityFrontier,
-        scheduler_reason: str,
-    ) -> MTBackendResult:
-        previous_state = state.partial_translation
-        alignatt_metadata = dict(previous_state.last_alignatt_metadata or {})
-        alignatt_metadata.update(
-            {
-                "scheduler_skipped": True,
-                "scheduler_reason": scheduler_reason,
-                "accessible_source_unit_count": source_frontier.accessible_unit_count,
-                "source_unit_count": len(source_frontier.units),
-                "current_audio_ms": source_frontier.current_audio_ms,
-                "inaccessible_ms": source_frontier.inaccessible_ms,
-            }
-        )
-        return MTBackendResult(
-            draft_text=previous_state.draft_target,
-            acceptance_text=previous_state.accepted_target,
-            draft_token_ids=previous_state.draft_token_ids,
-            accepted_token_ids=previous_state.accepted_token_ids,
-            num_cached_tokens=previous_state.last_num_cached_tokens,
-            prompt_num_tokens=previous_state.last_prompt_num_tokens,
-            stop_reason=f"scheduler:{scheduler_reason}",
-            alignatt_metadata=alignatt_metadata,
-            timings_ms={"scheduler_skip": 0.0},
-        )
-
-    def derive_monotone_acceptance(
-        self,
-        *,
-        source_prefix: str,
-        result: MTBackendResult,
-    ) -> tuple[str, tuple[int, ...]]:
-        return derive_monotone_partial_acceptance(
-            previous_state=state.partial_translation,
-            source_prefix=source_prefix,
-            result=result,
-        )
-
-    def update_partial_state(
-        self,
-        source_text: str,
-        result: MTBackendResult,
-        source_frontier: SourceAccessibilityFrontier,
-    ) -> None:
-        previous_accepted = state.partial_translation.accepted_target
-        accepted_target, accepted_token_ids = self.derive_monotone_acceptance(
-            source_prefix=source_text.strip(),
-            result=result,
-        )
-        last_accept_audio_seconds = state.partial_translation.last_accept_audio_seconds
-        if accepted_target and accepted_target != previous_accepted:
-            last_accept_audio_seconds = current_audio_seconds()
-        state.partial_translation = PartialTranslationState(
-            source_prefix=source_text.strip(),
-            draft_target=result.draft_text,
-            draft_token_ids=tuple(int(token_id) for token_id in result.draft_token_ids),
-            accepted_target=accepted_target,
-            accepted_token_ids=accepted_token_ids,
-            source_accessible_unit_count=source_frontier.accessible_unit_count,
-            source_total_unit_count=len(source_frontier.units),
-            last_num_cached_tokens=result.num_cached_tokens,
-            last_prompt_num_tokens=result.prompt_num_tokens,
-            last_accept_audio_seconds=last_accept_audio_seconds,
-            last_mt_audio_seconds=current_audio_seconds(),
-            last_alignatt_metadata=result.alignatt_metadata,
-            blocked_source_local_position=(
-                None
-                if result.alignatt_metadata is None
-                else result.alignatt_metadata.get("blocked_source_local_position")
-            ),
-            blocked_source_unit_index=(
-                None
-                if result.alignatt_metadata is None
-                else result.alignatt_metadata.get("blocked_source_unit_index")
-            ),
-        )
-
-    def sync_committed_translations(self) -> MTBackendResult | None:
-        last_result: MTBackendResult | None = None
-        while len(state.utt_translations) < len(state.utt_sources):
-            segment_idx = len(state.utt_translations)
-            segment_source = state.utt_sources[segment_idx].strip()
-            normalized_segment_source = self.normalize_source_text(
-                segment_source,
-                is_final=True,
-            )
-            assistant_prefill = ""
-            if (
-                state.partial_translation.source_prefix
-                and state.partial_translation.accepted_target
-                and segment_idx == len(state.utt_sources) - 1
-                and normalized_segment_source.text.startswith(state.partial_translation.source_prefix)
-            ):
-                assistant_prefill = state.partial_translation.accepted_target
-            last_result = translate_with_mt(
-                normalized_segment_source.text,
-                source_frontier=self.build_source_frontier(
-                    normalized_segment_source,
-                    is_final=True,
-                ),
-                source_history=normalized_source_history_window(state.utt_sources, segment_idx),
-                translation_history=translation_history_window(state.utt_translations, segment_idx),
-                is_partial=False,
-                assistant_prefill=assistant_prefill,
-            )
-            state.utt_translations.append(last_result.acceptance_text)
-            if assistant_prefill:
-                self.reset_partial_state()
-        return last_result
-
-    def render_translation(self) -> tuple[str, MTBackendResult | None]:
-        latest_result = self.sync_committed_translations()
-
-        translation_segments = [segment for segment in state.utt_translations[1:] if segment.strip()]
-        partial_source = normalize_partial_asr_hypothesis(state.asr_hypotheses[-1])
-        normalized_partial_source = self.normalize_source_text(
-            partial_source,
-            is_final=False,
-        )
-        if normalized_partial_source.text:
-            partial_frontier = self.build_source_frontier(
-                normalized_partial_source,
-                is_final=False,
-            )
-            should_run_partial, scheduler_reason = self.should_run_partial_mt(
-                source_text=normalized_partial_source.text,
-                source_frontier=partial_frontier,
-            )
-            if should_run_partial:
-                partial_result = translate_with_mt(
-                    normalized_partial_source.text,
-                    source_frontier=partial_frontier,
-                    source_history=normalized_source_history_window(
-                        state.utt_sources,
-                        len(state.utt_sources),
-                    ),
-                    translation_history=translation_history_window(
-                        state.utt_translations,
-                        len(state.utt_translations),
-                    ),
-                    is_partial=True,
-                    assistant_prefill=self.current_accepted_prefill(normalized_partial_source.text),
-                )
-                self.update_partial_state(normalized_partial_source.text, partial_result, partial_frontier)
-            else:
-                partial_result = self.snapshot_skipped_partial_result(
-                    source_frontier=partial_frontier,
-                    scheduler_reason=scheduler_reason,
-                )
-            if state.partial_translation.accepted_target.strip():
-                translation_segments.append(state.partial_translation.accepted_target)
-            latest_result = partial_result
-        else:
-            self.reset_partial_state()
-
-        return (
-            normalize_incremental_target_text(
-                " ".join(segment.strip() for segment in translation_segments if segment.strip())
-            ),
-            latest_result,
-        )
-
-
-translation_units = TranslationUnitManager(config)
-
-
-def apply_translation_emit_policy(
-    previous_translation: str,
-    raw_translation: str,
-    *,
-    is_final: bool,
-) -> tuple[str, str]:
-    return apply_emission_policy(
-        config.translation_emit_policy,
-        previous_translation,
-        raw_translation,
-        max_tail_rewrite_words=config.translation_max_tail_rewrite_words,
-        is_final=is_final,
-        target_lang_code=target_lang_code_for(config.target_lang),
-    )
 
 
 def load_wav(path: str) -> np.ndarray:
@@ -936,240 +374,843 @@ def _git_sha() -> str | None:
         return None
 
 
-def _enrich_provenance(run_provenance: dict[str, Any] | None) -> dict[str, Any]:
+def _enrich_provenance(
+    config: CascadeRuntimeConfig,
+    run_provenance: dict[str, Any] | None,
+) -> dict[str, Any]:
     provenance = dict(run_provenance or {})
     provenance.setdefault("git_sha", _git_sha())
     provenance.setdefault("framework_mode", "research_harness")
     provenance.setdefault("source_lang", config.source_lang)
     provenance.setdefault("target_lang", config.target_lang)
+    provenance.setdefault("alignment_backend_name", config.alignment_backend_name)
     return provenance
+
+
+def get_translation_variant(config: CascadeRuntimeConfig) -> TranslationVariant:
+    return TRANSLATION_VARIANTS[config.translation_variant_id]
+
+
+def build_alignment_backend(
+    config: CascadeRuntimeConfig,
+    *,
+    qwen_model_path: str = asr_model_name,
+    qwen_forced_aligner_model_path: str = forced_aligner_model_name,
+    gemma_path: str = gemma_model_name,
+) -> AlignmentBackend:
+    if config.alignment_backend_name == "qwen_forced":
+        from qwen_alignment_backend import QwenAlignmentBackend
+
+        return QwenAlignmentBackend(
+            asr_model_path=qwen_model_path,
+            forced_aligner_model_path=qwen_forced_aligner_model_path,
+            runtime_config=config,
+        )
+    if config.alignment_backend_name == "gemma_onepass_qk_fast":
+        from gemma_alignment_probe import GemmaAttentionAlignmentBackend
+
+        return GemmaAttentionAlignmentBackend(
+            model_name=gemma_path,
+            runtime_config=config,
+            audio_heads_path=config.gemma_audio_alignment_heads_path,
+            audio_heads_top_k=int(config.gemma_audio_alignment_top_k_heads),
+            filter_width=int(config.gemma_audio_alignment_filter_width),
+            max_new_tokens=int(config.gemma_audio_alignment_max_new_tokens),
+            audio_align_probe_mode=config.gemma_audio_align_probe_mode,
+        )
+    raise ValueError(f"Unknown alignment_backend_name: {config.alignment_backend_name!r}")
+
+
+class LoadedModelBundle:
+    def __init__(self, config: CascadeRuntimeConfig):
+        self.config = config
+        self.qwen_model_path = asr_model_name
+        self.qwen_forced_aligner_model_path = forced_aligner_model_name
+        self.gemma_path = gemma_model_name
+        self.alignment_backend: AlignmentBackend | None = None
+        self.mt_backend = None
+        self._alignment_backend_id: str | None = None
+        self._mt_heads_path: str | None = None
+
+    def ensure_alignment_backend(self) -> AlignmentBackend:
+        if (
+            self.alignment_backend is None
+            or self._alignment_backend_id != self.config.alignment_backend_name
+        ):
+            self.alignment_backend = build_alignment_backend(
+                self.config,
+                qwen_model_path=self.qwen_model_path,
+                qwen_forced_aligner_model_path=self.qwen_forced_aligner_model_path,
+                gemma_path=self.gemma_path,
+            )
+            self.alignment_backend.load()
+            self._alignment_backend_id = self.config.alignment_backend_name
+        else:
+            runtime_config = getattr(self.alignment_backend, "runtime_config", None)
+            if runtime_config is not None:
+                self.alignment_backend.runtime_config = self.config
+        return self.alignment_backend
+
+    def ensure_mt_backend(self):
+        if self.mt_backend is None:
+            self.mt_backend = build_mt_backend(
+                model_name=self.gemma_path,
+                runtime_config=self.config,
+            )
+            self.mt_backend.load()
+            self._mt_heads_path = self.config.translation_alignatt_heads_path
+        else:
+            self.mt_backend.runtime_config = self.config
+            current_heads_path = self.config.translation_alignatt_heads_path
+            if current_heads_path != self._mt_heads_path:
+                self.mt_backend.refresh_alignatt_artifacts()
+                self._mt_heads_path = current_heads_path
+        return self.mt_backend
+
+    def load(self) -> None:
+        self.ensure_alignment_backend()
+        self.ensure_mt_backend()
+
+    def new_session(self) -> "CascadeSession":
+        return CascadeSession(self)
+
+
+class TranslationUnitManager:
+    def __init__(self, session: "CascadeSession"):
+        self.session = session
+
+    @property
+    def config(self) -> CascadeRuntimeConfig:
+        return self.session.config
+
+    @property
+    def state(self) -> CascadeState:
+        return self.session.state
+
+    def reset_partial_state(self) -> None:
+        self.state.partial_translation = PartialTranslationState()
+
+    def normalize_source_text(
+        self,
+        source_text: str,
+        *,
+        is_final: bool,
+    ) -> NormalizedSourceText:
+        return normalize_source_text_for_mt(
+            source_text.strip(),
+            word_timestamps_ms=(None if is_final else self.state.partial_word_timestamps_ms),
+        )
+
+    def build_source_frontier(
+        self,
+        source_text: NormalizedSourceText,
+        *,
+        is_final: bool,
+    ) -> SourceAccessibilityFrontier:
+        return build_source_accessibility_frontier(
+            source_text.text,
+            word_timestamps_ms=source_text.word_timestamps_ms,
+            current_audio_ms=self.session.current_audio_seconds() * 1000.0,
+            inaccessible_ms=float(self.config.translation_alignatt_inaccessible_ms),
+            is_final=is_final,
+        )
+
+    def current_accepted_prefill(self, source_text: str) -> str:
+        source_text = source_text.strip()
+        partial_state = self.state.partial_translation
+        if not source_text:
+            self.reset_partial_state()
+            return ""
+        if partial_state.source_prefix and not source_text.startswith(partial_state.source_prefix):
+            self.reset_partial_state()
+        return self.state.partial_translation.accepted_target
+
+    def should_run_partial_mt(
+        self,
+        *,
+        source_text: str,
+        source_frontier: SourceAccessibilityFrontier,
+    ) -> tuple[bool, str]:
+        return should_run_partial_mt_update(
+            previous_state=self.state.partial_translation,
+            source_prefix=source_text,
+            accessible_unit_count=source_frontier.accessible_unit_count,
+            current_audio_seconds_value=self.session.current_audio_seconds(),
+            stall_seconds=float(self.config.translation_scheduler_stall_seconds),
+        )
+
+    def snapshot_skipped_partial_result(
+        self,
+        *,
+        source_frontier: SourceAccessibilityFrontier,
+        scheduler_reason: str,
+    ) -> MTBackendResult:
+        previous_state = self.state.partial_translation
+        alignatt_metadata = dict(previous_state.last_alignatt_metadata or {})
+        alignatt_metadata.update(
+            {
+                "scheduler_skipped": True,
+                "scheduler_reason": scheduler_reason,
+                "accessible_source_unit_count": source_frontier.accessible_unit_count,
+                "source_unit_count": len(source_frontier.units),
+                "current_audio_ms": source_frontier.current_audio_ms,
+                "inaccessible_ms": source_frontier.inaccessible_ms,
+            }
+        )
+        return MTBackendResult(
+            draft_text=previous_state.draft_target,
+            acceptance_text=previous_state.accepted_target,
+            draft_token_ids=previous_state.draft_token_ids,
+            accepted_token_ids=previous_state.accepted_token_ids,
+            num_cached_tokens=previous_state.last_num_cached_tokens,
+            prompt_num_tokens=previous_state.last_prompt_num_tokens,
+            stop_reason=f"scheduler:{scheduler_reason}",
+            alignatt_metadata=alignatt_metadata,
+            timings_ms={"scheduler_skip": 0.0},
+        )
+
+    def derive_monotone_acceptance(
+        self,
+        *,
+        source_prefix: str,
+        result: MTBackendResult,
+    ) -> tuple[str, tuple[int, ...]]:
+        return derive_monotone_partial_acceptance(
+            previous_state=self.state.partial_translation,
+            source_prefix=source_prefix,
+            result=result,
+        )
+
+    def update_partial_state(
+        self,
+        source_text: str,
+        result: MTBackendResult,
+        source_frontier: SourceAccessibilityFrontier,
+    ) -> None:
+        previous_accepted = self.state.partial_translation.accepted_target
+        accepted_target, accepted_token_ids = self.derive_monotone_acceptance(
+            source_prefix=source_text.strip(),
+            result=result,
+        )
+        last_accept_audio_seconds = self.state.partial_translation.last_accept_audio_seconds
+        if accepted_target and accepted_target != previous_accepted:
+            last_accept_audio_seconds = self.session.current_audio_seconds()
+        self.state.partial_translation = PartialTranslationState(
+            source_prefix=source_text.strip(),
+            draft_target=result.draft_text,
+            draft_token_ids=tuple(int(token_id) for token_id in result.draft_token_ids),
+            accepted_target=accepted_target,
+            accepted_token_ids=accepted_token_ids,
+            source_accessible_unit_count=source_frontier.accessible_unit_count,
+            source_total_unit_count=len(source_frontier.units),
+            last_num_cached_tokens=result.num_cached_tokens,
+            last_prompt_num_tokens=result.prompt_num_tokens,
+            last_accept_audio_seconds=last_accept_audio_seconds,
+            last_mt_audio_seconds=self.session.current_audio_seconds(),
+            last_alignatt_metadata=result.alignatt_metadata,
+            blocked_source_local_position=(
+                None
+                if result.alignatt_metadata is None
+                else result.alignatt_metadata.get("blocked_source_local_position")
+            ),
+            blocked_source_unit_index=(
+                None
+                if result.alignatt_metadata is None
+                else result.alignatt_metadata.get("blocked_source_unit_index")
+            ),
+        )
+
+    def sync_committed_translations(self) -> MTBackendResult | None:
+        last_result: MTBackendResult | None = None
+        while len(self.state.utt_translations) < len(self.state.utt_sources):
+            segment_idx = len(self.state.utt_translations)
+            segment_source = self.state.utt_sources[segment_idx].strip()
+            normalized_segment_source = self.normalize_source_text(
+                segment_source,
+                is_final=True,
+            )
+            assistant_prefill = ""
+            if (
+                self.state.partial_translation.source_prefix
+                and self.state.partial_translation.accepted_target
+                and segment_idx == len(self.state.utt_sources) - 1
+                and normalized_segment_source.text.startswith(
+                    self.state.partial_translation.source_prefix
+                )
+            ):
+                assistant_prefill = self.state.partial_translation.accepted_target
+            last_result = self.session.translate_with_mt(
+                normalized_segment_source.text,
+                source_frontier=self.build_source_frontier(
+                    normalized_segment_source,
+                    is_final=True,
+                ),
+                source_history=normalized_source_history_window(
+                    self.state.utt_sources,
+                    segment_idx,
+                    max_history_utterances=self.config.max_history_utterances,
+                ),
+                translation_history=translation_history_window(
+                    self.state.utt_translations,
+                    segment_idx,
+                    max_history_utterances=self.config.max_history_utterances,
+                ),
+                is_partial=False,
+                assistant_prefill=assistant_prefill,
+            )
+            self.state.utt_translations.append(last_result.acceptance_text)
+            if assistant_prefill:
+                self.reset_partial_state()
+        return last_result
+
+    def render_translation(self) -> tuple[str, MTBackendResult | None]:
+        latest_result = self.sync_committed_translations()
+
+        translation_segments = [
+            segment for segment in self.state.utt_translations[1:] if segment.strip()
+        ]
+        partial_source = normalize_partial_asr_hypothesis(self.state.asr_hypotheses[-1])
+        normalized_partial_source = self.normalize_source_text(
+            partial_source,
+            is_final=False,
+        )
+        if normalized_partial_source.text:
+            partial_frontier = self.build_source_frontier(
+                normalized_partial_source,
+                is_final=False,
+            )
+            should_run_partial, scheduler_reason = self.should_run_partial_mt(
+                source_text=normalized_partial_source.text,
+                source_frontier=partial_frontier,
+            )
+            if should_run_partial:
+                partial_result = self.session.translate_with_mt(
+                    normalized_partial_source.text,
+                    source_frontier=partial_frontier,
+                    source_history=normalized_source_history_window(
+                        self.state.utt_sources,
+                        len(self.state.utt_sources),
+                        max_history_utterances=self.config.max_history_utterances,
+                    ),
+                    translation_history=translation_history_window(
+                        self.state.utt_translations,
+                        len(self.state.utt_translations),
+                        max_history_utterances=self.config.max_history_utterances,
+                    ),
+                    is_partial=True,
+                    assistant_prefill=self.current_accepted_prefill(
+                        normalized_partial_source.text
+                    ),
+                )
+                self.update_partial_state(
+                    normalized_partial_source.text,
+                    partial_result,
+                    partial_frontier,
+                )
+            else:
+                partial_result = self.snapshot_skipped_partial_result(
+                    source_frontier=partial_frontier,
+                    scheduler_reason=scheduler_reason,
+                )
+            if self.state.partial_translation.accepted_target.strip():
+                translation_segments.append(self.state.partial_translation.accepted_target)
+            latest_result = partial_result
+        else:
+            self.reset_partial_state()
+
+        return (
+            normalize_incremental_target_text(
+                " ".join(
+                    segment.strip() for segment in translation_segments if segment.strip()
+                )
+            ),
+            latest_result,
+        )
+
+
+class CascadeSession:
+    def __init__(self, bundle: LoadedModelBundle):
+        self.bundle = bundle
+        self.config = bundle.config
+        self.state = CascadeState()
+        self.mt_prompt_cache = PromptCacheState()
+        self.translation_units = TranslationUnitManager(self)
+
+    def load_models(self) -> None:
+        self.bundle.load()
+
+    def clear(self) -> None:
+        speech_id = self.state.speech_id
+        self.state = CascadeState(speech_id=speech_id)
+        self.mt_prompt_cache = PromptCacheState()
+        self.translation_units = TranslationUnitManager(self)
+
+    def current_audio_seconds(self) -> float:
+        return len(self.state.source) / SAMPLE_RATE
+
+    def render_public_asr_text(self) -> str:
+        committed_segments = [
+            segment.strip() for segment in self.state.utt_sources[1:] if segment.strip()
+        ]
+        partial_segment = ""
+        if self.state.asr_hypotheses:
+            partial_segment = normalize_partial_asr_hypothesis(
+                self.state.asr_hypotheses[-1]
+            )
+        if partial_segment:
+            committed_segments.append(partial_segment)
+        return " ".join(committed_segments).strip()
+
+    def build_translation_messages(
+        self,
+        text: str,
+        *,
+        source_frontier: SourceAccessibilityFrontier | None,
+        source_history: list[str],
+        translation_history: list[str],
+        is_partial: bool,
+        assistant_prefill: str = "",
+    ) -> RenderedTranslationPrompt:
+        variant = get_translation_variant(self.config)
+        return variant.render_messages(
+            source_lang=self.config.source_lang,
+            target_lang=self.config.target_lang,
+            text=text,
+            source_frontier=source_frontier,
+            source_history=source_history,
+            translation_history=translation_history,
+            is_partial=is_partial,
+            assistant_prefill=assistant_prefill,
+        )
+
+    def translate_with_mt(
+        self,
+        text: str,
+        *,
+        source_frontier: SourceAccessibilityFrontier | None = None,
+        source_history: list[str] | None = None,
+        translation_history: list[str] | None = None,
+        is_partial: bool = False,
+        assistant_prefill: str = "",
+    ) -> MTBackendResult:
+        mt_backend = self.bundle.ensure_mt_backend()
+        text = text.strip()
+        if not text:
+            prefixed_text = assistant_prefill.rstrip(" \n")
+            semantic_token_ids: tuple[int, ...] = ()
+            if hasattr(mt_backend, "encode_semantic_target_token_ids"):
+                semantic_token_ids = tuple(
+                    mt_backend.encode_semantic_target_token_ids(prefixed_text)
+                )
+            return MTBackendResult(
+                draft_text=prefixed_text,
+                acceptance_text=prefixed_text,
+                draft_token_ids=semantic_token_ids,
+                accepted_token_ids=semantic_token_ids,
+            )
+
+        variant = get_translation_variant(self.config)
+        rendered_prompt = self.build_translation_messages(
+            text,
+            source_frontier=source_frontier,
+            source_history=source_history or [],
+            translation_history=translation_history or [],
+            is_partial=is_partial,
+            assistant_prefill=assistant_prefill,
+        )
+        return mt_backend.translate(
+            rendered_prompt=rendered_prompt,
+            variant=variant,
+            is_partial=is_partial,
+            prompt_cache_state=self.mt_prompt_cache,
+        )
+
+    def transcribe_audio(self) -> str | None:
+        alignment_backend = self.bundle.ensure_alignment_backend()
+        audio = np.array(
+            self.state.source[self.state.utt_timestamps[-1] :], dtype=np.float32
+        )
+        result = alignment_backend.transcribe_and_align(
+            audio,
+            sample_rate=SAMPLE_RATE,
+            language=self.config.source_lang,
+        )
+        if result is None:
+            return None
+
+        asr_hypo = result.text
+        self.state.asr_hypotheses.append(asr_hypo)
+        self.state.partial_word_timestamps_ms = normalize_word_timestamps_ms(result.words)
+
+        asr_segment = longest_common_prefix(
+            self.state.asr_hypotheses[-2],
+            self.state.asr_hypotheses[-1],
+        )
+        if n_utterances(asr_segment) >= 1:
+            rightest_punct_idx = max(
+                asr_segment.rfind(". "),
+                asr_segment.rfind("! "),
+                asr_segment.rfind("? "),
+            )
+            if rightest_punct_idx == -1 and asr_segment.endswith((".", "!", "?")):
+                rightest_punct_idx = len(asr_segment) - 1
+
+            end_time = find_end_time(result.words, rightest_punct_idx, asr_hypo)
+            if end_time is None:
+                return asr_hypo.strip()
+
+            utt_end_time = int(end_time * SAMPLE_RATE) + self.state.utt_timestamps[-1]
+            utt_end_time = min(utt_end_time, len(self.state.source))
+            self.state.utt_timestamps.append(utt_end_time)
+            self.state.utt_sources.append(asr_segment[: rightest_punct_idx + 1])
+            remainder = asr_hypo[rightest_punct_idx + 1 :].strip()
+            n_words_right = len(remove_punctuation(remainder).strip().split())
+            self.state.asr_hypotheses = [remainder]
+            self.state.partial_word_timestamps_ms = (
+                self.state.partial_word_timestamps_ms[-n_words_right:]
+                if n_words_right > 0
+                else []
+            )
+
+        if self.state.utt_sources[1:]:
+            return self.render_public_asr_text()
+        return normalize_partial_asr_hypothesis(self.state.asr_hypotheses[-1])
+
+    def render_translation(self) -> tuple[str, MTBackendResult | None]:
+        return self.translation_units.render_translation()
+
+    def apply_translation_emit_policy(
+        self,
+        previous_translation: str,
+        raw_translation: str,
+        *,
+        is_final: bool,
+    ) -> tuple[str, str]:
+        return apply_emission_policy(
+            self.config.translation_emit_policy,
+            previous_translation,
+            raw_translation,
+            max_tail_rewrite_words=self.config.translation_max_tail_rewrite_words,
+            is_final=is_final,
+            target_lang_code=target_lang_code_for(self.config.target_lang),
+        )
+
+    def process_audio_chunk(self, chunk: np.ndarray) -> SessionProcessingResult | None:
+        self.state.source = np.concatenate(
+            [self.state.source, np.asarray(chunk, dtype=np.float32)]
+        )
+        if self.current_audio_seconds() < self.config.min_start_seconds:
+            return None
+
+        current_asr = self.transcribe_audio()
+        if not current_asr:
+            return None
+
+        raw_translation, translation_result = self.render_translation()
+        return SessionProcessingResult(
+            asr_text=current_asr,
+            raw_translation_text=raw_translation,
+            translation_result=translation_result,
+            committed_segments=len(self.state.utt_sources),
+        )
+
+    def finalize_stream(self) -> SessionProcessingResult:
+        final_asr = self.transcribe_audio() or self.render_public_asr_text()
+        final_raw_translation, final_translation_result = self.render_translation()
+        return SessionProcessingResult(
+            asr_text=final_asr,
+            raw_translation_text=final_raw_translation,
+            translation_result=final_translation_result,
+            committed_segments=len(self.state.utt_sources),
+        )
+
+    def run_stream_to_artifacts(
+        self,
+        wav_path: str,
+        chunk_ms: int = 960,
+        *,
+        run_provenance: dict[str, Any] | None = None,
+    ) -> InferenceArtifacts:
+        self.load_models()
+        self.clear()
+
+        variant = get_translation_variant(self.config)
+        target_lang_code = target_lang_code_for(self.config.target_lang)
+        audio = load_wav(wav_path)
+        chunk_size = int(SAMPLE_RATE * chunk_ms / 1000)
+        last_asr = ""
+        last_translation = ""
+        last_raw_translation = ""
+        last_committed_segments = len(self.state.utt_sources)
+        word_delays_ms: list[float] = []
+        word_elapsed_ms: list[float] = []
+        updates: list[StreamUpdate] = []
+        start_time = perf_counter()
+
+        for start in range(0, len(audio), chunk_size):
+            chunk = audio[start : start + chunk_size]
+            session_result = self.process_audio_chunk(chunk)
+            committed_segments = len(self.state.utt_sources)
+            if session_result is None:
+                continue
+            if (
+                session_result.asr_text == last_asr
+                and committed_segments == last_committed_segments
+            ):
+                continue
+
+            last_asr = session_result.asr_text
+            last_committed_segments = committed_segments
+            translation, emission_policy_action = self.apply_translation_emit_policy(
+                last_translation,
+                session_result.raw_translation_text,
+                is_final=False,
+            )
+            audio_processed_ms = len(self.state.source) * 1000.0 / SAMPLE_RATE
+            wallclock_elapsed_ms = (perf_counter() - start_time) * 1000.0
+            register_translation_timestamps(
+                last_raw_translation,
+                session_result.raw_translation_text,
+                wallclock_elapsed_ms,
+                word_elapsed_ms,
+                target_lang_code=target_lang_code,
+            )
+            new_words = register_translation_words(
+                last_translation,
+                translation,
+                audio_processed_ms,
+                word_delays_ms,
+                target_lang_code=target_lang_code,
+            )
+            updates.append(
+                StreamUpdate(
+                    update_idx=len(updates),
+                    audio_processed_ms=audio_processed_ms,
+                    wallclock_elapsed_ms=wallclock_elapsed_ms,
+                    asr_text=session_result.asr_text,
+                    translation_text=translation,
+                    new_words=new_words,
+                    raw_translation_text=session_result.raw_translation_text,
+                    emission_policy_action=emission_policy_action,
+                    translation_prompt_num_cached_tokens=(
+                        None
+                        if session_result.translation_result is None
+                        else session_result.translation_result.num_cached_tokens
+                    ),
+                    translation_prompt_num_tokens=(
+                        None
+                        if session_result.translation_result is None
+                        else session_result.translation_result.prompt_num_tokens
+                    ),
+                    partial_accepted_target=(
+                        self.state.partial_translation.accepted_target or None
+                    ),
+                    partial_draft_target=(
+                        self.state.partial_translation.draft_target or None
+                    ),
+                    partial_accepted_token_count=(
+                        len(self.state.partial_translation.accepted_token_ids) or None
+                    ),
+                    alignatt_metadata=(
+                        None
+                        if session_result.translation_result is None
+                        else session_result.translation_result.alignatt_metadata
+                    ),
+                    translation_timings_ms=(
+                        None
+                        if session_result.translation_result is None
+                        else session_result.translation_result.timings_ms
+                    ),
+                )
+            )
+            current_time = audio_processed_ms / 1000.0
+            print(f"[{current_time:6.2f}s] ASR: {session_result.asr_text}")
+            print(f"[{current_time:6.2f}s] {target_lang_code.upper():<3}: {translation}")
+            last_translation = translation
+            last_raw_translation = session_result.raw_translation_text
+
+        final_result = self.finalize_stream()
+        final_translation, final_emission_policy_action = self.apply_translation_emit_policy(
+            last_translation,
+            final_result.raw_translation_text,
+            is_final=True,
+        )
+        audio_duration_ms = len(audio) * 1000.0 / SAMPLE_RATE
+        final_elapsed_ms = (perf_counter() - start_time) * 1000.0
+        register_translation_timestamps(
+            last_raw_translation,
+            final_result.raw_translation_text,
+            final_elapsed_ms,
+            word_elapsed_ms,
+            target_lang_code=target_lang_code,
+        )
+        final_new_words = register_translation_words(
+            last_translation,
+            final_translation,
+            audio_duration_ms,
+            word_delays_ms,
+            target_lang_code=target_lang_code,
+        )
+        if (
+            final_result.asr_text != last_asr
+            or final_translation != last_translation
+        ):
+            updates.append(
+                StreamUpdate(
+                    update_idx=len(updates),
+                    audio_processed_ms=audio_duration_ms,
+                    wallclock_elapsed_ms=final_elapsed_ms,
+                    asr_text=final_result.asr_text,
+                    translation_text=final_translation,
+                    new_words=final_new_words,
+                    is_eos=True,
+                    raw_translation_text=final_result.raw_translation_text,
+                    emission_policy_action=final_emission_policy_action,
+                    translation_prompt_num_cached_tokens=(
+                        None
+                        if final_result.translation_result is None
+                        else final_result.translation_result.num_cached_tokens
+                    ),
+                    translation_prompt_num_tokens=(
+                        None
+                        if final_result.translation_result is None
+                        else final_result.translation_result.prompt_num_tokens
+                    ),
+                    partial_accepted_target=(
+                        self.state.partial_translation.accepted_target or None
+                    ),
+                    partial_draft_target=(
+                        self.state.partial_translation.draft_target or None
+                    ),
+                    partial_accepted_token_count=(
+                        len(self.state.partial_translation.accepted_token_ids) or None
+                    ),
+                    alignatt_metadata=(
+                        None
+                        if final_result.translation_result is None
+                        else final_result.translation_result.alignatt_metadata
+                    ),
+                    translation_timings_ms=(
+                        None
+                        if final_result.translation_result is None
+                        else final_result.translation_result.timings_ms
+                    ),
+                )
+            )
+
+        print("\nFinal ASR:")
+        print(final_result.asr_text)
+        print("\nFinal translation:")
+        print(final_translation)
+
+        return InferenceArtifacts(
+            wav_path=wav_path,
+            chunk_ms=chunk_ms,
+            translation_variant=variant.variant_id,
+            source_language=self.config.source_lang,
+            target_language=self.config.target_lang,
+            source_language_code=LANGUAGE_NAME_TO_CODE.get(
+                self.config.source_lang,
+                self.config.source_lang.lower(),
+            ),
+            target_language_code=target_lang_code_for(self.config.target_lang),
+            latency_unit=self.config.latency_unit,
+            audio_duration_ms=audio_duration_ms,
+            final_asr_text=final_result.asr_text,
+            final_translation_text=final_translation,
+            translation_word_delays_ms=word_delays_ms,
+            translation_word_elapsed_ms=word_elapsed_ms,
+            updates=updates,
+            runtime_config={
+                "translation_variant_id": variant.variant_id,
+                "translation_variant_description": variant.description,
+                "alignment_backend_name": self.config.alignment_backend_name,
+                "translation_alignatt_heads_path": self.config.translation_alignatt_heads_path,
+                "translation_alignatt_top_k_heads": self.config.translation_alignatt_top_k_heads,
+                "translation_alignatt_filter_width": self.config.translation_alignatt_filter_width,
+                "translation_alignatt_probe_mode": self.config.translation_alignatt_probe_mode,
+                "translation_alignatt_inaccessible_ms": self.config.translation_alignatt_inaccessible_ms,
+                "translation_alignatt_rewind_threshold": self.config.translation_alignatt_rewind_threshold,
+                "translation_alignatt_min_source_mass": self.config.translation_alignatt_min_source_mass,
+                "min_start_seconds": self.config.min_start_seconds,
+                "max_history_utterances": self.config.max_history_utterances,
+                "max_new_tokens": self.config.max_new_tokens,
+                "partial_max_new_tokens": self.config.partial_max_new_tokens,
+                "partial_followup_max_new_tokens": self.config.partial_followup_max_new_tokens,
+                "translation_min_new_tokens": self.config.translation_min_new_tokens,
+                "translation_token_budget_ratio": self.config.translation_token_budget_ratio,
+                "translation_token_budget_buffer": self.config.translation_token_budget_buffer,
+                "partial_translation_min_new_tokens": self.config.partial_translation_min_new_tokens,
+                "partial_translation_token_budget_ratio": self.config.partial_translation_token_budget_ratio,
+                "partial_translation_token_budget_buffer": self.config.partial_translation_token_budget_buffer,
+                "translation_generation_margin": self.config.translation_generation_margin,
+                "translation_emit_policy": self.config.translation_emit_policy,
+                "translation_max_tail_rewrite_words": self.config.translation_max_tail_rewrite_words,
+                "temperature": self.config.temperature,
+                "repetition_penalty": self.config.repetition_penalty,
+                "asr_gpu_memory_utilization": self.config.asr_gpu_memory_utilization,
+                "gemma_max_model_len": self.config.gemma_max_model_len,
+                "gemma_enable_prefix_caching": self.config.gemma_enable_prefix_caching,
+                "gemma_transformers_device": self.config.gemma_transformers_device,
+                "gemma_transformers_dtype": self.config.gemma_transformers_dtype,
+                "gemma_transformers_fast_attention": self.config.gemma_transformers_fast_attention,
+                "gemma_transformers_prompt_kv_reuse": self.config.gemma_transformers_prompt_kv_reuse,
+                "gemma_audio_align_probe_mode": self.config.gemma_audio_align_probe_mode,
+                "gemma_audio_alignment_heads_path": self.config.gemma_audio_alignment_heads_path,
+                "translation_scheduler_stall_seconds": self.config.translation_scheduler_stall_seconds,
+            },
+            run_provenance=_enrich_provenance(self.config, run_provenance),
+        )
+
+
+@contextmanager
+def temporary_runtime_config(
+    config: CascadeRuntimeConfig,
+    **overrides,
+):
+    if not overrides:
+        yield config
+        return
+
+    original_values: dict[str, Any] = {}
+    for key, value in overrides.items():
+        if not hasattr(config, key):
+            raise AttributeError(f"Unknown runtime config override: {key}")
+        original_values[key] = getattr(config, key)
+        setattr(config, key, value)
+
+    if "target_lang" in overrides and "translation_alignatt_heads_path" not in overrides:
+        original_values.setdefault(
+            "translation_alignatt_heads_path",
+            getattr(config, "translation_alignatt_heads_path"),
+        )
+        config.translation_alignatt_heads_path = alignatt_heads_path_for(
+            config.source_lang,
+            config.target_lang,
+        )
+
+    try:
+        yield config
+    finally:
+        for key, value in original_values.items():
+            setattr(config, key, value)
 
 
 def run_stream_to_artifacts(
     wav_path: str,
     chunk_ms: int = 960,
     *,
+    config: CascadeRuntimeConfig | None = None,
+    bundle: LoadedModelBundle | None = None,
     run_provenance: dict[str, Any] | None = None,
 ) -> InferenceArtifacts:
-    variant = get_translation_variant()
-    load_models()
-    clear_state()
-
-    target_lang_code = target_lang_code_for(config.target_lang)
-
-    audio = load_wav(wav_path)
-    chunk_size = int(SAMPLE_RATE * chunk_ms / 1000)
-    last_asr = ""
-    last_translation = ""
-    last_raw_translation = ""
-    last_committed_segments = len(state.utt_sources)
-    word_delays_ms: List[float] = []
-    word_elapsed_ms: List[float] = []
-    updates: List[StreamUpdate] = []
-    start_time = perf_counter()
-
-    for start in range(0, len(audio), chunk_size):
-        chunk = audio[start : start + chunk_size]
-        state.source = np.concatenate([state.source, chunk])
-
-        if len(state.source) / SAMPLE_RATE < config.min_start_seconds:
-            continue
-
-        current_asr = transcribe_audio()
-        committed_segments = len(state.utt_sources)
-        if not current_asr:
-            continue
-        if current_asr == last_asr and committed_segments == last_committed_segments:
-            continue
-
-        last_asr = current_asr
-        last_committed_segments = committed_segments
-        raw_translation, translation_result = translation_units.render_translation()
-        translation, emission_policy_action = apply_translation_emit_policy(
-            last_translation,
-            raw_translation,
-            is_final=False,
-        )
-        audio_processed_ms = len(state.source) * 1000.0 / SAMPLE_RATE
-        wallclock_elapsed_ms = (perf_counter() - start_time) * 1000.0
-        register_translation_timestamps(
-            last_raw_translation,
-            raw_translation,
-            wallclock_elapsed_ms,
-            word_elapsed_ms,
-            target_lang_code=target_lang_code,
-        )
-        new_words = register_translation_words(
-            last_translation,
-            translation,
-            audio_processed_ms,
-            word_delays_ms,
-            target_lang_code=target_lang_code,
-        )
-        updates.append(
-            StreamUpdate(
-                update_idx=len(updates),
-                audio_processed_ms=audio_processed_ms,
-                wallclock_elapsed_ms=wallclock_elapsed_ms,
-                asr_text=current_asr,
-                translation_text=translation,
-                new_words=new_words,
-                raw_translation_text=raw_translation,
-                emission_policy_action=emission_policy_action,
-                translation_prompt_num_cached_tokens=(
-                    None if translation_result is None else translation_result.num_cached_tokens
-                ),
-                translation_prompt_num_tokens=(
-                    None if translation_result is None else translation_result.prompt_num_tokens
-                ),
-                partial_accepted_target=(
-                    state.partial_translation.accepted_target or None
-                ),
-                partial_draft_target=(
-                    state.partial_translation.draft_target or None
-                ),
-                partial_accepted_token_count=(
-                    len(state.partial_translation.accepted_token_ids) or None
-                ),
-                alignatt_metadata=(
-                    None if translation_result is None else translation_result.alignatt_metadata
-                ),
-                translation_timings_ms=(
-                    None if translation_result is None else translation_result.timings_ms
-                ),
-            )
-        )
-        current_time = audio_processed_ms / 1000.0
-        print(f"[{current_time:6.2f}s] ASR: {current_asr}")
-        print(f"[{current_time:6.2f}s] {target_lang_code.upper():<3}: {translation}")
-        last_translation = translation
-        last_raw_translation = raw_translation
-
-    final_asr = transcribe_audio() or last_asr
-    final_raw_translation, final_translation_result = translation_units.render_translation()
-    final_translation, final_emission_policy_action = apply_translation_emit_policy(
-        last_translation,
-        final_raw_translation,
-        is_final=True,
-    )
-    audio_duration_ms = len(audio) * 1000.0 / SAMPLE_RATE
-    final_elapsed_ms = (perf_counter() - start_time) * 1000.0
-    register_translation_timestamps(
-        last_raw_translation,
-        final_raw_translation,
-        final_elapsed_ms,
-        word_elapsed_ms,
-        target_lang_code=target_lang_code,
-    )
-    final_new_words = register_translation_words(
-        last_translation,
-        final_translation,
-        audio_duration_ms,
-        word_delays_ms,
-        target_lang_code=target_lang_code,
-    )
-    if final_asr != last_asr or final_translation != last_translation:
-        updates.append(
-            StreamUpdate(
-                update_idx=len(updates),
-                audio_processed_ms=audio_duration_ms,
-                wallclock_elapsed_ms=final_elapsed_ms,
-                asr_text=final_asr,
-                translation_text=final_translation,
-                new_words=final_new_words,
-                raw_translation_text=final_raw_translation,
-                emission_policy_action=final_emission_policy_action,
-                translation_prompt_num_cached_tokens=(
-                    None
-                    if final_translation_result is None
-                    else final_translation_result.num_cached_tokens
-                ),
-                translation_prompt_num_tokens=(
-                    None
-                    if final_translation_result is None
-                    else final_translation_result.prompt_num_tokens
-                ),
-                partial_accepted_target=(
-                    state.partial_translation.accepted_target or None
-                ),
-                partial_draft_target=(
-                    state.partial_translation.draft_target or None
-                ),
-                partial_accepted_token_count=(
-                    len(state.partial_translation.accepted_token_ids) or None
-                ),
-                alignatt_metadata=(
-                    None
-                    if final_translation_result is None
-                    else final_translation_result.alignatt_metadata
-                ),
-                translation_timings_ms=(
-                    None
-                    if final_translation_result is None
-                    else final_translation_result.timings_ms
-                ),
-            )
-        )
-
-    print("\nFinal ASR:")
-    print(final_asr)
-    print("\nFinal translation:")
-    print(final_translation)
-
-    return InferenceArtifacts(
-        wav_path=wav_path,
+    runtime_config = config or CascadeRuntimeConfig()
+    runtime_bundle = bundle or LoadedModelBundle(runtime_config)
+    session = runtime_bundle.new_session()
+    return session.run_stream_to_artifacts(
+        wav_path,
         chunk_ms=chunk_ms,
-        translation_variant=variant.variant_id,
-        source_language=config.source_lang,
-        target_language=config.target_lang,
-        source_language_code=LANGUAGE_NAME_TO_CODE.get(
-            config.source_lang, config.source_lang.lower()
-        ),
-        target_language_code=target_lang_code_for(config.target_lang),
-        latency_unit=config.latency_unit,
-        audio_duration_ms=audio_duration_ms,
-        final_asr_text=final_asr,
-        final_translation_text=final_translation,
-        translation_word_delays_ms=word_delays_ms,
-        translation_word_elapsed_ms=word_elapsed_ms,
-        updates=updates,
-        runtime_config={
-            "translation_variant_id": variant.variant_id,
-            "translation_variant_description": variant.description,
-            "translation_alignatt_heads_path": config.translation_alignatt_heads_path,
-            "translation_alignatt_top_k_heads": config.translation_alignatt_top_k_heads,
-            "translation_alignatt_filter_width": config.translation_alignatt_filter_width,
-            "translation_alignatt_probe_mode": config.translation_alignatt_probe_mode,
-            "translation_alignatt_inaccessible_ms": config.translation_alignatt_inaccessible_ms,
-            "translation_alignatt_rewind_threshold": config.translation_alignatt_rewind_threshold,
-            "translation_alignatt_min_source_mass": config.translation_alignatt_min_source_mass,
-            "min_start_seconds": config.min_start_seconds,
-            "max_history_utterances": config.max_history_utterances,
-            "max_new_tokens": config.max_new_tokens,
-            "partial_max_new_tokens": config.partial_max_new_tokens,
-            "partial_followup_max_new_tokens": config.partial_followup_max_new_tokens,
-            "translation_min_new_tokens": config.translation_min_new_tokens,
-            "translation_token_budget_ratio": config.translation_token_budget_ratio,
-            "translation_token_budget_buffer": config.translation_token_budget_buffer,
-            "partial_translation_min_new_tokens": config.partial_translation_min_new_tokens,
-            "partial_translation_token_budget_ratio": config.partial_translation_token_budget_ratio,
-            "partial_translation_token_budget_buffer": config.partial_translation_token_budget_buffer,
-            "translation_generation_margin": config.translation_generation_margin,
-            "translation_emit_policy": config.translation_emit_policy,
-            "translation_max_tail_rewrite_words": config.translation_max_tail_rewrite_words,
-            "temperature": config.temperature,
-            "repetition_penalty": config.repetition_penalty,
-            "asr_gpu_memory_utilization": config.asr_gpu_memory_utilization,
-            "gemma_max_model_len": config.gemma_max_model_len,
-            "gemma_enable_prefix_caching": config.gemma_enable_prefix_caching,
-            "gemma_transformers_device": config.gemma_transformers_device,
-            "gemma_transformers_dtype": config.gemma_transformers_dtype,
-            "gemma_transformers_fast_attention": config.gemma_transformers_fast_attention,
-            "gemma_transformers_prompt_kv_reuse": config.gemma_transformers_prompt_kv_reuse,
-            "gemma_audio_align_probe_mode": config.gemma_audio_align_probe_mode,
-            "translation_scheduler_stall_seconds": config.translation_scheduler_stall_seconds,
-        },
-        run_provenance=_enrich_provenance(run_provenance),
+        run_provenance=run_provenance,
     )
 
 
@@ -1179,11 +1220,17 @@ def run_stream(
     output_dir: str | None = None,
     runtime_overrides: dict[str, Any] | None = None,
     run_provenance: dict[str, Any] | None = None,
+    *,
+    config: CascadeRuntimeConfig | None = None,
+    bundle: LoadedModelBundle | None = None,
 ):
-    with temporary_runtime_config(**(runtime_overrides or {})):
+    runtime_config = config or CascadeRuntimeConfig()
+    with temporary_runtime_config(runtime_config, **(runtime_overrides or {})):
         artifacts = run_stream_to_artifacts(
             wav_path,
             chunk_ms=chunk_ms,
+            config=runtime_config,
+            bundle=bundle,
             run_provenance=run_provenance,
         )
         if output_dir is not None:
@@ -1199,11 +1246,16 @@ def run_baseline(
     chunk_ms: int = 960,
     runtime_overrides: dict[str, Any] | None = None,
     run_provenance: dict[str, Any] | None = None,
+    config: CascadeRuntimeConfig | None = None,
+    bundle: LoadedModelBundle | None = None,
 ):
-    with temporary_runtime_config(**(runtime_overrides or {})):
+    runtime_config = config or CascadeRuntimeConfig()
+    with temporary_runtime_config(runtime_config, **(runtime_overrides or {})):
         artifacts = run_stream_to_artifacts(
             wav_path,
             chunk_ms=chunk_ms,
+            config=runtime_config,
+            bundle=bundle,
             run_provenance=run_provenance,
         )
         written_files = write_inference_artifacts(artifacts, output_dir)
@@ -1212,7 +1264,3 @@ def run_baseline(
             print(f"- {label}: {path}")
 
     return written_files
-
-
-if __name__ == "__main__":
-    run_baseline()

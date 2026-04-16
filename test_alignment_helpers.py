@@ -150,82 +150,10 @@ def test_qk_fast_prefix_slicing_preserves_audio_features():
     assert sliced["non_tensor"] == "keep"
 
 
-def test_hybrid_fallback_diagnostics_distinguish_gemma_vs_qwen():
-    """Hybrid backend must mark each tick as gemma-aligned or fallback."""
-    from alignment_backend import AlignmentResult, WordAlignment
-    from hybrid_alignment_backend import HybridQwenAsrGemmaAlignerBackend
+def test_gemma_onepass_backend_uses_public_runtime_id():
+    from gemma_alignment_probe import GemmaAttentionAlignmentBackend
 
-    asr_words = (
-        WordAlignment(text="hello", start_time=0.0, end_time=0.5),
-        WordAlignment(text="world", start_time=0.5, end_time=1.0),
-    )
-    asr_result = AlignmentResult(
-        text="hello world",
-        words=asr_words,
-        audio_duration_s=1.0,
-        diagnostics={},
-    )
-
-    class StubAsr:
-        name = "stub_asr"
-        def transcribe_and_align(self, *a, **k):
-            return asr_result
-
-    class StubGemmaAligner:
-        name = "stub_gemma"
-        def __init__(self, mode):
-            self.mode = mode
-        def align_transcript(self, *a, **k):
-            if self.mode == "ok":
-                return AlignmentResult(
-                    text="hello world",
-                    words=asr_words,
-                    audio_duration_s=1.0,
-                    diagnostics={
-                        "monotonicity": 0.9,
-                        "word_end_offset_s": 0.48,
-                        "probe_backend": "qk_fast",
-                        "alignment_attention": "qk_fast",
-                        "qk_fast_reconstruction_succeeded": True,
-                    },
-                )
-            if self.mode == "none":
-                return None
-            if self.mode == "empty":
-                return AlignmentResult(text="hello world", words=(), audio_duration_s=1.0)
-            if self.mode == "raise":
-                raise RuntimeError("boom")
-            raise AssertionError(self.mode)
-
-    import numpy as np
-    audio = np.zeros(16000, dtype=np.float32)
-
-    def run(mode):
-        h = HybridQwenAsrGemmaAlignerBackend(
-            asr_backend=StubAsr(), gemma_backend=StubGemmaAligner(mode)
-        )
-        return h.transcribe_and_align(audio, sample_rate=16000, language="English")
-
-    ok = run("ok").diagnostics
-    assert ok["gemma_alignment_used"] is True
-    assert ok["fallback_reason"] is None
-    assert ok["gemma_error"] is None
-    assert ok["gemma_probe_backend"] == "qk_fast"
-    assert ok["gemma_alignment_attention"] == "qk_fast"
-    assert ok["gemma_qk_fast_reconstruction_succeeded"] is True
-
-    none_diag = run("none").diagnostics
-    assert none_diag["gemma_alignment_used"] is False
-    assert none_diag["fallback_reason"] == "gemma_returned_none"
-
-    empty_diag = run("empty").diagnostics
-    assert empty_diag["gemma_alignment_used"] is False
-    assert empty_diag["fallback_reason"] == "gemma_returned_no_words"
-
-    raise_diag = run("raise").diagnostics
-    assert raise_diag["gemma_alignment_used"] is False
-    assert raise_diag["fallback_reason"] == "gemma_exception"
-    assert "RuntimeError" in raise_diag["gemma_error"]
+    assert GemmaAttentionAlignmentBackend.name == "gemma_onepass_qk_fast"
 
 
 def _run_all() -> None:

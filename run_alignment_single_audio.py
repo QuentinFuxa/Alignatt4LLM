@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Single-audio diagnostic harness for the Gemma-only aligner research path.
 
-This is the tool the PLAN.md calls for in Phase 2 (baseline bundle) and
-Phase 9 (ablations): collect, on one carefully chosen clip, what each
+This is the single-audio diagnostic tool retained from the historical plan
+notes now archived under ``docs/archive/``: collect, on one carefully chosen
+clip, what each
 alignment backend produces so that head selection, quality, and streaming
 behavior can be diagnosed manually before any broader run.
 
@@ -31,7 +32,6 @@ import argparse
 import json
 from dataclasses import asdict
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Sequence
 
 import numpy as np
@@ -98,15 +98,15 @@ def deserialize_alignment(payload: dict) -> AlignmentResult:
     )
 
 
-def build_runtime_config() -> SimpleNamespace:
-    from qwen3asr_gemma_cascade_core import config
+def build_runtime_config():
+    from cascade_runtime import CascadeRuntimeConfig
 
-    return SimpleNamespace(**vars(config))
+    return CascadeRuntimeConfig()
 
 
 def build_qwen_backend() -> AlignmentBackend:
     from qwen_alignment_backend import QwenAlignmentBackend
-    from qwen3asr_gemma_cascade_core import (
+    from cascade_runtime import (
         asr_model_name,
         forced_aligner_model_name,
     )
@@ -127,7 +127,7 @@ def build_gemma_backend(
     probe_mode: str | None = None,
 ):
     from gemma_alignment_probe import GemmaAttentionAlignmentBackend
-    from qwen3asr_gemma_cascade_core import gemma_model_name
+    from cascade_runtime import gemma_model_name
 
     runtime_config = build_runtime_config()
     if probe_mode is not None:
@@ -150,7 +150,7 @@ def cmd_baseline(args: argparse.Namespace) -> None:
     result = backend.transcribe_and_align(audio, sample_rate=sr, language=args.language)
     if result is None:
         raise RuntimeError("Qwen transcription produced no valid result.")
-    _write_bundle(args.output, result, tag="qwen_baseline", wav_path=args.wav)
+    _write_bundle(args.output, result, tag="qwen_forced", wav_path=args.wav)
 
 
 def cmd_gemma_inspect(args: argparse.Namespace) -> None:
@@ -162,7 +162,7 @@ def cmd_gemma_inspect(args: argparse.Namespace) -> None:
     result = backend.transcribe_and_align(audio, sample_rate=sr, language=args.language)
     if result is None:
         raise RuntimeError("Gemma alignment produced no valid result.")
-    _write_bundle(args.output, result, tag="gemma_attention", wav_path=args.wav)
+    _write_bundle(args.output, result, tag="gemma_onepass_qk_fast", wav_path=args.wav)
 
 
 def cmd_gemma_forced_align(args: argparse.Namespace) -> None:

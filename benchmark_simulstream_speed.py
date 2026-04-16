@@ -53,6 +53,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chunk-ms", default=450, type=int, help="Chunk size in ms.")
     parser.add_argument("--source", default="en", help="Source language code.")
     parser.add_argument("--target", default="de", help="Target language code.")
+    parser.add_argument(
+        "--alignment-backend-name",
+        default="qwen_forced",
+        choices=("qwen_forced", "gemma_onepass_qk_fast"),
+    )
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
     parser.add_argument("--max-history-utterances", default=1, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
@@ -80,6 +85,7 @@ def main() -> None:
         target_lang_code=args.target,
         chunk_ms=args.chunk_ms,
         speech_chunk_size=args.chunk_ms / 1000.0,
+        alignment_backend_name=args.alignment_backend_name,
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         partial_max_new_tokens=args.partial_max_new_tokens,
@@ -151,6 +157,7 @@ def main() -> None:
         "wav": args.wav,
         "source": args.source,
         "target": args.target,
+        "alignment_backend_name": args.alignment_backend_name,
         "chunk_ms": args.chunk_ms,
         "audio_duration_s": round(audio_duration_s, 2),
         "total_wallclock_s": round(total_wallclock_s, 2),
@@ -171,6 +178,7 @@ def main() -> None:
     print("SimulStream Speed Benchmark Results")
     print("=" * 60)
     print(f"  Audio duration:     {audio_duration_s:.1f} s")
+    print(f"  Backend:            {args.alignment_backend_name}")
     print(f"  Total wallclock:    {total_wallclock_s:.2f} s")
     print(f"  RTF:                {rtf:.4f}")
     print(f"  Chunks processed:   {n_chunks}")

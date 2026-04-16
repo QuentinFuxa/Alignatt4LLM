@@ -85,6 +85,7 @@ class StreamUpdate:
     asr_text: str
     translation_text: str
     new_words: list[str] = field(default_factory=list)
+    is_eos: bool = False
     raw_translation_text: str | None = None
     emission_policy_action: str | None = None
     translation_prompt_num_cached_tokens: int | None = None

@@ -77,6 +77,7 @@ def load_stream_updates(path: Path) -> list[StreamUpdate]:
                 asr_text=payload["asr_text"],
                 translation_text=payload["translation_text"],
                 new_words=payload.get("new_words", []),
+                is_eos=bool(payload.get("is_eos", False)),
                 raw_translation_text=payload.get("raw_translation_text"),
                 emission_policy_action=payload.get("emission_policy_action"),
                 translation_prompt_num_cached_tokens=payload.get(
@@ -87,6 +88,7 @@ def load_stream_updates(path: Path) -> list[StreamUpdate]:
                 partial_accepted_token_count=payload.get("partial_accepted_token_count"),
                 partial_draft_target=payload.get("partial_draft_target"),
                 alignatt_metadata=payload.get("alignatt_metadata"),
+                translation_timings_ms=payload.get("translation_timings_ms"),
             )
         )
     return updates

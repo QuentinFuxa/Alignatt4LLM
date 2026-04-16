@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Phase 7 streaming-stability harness for alignment backends.
+"""Streaming-stability harness for the two supported alignment backends.
 
 Simulates the cascade's per-chunk streaming pattern on one audio: at each
 tick point ``t`` we slice ``audio[0:t]`` and re-run the alignment backend.
@@ -13,9 +13,10 @@ every tick, then reports:
   its end-time stops moving by more than a threshold
 - transcript prefix stability: whether earlier words keep their identity
 
-This is the criterion from PLAN.md Phase 7 ("streaming behavior") that
-any Gemma-only aligner must pass to be usable inside the cascade. Per
-PLAN: measure on one audio first, only scale out after it behaves.
+This harness compares the public backends that remain in the runtime:
+
+- ``qwen_forced``
+- ``gemma_onepass_qk_fast``
 """
 
 from __future__ import annotations
@@ -187,10 +188,8 @@ def compute_streaming_metrics(
     stdevs = [w["stdev_end_s"] for w in per_word_stats if w["stdev_end_s"] is not None]
     drift_ranges = [w["drift_range_s"] for w in per_word_stats]
 
-    # Fallback accounting: a hybrid backend tags every tick with
-    # ``gemma_alignment_used``; aggregate so the report makes the
-    # Gemma-vs-fallback split explicit instead of hiding it behind a
-    # single mean stability number.
+    # Some backends may emit extra per-tick diagnostics describing how the
+    # alignment path was obtained; aggregate them when present.
     fallback_total = 0
     gemma_used_total = 0
     fallback_reasons: dict[str, int] = {}
@@ -261,26 +260,21 @@ def cmd_run(args: argparse.Namespace) -> None:
         qwen_metrics = compute_streaming_metrics(qwen_ticks)
         _write_report(out_dir / f"{args.tag}_qwen_ticks.json", qwen_ticks, qwen_metrics)
 
-    if args.hybrid:
-        print("\n[info] loading hybrid Qwen-ASR + Gemma-aligner backend")
-        from hybrid_alignment_backend import HybridQwenAsrGemmaAlignerBackend
-
-        qwen_for_hybrid = build_qwen_backend()
+    if args.gemma_onepass:
+        print("\n[info] loading Gemma one-pass qk_fast frontend")
         gemma = build_gemma_backend(heads_path=args.heads_path, top_k=args.top_k)
-        hybrid = HybridQwenAsrGemmaAlignerBackend(
-            asr_backend=qwen_for_hybrid, gemma_backend=gemma
-        )
-        # Both already loaded above via build_* helpers.
-        hybrid_ticks = run_streaming_ticks(
-            backend=hybrid,
+        gemma_ticks = run_streaming_ticks(
+            backend=gemma,
             audio=audio,
             sample_rate=sr,
             tick_starts_s=tick_starts_s,
             language=args.language,
         )
-        hybrid_metrics = compute_streaming_metrics(hybrid_ticks)
+        gemma_metrics = compute_streaming_metrics(gemma_ticks)
         _write_report(
-            out_dir / f"{args.tag}_hybrid_ticks.json", hybrid_ticks, hybrid_metrics
+            out_dir / f"{args.tag}_gemma_onepass_ticks.json",
+            gemma_ticks,
+            gemma_metrics,
         )
 
 
@@ -309,7 +303,7 @@ def build_cli() -> argparse.ArgumentParser:
     parser.add_argument("--heads-path", default=None)
     parser.add_argument("--top-k", type=int, default=8)
     parser.add_argument("--qwen-baseline", action="store_true")
-    parser.add_argument("--hybrid", action="store_true")
+    parser.add_argument("--gemma-onepass", action="store_true")
     parser.set_defaults(func=cmd_run)
     return parser
 

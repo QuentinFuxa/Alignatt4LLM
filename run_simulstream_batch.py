@@ -155,8 +155,7 @@ def run_single_audio(
             "is_eos": True,
         })
 
-    core = CascadeAlignAttProcessor._get_core()
-    final_asr = core.render_public_asr_text()
+    final_asr = processor.session.render_public_asr_text()
     total_wallclock_s = perf_counter() - start_time
     rtf = total_wallclock_s / (audio_duration_ms / 1000.0) if audio_duration_ms > 0 else 0.0
 
@@ -195,6 +194,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chunk-ms", default=450, type=int)
     parser.add_argument("--source", default="en")
     parser.add_argument("--target", default="de")
+    parser.add_argument(
+        "--alignment-backend-name",
+        default="qwen_forced",
+        choices=("qwen_forced", "gemma_onepass_qk_fast"),
+    )
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
     parser.add_argument("--max-history-utterances", default=1, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
@@ -221,6 +225,7 @@ def main() -> None:
         target_lang_code=args.target,
         chunk_ms=args.chunk_ms,
         speech_chunk_size=args.chunk_ms / 1000.0,
+        alignment_backend_name=args.alignment_backend_name,
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         partial_max_new_tokens=args.partial_max_new_tokens,
@@ -268,10 +273,9 @@ def main() -> None:
 
     # Write artifacts
     output_path = ensure_output_dir(args.output_dir)
-    core = CascadeAlignAttProcessor._get_core()
-
     runtime_config: dict[str, Any] = {
         "chunk_ms": args.chunk_ms,
+        "alignment_backend_name": args.alignment_backend_name,
         "min_start_seconds": args.min_start_seconds,
         "max_history_utterances": args.max_history_utterances,
         "partial_max_new_tokens": args.partial_max_new_tokens,
@@ -285,10 +289,11 @@ def main() -> None:
     for key in [
         "translation_alignatt_heads_path", "translation_alignatt_top_k_heads",
         "translation_alignatt_filter_width", "translation_alignatt_probe_mode",
+        "gemma_audio_alignment_heads_path", "gemma_audio_align_probe_mode",
         "translation_emit_policy", "translation_max_tail_rewrite_words",
         "temperature", "repetition_penalty",
     ]:
-        runtime_config[key] = getattr(core.config, key, None)
+        runtime_config[key] = getattr(processor.session.config, key, None)
 
     manifest = {
         "schema_version": ARTIFACT_SCHEMA_VERSION,

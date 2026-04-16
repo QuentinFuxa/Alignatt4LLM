@@ -15,6 +15,18 @@ The target system should:
   - what the system has accepted as stable
   - what is displayed or emitted downstream
 
+## Current Runtime Surface
+
+The active runtime is intentionally narrower than the historical design space.
+It currently exposes exactly:
+
+- `qwen_forced`
+- `gemma_onepass_qk_fast`
+
+SimulStream is the canonical inference path, and the cleanup / validation loop
+for this iteration starts with `tmp/alignatt_smoke18.wav` before any broader
+benchmark sweep.
+
 
 ## Core Principle
 

@@ -25,7 +25,7 @@ from gemma_alignment_probe import (
     GemmaAttentionAlignmentBackend,
     detect_audio_span,
 )
-from qwen3asr_gemma_cascade_core import config, gemma_model_name
+from cascade_runtime import CascadeRuntimeConfig, gemma_model_name
 
 
 def load_wav(path: str) -> tuple[np.ndarray, int]:
@@ -46,6 +46,7 @@ def load_wav(path: str) -> tuple[np.ndarray, int]:
 
 def main():
     wav_path = "tmp/alignatt_smoke18.wav"
+    config = CascadeRuntimeConfig()
     heads_path = config.gemma_audio_alignment_heads_path
     transcript = (
         "Hi, I'm Siyu Yuan from Fudan University. "

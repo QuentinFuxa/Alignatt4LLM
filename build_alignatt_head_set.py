@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Materialise a Phase 4 AlignAtt head-set regime on disk.
 
-This CLI constructs one of the three head-set regimes described in
-``PLAN.md`` Phase 4 and writes it as a ``translation_heads_*.json`` file that
-``cascade_mt_backend.load_alignatt_heads`` can consume directly. Pair it with
-``run_cascade_baseline.py --target-lang ... `` and a runtime override of
-``translation_alignatt_heads_path`` to drive head-set comparison sweeps once a
-GPU is available.
+This CLI constructs one of the three head-set regimes described in the
+historical plan notes now archived under ``docs/archive/`` and writes it as a
+``translation_heads_*.json`` file that ``cascade_mt_backend.load_alignatt_heads``
+can consume directly. Pair it with ``run_cascade_baseline.py --target-lang ... ``
+and a runtime override of ``translation_alignatt_heads_path`` to drive head-set
+comparison sweeps once a GPU is available.
 
 Regimes
 -------
@@ -15,7 +15,8 @@ Regimes
 
 ``shared_kernel``
     Intersect the top-k heads across several directions and rank by mean
-    ``ts``. Produces the small multilingual kernel conjectured in PLAN.md.
+    ``ts``. Produces the small multilingual kernel conjectured in the archived
+    plan notes.
 
 ``multilingual_union``
     Union the top-k heads across directions, rank by mean ``ts``, optionally

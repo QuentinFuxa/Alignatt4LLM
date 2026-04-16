@@ -4,11 +4,11 @@
 The cascade runtime records per-update ``translation_timings_ms`` dicts with
 keys such as ``prompt_render``, ``prompt_cache_restore``, ``draft_decode``,
 ``alignment_probe``, ``alignment_filter`` and ``total`` (see
-``cascade_mt_backend.TransformersAlignAttGemmaMTBackend``). Phase 3 of
-``PLAN.md`` asks for an explicit measurement of how much of each translation
-step is spent in each phase, so we can distinguish "lower end-to-end latency"
-from "better AlignAtt observer". This script produces that breakdown from an
-existing output bundle, without re-running inference.
+``cascade_mt_backend.TransformersAlignAttGemmaMTBackend``). The archived plan
+notes under ``docs/archive/`` ask for an explicit measurement of how much of
+each translation step is spent in each phase, so we can distinguish "lower
+end-to-end latency" from "better AlignAtt observer". This script produces that
+breakdown from an existing output bundle, without re-running inference.
 """
 from __future__ import annotations
 

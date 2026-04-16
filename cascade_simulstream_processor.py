@@ -1,66 +1,55 @@
-"""SimulStream SpeechProcessor wrapping the AlignAtt cascade.
+"""SimulStream SpeechProcessor wrapping the instantiable AlignAtt cascade."""
 
-This is the canonical delivery path. All speed measurements and final
-evaluations should go through this processor, not the research harness.
-"""
 from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import List
 
-import numpy as np
-
-from simulstream.server.speech_processors import SpeechProcessor, SAMPLE_RATE
+from simulstream.server.speech_processors import SpeechProcessor
 from simulstream.server.speech_processors.incremental_output import IncrementalOutput
 
+from cascade_runtime import (
+    LANGUAGE_CODE_TO_NAME,
+    CascadeRuntimeConfig,
+    LoadedModelBundle,
+    alignatt_heads_path_for,
+)
 from cascade_text_surface import split_target_emission_units
-
-LANGUAGE_CODE_TO_NAME = {
-    "en": "English",
-    "de": "German",
-    "it": "Italian",
-    "zh": "Chinese",
-}
 
 
 class CascadeAlignAttProcessor(SpeechProcessor):
-    """SimulStream processor backed by the Qwen3-ASR + Gemma AlignAtt cascade.
+    """SimulStream processor backed by a per-instance ``CascadeSession``."""
 
-    This processor wraps the module-global mutable state in
-    ``qwen3asr_gemma_cascade_core``.  Because that state is not yet
-    per-instance, only **one active processor** is safe at a time
-    (``pool_size=1``).  Creating a second instance while the first is
-    still in use will raise.
-    """
-
-    _core = None
-    _models_loaded = False
-    _active_instance_id: int | None = None
+    _bundle: LoadedModelBundle | None = None
+    _bundle_signature: tuple | None = None
 
     def __init__(self, config: SimpleNamespace):
         super().__init__(config)
-        cls = type(self)
-        if cls._active_instance_id is not None and cls._active_instance_id != id(self):
-            raise RuntimeError(
-                "CascadeAlignAttProcessor is single-session: only one active "
-                "instance is supported (pool_size=1).  Call clear() on the "
-                "previous instance before creating a new one."
-            )
-        cls._active_instance_id = id(self)
+        self._runtime_config = self._build_runtime_config(config)
+        self._chunk_ms = int(getattr(config, "chunk_ms", 450))
+        self._target_lang_code = getattr(config, "target_lang_code", "de")
+        self._source_lang_code = getattr(config, "source_lang_code", "en")
+        bundle = type(self)._ensure_bundle(self._runtime_config)
+        self._session = bundle.new_session()
         self._emitted_units: list[str] = []
         self._last_asr: str = ""
         self._last_committed_segments: int = 0
-        self._target_lang_code: str = getattr(config, "target_lang_code", "de")
-        self._source_lang_code: str = getattr(config, "source_lang_code", "en")
-        self._chunk_ms: int = int(getattr(config, "chunk_ms", 450))
-        self._apply_runtime_overrides(config)
 
-    @property
-    def speech_chunk_size(self) -> float:
-        return self._chunk_ms / 1000.0
-
-    def _apply_runtime_overrides(self, config: SimpleNamespace) -> None:
-        core = self._get_core()
+    @staticmethod
+    def _build_runtime_config(config: SimpleNamespace) -> CascadeRuntimeConfig:
+        source_lang = LANGUAGE_CODE_TO_NAME.get(
+            getattr(config, "source_lang_code", "en"), "English"
+        )
+        target_lang = LANGUAGE_CODE_TO_NAME.get(
+            getattr(config, "target_lang_code", "de"), "German"
+        )
+        runtime_config = CascadeRuntimeConfig(
+            source_lang=source_lang,
+            target_lang=target_lang,
+            alignment_backend_name=str(
+                getattr(config, "alignment_backend_name", "qwen_forced")
+            ),
+        )
         override_keys = [
             "min_start_seconds",
             "max_history_utterances",
@@ -75,117 +64,124 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "translation_scheduler_stall_seconds",
             "temperature",
             "repetition_penalty",
+            "gemma_audio_align_probe_mode",
+            "gemma_audio_alignment_heads_path",
+            "gemma_audio_alignment_top_k_heads",
+            "gemma_audio_alignment_filter_width",
+            "gemma_audio_alignment_max_new_tokens",
         ]
-        for key in override_keys:
-            value = getattr(config, key, None)
-            if value is not None:
-                setattr(core.config, key, value)
+        overrides = {
+            key: getattr(config, key)
+            for key in override_keys
+            if getattr(config, key, None) is not None
+        }
+        runtime_config.apply_overrides(**overrides)
+        return runtime_config
+
+    @staticmethod
+    def _bundle_key(runtime_config: CascadeRuntimeConfig) -> tuple:
+        return (
+            runtime_config.source_lang,
+            runtime_config.target_lang,
+            runtime_config.alignment_backend_name,
+            runtime_config.translation_alignatt_heads_path,
+            runtime_config.translation_alignatt_top_k_heads,
+            runtime_config.translation_alignatt_filter_width,
+            runtime_config.translation_alignatt_probe_mode,
+            runtime_config.gemma_audio_alignment_heads_path,
+            runtime_config.gemma_audio_align_probe_mode,
+            runtime_config.gemma_audio_alignment_top_k_heads,
+            runtime_config.gemma_audio_alignment_filter_width,
+            runtime_config.gemma_audio_alignment_max_new_tokens,
+        )
 
     @classmethod
-    def _get_core(cls):
-        if cls._core is None:
-            import qwen3asr_gemma_cascade_core as core
-            cls._core = core
-        return cls._core
+    def _ensure_bundle(cls, runtime_config: CascadeRuntimeConfig) -> LoadedModelBundle:
+        bundle_key = cls._bundle_key(runtime_config)
+        if cls._bundle is None or cls._bundle_signature != bundle_key:
+            cls._bundle = LoadedModelBundle(runtime_config)
+            cls._bundle.load()
+            cls._bundle_signature = bundle_key
+        else:
+            cls._bundle.config = runtime_config
+        return cls._bundle
 
     @classmethod
     def load_model(cls, config: SimpleNamespace) -> None:
-        core = cls._get_core()
-        source_lang = LANGUAGE_CODE_TO_NAME.get(
-            getattr(config, "source_lang_code", "en"), "English"
-        )
-        target_lang = LANGUAGE_CODE_TO_NAME.get(
-            getattr(config, "target_lang_code", "de"), "German"
-        )
-        core.config.source_lang = source_lang
-        core.config.target_lang = target_lang
-        core.config.translation_alignatt_heads_path = core.alignatt_heads_path_for(
-            source_lang, target_lang
-        )
-        chunk_ms = int(getattr(config, "chunk_ms", 450))
-        if hasattr(config, "speech_chunk_size"):
-            chunk_ms = int(float(config.speech_chunk_size) * 1000)
-        core.load_models()
-        cls._models_loaded = True
+        runtime_config = cls._build_runtime_config(config)
+        cls._ensure_bundle(runtime_config)
 
-    def process_chunk(self, waveform: np.float32) -> IncrementalOutput:
-        core = self._get_core()
-        state = core.state
-        state.source = np.concatenate([state.source, np.asarray(waveform, dtype=np.float32)])
+    @property
+    def speech_chunk_size(self) -> float:
+        return self._chunk_ms / 1000.0
 
-        if len(state.source) / SAMPLE_RATE < core.config.min_start_seconds:
-            return IncrementalOutput([], "", [], "")
+    @property
+    def session(self):
+        return self._session
 
-        current_asr = core.transcribe_audio()
-        committed_segments = len(state.utt_sources)
-        if not current_asr:
+    def process_chunk(self, waveform) -> IncrementalOutput:
+        session_result = self._session.process_audio_chunk(waveform)
+        committed_segments = len(self._session.state.utt_sources)
+        if session_result is None:
             return IncrementalOutput([], "", [], "")
         if (
-            current_asr == self._last_asr
+            session_result.asr_text == self._last_asr
             and committed_segments == self._last_committed_segments
         ):
             return IncrementalOutput([], "", [], "")
 
-        self._last_asr = current_asr
+        self._last_asr = session_result.asr_text
         self._last_committed_segments = committed_segments
-        raw_translation, _ = core.translation_units.render_translation()
-        translation, _ = core.apply_translation_emit_policy(
+        translation, _ = self._session.apply_translation_emit_policy(
             self._current_emitted_text(),
-            raw_translation,
+            session_result.raw_translation_text,
             is_final=False,
         )
         return self._compute_incremental_output(translation)
 
     def end_of_stream(self) -> IncrementalOutput:
-        core = self._get_core()
-        core.transcribe_audio()
-        raw_translation, _ = core.translation_units.render_translation()
-        translation, _ = core.apply_translation_emit_policy(
+        final_result = self._session.finalize_stream()
+        translation, _ = self._session.apply_translation_emit_policy(
             self._current_emitted_text(),
-            raw_translation,
+            final_result.raw_translation_text,
             is_final=True,
         )
         return self._compute_incremental_output(translation)
 
     def set_source_language(self, language: str) -> None:
-        core = self._get_core()
         lang_name = LANGUAGE_CODE_TO_NAME.get(language, language)
-        old_heads_path = core.config.translation_alignatt_heads_path
-        core.config.source_lang = lang_name
+        self._runtime_config.source_lang = lang_name
         self._source_lang_code = language
-        core.config.translation_alignatt_heads_path = core.alignatt_heads_path_for(
-            lang_name, core.config.target_lang
+        self._runtime_config.translation_alignatt_heads_path = alignatt_heads_path_for(
+            lang_name,
+            self._runtime_config.target_lang,
         )
-        if core.config.translation_alignatt_heads_path != old_heads_path and core.mt_backend is not None:
-            core.mt_backend.refresh_alignatt_artifacts()
+        self._session.bundle.ensure_mt_backend()
 
     def set_target_language(self, language: str) -> None:
-        core = self._get_core()
         lang_name = LANGUAGE_CODE_TO_NAME.get(language, language)
-        old_heads_path = core.config.translation_alignatt_heads_path
-        core.config.target_lang = lang_name
+        self._runtime_config.target_lang = lang_name
         self._target_lang_code = language
-        core.config.translation_alignatt_heads_path = core.alignatt_heads_path_for(
-            core.config.source_lang, lang_name
+        self._runtime_config.translation_alignatt_heads_path = alignatt_heads_path_for(
+            self._runtime_config.source_lang,
+            lang_name,
         )
-        if core.config.translation_alignatt_heads_path != old_heads_path and core.mt_backend is not None:
-            core.mt_backend.refresh_alignatt_artifacts()
+        self._session.bundle.ensure_mt_backend()
 
     def tokens_to_string(self, tokens: List[str]) -> str:
         if not tokens:
             return ""
         from cascade_text_surface import is_char_level_target_lang
+
         if is_char_level_target_lang(self._target_lang_code):
             return "".join(tokens)
         return " ".join(tokens)
 
     def clear(self) -> None:
-        core = self._get_core()
-        core.clear_state()
+        self._session.clear()
         self._emitted_units = []
         self._last_asr = ""
         self._last_committed_segments = 0
-        type(self)._active_instance_id = id(self)
 
     def _current_emitted_text(self) -> str:
         return self.tokens_to_string(self._emitted_units)
