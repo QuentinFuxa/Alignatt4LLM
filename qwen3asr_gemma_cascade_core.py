@@ -272,10 +272,9 @@ def build_alignment_backend() -> AlignmentBackend:
     - ``"qwen"``: current Qwen3-ASR + Qwen3-ForcedAligner baseline.
     - ``"gemma_attention"``: experimental Gemma-only free-run ASR + attention aligner.
     - ``"hybrid_qwen_asr_gemma_aligner"``: Qwen3-ASR transcript, Gemma attention
-      timings (forced alignment). This is the defensible path today because
-      Gemma E4B's free-run ASR is unreliable on streaming-quality clips
-      while its attention-based alignment is competitive (~177 ms MAE on
-      the one-clip calibration).
+      timings (forced alignment). Single-pass alternative to the two-pass
+      full-Gemma path. Gemma's attention-based alignment is competitive
+      (~177 ms MAE on the one-clip calibration).
     - ``"gemma_two_pass"``: full-Gemma two-pass frontend. Pass 1 uses default
       attention for ASR, pass 2 uses eager attention for forced alignment.
       Removes the Qwen ASR dependency entirely.

@@ -1,0 +1,44 @@
+{
+  "tag": "smoke18",
+  "wav_path": "tmp/alignatt_smoke18.wav",
+  "audio_duration_s": 18.0,
+  "two_pass": {
+    "transcript": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, \"Distilling Script Knowledge from Large Language Models for Constrained Language Planning.\" In everyday life, humans often plan their actions by following step-by-step",
+    "word_count": 35,
+    "runtime_s": 7.932,
+    "diagnostics": {
+      "backend": "gemma_two_pass",
+      "asr_attention": "default",
+      "alignment_attention": "eager",
+      "gemma_monotonicity": 0.9215686274509803,
+      "gemma_offset_s": 0.4800000000000004,
+      "gemma_audio_span_length": 450,
+      "word_count": 35
+    }
+  },
+  "hybrid": {
+    "transcript": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step",
+    "word_count": 35,
+    "runtime_s": 1.19,
+    "diagnostics": {
+      "backend": "hybrid_qwen_asr_gemma_aligner",
+      "asr_backend": "qwen_asr_qwen_aligner",
+      "aligner_backend": "gemma_attention_aligner",
+      "gemma_alignment_used": true,
+      "fallback_reason": null,
+      "gemma_error": null,
+      "asr_word_count": 35,
+      "gemma_word_count": 35,
+      "word_count_truncated": false,
+      "gemma_monotonicity": 0.9591836734693877,
+      "gemma_offset_s": 0.4800000000000004,
+      "gemma_audio_span_length": 450
+    }
+  },
+  "timing_comparison": {
+    "paired_words": 35,
+    "mean_end_time_diff_s": 0.0891,
+    "max_end_time_diff_s": 0.68
+  },
+  "timestamp_utc": "2026-04-16T07:01:11.302065+00:00"
+}

@@ -1,0 +1,196 @@
+{
+  "backend": "gemma_two_pass",
+  "wav_path": "tmp/alignatt_smoke18.wav",
+  "audio_duration_s": 18.0,
+  "runtime_s": 6.067,
+  "transcript": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, \"Distilling Script Knowledge from Large Language Models for Constrained Language Planning.\" In everyday life, humans often plan their actions by following step-by-step",
+  "word_count": 35,
+  "words": [
+    {
+      "text": "Hi",
+      "start_time": 1.6,
+      "end_time": 1.6
+    },
+    {
+      "text": "I'm",
+      "start_time": 2.28,
+      "end_time": 2.28
+    },
+    {
+      "text": "Si",
+      "start_time": 2.56,
+      "end_time": 2.56
+    },
+    {
+      "text": "Yuan",
+      "start_time": 3.0,
+      "end_time": 3.0
+    },
+    {
+      "text": "from",
+      "start_time": 3.4,
+      "end_time": 3.4
+    },
+    {
+      "text": "Fudan",
+      "start_time": 3.56,
+      "end_time": 3.84
+    },
+    {
+      "text": "University",
+      "start_time": 4.48,
+      "end_time": 4.48
+    },
+    {
+      "text": "I'm",
+      "start_time": 4.96,
+      "end_time": 5.16
+    },
+    {
+      "text": "here",
+      "start_time": 5.4,
+      "end_time": 5.4
+    },
+    {
+      "text": "to",
+      "start_time": 5.64,
+      "end_time": 5.64
+    },
+    {
+      "text": "introduce",
+      "start_time": 5.68,
+      "end_time": 5.68
+    },
+    {
+      "text": "our",
+      "start_time": 6.16,
+      "end_time": 6.16
+    },
+    {
+      "text": "work",
+      "start_time": 6.48,
+      "end_time": 6.48
+    },
+    {
+      "text": "Distilling",
+      "start_time": 7.8,
+      "end_time": 8.12
+    },
+    {
+      "text": "Script",
+      "start_time": 8.12,
+      "end_time": 8.12
+    },
+    {
+      "text": "Knowledge",
+      "start_time": 9.08,
+      "end_time": 9.08
+    },
+    {
+      "text": "from",
+      "start_time": 9.2,
+      "end_time": 9.2
+    },
+    {
+      "text": "Large",
+      "start_time": 9.48,
+      "end_time": 9.48
+    },
+    {
+      "text": "Language",
+      "start_time": 9.92,
+      "end_time": 9.92
+    },
+    {
+      "text": "Models",
+      "start_time": 10.64,
+      "end_time": 10.64
+    },
+    {
+      "text": "for",
+      "start_time": 10.68,
+      "end_time": 10.68
+    },
+    {
+      "text": "Constrained",
+      "start_time": 11.28,
+      "end_time": 11.32
+    },
+    {
+      "text": "Language",
+      "start_time": 11.76,
+      "end_time": 11.76
+    },
+    {
+      "text": "Planning",
+      "start_time": 12.12,
+      "end_time": 12.12
+    },
+    {
+      "text": "In",
+      "start_time": 13.64,
+      "end_time": 13.64
+    },
+    {
+      "text": "everyday",
+      "start_time": 13.92,
+      "end_time": 13.92
+    },
+    {
+      "text": "life",
+      "start_time": 14.64,
+      "end_time": 14.64
+    },
+    {
+      "text": "humans",
+      "start_time": 15.04,
+      "end_time": 15.04
+    },
+    {
+      "text": "often",
+      "start_time": 15.32,
+      "end_time": 15.32
+    },
+    {
+      "text": "plan",
+      "start_time": 15.8,
+      "end_time": 15.8
+    },
+    {
+      "text": "their",
+      "start_time": 16.0,
+      "end_time": 16.0
+    },
+    {
+      "text": "actions",
+      "start_time": 16.88,
+      "end_time": 16.88
+    },
+    {
+      "text": "by",
+      "start_time": 17.0,
+      "end_time": 17.0
+    },
+    {
+      "text": "following",
+      "start_time": 17.16,
+      "end_time": 17.16
+    },
+    {
+      "text": "step-by-step",
+      "start_time": 17.16,
+      "end_time": 17.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "gemma_two_pass",
+    "asr_attention": "default",
+    "alignment_attention": "eager",
+    "gemma_monotonicity": 0.9215686274509803,
+    "gemma_offset_s": 0.4800000000000004,
+    "gemma_audio_span_length": 450,
+    "word_count": 35
+  },
+  "timestamp_utc": "2026-04-16T07:06:03.076483+00:00",
+  "model_load_time_s": 60.08
+}

@@ -78,23 +78,19 @@ Sample outputs (audio is "Hi, I'm Siyu Yuan from Fudan University..."):
   Nottingham and I'm interested in learning about sustainable farming
   practices in India..."
 
-**Verdict — Gemma free-run ASR was not previously misused.** The
-`AutoModelForMultimodalLM` ↔ `AutoModelForImageTextToText` swap is
-cosmetic (same underlying class). Decode path, prompt order, prompt
-wording, and input cast policy were all tested independently; every cell
-hallucinates badly. The minimum WER across the matrix is 0.83 — the
-acoustic shape of "introduction at university" is recognized, the
-content is fabricated. This matches the pattern the implementation notes
-already described, on a clean controlled comparison.
+**Verdict — SUPERSEDED.** This benchmark was run with
+`attn_implementation="eager"`, which is the dominant cause of the bad
+ASR (see ITERATION_RESULT.md §Root Cause). With default attention,
+Gemma achieves WER 0.03–0.26 on the same clips. The conclusion below
+that Gemma ASR is "unfit" no longer holds.
 
 ## Recommendation
 
 **Hybrid (Option B from PLAN.md Phase 7)**: Qwen3-ASR for transcription,
 Gemma attention for word timings. Justification:
 
-1. Free-run Gemma ASR is unfit for conference-quality clips
-   (≥0.83 WER under every controlled prompting variant we tested). Not
-   a prompting bug.
+1. **SUPERSEDED**: The ≥0.83 WER was caused by eager attention, not by
+   the model's ASR capability. With default attention, WER is 0.03–0.26.
 2. The attention-based aligner produces 177–183 ms MAE word-end timings
    on the same clip family — within the WhisperX/NFA regime — and now
    has explicit fallback accounting in the hybrid path so its

@@ -1,12 +1,13 @@
 """Hybrid alignment backend: Qwen3-ASR transcript + Gemma attention timings.
 
-This is the realistic deployment path implied by the PLAN.md research:
-Gemma-4 E4B's free-run ASR is unreliable on streaming-quality clips, but
-its self-attention to the audio-placeholder span provides a usable
-forced-alignment signal once heads and systematic offset are calibrated.
-So we keep Qwen3-ASR as the text source and replace the Qwen3-Forced
-Aligner-0.6B dependency with Gemma's attention — the downstream cascade
-sees the same ``WordAlignment`` contract either way.
+Qwen3-ASR produces the text; Gemma attention produces the timings. This
+replaces the Qwen3-ForcedAligner-0.6B dependency with Gemma's attention-
+based forced alignment (~177 ms MAE). The downstream cascade sees the
+same ``WordAlignment`` contract either way.
+
+Note: Gemma-4 E4B can also produce correct transcripts with default
+attention (WER 0.03–0.26), but the hybrid path remains useful as a
+single-pass alternative to the two-pass full-Gemma frontend.
 """
 
 from __future__ import annotations

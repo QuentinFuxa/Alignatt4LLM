@@ -16,10 +16,12 @@ filtering, and a single calibrated `word_end_offset_s = 0.480`:
 - **Streaming drift stdev: 130 ms** vs Qwen baseline 45 ms (~2.9×
   worse); **time-to-stable: 4.5 s** vs Qwen 2.1 s (~2.15× slower).
 
-E4B's *free-run ASR* on conference-speech clips hallucinates — so the
-defensible path is **hybrid**: Qwen3-ASR produces the text, Gemma
-attention produces the timings. That removes the Qwen3-ForcedAligner-0.6B
-dependency while keeping the transcription quality of Qwen3-ASR-1.7B.
+**Update (post-ablation):** The earlier claim that E4B free-run ASR
+hallucinates was caused by `attn_implementation="eager"`. With default
+attention, Gemma achieves WER 0.03–0.26. Two paths are now viable:
+**hybrid** (Qwen ASR + Gemma timings, single-pass) and **two-pass
+full Gemma** (default-attention ASR + eager-attention alignment).
+See ITERATION_RESULT.md for the corrected evidence.
 
 Reference landmarks: Qwen3-ForcedAligner ≈ 40 ms MAE, WhisperX ≈ 92 ms,
 NFA ≈ 107 ms. Our 177–183 ms is in the WhisperX/NFA regime, ~4.5×
@@ -46,8 +48,9 @@ behind the specialized aligner.
 
 `qwen3asr_gemma_cascade_core.build_alignment_backend` dispatches on
 `config.alignment_backend_name ∈ {"qwen", "gemma_attention",
-"hybrid_qwen_asr_gemma_aligner"}`. `transcribe_audio()` delegates
-through the backend; `find_end_time` retyped for `WordAlignment`.
+"hybrid_qwen_asr_gemma_aligner", "gemma_two_pass"}`.
+`transcribe_audio()` delegates through the backend; `find_end_time`
+retyped for `WordAlignment`.
 `"qwen"` remains the default.
 
 ### Harnesses (Phase 2 / 4 / 5 / 7 / 9)
