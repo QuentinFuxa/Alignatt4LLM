@@ -470,16 +470,17 @@ eating the CA win vs pure punctuation-gating.
 
 Same clip (`ccpXHNfaoy.wav`), same configuration except ASR commit rule.
 
-| Commit rule                    | BLEU  | chrF  | LongYAAL CU | LongYAAL CA |
-|--------------------------------|-------|-------|-------------|-------------|
-| `alignatt_frontier`  (K=2)     | 15.78 | 54.43 | 1328 ms     | 1048 ms     |
-| `stable_and_accessible` K=3    | 18.71 | 56.37 | 1919 ms     | 1637 ms     |
-| `stable_and_accessible` K=4    | 20.26 | 57.92 | 2510 ms     | 2240 ms     |
-| `punctuation_lcp`              | 27.51 | 63.54 | 1766 ms     | 1466 ms     |
+| Commit rule                    | BLEU  | chrF  | COMET | LongYAAL CU | LongYAAL CA |
+|--------------------------------|-------|-------|-------|-------------|-------------|
+| `alignatt_frontier`  (K=2)     | 15.78 | 54.43 | 0.558 | 1328 ms     | 1048 ms     |
+| `stable_and_accessible` K=3    | 18.71 | 56.37 | 0.681 | 1919 ms     | 1637 ms     |
+| `stable_and_accessible` K=4    | 20.26 | 57.92 | 0.730 | 2510 ms     | 2240 ms     |
+| `punctuation_lcp`              | 27.51 | 63.54 | 0.861 | 1766 ms     | 1466 ms     |
 
-Each +1 in K buys roughly +2 BLEU / +2 chrF at the cost of ~600 ms
-CA. Monotonically closing the gap with K alone would need ~K ≥ 8
-and pay ~3.6 s extra CA — Pareto-dominated.
+Each +1 in K buys roughly +1.5-2.9 BLEU / +0.05 COMET at the cost of
+~600 ms CA. Monotonically closing the COMET gap with K alone would
+need K ≥ 5-6 and pay ~2 s extra CA — Pareto-dominated by
+`punctuation_lcp` across BLEU, chrF, and COMET simultaneously.
 
 Why the rule underperforms on Qwen-ASR + Gemma MT: frontier-based
 commits fragment MT context. Word-level commits force MT to emit
@@ -501,11 +502,11 @@ commit choice to MT emission granularity.
 
 ### Widening scores (all chunk_ms=450, `punctuation_lcp`, ccpXHNfaoy.wav)
 
-| Direction | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
-|-----------|-------|-------|-------------|-------------|-------|
-| en → de   | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
-| en → it   | 37.75 | 71.81 | 1848 ms     | 1567 ms     | 0.400 |
-| en → zh   | 42.33 | 38.37 | 1781 ms     | 1634 ms     | 0.375 |
+| Direction | BLEU  | chrF  | COMET | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------|-------|-------|-------|-------------|-------------|-------|
+| en → de   | 27.51 | 63.54 | 0.861 | 1766 ms     | 1466 ms     | 0.393 |
+| en → it   | 37.75 | 71.81 | 0.770 | 1848 ms     | 1567 ms     | 0.400 |
+| en → zh   | 42.33 | 38.37 | 0.739 | 1781 ms     | 1634 ms     | 0.375 |
 
 No direction-specific runtime breakage; Italian output is qualitatively
 coherent. cs→en was not run because the local `test-set/ref/` has no
@@ -519,11 +520,11 @@ gemma_vllm_alignatt + punctuation_lcp.
 
 **min_source_mass sweep (emit_policy=raw_passthrough):**
 
-| min_source_mass | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
-|-----------------|-------|-------|-------------|-------------|-------|
-| 0.0 (baseline)  | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
-| 0.1             | 28.25 | 63.81 | 2396 ms     | 2140 ms     | 0.466 |
-| 0.2             | 28.95 | 63.92 | 2476 ms     | 2197 ms     | 0.443 |
+| min_source_mass | BLEU  | chrF  | COMET | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------------|-------|-------|-------|-------------|-------------|-------|
+| 0.0 (baseline)  | 27.51 | 63.54 | 0.861 | 1766 ms     | 1466 ms     | 0.393 |
+| 0.1             | 28.25 | 63.81 | 0.867 | 2396 ms     | 2140 ms     | 0.466 |
+| 0.2             | 28.95 | 63.92 | 0.869 | 2476 ms     | 2197 ms     | 0.443 |
 
 Each +0.1 in min_source_mass buys ~+0.7 BLEU at the cost of ~+700 ms
 CA. Latency-quality trade is strictly worse than the `chunk_ms 450→700`
@@ -540,12 +541,12 @@ the simulstream path is faster at the same knob setting.
 
 **Emission policy A/B (min_source_mass=0):**
 
-| emit_policy                            | BLEU  | chrF  | LongYAAL CU | LongYAAL CA |
-|----------------------------------------|-------|-------|-------------|-------------|
-| `raw_passthrough`   (baseline default) | 27.51 | 63.54 | 1766 ms     | 1466 ms     |
-| `freeze_nonexpanding_major_rewrites`   | 27.51 | 63.54 | 1773 ms     | 1484 ms     |
+| emit_policy                            | BLEU  | chrF  | COMET | LongYAAL CU | LongYAAL CA |
+|----------------------------------------|-------|-------|-------|-------------|-------------|
+| `raw_passthrough`   (baseline default) | 27.51 | 63.54 | 0.861 | 1766 ms     | 1466 ms     |
+| `freeze_nonexpanding_major_rewrites`   | 27.51 | 63.54 | 0.861 | 1773 ms     | 1484 ms     |
 
-**Bit-identical BLEU / chrF.** This is the expected outcome: the emit
+**Bit-identical BLEU / chrF / COMET.** This is the expected outcome: the emit
 policy suppresses mid-stream flicker for display purposes but does not
 change the committed final translation. CU / CA shift by ~10–20 ms,
 which reflects when partial hypotheses are re-emitted (or suppressed)

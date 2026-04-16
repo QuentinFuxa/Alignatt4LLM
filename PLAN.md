@@ -70,8 +70,8 @@ By morning, the repo should satisfy all three:
       `16609ec`, 124/124 tests pass).
 - [x] Step 2 — canonical baseline re-anchored on `ccpXHNfaoy.wav`:
       chunk_ms=450 reproduces pre-hardening numbers bit-identically
-      (BLEU 27.51 / CA 1466 ms), chunk_ms=700 establishes the
-      high-latency point at BLEU 38.19 / CA 2945 ms.
+      (BLEU 27.51 / COMET 0.861 / CA 1466 ms), chunk_ms=700 establishes
+      the high-latency point at BLEU 38.19 / COMET 0.940 / CA 2945 ms.
 - [x] Step 3 — en→de / en→it / en→zh all run cleanly on the same
       hardened pair; BLEU 27.51 / 37.75 / 42.33, no direction-specific
       breakage. cs→en not evaluated (no local reference).

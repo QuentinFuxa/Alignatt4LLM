@@ -28,15 +28,16 @@ mt_vllm_gpu_memory_utilization          = 0.5
 Config above, two defensible operating points re-anchored under the
 2026-04-16 overnight hardening SHA (commit `16609ec` and descendants).
 
-| Operating point | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
-|-----------------|-------|-------|-------------|-------------|-------|
-| chunk_ms = 450  | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
-| chunk_ms = 700  | 38.19 | 66.53 | 3275 ms     | 2945 ms     | 0.369 |
+| Operating point | BLEU  | chrF  | COMET | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------------|-------|-------|-------|-------------|-------------|-------|
+| chunk_ms = 450  | 27.51 | 63.54 | 0.861 | 1766 ms     | 1466 ms     | 0.393 |
+| chunk_ms = 700  | 38.19 | 66.53 | **0.940** | 3275 ms | 2945 ms | 0.369 |
 
-chunk_ms=450 BLEU/chrF/CU are **bit-identical** to the pre-hardening
-`simulstream_phase6_one_clip` run (see the Phase-level validation
-section below). COMET for chunk_ms=450 on this path was previously
-measured at 0.861.
+chunk_ms=450 BLEU / chrF / CU / COMET are **bit-identical** to the
+pre-hardening `simulstream_phase6_one_clip` run (see the Phase-level
+validation section below). chunk_ms=700 buys **+0.079 COMET** (0.861
+→ 0.940) for +1479 ms CA — a strong latency-quality trade at the
+high-latency operating point.
 
 Artifacts: `outputs/reanchor_chunk450/`, `outputs/reanchor_chunk700/`.
 Historical baseline (same numerics, chunk_ms=450 only):
@@ -54,12 +55,12 @@ K=2 special case; `asr_stability_k` controls K for K ≥ 2.
 Same clip / configuration (`ccpXHNfaoy.wav`, chunk_ms=450,
 margin = 500 ms, `qwen_forced` + `gemma_vllm_alignatt`):
 
-| Commit rule                    | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
-|--------------------------------|-------|-------|-------------|-------------|-------|
-| `alignatt_frontier`  (K=2)     | 15.78 | 54.43 | 1328 ms     | 1048 ms     | 0.43  |
-| `stable_and_accessible` K=3    | 18.71 | 56.37 | 1919 ms     | 1637 ms     | 0.442 |
-| `stable_and_accessible` K=4    | 20.26 | 57.92 | 2510 ms     | 2240 ms     | 0.480 |
-| **`punctuation_lcp`**          | **27.51** | **63.54** | **1766 ms** | **1466 ms** | 0.393 |
+| Commit rule                    | BLEU  | chrF  | COMET | LongYAAL CU | LongYAAL CA | RTF   |
+|--------------------------------|-------|-------|-------|-------------|-------------|-------|
+| `alignatt_frontier`  (K=2)     | 15.78 | 54.43 | 0.558 | 1328 ms     | 1048 ms     | 0.43  |
+| `stable_and_accessible` K=3    | 18.71 | 56.37 | 0.681 | 1919 ms     | 1637 ms     | 0.442 |
+| `stable_and_accessible` K=4    | 20.26 | 57.92 | 0.730 | 2510 ms     | 2240 ms     | 0.480 |
+| **`punctuation_lcp`**          | **27.51** | **63.54** | **0.861** | **1766 ms** | **1466 ms** | 0.393 |
 
 Observations:
 
@@ -93,31 +94,36 @@ stays correct across target-language switches under the hardened
 runtime (heads-path refresh on any language change, language-code
 map covering `cs`).
 
-| Direction | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
-|-----------|-------|-------|-------------|-------------|-------|
-| en → de   | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
-| en → it   | 37.75 | 71.81 | 1848 ms     | 1567 ms     | 0.400 |
-| en → zh   | 42.33 | 38.37 | 1781 ms     | 1634 ms     | 0.375 |
+| Direction | BLEU  | chrF  | COMET | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------|-------|-------|-------|-------------|-------------|-------|
+| en → de   | 27.51 | 63.54 | 0.861 | 1766 ms     | 1466 ms     | 0.393 |
+| en → it   | 37.75 | 71.81 | 0.770 | 1848 ms     | 1567 ms     | 0.400 |
+| en → zh   | 42.33 | 38.37 | 0.739 | 1781 ms     | 1634 ms     | 0.375 |
 
 No direction-specific runtime breakage observed across `de`, `it`, and
 `zh` target languages. Italian output is coherent; higher absolute BLEU
 than en→de reflects the intrinsic proximity of Italian to English.
 Chinese scoring uses character-level chrF by definition, which is not
 directly comparable to the other targets' token-based chrF — BLEU,
-CU, and CA are the meaningful cross-direction signals.
+COMET, CU, and CA are the meaningful cross-direction signals.
+COMET ranks en→de highest because the XCOMET-XL model has the densest
+calibration data for that pair; raw BLEU alone overstates cross-direction
+differences relative to how much the cascade itself varies by target
+language.
 
 ## `translation_alignatt_min_source_mass` sweep (ccpXHNfaoy.wav, chunk_ms=450)
 
 Additional policy knob: MT waits until at least this fraction of the
 source's accessible token mass falls within the current frontier.
 
-| min_source_mass | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
-|-----------------|-------|-------|-------------|-------------|-------|
-| 0.0 (baseline)  | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
-| 0.1             | 28.25 | 63.81 | 2396 ms     | 2140 ms     | 0.466 |
-| 0.2             | 28.95 | 63.92 | 2476 ms     | 2197 ms     | 0.443 |
+| min_source_mass | BLEU  | chrF  | COMET  | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------------|-------|-------|--------|-------------|-------------|-------|
+| 0.0 (baseline)  | 27.51 | 63.54 | 0.861  | 1766 ms     | 1466 ms     | 0.393 |
+| 0.1             | 28.25 | 63.81 | 0.867  | 2396 ms     | 2140 ms     | 0.466 |
+| 0.2             | 28.95 | 63.92 | 0.869  | 2476 ms     | 2197 ms     | 0.443 |
 
-Each +0.1 in `min_source_mass` buys ~+0.7 BLEU at ~+700 ms CA.
+Each +0.1 in `min_source_mass` buys ~+0.7 BLEU / +0.005 COMET at
+~+700 ms CA.
 Latency-quality trade is strictly worse than the `chunk_ms`
 calibration (recall: 450 → 700 buys +10.7 BLEU for +1479 ms CA on
 the same clip). `min_source_mass` remains a valid ablation knob for
@@ -128,12 +134,12 @@ Pareto front. Artifacts: `outputs/night1_step6_ms{10,20}_punct/`.
 
 Same config (chunk_ms=450, min_source_mass=0) on ccpXHNfaoy.wav.
 
-| emit_policy                            | BLEU  | chrF  | LongYAAL CU | LongYAAL CA |
-|----------------------------------------|-------|-------|-------------|-------------|
-| `raw_passthrough`  (baseline default)  | 27.51 | 63.54 | 1766 ms     | 1466 ms     |
-| `freeze_nonexpanding_major_rewrites`   | 27.51 | 63.54 | 1773 ms     | 1484 ms     |
+| emit_policy                            | BLEU  | chrF  | COMET | LongYAAL CU | LongYAAL CA |
+|----------------------------------------|-------|-------|-------|-------------|-------------|
+| `raw_passthrough`  (baseline default)  | 27.51 | 63.54 | 0.861 | 1766 ms     | 1466 ms     |
+| `freeze_nonexpanding_major_rewrites`   | 27.51 | 63.54 | 0.861 | 1773 ms     | 1484 ms     |
 
-BLEU / chrF are **bit-identical**. The emit policy suppresses
+BLEU / chrF / COMET are **bit-identical**. The emit policy suppresses
 mid-stream re-emission flicker for display purposes but does not
 change the committed final translation, so all quality metrics are
 policy-invariant. CU / CA shift by ~10–20 ms (different mid-stream
