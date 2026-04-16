@@ -60,22 +60,31 @@ margin = 500 ms, `qwen_forced` + `gemma_vllm_alignatt`):
 | `alignatt_frontier`  (K=2)     | 15.78 | 54.43 | 0.558 | 1328 ms     | 1048 ms     | 0.43  |
 | `stable_and_accessible` K=3    | 18.71 | 56.37 | 0.681 | 1919 ms     | 1637 ms     | 0.442 |
 | `stable_and_accessible` K=4    | 20.26 | 57.92 | 0.730 | 2510 ms     | 2240 ms     | 0.480 |
+| `stable_and_accessible` K=5    | 25.79 | 60.91 | 0.782 | 3585 ms     | 3395 ms     | 0.565 |
+| `stable_and_accessible` K=6    | 28.13 | 62.16 | 0.824 | 4231 ms     | 4204 ms     | 0.690 |
 | **`punctuation_lcp`**          | **27.51** | **63.54** | **0.861** | **1766 ms** | **1466 ms** | 0.393 |
 
 Observations:
 
-- K monotonically improves quality over `alignatt_frontier` (K=2): each
-  +1 in K buys roughly +2 BLEU and +2 chrF at chunk_ms=450.
-- Each +1 in K costs roughly +600 ms of CA latency: K=3 → K=4 adds
-  ~603 ms CA for +1.55 BLEU. Clear diminishing returns.
-- On Qwen-ASR + Gemma MT the rule remains Pareto-dominated by
-  `punctuation_lcp`: at K=4 the frontier rule still costs 7 BLEU while
-  costing 750 ms extra CA. Larger K won't close the gap — it would
-  just add latency on top.
-- The gap is caused by how frontier rules fragment MT context:
-  word-level commits force the MT observer to emit
-  mid-sentence target fragments that compound into fluency
-  degradation, while `punctuation_lcp` hands MT complete sentences.
+- K monotonically improves quality over `alignatt_frontier` (K=2).
+  Growth is not linear: K=3→K=4 adds +1.55 BLEU, but K=4→K=5 adds
+  +5.53 BLEU (a phase transition as tail-word flicker stops dominating),
+  then K=5→K=6 adds +2.34 BLEU (saturation toward punct-level BLEU).
+- At **K=6** the rule actually **matches or narrowly exceeds punct on
+  BLEU** (28.13 vs 27.51) but remains below on chrF (62.16 vs 63.54)
+  and COMET (0.824 vs 0.861), and pays a ~2.7 s CA penalty
+  (4204 ms vs 1466 ms) for the privilege.
+- Each +1 in K costs roughly +600-1000 ms of CA latency. By K=6 the
+  rule's LongYAAL CA is ~3× the punctuation_lcp CA at the same
+  chunk size.
+- `punctuation_lcp` remains Pareto-optimal across BLEU / chrF / COMET /
+  CA simultaneously on the Qwen-ASR path: no frontier-family K value
+  dominates it on more than one metric at once.
+- The quality gap at small K is caused by MT-context fragmentation:
+  word-level commits force the MT observer to emit mid-sentence
+  target fragments that compound into fluency degradation; larger K
+  reduces commit rate and gradually restores sentence-level MT
+  context, but never cheaply enough to beat punctuation.
 
 **Practical impact:** `punctuation_lcp` stays the canonical submission
 commit rule on the Qwen-ASR path. `stable_and_accessible` (K ≥ 3)
@@ -84,8 +93,33 @@ fallback for paths whose ASR doesn't emit reliable sentence-terminal
 punctuation (Gemma-4 ASR, lower-resource languages). K is the exposed
 tuning knob; the margin remains as-is.
 
-Artifacts: `outputs/night1_ende_stable_k3_chunk450/`,
-`outputs/night1_ende_stable_k4_chunk450/`.
+Artifacts: `outputs/night1_ende_stable_k{3,4,5,6}_chunk450/`.
+
+### Cross-latency check: `stable_and_accessible` K=3 at chunk_ms=700
+
+| Config                              | BLEU  | chrF  | COMET | LongYAAL CU | LongYAAL CA |
+|-------------------------------------|-------|-------|-------|-------------|-------------|
+| K=3 @ chunk_ms=450                  | 18.71 | 56.37 | 0.681 | 1919 ms     | 1637 ms     |
+| K=3 @ chunk_ms=700                  | 24.67 | 60.12 | 0.740 | 2829 ms     | 2521 ms     |
+| K=4 @ chunk_ms=450                  | 20.26 | 57.92 | 0.730 | 2510 ms     | 2240 ms     |
+| punctuation_lcp @ chunk_ms=450      | 27.51 | 63.54 | 0.861 | 1766 ms     | 1466 ms     |
+| punctuation_lcp @ chunk_ms=700      | 38.19 | 66.53 | 0.940 | 3275 ms     | 2945 ms     |
+
+Longer chunks substantially help the frontier family: K=3 at chunk_ms=700
+buys +5.96 BLEU / +0.059 COMET over K=3 at chunk_ms=450, at the cost of
+~884 ms of CA. This is evidence that the fragmentation penalty scales
+with chunk granularity — larger chunks deliver more source context per
+MT call, so per-commit mid-sentence fragments are smaller.
+
+That said, `punctuation_lcp` still Pareto-dominates at every measured
+operating point: at chunk_ms=450 it beats K=3@700 on every metric while
+having ~1 s lower CA; at chunk_ms=700 it beats all frontier variants
+by wide margins.
+
+Artifact: `outputs/night1_ende_stable_k3_chunk700/`. This run also
+exercises the new `stream_updates.jsonl` schema (alignatt_metadata per
+update), so it doubles as the first dataset usable for future offline
+continuous-confidence replay work.
 
 ## Widening to en→it / en→zh (same clip, same config)
 

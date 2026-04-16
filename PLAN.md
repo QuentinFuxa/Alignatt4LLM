@@ -76,12 +76,24 @@ By morning, the repo should satisfy all three:
       hardened pair; BLEU 27.51 / 37.75 / 42.33, no direction-specific
       breakage. cs→en not evaluated (no local reference).
 - [x] Step 4 — `stable_and_accessible` commit rule landed (`7ab5a39`
-      + `7d27eec`). K-sweep measured: K=3 → 18.71 BLEU / 1637 ms CA,
-      K=4 → 20.26 BLEU / 2240 ms CA. Monotonically improves over
-      `alignatt_frontier` (K=2, 15.78 BLEU) but Pareto-dominated by
-      `punctuation_lcp` (27.51 BLEU / 1466 ms CA) on the Qwen-ASR
-      path. Paper framing shifts to: frontier-family commit rules
-      fragment MT context; K is the only real knob within that family.
+      + `7d27eec`). Full K-sweep K=2 (alignatt_frontier) through K=6
+      measured on `ccpXHNfaoy.wav` at chunk_ms=450. K=3 → 18.71 BLEU /
+      1637 ms CA; K=4 → 20.26 BLEU / 2240 ms CA; K=5 → 25.79 BLEU /
+      3395 ms CA; K=6 → 28.13 BLEU / 4204 ms CA. K=6 matches or
+      narrowly exceeds punctuation_lcp on BLEU (27.51) but still loses
+      on chrF and COMET, and pays ~2.7 s of CA for the privilege.
+      `punctuation_lcp` stays Pareto-optimal. Paper framing: K is a
+      principled single-axis knob that monotonically raises frontier-
+      family quality toward the punctuation ceiling, never cheaply
+      enough to swap the defaults on a strong-punctuation ASR.
+- [x] Step 4-extended — `stream_updates.jsonl` schema instrumented
+      (`a0edcc6`) so future offline continuous-confidence replay can
+      read per-chunk alignatt_metadata without re-running GPU.
+- [x] Step 4-cross-latency — `stable_and_accessible` K=3 at
+      chunk_ms=700 measured: BLEU 24.67 / COMET 0.740 / CA 2521 ms.
+      Longer chunks help the frontier family, but punct still
+      Pareto-dominates at every operating point. Artifact carries the
+      new instrumented schema (observer metadata per update).
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.
@@ -91,8 +103,11 @@ By morning, the repo should satisfy all three:
       valid Pareto knob but strictly dominated by the chunk_ms
       curve. Emit-policy A/B is bit-identical on BLEU / chrF
       (content-invariant).
-- [ ] Step 7 — skipped. Offline-replay variants require schema
-      work on `stream_updates.jsonl` that is out of scope tonight.
+- [x] Step 7 — unblocked via the `a0edcc6` schema instrumentation;
+      continuous-confidence replay is now feasible as a dedicated
+      future pass. Not run tonight (need a dedicated replay driver),
+      but the prior blocker ("no per-update observer data") no longer
+      applies.
 
 Use the current local assets for tonight's loop. The repo currently has `test-set/` but not a local official dev-set workflow. Do not block engineering work on that; just keep in mind that final submission still needs dev logs.
 

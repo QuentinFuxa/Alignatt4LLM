@@ -460,11 +460,15 @@ eating the CA win vs pure punctuation-gating.
   branch produced clean evidence and a defensible paper result, so
   the "fallback-only if main is a dead end" gate does not fire.
 - **Step 6 (cheap follow-ups):** completed. See "Step 6 findings" below.
-- **Step 7 (stretch/paper branches):** skipped. The continuous-confidence
-  branch's intended "offline replay from existing `stream_updates.jsonl`"
-  is currently infeasible because the batch runner's stream-update
-  schema omits observer captures (`alignatt_metadata`, `raw_translation_text`,
-  ...). Instrumenting that is more than a tonight-sized refactor.
+- **Step 7 (stretch/paper branches):** unblocked. `run_simulstream_batch`
+  now emits `alignatt_metadata`, `partial_accepted_target`,
+  `partial_draft_target`, `asr_text`, and MT prompt-token counters
+  per stream update (commit `a0edcc6`). The night1 K=3@700 artifact
+  is the first dataset with full observer metadata attached, usable
+  for future offline continuous-confidence replay without re-running
+  the GPU pipeline. The actual replay pass was not run tonight
+  (needs a dedicated replay driver) but the prior blocker no longer
+  applies.
 
 ### Mechanism-branch findings: stable_and_accessible K-sweep
 
@@ -475,12 +479,35 @@ Same clip (`ccpXHNfaoy.wav`), same configuration except ASR commit rule.
 | `alignatt_frontier`  (K=2)     | 15.78 | 54.43 | 0.558 | 1328 ms     | 1048 ms     |
 | `stable_and_accessible` K=3    | 18.71 | 56.37 | 0.681 | 1919 ms     | 1637 ms     |
 | `stable_and_accessible` K=4    | 20.26 | 57.92 | 0.730 | 2510 ms     | 2240 ms     |
+| `stable_and_accessible` K=5    | 25.79 | 60.91 | 0.782 | 3585 ms     | 3395 ms     |
+| `stable_and_accessible` K=6    | 28.13 | 62.16 | 0.824 | 4231 ms     | 4204 ms     |
 | `punctuation_lcp`              | 27.51 | 63.54 | 0.861 | 1766 ms     | 1466 ms     |
 
-Each +1 in K buys roughly +1.5-2.9 BLEU / +0.05 COMET at the cost of
-~600 ms CA. Monotonically closing the COMET gap with K alone would
-need K ≥ 5-6 and pay ~2 s extra CA — Pareto-dominated by
-`punctuation_lcp` across BLEU, chrF, and COMET simultaneously.
+K=5 and K=6 added in the late-night extension of the sweep. K growth
+is not linear: the K=4→K=5 step delivered +5.53 BLEU (a phase
+transition where tail-word flicker stops dominating), after which
+K=5→K=6 added +2.34 BLEU (saturation). By K=6 the frontier rule
+actually **matches or narrowly exceeds punct on BLEU** (28.13 vs
+27.51) but still loses on chrF and COMET, and pays a ~2.7 s CA
+penalty for the privilege (4204 ms vs 1466 ms). `punctuation_lcp`
+stays Pareto-optimal: no K value dominates it on more than one of
+{BLEU, chrF, COMET, CA} at once.
+
+**Cross-latency check:** running the same rule at chunk_ms=700:
+
+| Commit rule                    | chunk_ms | BLEU  | chrF  | COMET | CU     | CA     |
+|--------------------------------|----------|-------|-------|-------|--------|--------|
+| `stable_and_accessible` K=3    | 450      | 18.71 | 56.37 | 0.681 | 1919 ms| 1637 ms|
+| `stable_and_accessible` K=3    | **700**  | 24.67 | 60.12 | 0.740 | 2829 ms| 2521 ms|
+| `punctuation_lcp`              | 450      | 27.51 | 63.54 | 0.861 | 1766 ms| 1466 ms|
+| `punctuation_lcp`              | 700      | 38.19 | 66.53 | 0.940 | 3275 ms| 2945 ms|
+
+Longer chunks help the frontier family (K=3 gains +5.96 BLEU / +0.059
+COMET) because each chunk delivers more source context per MT call and
+per-commit fragments are smaller. But `punctuation_lcp` still
+Pareto-dominates every frontier operating point at every chunk size.
+The fragmentation penalty is the intrinsic cost of word-level source
+commits; chunk size moderates it but does not eliminate it.
 
 Why the rule underperforms on Qwen-ASR + Gemma MT: frontier-based
 commits fragment MT context. Word-level commits force MT to emit
