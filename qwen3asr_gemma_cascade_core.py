@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from time import perf_counter
 import os
+import subprocess
 from types import SimpleNamespace
 from typing import Any, List
 import string
@@ -799,6 +800,24 @@ def load_wav(path: str) -> np.ndarray:
     return audio
 
 
+def _git_sha() -> str | None:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL, text=True
+        ).strip()
+    except Exception:
+        return None
+
+
+def _enrich_provenance(run_provenance: dict[str, Any] | None) -> dict[str, Any]:
+    provenance = dict(run_provenance or {})
+    provenance.setdefault("git_sha", _git_sha())
+    provenance.setdefault("framework_mode", "research_harness")
+    provenance.setdefault("source_lang", config.source_lang)
+    provenance.setdefault("target_lang", config.target_lang)
+    return provenance
+
+
 def run_stream_to_artifacts(
     wav_path: str,
     chunk_ms: int = 960,
@@ -996,6 +1015,7 @@ def run_stream_to_artifacts(
             "translation_alignatt_probe_mode": config.translation_alignatt_probe_mode,
             "translation_alignatt_inaccessible_ms": config.translation_alignatt_inaccessible_ms,
             "translation_alignatt_rewind_threshold": config.translation_alignatt_rewind_threshold,
+            "translation_alignatt_min_source_mass": config.translation_alignatt_min_source_mass,
             "min_start_seconds": config.min_start_seconds,
             "max_history_utterances": config.max_history_utterances,
             "max_new_tokens": config.max_new_tokens,
@@ -1021,7 +1041,7 @@ def run_stream_to_artifacts(
             "gemma_transformers_prompt_kv_reuse": config.gemma_transformers_prompt_kv_reuse,
             "translation_scheduler_stall_seconds": config.translation_scheduler_stall_seconds,
         },
-        run_provenance=dict(run_provenance or {}),
+        run_provenance=_enrich_provenance(run_provenance),
     )
 
 
