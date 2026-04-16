@@ -1,1 +1,0 @@
-Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work. Distinguishing script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step
