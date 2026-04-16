@@ -53,9 +53,14 @@ class GemmaMTAlignAttWorker(VLLMGPUWorker):
         # a cached compiled graph on a fresh input shape (e.g. cs->en
         # as the first inference-time direction of the process).
         stubbed = install_stub_observers_on_model(self.get_model())
-        logger.info(
-            "Installed None-observer stubs on %d Gemma4Attention layers.",
-            stubbed,
+        # Print (not logger) so the install shows up in stdout for the
+        # batch runners even when the vLLM logger is quieted — it's the
+        # only way to verify the stub count from outside the worker
+        # process.
+        print(
+            f"[gemma_vllm_mt_worker] Installed None-observer stubs "
+            f"on {stubbed} Gemma4Attention layers.",
+            flush=True,
         )
         bootstrap = _decode_mt_observer_bootstrap_from_env()
         if bootstrap is not None:

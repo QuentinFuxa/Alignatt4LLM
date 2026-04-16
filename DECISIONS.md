@@ -554,7 +554,7 @@ night's en→de runs happened to avoid because of cache warmth on
 their specific input shapes. See `tmp/cs_en_runtime_check.log` for
 the full trace.
 
-**Fix landed later in the same session (commit c04356b+):**
+**Fix landed later in the same session (commit `70c0492`):**
 `install_stub_observers_on_model` seeds every Gemma4Attention
 layer's `_alignatt_mt_qk_tensor_observer` attribute with an explicit
 `None` at `load_model` time, before vLLM's memory profiling fires.
@@ -567,6 +567,28 @@ no KeyError, models loaded in 117.7 s, inference RTF 0.544 (vs
 Transformers MT RTF 1.377 on the same clip — 2.5× speedup). The
 output is bit-identical in head text between the Transformers-MT
 workaround and the fixed vLLM-MT canonical path.
+
+**Fragility caveat (discovered in a late-night retry):** the fix
+works reliably on a fresh-compile pass (cache miss → recompile →
+captures stubs correctly). On cache HIT, the interaction between
+vLLM's AOT compile cache and torchinductor's cached Python-side
+artefacts is still fragile: a subsequent run that tries to reuse
+the compiled graph can surface either (a) the original KeyError
+(when `__dict__` lookup on a fresh attention instance misses the
+stub for subtle reasons) or (b) a secondary
+`ValueError: too many values to unpack (expected 20)` coming from a
+stale torchinductor file whose signature doesn't match the freshly
+loaded vLLM AOT graph. Full cache clearing
+(`rm -rf /home/.cache/vllm/torch_compile_cache/torch_aot_compile/
+f5ee.../ && rm -rf /tmp/torchinductor_root`) between tries is
+currently the only fully reliable workaround. The first run in a
+session, especially after any edit to `gemma_vllm_mt_observer.py`
+or `gemma_vllm_mt_worker.py`, lands cleanly; subsequent retries may
+need a cache wipe. A robust fix would need to either (i) teach the
+compiled Gemma4 forward to tolerate a missing observer attribute
+(rather than stub-patching it in at worker init), or (ii) invalidate
+the torchinductor cache consistently with the vLLM AOT cache. Both
+are out of tonight's scope.
 
 Re-run with `mt_backend_name="gemma_transformers_alignatt"` sidesteps
 the observer/compile-cache issue and exercises the Step 1 language-map
@@ -850,6 +872,34 @@ binary question.
 
 Artifacts: `outputs/night1_*/loop_replay_gate_prediction.txt`.
 Source: `scripts/loop_replay_gate_predictor.py`.
+
+### Attempted: rerun canonical en→de baseline with instrumented schema
+
+Goal was to regenerate `outputs/reanchor_chunk450` (canonical en→de
+submission baseline at chunk_ms=450) with the new observer-
+instrumented schema so loop-replay analysis could cover the
+submission path itself. Ran three times, all failed at vLLM engine
+init with the compile-cache fragility issue documented above — first
+with the original KeyError, then twice with the secondary
+`ValueError: too many values to unpack (expected 20)` coming from a
+stale torchinductor file mismatch after repeated cache clears.
+
+**Not critical for the paper conclusions:**
+
+- The loop-replay F1 = 1.000 finding is already validated on three
+  artifacts with the instrumented schema (`night1_cs_en_vllm_mt_chunk450`,
+  `night1_cs_en_chunk450`, `night1_ende_stable_k3_chunk700`), spanning
+  two language directions and two MT backends.
+- The en→de BLEU / chrF / COMET / CA numbers are already measured on
+  `reanchor_chunk450` (the pre-instrumentation artifact), and
+  identical to the earlier `simulstream_phase6_one_clip` result
+  bit-by-bit.
+- The canonical path works end-to-end on fresh caches; the
+  retry-fragility is a known workaround issue, not a blocker on a
+  clean run.
+
+Documented as a follow-up engineering task, not as a paper-level
+limitation.
 
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
