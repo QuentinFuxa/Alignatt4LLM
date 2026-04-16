@@ -33,10 +33,47 @@ class WordAlignment:
 
 
 @dataclass(frozen=True)
+class AlignAttProvenanceBreakdown:
+    """Compact prompt-region mass summary for one observed token.
+
+    This is the defensible engine-to-runtime contract for future AlignAtt
+    backends: expose only the provenance summary the runtime can actually
+    use, not full attention tensors or per-head rows in Python.
+    """
+
+    source_accessible: float
+    source_inaccessible: float
+    non_source_prompt: float
+    suffix: float
+
+
+@dataclass(frozen=True)
+class AlignAttObserverToken:
+    """Minimal per-token AlignAtt observer signal for runtime decisions.
+
+    The runtime-side acceptance policy only needs compact observer outputs:
+    token identity, aligned source/audio argmax, optional accessible-source
+    mass, optional compact provenance, and optional blocked-source metadata.
+    It must *not* depend on full attention matrices or per-head rows.
+    """
+
+    token_id: int
+    token_str: str
+    aligned_source_position: int | None
+    source_accessible_mass: float | None = None
+    blocked_source_local_position: int | None = None
+    blocked_source_unit_index: int | None = None
+    provenance: AlignAttProvenanceBreakdown | None = None
+
+
+@dataclass(frozen=True)
 class AlignmentResult:
+    """Backend contract for ASR text, word timings, and compact observer data."""
+
     text: str
     words: tuple[WordAlignment, ...]
     audio_duration_s: float
+    observer_tokens: tuple[AlignAttObserverToken, ...] = field(default_factory=tuple)
     diagnostics: dict[str, Any] = field(default_factory=dict)
 
 

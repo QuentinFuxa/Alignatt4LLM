@@ -36,7 +36,13 @@ from typing import Sequence
 
 import numpy as np
 
-from alignment_backend import AlignmentBackend, AlignmentResult, WordAlignment
+from alignment_backend import (
+    AlignAttObserverToken,
+    AlignAttProvenanceBreakdown,
+    AlignmentBackend,
+    AlignmentResult,
+    WordAlignment,
+)
 
 
 def load_wav(path: str) -> tuple[np.ndarray, int]:
@@ -67,6 +73,7 @@ def serialize_alignment(result: AlignmentResult) -> dict:
         "text": result.text,
         "audio_duration_s": result.audio_duration_s,
         "words": [asdict(w) for w in result.words],
+        "observer_tokens": [asdict(token) for token in result.observer_tokens],
         "diagnostics": {
             k: v for k, v in result.diagnostics.items() if _is_jsonable(v)
         },
@@ -90,10 +97,49 @@ def deserialize_alignment(payload: dict) -> AlignmentResult:
         )
         for entry in payload.get("words", [])
     )
+    observer_tokens = []
+    for entry in payload.get("observer_tokens", []) or []:
+        provenance_payload = entry.get("provenance")
+        provenance = None
+        if provenance_payload is not None:
+            provenance = AlignAttProvenanceBreakdown(
+                source_accessible=float(provenance_payload["source_accessible"]),
+                source_inaccessible=float(provenance_payload["source_inaccessible"]),
+                non_source_prompt=float(provenance_payload["non_source_prompt"]),
+                suffix=float(provenance_payload["suffix"]),
+            )
+        observer_tokens.append(
+            AlignAttObserverToken(
+                token_id=int(entry["token_id"]),
+                token_str=str(entry["token_str"]),
+                aligned_source_position=(
+                    None
+                    if entry.get("aligned_source_position") is None
+                    else int(entry["aligned_source_position"])
+                ),
+                source_accessible_mass=(
+                    None
+                    if entry.get("source_accessible_mass") is None
+                    else float(entry["source_accessible_mass"])
+                ),
+                blocked_source_local_position=(
+                    None
+                    if entry.get("blocked_source_local_position") is None
+                    else int(entry["blocked_source_local_position"])
+                ),
+                blocked_source_unit_index=(
+                    None
+                    if entry.get("blocked_source_unit_index") is None
+                    else int(entry["blocked_source_unit_index"])
+                ),
+                provenance=provenance,
+            )
+        )
     return AlignmentResult(
         text=str(payload.get("text", "")),
         words=words,
         audio_duration_s=float(payload.get("audio_duration_s", 0.0)),
+        observer_tokens=tuple(observer_tokens),
         diagnostics=dict(payload.get("diagnostics", {})),
     )
 
@@ -144,6 +190,55 @@ def build_gemma_backend(
     return backend
 
 
+def build_gemma_vllm_backend(
+    *,
+    heads_path: str | None,
+    top_k: int,
+    executor_backend: str | None = None,
+    patch_mode: str | None = None,
+    enforce_eager: bool | None = None,
+    enable_prefix_caching: bool | None = None,
+    compilation_mode: str | None = None,
+    cudagraph_mode: str | None = None,
+    compile_cache_dir: str | None = None,
+    disable_compile_cache: bool | None = None,
+):
+    from gemma_vllm_alignment_backend import GemmaVLLMAttentionAlignmentBackend
+    from cascade_runtime import gemma_model_name
+
+    runtime_config = build_runtime_config()
+    if executor_backend is not None:
+        runtime_config.gemma_vllm_executor_backend = str(executor_backend)
+    if patch_mode is not None:
+        runtime_config.gemma_vllm_patch_mode = str(patch_mode)
+    if enforce_eager is not None:
+        runtime_config.gemma_vllm_enforce_eager = bool(enforce_eager)
+    if enable_prefix_caching is not None:
+        runtime_config.gemma_vllm_enable_prefix_caching = bool(enable_prefix_caching)
+    if compilation_mode is not None:
+        runtime_config.gemma_vllm_compilation_mode = str(compilation_mode)
+    if cudagraph_mode is not None:
+        runtime_config.gemma_vllm_cudagraph_mode = str(cudagraph_mode)
+    if compile_cache_dir is not None:
+        runtime_config.gemma_vllm_compile_cache_dir = str(compile_cache_dir)
+    if disable_compile_cache is not None:
+        runtime_config.gemma_vllm_disable_compile_cache = bool(disable_compile_cache)
+    backend = GemmaVLLMAttentionAlignmentBackend(
+        model_name=gemma_model_name,
+        runtime_config=runtime_config,
+        audio_heads_path=heads_path,
+        audio_heads_top_k=top_k,
+        filter_width=int(
+            getattr(runtime_config, "gemma_audio_alignment_filter_width", 7)
+        ),
+        max_new_tokens=int(
+            getattr(runtime_config, "gemma_audio_alignment_max_new_tokens", 256)
+        ),
+    )
+    backend.load()
+    return backend
+
+
 def cmd_baseline(args: argparse.Namespace) -> None:
     audio, sr = load_wav(args.wav)
     backend = build_qwen_backend()
@@ -163,6 +258,140 @@ def cmd_gemma_inspect(args: argparse.Namespace) -> None:
     if result is None:
         raise RuntimeError("Gemma alignment produced no valid result.")
     _write_bundle(args.output, result, tag="gemma_onepass_qk_fast", wav_path=args.wav)
+
+
+def cmd_gemma_vllm_inspect(args: argparse.Namespace) -> None:
+    audio, sr = load_wav(args.wav)
+    backend = build_gemma_vllm_backend(
+        heads_path=args.heads_path or None,
+        top_k=int(args.top_k),
+        executor_backend=args.vllm_executor_backend,
+        patch_mode=args.vllm_patch_mode,
+        enforce_eager=args.vllm_enforce_eager,
+        enable_prefix_caching=args.vllm_enable_prefix_caching,
+        compilation_mode=args.vllm_compilation_mode,
+        cudagraph_mode=args.vllm_cudagraph_mode,
+        compile_cache_dir=args.vllm_compile_cache_dir,
+        disable_compile_cache=args.vllm_disable_compile_cache,
+    )
+    repeat = int(getattr(args, "repeat", 1) or 1)
+    output_base = Path(args.output)
+    results: list[AlignmentResult] = []
+    for run_index in range(repeat):
+        result = backend.transcribe_and_align(audio, sample_rate=sr, language=args.language)
+        if result is None:
+            raise RuntimeError(
+                f"Gemma vLLM alignment produced no valid result (run {run_index})."
+            )
+        results.append(result)
+        if repeat == 1:
+            _write_bundle(args.output, result, tag="gemma_vllm_qk_fast", wav_path=args.wav)
+        else:
+            run_path = output_base.with_suffix(f".run{run_index}{output_base.suffix}")
+            _write_bundle(
+                str(run_path),
+                result,
+                tag=f"gemma_vllm_qk_fast_run{run_index}",
+                wav_path=args.wav,
+            )
+    if repeat > 1:
+        _write_repeat_stability_summary(output_base, results, wav_path=args.wav)
+
+
+def cmd_seam_comparison(args: argparse.Namespace) -> None:
+    """Run the three-seam comparison on one audio: eager, cudagraph=full, compile.
+
+    This is the minimum system-level validation set from PLAN.md section 3:
+    eager mono-audio baseline, worker_cls + cudagraph=full, worker_cls +
+    vllm_compile + cudagraph=none.
+    """
+    audio, sr = load_wav(args.wav)
+    out_dir = Path(args.output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    seams = [
+        {
+            "name": "eager_baseline",
+            "enforce_eager": True,
+            "compilation_mode": None,
+            "cudagraph_mode": None,
+            "worker_mode": "postload_instance",
+        },
+        {
+            "name": "cudagraph_full",
+            "enforce_eager": False,
+            "compilation_mode": None,
+            "cudagraph_mode": "full",
+            "worker_mode": "custom_tensor",
+        },
+        {
+            "name": "vllm_compile",
+            "enforce_eager": False,
+            "compilation_mode": "vllm_compile",
+            "cudagraph_mode": "none",
+            "worker_mode": "custom_tensor",
+        },
+    ]
+
+    seam_results: list[dict] = []
+    for seam in seams:
+        print(f"\n--- Running seam: {seam['name']} ---")
+        backend = build_gemma_vllm_backend(
+            heads_path=args.heads_path or None,
+            top_k=int(args.top_k),
+            enforce_eager=seam["enforce_eager"],
+            enable_prefix_caching=False,
+            compilation_mode=seam["compilation_mode"],
+            cudagraph_mode=seam["cudagraph_mode"],
+        )
+        # Override worker mode if not custom_tensor (eager baseline uses
+        # the default postload path, not the custom worker).
+        if seam["worker_mode"] != "custom_tensor":
+            backend.worker_mode = seam["worker_mode"]
+
+        result = backend.transcribe_and_align(
+            audio, sample_rate=sr, language=args.language
+        )
+        if result is None:
+            print(f"  WARNING: seam {seam['name']} produced no result")
+            seam_results.append({"name": seam["name"], "result": None})
+            continue
+
+        bundle_path = out_dir / f"{seam['name']}.json"
+        _write_bundle(str(bundle_path), result, tag=seam["name"], wav_path=args.wav)
+        seam_results.append({
+            "name": seam["name"],
+            "text": result.text,
+            "word_count": len(result.words),
+            "generated_token_count": result.diagnostics.get("generated_token_count"),
+            "monotonicity": result.diagnostics.get("monotonicity"),
+            "total_backend_ms": (
+                result.diagnostics.get("timings_ms", {}).get("total_backend")
+            ),
+            "observer_effective_heads": (
+                result.diagnostics.get("capture", {}).get("effective_head_count")
+            ),
+        })
+
+        # Clean up the engine between seams to avoid OOM.
+        del backend
+
+    # Write comparison summary.
+    texts = [s["text"] for s in seam_results if s.get("text")]
+    summary = {
+        "tag": "seam_comparison",
+        "wav_path": args.wav,
+        "seam_count": len(seam_results),
+        "text_agreement": len(set(texts)) <= 1 if texts else False,
+        "seams": seam_results,
+    }
+    summary_path = out_dir / "seam_comparison.json"
+    summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    print(f"\nWrote seam comparison: {summary_path}")
+    if summary["text_agreement"]:
+        print("  All seams produced identical text.")
+    else:
+        print(f"  Text divergence: {len(set(texts))} unique texts across {len(texts)} seams.")
 
 
 def cmd_gemma_forced_align(args: argparse.Namespace) -> None:
@@ -377,6 +606,61 @@ def compare_alignments(qwen: AlignmentResult, gemma: AlignmentResult) -> dict:
     return report
 
 
+def _write_repeat_stability_summary(
+    output_base: Path,
+    results: list[AlignmentResult],
+    *,
+    wav_path: str,
+) -> None:
+    """Write a summary comparing repeated runs on the same engine.
+
+    Reports text stability, token-count drift, timing variance, and
+    per-run decode_drift diagnostics. This is the reproducible one-clip
+    comparison the PLAN calls for.
+    """
+    texts = [r.text for r in results]
+    token_counts = [
+        r.diagnostics.get("generated_token_count", 0) for r in results
+    ]
+    timings = [
+        r.diagnostics.get("timings_ms", {}).get("total_backend", 0.0)
+        for r in results
+    ]
+    decode_drifts = [r.diagnostics.get("decode_drift") for r in results]
+    summary = {
+        "tag": "repeat_stability",
+        "wav_path": wav_path,
+        "run_count": len(results),
+        "text_stable": len(set(texts)) == 1,
+        "unique_texts": list(set(texts)),
+        "token_counts": token_counts,
+        "backend_ms_per_run": [round(t, 1) for t in timings],
+        "decode_drifts": decode_drifts,
+        "per_run_diagnostics": [
+            {
+                k: v
+                for k, v in r.diagnostics.items()
+                if k
+                in (
+                    "generated_token_count",
+                    "monotonicity",
+                    "finish_reason",
+                    "decode_drift",
+                    "timings_ms",
+                )
+            }
+            for r in results
+        ],
+    }
+    summary_path = output_base.with_suffix(".stability.json")
+    summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    print(f"Wrote repeat stability summary: {summary_path}")
+    if summary["text_stable"]:
+        print(f"  text_stable=True across {len(results)} runs")
+    else:
+        print(f"  text_stable=False — {len(set(texts))} unique texts across {len(results)} runs")
+
+
 def _write_bundle(
     output_path: str | Path,
     result: AlignmentResult,
@@ -412,6 +696,77 @@ def build_cli() -> argparse.ArgumentParser:
     inspect.add_argument("--top-k", type=int, default=8)
     inspect.add_argument("--output", required=True)
     inspect.set_defaults(func=cmd_gemma_inspect)
+
+    vllm_inspect = subparsers.add_parser(
+        "gemma_vllm_inspect",
+        help="Experimental: run Gemma ASR + AlignAtt through vLLM on one clip",
+    )
+    vllm_inspect.add_argument("--wav", required=True)
+    vllm_inspect.add_argument("--language", default="English")
+    vllm_inspect.add_argument("--heads-path", default=None)
+    vllm_inspect.add_argument("--top-k", type=int, default=8)
+    vllm_inspect.add_argument(
+        "--vllm-executor-backend",
+        choices=("mp", "uni"),
+        default=None,
+        help="Experimental vLLM executor backend override.",
+    )
+    vllm_inspect.add_argument(
+        "--vllm-patch-mode",
+        choices=("postload_instance", "preload_class"),
+        default=None,
+        help="Experimental observer installation strategy.",
+    )
+    vllm_inspect.add_argument(
+        "--vllm-enforce-eager",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override vLLM eager mode for the experimental backend.",
+    )
+    vllm_inspect.add_argument(
+        "--vllm-enable-prefix-caching",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=(
+            "Override prefix caching for the experimental backend. The current "
+            "observer path defaults to disabled because prompt-side K capture "
+            "still depends on real prompt forwards."
+        ),
+    )
+    vllm_inspect.add_argument(
+        "--vllm-compilation-mode",
+        choices=("none", "stock_torch_compile", "dynamo_trace_once", "vllm_compile"),
+        default=None,
+        help="Override vLLM compilation mode for diagnostic runs.",
+    )
+    vllm_inspect.add_argument(
+        "--vllm-cudagraph-mode",
+        choices=("none", "piecewise", "full", "full_decode_only", "full_and_piecewise"),
+        default=None,
+        help="Override vLLM cudagraph mode for diagnostic runs.",
+    )
+    vllm_inspect.add_argument(
+        "--vllm-compile-cache-dir",
+        default=None,
+        help="Explicit torch.compile cache directory for this diagnostic run.",
+    )
+    vllm_inspect.add_argument(
+        "--vllm-disable-compile-cache",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Disable torch.compile cache reuse for this diagnostic run.",
+    )
+    vllm_inspect.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help=(
+            "Run the same request N times on the same engine. Writes per-run "
+            "bundles and a stability summary for decode-drift investigation."
+        ),
+    )
+    vllm_inspect.add_argument("--output", required=True)
+    vllm_inspect.set_defaults(func=cmd_gemma_vllm_inspect)
 
     cal = subparsers.add_parser(
         "gemma_calibrate_heads",
@@ -452,6 +807,20 @@ def build_cli() -> argparse.ArgumentParser:
     )
     forced.add_argument("--output", required=True)
     forced.set_defaults(func=cmd_gemma_forced_align)
+
+    seam_cmp = subparsers.add_parser(
+        "seam_comparison",
+        help=(
+            "Run the three-seam vLLM comparison on one audio: eager baseline, "
+            "cudagraph=full, vllm_compile+cudagraph=none."
+        ),
+    )
+    seam_cmp.add_argument("--wav", required=True)
+    seam_cmp.add_argument("--language", default="English")
+    seam_cmp.add_argument("--heads-path", default=None)
+    seam_cmp.add_argument("--top-k", type=int, default=8)
+    seam_cmp.add_argument("--output-dir", required=True)
+    seam_cmp.set_defaults(func=cmd_seam_comparison)
 
     compare = subparsers.add_parser("compare", help="Compare two alignment bundles")
     compare.add_argument("--qwen", required=True)

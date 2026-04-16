@@ -35,6 +35,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from types import SimpleNamespace
 from typing import Any, Sequence
 import json
@@ -45,7 +46,13 @@ import numpy as np
 import torch
 from transformers.cache_utils import DynamicCache
 
-from alignment_backend import AlignmentBackend, AlignmentResult, WordAlignment
+from alignment_backend import (
+    AlignAttObserverToken,
+    AlignAttProvenanceBreakdown,
+    AlignmentBackend,
+    AlignmentResult,
+    WordAlignment,
+)
 from cascade_mt_backend import (
     AlignAttHead,
     LayerInputCapture,
@@ -696,7 +703,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         inputs: dict,
         input_ids: Sequence[int],
         audio_span: AudioSpan,
-    ) -> tuple[list[int], list[torch.Tensor]]:
+    ) -> tuple[list[int], list[torch.Tensor], dict[str, Any]]:
         """Greedy ASR decode with replay-free qk_fast audio alignment.
 
         This is the runtime one-pass path: prompt once under fast attention,
@@ -711,6 +718,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
 
         generation_stop_token_ids = set(self._resolve_stop_token_ids())
         audio_positions = list(range(audio_span.prompt_start, audio_span.prompt_end))
+        prompt_forward_start = perf_counter()
 
         with self._temporary_attention_implementation(self.fast_attention_implementation), torch.no_grad():
             outputs = self.model(
@@ -718,12 +726,20 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 use_cache=True,
                 return_dict=True,
             )
+        prompt_forward_ms = (perf_counter() - prompt_forward_start) * 1000.0
+        prompt_snapshot_start = perf_counter()
         prompt_kv_snapshot = self._snapshot_kv(outputs.past_key_values, len(input_ids))
+        prompt_kv_snapshot_ms = (perf_counter() - prompt_snapshot_start) * 1000.0
         past_key_values = outputs.past_key_values
 
         generated_ids: list[int] = []
         per_token_audio_rows: list[torch.Tensor] = []
         self.qk_fast_probe_supported = None
+        decode_loop_start = perf_counter()
+        decode_step_ms_total = 0.0
+        qk_reconstruction_ms_total = 0.0
+        qk_reconstruction_success_count = 0
+        qk_reconstruction_empty_count = 0
 
         for _ in range(self.max_new_tokens):
             logits = outputs.logits[0, -1, :].float()
@@ -732,14 +748,17 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 break
 
             generated_ids.append(next_token_id)
+            decode_step_start = perf_counter()
             outputs, captured_layer_inputs = self._run_suffix_forward(
                 token_ids=[next_token_id],
                 past_key_values=past_key_values,
                 attention_implementation=self.fast_attention_implementation,
                 capture_recorder=self.alignatt_layer_input_recorder,
             )
+            decode_step_ms_total += (perf_counter() - decode_step_start) * 1000.0
             past_key_values = outputs.past_key_values
 
+            qk_start = perf_counter()
             if captured_layer_inputs:
                 self.qk_fast_probe_supported = True
                 qk_rows, _ = extract_source_attention_rows_per_token_from_fast_path(
@@ -752,10 +771,13 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             else:
                 self.qk_fast_probe_supported = False
                 qk_rows = []
+            qk_reconstruction_ms_total += (perf_counter() - qk_start) * 1000.0
 
             if qk_rows:
+                qk_reconstruction_success_count += 1
                 per_token_audio_rows.append(qk_rows[-1])
             else:
+                qk_reconstruction_empty_count += 1
                 per_token_audio_rows.append(
                     torch.zeros(
                         len(self.alignatt_heads),
@@ -764,7 +786,80 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                     )
                 )
 
-        return generated_ids, per_token_audio_rows
+        decode_loop_ms = (perf_counter() - decode_loop_start) * 1000.0
+        generated_token_count = len(generated_ids)
+        timing_components_ms = {
+            "prompt_forward": prompt_forward_ms,
+            "prompt_kv_snapshot": prompt_kv_snapshot_ms,
+            "decode_loop_total": decode_loop_ms,
+            "decode_step_total": decode_step_ms_total,
+            "decode_step_avg": (
+                decode_step_ms_total / float(generated_token_count)
+                if generated_token_count > 0
+                else 0.0
+            ),
+            "qk_reconstruction_total": qk_reconstruction_ms_total,
+            "qk_reconstruction_avg": (
+                qk_reconstruction_ms_total / float(generated_token_count)
+                if generated_token_count > 0
+                else 0.0
+            ),
+        }
+        diagnostics = {
+            "selected_head_count": len(self.alignatt_heads),
+            "audio_span_length": len(audio_positions),
+            "generated_token_count": generated_token_count,
+            "qk_fast_layer_input_capture_supported": bool(self.qk_fast_probe_supported),
+            "qk_reconstruction_successful_token_count": qk_reconstruction_success_count,
+            "qk_reconstruction_empty_token_count": qk_reconstruction_empty_count,
+            "timings_ms": {
+                key: round(float(value), 3)
+                for key, value in timing_components_ms.items()
+            },
+        }
+        return generated_ids, per_token_audio_rows, diagnostics
+
+    def _build_compact_observer_tokens(
+        self,
+        *,
+        token_ids: Sequence[int],
+        aligned_source_positions: Sequence[int | None],
+        provenance: Sequence[AlignAttProvenanceBreakdown | None] | None = None,
+        blocked_source_local_position: int | None = None,
+        blocked_source_unit_index: int | None = None,
+    ) -> tuple[AlignAttObserverToken, ...]:
+        if self.tokenizer is None:
+            raise RuntimeError("Gemma alignment backend is not loaded.")
+        if len(token_ids) != len(aligned_source_positions):
+            raise ValueError("token_ids and aligned_source_positions length mismatch")
+        if provenance is not None and len(provenance) != len(token_ids):
+            raise ValueError("provenance and token_ids length mismatch")
+
+        observer_tokens: list[AlignAttObserverToken] = []
+        for token_index, (token_id, aligned_position) in enumerate(
+            zip(token_ids, aligned_source_positions)
+        ):
+            provenance_entry = None if provenance is None else provenance[token_index]
+            observer_tokens.append(
+                AlignAttObserverToken(
+                    token_id=int(token_id),
+                    token_str=self.tokenizer.decode(
+                        [int(token_id)], skip_special_tokens=False
+                    ),
+                    aligned_source_position=(
+                        None if aligned_position is None else int(aligned_position)
+                    ),
+                    source_accessible_mass=(
+                        None
+                        if provenance_entry is None
+                        else float(provenance_entry.source_accessible)
+                    ),
+                    blocked_source_local_position=blocked_source_local_position,
+                    blocked_source_unit_index=blocked_source_unit_index,
+                    provenance=provenance_entry,
+                )
+            )
+        return tuple(observer_tokens)
 
     # -------------------- default-attention ASR ----------------------------
 
@@ -835,6 +930,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         """
         if self.model is None or self.tokenizer is None:
             raise RuntimeError("Gemma alignment backend is not loaded.")
+        total_start = perf_counter()
         transcript = transcript.strip()
         if not transcript:
             return None
@@ -862,6 +958,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 text=transcript,
                 words=(),
                 audio_duration_s=audio_duration_s,
+                observer_tokens=(),
                 diagnostics={
                     "backend": self.name,
                     "mode": "forced_alignment",
@@ -876,6 +973,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             transcript_span=transcript_span,
             audio_span=audio_span,
         )
+        postprocess_start = perf_counter()
         token_audio_positions = self._aggregate_audio_positions_from_rows(
             probe_result.source_attention_rows_per_token
         )
@@ -902,10 +1000,20 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             token_end_times_s=token_end_times_s,
             audio_duration_s=audio_duration_s,
         )
+        postprocess_ms = (perf_counter() - postprocess_start) * 1000.0
+        total_alignment_ms = (perf_counter() - total_start) * 1000.0
+        observer_tokens = self._build_compact_observer_tokens(
+            token_ids=transcript_token_ids,
+            aligned_source_positions=token_audio_positions,
+        )
+        timings_ms = dict(probe_result.diagnostics.get("timings_ms", {}))
+        timings_ms["timing_aggregation"] = round(float(postprocess_ms), 3)
+        timings_ms["total_alignment"] = round(float(total_alignment_ms), 3)
         return AlignmentResult(
             text=transcript,
             words=tuple(words),
             audio_duration_s=audio_duration_s,
+            observer_tokens=observer_tokens,
             diagnostics={
                 "backend": self.name,
                 "mode": "forced_alignment",
@@ -915,9 +1023,12 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 "monotonicity": monotonicity_score(token_audio_positions),
                 "aligned_audio_positions": token_audio_positions,
                 "transcript_token_count": len(transcript_token_ids),
+                "observer_token_count": len(observer_tokens),
                 "word_end_offset_s": self.word_end_offset_s,
-                "probe_backend": probe_result.probe_backend,
-                **probe_result.diagnostics,
+                **{
+                    k: v for k, v in probe_result.diagnostics.items() if k != "timings_ms"
+                },
+                "timings_ms": timings_ms,
             },
         )
 
@@ -1186,16 +1297,20 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         transcript_span: tuple[int, int],
         audio_span: AudioSpan,
     ) -> AudioAttentionProbeResult:
+        capture_start = perf_counter()
         per_token_captures = self._run_forward_capture_transcript_attention(
             inputs=inputs,
             transcript_span=transcript_span,
         )
+        capture_ms = (perf_counter() - capture_start) * 1000.0
+        row_extract_start = perf_counter()
         rows = tuple(
             self._extract_audio_rows_from_eager_captures(
                 per_token_captures=per_token_captures,
                 audio_span=audio_span,
             )
         )
+        row_extract_ms = (perf_counter() - row_extract_start) * 1000.0
         return AudioAttentionProbeResult(
             source_attention_rows_per_token=rows,
             probe_backend="eager",
@@ -1203,6 +1318,12 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 "alignment_attention": "eager",
                 "fast_attention_implementation": None,
                 "qk_fast_reconstruction_succeeded": False,
+                "selected_head_count": len(self.alignatt_heads),
+                "audio_span_length": audio_span.length,
+                "timings_ms": {
+                    "attention_capture": round(float(capture_ms), 3),
+                    "row_extraction": round(float(row_extract_ms), 3),
+                },
             },
         )
 
@@ -1238,13 +1359,17 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             )
 
         prefix_inputs = self._slice_inputs_to_prefix(inputs, transcript_start)
+        prefix_forward_start = perf_counter()
         with self._temporary_attention_implementation(self.fast_attention_implementation), torch.no_grad():
             prefix_outputs = self.model(
                 **prefix_inputs,
                 use_cache=True,
                 return_dict=True,
             )
+        prefix_forward_ms = (perf_counter() - prefix_forward_start) * 1000.0
+        prompt_snapshot_start = perf_counter()
         prompt_kv_snapshot = self._snapshot_kv(prefix_outputs.past_key_values, transcript_start)
+        prompt_kv_snapshot_ms = (perf_counter() - prompt_snapshot_start) * 1000.0
         if prompt_kv_snapshot is None:
             self.qk_fast_probe_supported = False
             raise GemmaAudioQKFastError(
@@ -1252,12 +1377,14 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             )
 
         prompt_past_key_values = self._restore_kv(prompt_kv_snapshot, transcript_start)
+        suffix_forward_start = perf_counter()
         outputs, captured_layer_inputs = self._run_suffix_forward(
             token_ids=transcript_token_ids,
             past_key_values=prompt_past_key_values,
             attention_implementation=self.fast_attention_implementation,
             capture_recorder=self.alignatt_layer_input_recorder,
         )
+        suffix_forward_ms = (perf_counter() - suffix_forward_start) * 1000.0
         self.qk_fast_probe_supported = bool(captured_layer_inputs)
         if not captured_layer_inputs:
             raise GemmaAudioQKFastError(
@@ -1266,6 +1393,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             )
 
         audio_positions = list(range(audio_span.prompt_start, audio_span.prompt_end))
+        qk_start = perf_counter()
         rows, _provenance = extract_source_attention_rows_per_token_from_fast_path(
             layer_inputs_by_layer=captured_layer_inputs,
             prompt_kv_snapshot=prompt_kv_snapshot,
@@ -1273,6 +1401,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             alignatt_heads=self.alignatt_heads,
             source_positions=audio_positions,
         )
+        qk_reconstruction_ms = (perf_counter() - qk_start) * 1000.0
         if not rows:
             raise GemmaAudioQKFastError(
                 "Audio qk_fast probe captured layer inputs but could not reconstruct any "
@@ -1287,6 +1416,14 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 "qk_fast_reconstruction_succeeded": True,
                 "qk_fast_prompt_token_count": int(transcript_start),
                 "qk_fast_transcript_token_count": int(len(transcript_token_ids)),
+                "selected_head_count": len(self.alignatt_heads),
+                "audio_span_length": len(audio_positions),
+                "timings_ms": {
+                    "prefix_forward": round(float(prefix_forward_ms), 3),
+                    "prompt_kv_snapshot": round(float(prompt_kv_snapshot_ms), 3),
+                    "suffix_forward": round(float(suffix_forward_ms), 3),
+                    "qk_reconstruction_total": round(float(qk_reconstruction_ms), 3),
+                },
             },
         )
 
@@ -1325,6 +1462,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
     ) -> AlignmentResult | None:
         if self.model is None:
             raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
+        total_start = perf_counter()
 
         audio = np.asarray(audio, dtype=np.float32)
         audio_duration_s = self._enforce_audio_cap(audio, sample_rate=sample_rate)
@@ -1345,6 +1483,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 text=text,
                 words=(),
                 audio_duration_s=audio_duration_s,
+                observer_tokens=(),
                 diagnostics={
                     "backend": self.name,
                     "audio_span_length": audio_span.length,
@@ -1352,11 +1491,12 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 },
             )
 
-        generated_ids, per_token_audio_rows = self._decode_transcript_and_audio_rows_qk_fast(
+        generated_ids, per_token_audio_rows, decode_diagnostics = self._decode_transcript_and_audio_rows_qk_fast(
             inputs=inputs,
             input_ids=input_ids,
             audio_span=audio_span,
         )
+        postprocess_start = perf_counter()
         text = self.tokenizer.decode(
             generated_ids, skip_special_tokens=True
         ).strip()
@@ -1386,11 +1526,21 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             token_end_times_s=token_end_times_s,
             audio_duration_s=audio_duration_s,
         )
+        postprocess_ms = (perf_counter() - postprocess_start) * 1000.0
+        total_backend_ms = (perf_counter() - total_start) * 1000.0
+        timings_ms = dict(decode_diagnostics.get("timings_ms", {}))
+        timings_ms["timing_aggregation"] = round(float(postprocess_ms), 3)
+        timings_ms["total_backend"] = round(float(total_backend_ms), 3)
+        observer_tokens = self._build_compact_observer_tokens(
+            token_ids=generated_ids,
+            aligned_source_positions=token_audio_positions,
+        )
 
         return AlignmentResult(
             text=text,
             words=tuple(words),
             audio_duration_s=audio_duration_s,
+            observer_tokens=observer_tokens,
             diagnostics={
                 "backend": self.name,
                 "audio_span_length": audio_span.length,
@@ -1400,6 +1550,11 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 "word_end_offset_s": self.word_end_offset_s,
                 "probe_backend": "qk_fast_onepass",
                 "qk_fast_reconstruction_succeeded": bool(self.qk_fast_probe_supported),
+                "observer_token_count": len(observer_tokens),
+                **{
+                    k: v for k, v in decode_diagnostics.items() if k != "timings_ms"
+                },
+                "timings_ms": timings_ms,
             },
         )
 

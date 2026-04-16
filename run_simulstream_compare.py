@@ -37,7 +37,7 @@ from cascade_artifacts import (
     write_inference_artifacts,
 )
 from cascade_emission import register_translation_timestamps, register_translation_words
-from cascade_runtime import VALID_ALIGNMENT_BACKEND_NAMES
+from cascade_runtime import STABLE_ALIGNMENT_BACKEND_NAMES
 from cascade_simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
 from cascade_text_surface import split_target_emission_units
 from simulstream.server.speech_processors import SAMPLE_RATE
@@ -46,7 +46,7 @@ from simulstream.server.speech_processors import SAMPLE_RATE
 DEFAULT_WAV = "tmp/alignatt_smoke18.wav"
 DEFAULT_REFERENCE = "tmp/alignment_research/smoke18_reference.txt"
 DEFAULT_OUTPUT_DIR = "outputs/simulstream_compare_smoke18"
-BACKEND_IDS = tuple(VALID_ALIGNMENT_BACKEND_NAMES)
+BACKEND_IDS = tuple(STABLE_ALIGNMENT_BACKEND_NAMES)
 
 
 def load_wav_raw(path: str) -> np.ndarray:

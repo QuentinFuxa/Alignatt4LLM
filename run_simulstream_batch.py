@@ -197,7 +197,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--alignment-backend-name",
         default="qwen_forced",
-        choices=("qwen_forced", "gemma_onepass_qk_fast"),
+        choices=("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast"),
     )
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
     parser.add_argument("--max-history-utterances", default=1, type=int)

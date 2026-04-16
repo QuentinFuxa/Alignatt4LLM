@@ -1,0 +1,217 @@
+{
+  "wav": "tmp/alignatt_smoke18.wav",
+  "heads_path": "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en.json",
+  "config": {
+    "executor_backend": "mp",
+    "patch_mode": "postload_instance",
+    "enforce_eager": false,
+    "enable_prefix_caching": true,
+    "compilation_mode": "none",
+    "cudagraph_mode": "full",
+    "compile_cache_dir": "tmp/vllm_compile_probe/custom_tensor_full_cg_repeat_same_engine_prefix_cache"
+  },
+  "same_text_all_runs": false,
+  "runs": [
+    {
+      "run_index": 0,
+      "text": "Hi I'm Si Yuan from Fudan University I'm here to introduce our work Distinctness script knowledge from large language models for constrained language planning In everyday life humans often plan their actions by following a sequence of steps",
+      "generated_token_count": 44,
+      "capture": {
+        "captured_layer_count": 3,
+        "effective_head_count": 8,
+        "generated_token_count": 45,
+        "audio_span_length": 450,
+        "missing_heads": []
+      },
+      "capture_debug": {
+        "storage_mode": "tensor_buffers",
+        "forward_call_count": 294,
+        "prompt_forward_call_count": 3,
+        "decode_forward_call_count": 135,
+        "positions_sample": [],
+        "prompt_positions_sample": [],
+        "decode_positions_sample": [],
+        "layer_stats": {
+          "23": {
+            "selected_head_count": 3,
+            "prompt_audio_capture_count": 450,
+            "decode_q_count": 45,
+            "missing_prompt_audio_count": 0
+          },
+          "35": {
+            "selected_head_count": 2,
+            "prompt_audio_capture_count": 450,
+            "decode_q_count": 45,
+            "missing_prompt_audio_count": 0
+          },
+          "41": {
+            "selected_head_count": 3,
+            "prompt_audio_capture_count": 450,
+            "decode_q_count": 45,
+            "missing_prompt_audio_count": 0
+          }
+        }
+      },
+      "prompt_observer_cache": {
+        "hit": false,
+        "restored_layer_count": 0,
+        "complete_after_restore": false,
+        "cache_size": 1,
+        "stored": true
+      },
+      "timings_ms": {
+        "prompt_build": 238.131,
+        "generate": 3475.855,
+        "capture_fetch": 30.432,
+        "qk_reconstruction": 38.545,
+        "word_aggregation": 0.307,
+        "total_backend": 3783.27
+      },
+      "worker_install": {
+        "prompt_length": 527,
+        "audio_prompt_start": 5,
+        "audio_prompt_length": 450,
+        "storage_mode": "tensor_buffers",
+        "warmup_triggered": true,
+        "warmup_compilation_time_s": 0.0
+      },
+      "enable_prefix_caching": true,
+      "request_prompt_token_count": 527,
+      "prompt_token_ids_match_vllm_output": true
+    },
+    {
+      "run_index": 1,
+      "text": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, \"Distilling Scripted Knowledge from Large Language Models for Constrained Language Planning.\" In everyday life, humans often plan their actions by following a set of steps.",
+      "generated_token_count": 53,
+      "capture": {
+        "captured_layer_count": 3,
+        "effective_head_count": 8,
+        "generated_token_count": 54,
+        "audio_span_length": 450,
+        "missing_heads": []
+      },
+      "capture_debug": {
+        "storage_mode": "tensor_buffers",
+        "forward_call_count": 165,
+        "prompt_forward_call_count": 0,
+        "decode_forward_call_count": 162,
+        "positions_sample": [],
+        "prompt_positions_sample": [],
+        "decode_positions_sample": [],
+        "layer_stats": {
+          "23": {
+            "selected_head_count": 3,
+            "prompt_audio_capture_count": 450,
+            "decode_q_count": 54,
+            "missing_prompt_audio_count": 0
+          },
+          "35": {
+            "selected_head_count": 2,
+            "prompt_audio_capture_count": 450,
+            "decode_q_count": 54,
+            "missing_prompt_audio_count": 0
+          },
+          "41": {
+            "selected_head_count": 3,
+            "prompt_audio_capture_count": 450,
+            "decode_q_count": 54,
+            "missing_prompt_audio_count": 0
+          }
+        }
+      },
+      "prompt_observer_cache": {
+        "hit": true,
+        "restored_layer_count": 3,
+        "complete_after_restore": true,
+        "cache_size": 1,
+        "stored": true
+      },
+      "timings_ms": {
+        "prompt_build": 13.82,
+        "generate": 639.526,
+        "capture_fetch": 17.316,
+        "qk_reconstruction": 48.226,
+        "word_aggregation": 0.291,
+        "total_backend": 719.18
+      },
+      "worker_install": {
+        "prompt_length": 527,
+        "audio_prompt_start": 5,
+        "audio_prompt_length": 450,
+        "storage_mode": "tensor_buffers",
+        "warmup_triggered": false,
+        "warmup_compilation_time_s": 0.0
+      },
+      "enable_prefix_caching": true,
+      "request_prompt_token_count": 527,
+      "prompt_token_ids_match_vllm_output": true
+    },
+    {
+      "run_index": 2,
+      "text": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, \"Distilling Scripted Knowledge from Large Language Models for Constrained Language Planning.\" In everyday life, humans often plan their actions by following a set of steps.",
+      "generated_token_count": 53,
+      "capture": {
+        "captured_layer_count": 3,
+        "effective_head_count": 8,
+        "generated_token_count": 54,
+        "audio_span_length": 450,
+        "missing_heads": []
+      },
+      "capture_debug": {
+        "storage_mode": "tensor_buffers",
+        "forward_call_count": 165,
+        "prompt_forward_call_count": 0,
+        "decode_forward_call_count": 162,
+        "positions_sample": [],
+        "prompt_positions_sample": [],
+        "decode_positions_sample": [],
+        "layer_stats": {
+          "23": {
+            "selected_head_count": 3,
+            "prompt_audio_capture_count": 450,
+            "decode_q_count": 54,
+            "missing_prompt_audio_count": 0
+          },
+          "35": {
+            "selected_head_count": 2,
+            "prompt_audio_capture_count": 450,
+            "decode_q_count": 54,
+            "missing_prompt_audio_count": 0
+          },
+          "41": {
+            "selected_head_count": 3,
+            "prompt_audio_capture_count": 450,
+            "decode_q_count": 54,
+            "missing_prompt_audio_count": 0
+          }
+        }
+      },
+      "prompt_observer_cache": {
+        "hit": true,
+        "restored_layer_count": 3,
+        "complete_after_restore": true,
+        "cache_size": 1,
+        "stored": true
+      },
+      "timings_ms": {
+        "prompt_build": 14.197,
+        "generate": 636.451,
+        "capture_fetch": 18.976,
+        "qk_reconstruction": 49.601,
+        "word_aggregation": 0.283,
+        "total_backend": 719.507
+      },
+      "worker_install": {
+        "prompt_length": 527,
+        "audio_prompt_start": 5,
+        "audio_prompt_length": 450,
+        "storage_mode": "tensor_buffers",
+        "warmup_triggered": false,
+        "warmup_compilation_time_s": 0.0
+      },
+      "enable_prefix_caching": true,
+      "request_prompt_token_count": 527,
+      "prompt_token_ids_match_vllm_output": true
+    }
+  ]
+}

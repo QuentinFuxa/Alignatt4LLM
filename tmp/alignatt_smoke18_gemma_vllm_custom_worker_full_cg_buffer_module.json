@@ -1,0 +1,668 @@
+{
+  "tag": "gemma_vllm_qk_fast",
+  "wav_path": "tmp/alignatt_smoke18.wav",
+  "text": "Hi I'm Si Yuan from Fudan University I'm here to introduce our work Distinctness script knowledge from large language models for constrained language planning In everyday life humans often plan their actions by following a sequence of steps",
+  "audio_duration_s": 18.0,
+  "words": [
+    {
+      "text": "Hi",
+      "start_time": 2.16,
+      "end_time": 2.16
+    },
+    {
+      "text": "I'm",
+      "start_time": 2.24,
+      "end_time": 2.28
+    },
+    {
+      "text": "Si",
+      "start_time": 2.76,
+      "end_time": 2.76
+    },
+    {
+      "text": "Yuan",
+      "start_time": 3.24,
+      "end_time": 3.24
+    },
+    {
+      "text": "from",
+      "start_time": 3.72,
+      "end_time": 3.72
+    },
+    {
+      "text": "Fudan",
+      "start_time": 3.72,
+      "end_time": 4.32
+    },
+    {
+      "text": "University",
+      "start_time": 5.16,
+      "end_time": 5.16
+    },
+    {
+      "text": "I'm",
+      "start_time": 5.2,
+      "end_time": 5.28
+    },
+    {
+      "text": "here",
+      "start_time": 5.44,
+      "end_time": 5.44
+    },
+    {
+      "text": "to",
+      "start_time": 6.24,
+      "end_time": 6.24
+    },
+    {
+      "text": "introduce",
+      "start_time": 6.24,
+      "end_time": 6.24
+    },
+    {
+      "text": "our",
+      "start_time": 6.92,
+      "end_time": 6.92
+    },
+    {
+      "text": "work",
+      "start_time": 12.8,
+      "end_time": 12.8
+    },
+    {
+      "text": "Distinctness",
+      "start_time": 12.8,
+      "end_time": 12.8
+    },
+    {
+      "text": "script",
+      "start_time": 12.8,
+      "end_time": 12.8
+    },
+    {
+      "text": "knowledge",
+      "start_time": 12.8,
+      "end_time": 12.8
+    },
+    {
+      "text": "from",
+      "start_time": 12.8,
+      "end_time": 12.8
+    },
+    {
+      "text": "large",
+      "start_time": 12.8,
+      "end_time": 12.8
+    },
+    {
+      "text": "language",
+      "start_time": 12.8,
+      "end_time": 12.8
+    },
+    {
+      "text": "models",
+      "start_time": 13.24,
+      "end_time": 13.24
+    },
+    {
+      "text": "for",
+      "start_time": 13.24,
+      "end_time": 13.24
+    },
+    {
+      "text": "constrained",
+      "start_time": 13.24,
+      "end_time": 13.24
+    },
+    {
+      "text": "language",
+      "start_time": 13.24,
+      "end_time": 13.24
+    },
+    {
+      "text": "planning",
+      "start_time": 13.64,
+      "end_time": 13.64
+    },
+    {
+      "text": "In",
+      "start_time": 15.08,
+      "end_time": 15.08
+    },
+    {
+      "text": "everyday",
+      "start_time": 15.08,
+      "end_time": 15.08
+    },
+    {
+      "text": "life",
+      "start_time": 15.12,
+      "end_time": 15.12
+    },
+    {
+      "text": "humans",
+      "start_time": 15.28,
+      "end_time": 15.28
+    },
+    {
+      "text": "often",
+      "start_time": 16.12,
+      "end_time": 16.12
+    },
+    {
+      "text": "plan",
+      "start_time": 16.12,
+      "end_time": 16.12
+    },
+    {
+      "text": "their",
+      "start_time": 16.32,
+      "end_time": 16.32
+    },
+    {
+      "text": "actions",
+      "start_time": 17.64,
+      "end_time": 17.64
+    },
+    {
+      "text": "by",
+      "start_time": 17.68,
+      "end_time": 17.68
+    },
+    {
+      "text": "following",
+      "start_time": 17.8,
+      "end_time": 17.8
+    },
+    {
+      "text": "a",
+      "start_time": 17.8,
+      "end_time": 17.8
+    },
+    {
+      "text": "sequence",
+      "start_time": 17.92,
+      "end_time": 17.92
+    },
+    {
+      "text": "of",
+      "start_time": 17.96,
+      "end_time": 17.96
+    },
+    {
+      "text": "steps",
+      "start_time": 18.0,
+      "end_time": 18.0
+    }
+  ],
+  "observer_tokens": [
+    {
+      "token_id": 10979,
+      "token_str": "Hi",
+      "aligned_source_position": 53,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 564,
+      "token_str": " I",
+      "aligned_source_position": 55,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 236789,
+      "token_str": "'",
+      "aligned_source_position": 56,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 236757,
+      "token_str": "m",
+      "aligned_source_position": 56,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 7072,
+      "token_str": " Si",
+      "aligned_source_position": 68,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 54409,
+      "token_str": " Yuan",
+      "aligned_source_position": 80,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 699,
+      "token_str": " from",
+      "aligned_source_position": 92,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 633,
+      "token_str": " F",
+      "aligned_source_position": 91,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 83724,
+      "token_str": "udan",
+      "aligned_source_position": 107,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 3148,
+      "token_str": " University",
+      "aligned_source_position": 128,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 564,
+      "token_str": " I",
+      "aligned_source_position": 129,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 236789,
+      "token_str": "'",
+      "aligned_source_position": 131,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 236757,
+      "token_str": "m",
+      "aligned_source_position": 131,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 1590,
+      "token_str": " here",
+      "aligned_source_position": 135,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 531,
+      "token_str": " to",
+      "aligned_source_position": 155,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 12986,
+      "token_str": " introduce",
+      "aligned_source_position": 155,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 1023,
+      "token_str": " our",
+      "aligned_source_position": 172,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 981,
+      "token_str": " work",
+      "aligned_source_position": 319,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 175954,
+      "token_str": " Distinct",
+      "aligned_source_position": 197,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 1788,
+      "token_str": "ness",
+      "aligned_source_position": 205,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 8948,
+      "token_str": " script",
+      "aligned_source_position": 219,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 4654,
+      "token_str": " knowledge",
+      "aligned_source_position": 220,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 699,
+      "token_str": " from",
+      "aligned_source_position": 243,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 2455,
+      "token_str": " large",
+      "aligned_source_position": 244,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 5192,
+      "token_str": " language",
+      "aligned_source_position": 246,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 4681,
+      "token_str": " models",
+      "aligned_source_position": 330,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 573,
+      "token_str": " for",
+      "aligned_source_position": 291,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 43140,
+      "token_str": " constrained",
+      "aligned_source_position": 294,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 5192,
+      "token_str": " language",
+      "aligned_source_position": 309,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 6995,
+      "token_str": " planning",
+      "aligned_source_position": 340,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 799,
+      "token_str": " In",
+      "aligned_source_position": 376,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 17872,
+      "token_str": " everyday",
+      "aligned_source_position": 361,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 1972,
+      "token_str": " life",
+      "aligned_source_position": 377,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 14464,
+      "token_str": " humans",
+      "aligned_source_position": 381,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 3187,
+      "token_str": " often",
+      "aligned_source_position": 402,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 2731,
+      "token_str": " plan",
+      "aligned_source_position": 402,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 910,
+      "token_str": " their",
+      "aligned_source_position": 407,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 7419,
+      "token_str": " actions",
+      "aligned_source_position": 440,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 684,
+      "token_str": " by",
+      "aligned_source_position": 441,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 2269,
+      "token_str": " following",
+      "aligned_source_position": 444,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 496,
+      "token_str": " a",
+      "aligned_source_position": 444,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 7501,
+      "token_str": " sequence",
+      "aligned_source_position": 447,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 529,
+      "token_str": " of",
+      "aligned_source_position": 448,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    },
+    {
+      "token_id": 6555,
+      "token_str": " steps",
+      "aligned_source_position": 449,
+      "source_accessible_mass": null,
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "provenance": null
+    }
+  ],
+  "diagnostics": {
+    "backend": "gemma_vllm_qk_fast",
+    "observer_backend": "vllm_qk_fast_experimental",
+    "executor_backend": "uni",
+    "worker_mode": "custom_tensor",
+    "patch_mode": "postload_instance",
+    "enforce_eager": false,
+    "compilation_mode": "none",
+    "cudagraph_mode": "full",
+    "compile_cache_dir": "tmp/vllm_compile_probe/custom_worker_full_cg_buffer_module",
+    "disable_compile_cache": false,
+    "selected_head_count": 8,
+    "prompt_token_count": 527,
+    "request_prompt_token_count": 527,
+    "prompt_token_ids_match_vllm_output": true,
+    "audio_span_length": 450,
+    "generated_token_count": 44,
+    "monotonicity": 0.9069767441860465,
+    "finish_reason": "stop",
+    "capture": {
+      "captured_layer_count": 3,
+      "effective_head_count": 8,
+      "generated_token_count": 45,
+      "audio_span_length": 450,
+      "missing_heads": []
+    },
+    "capture_debug": {
+      "storage_mode": "tensor_buffers",
+      "forward_call_count": 294,
+      "prompt_forward_call_count": 3,
+      "decode_forward_call_count": 135,
+      "positions_sample": [],
+      "prompt_positions_sample": [],
+      "decode_positions_sample": [],
+      "layer_stats": {
+        "23": {
+          "selected_head_count": 3,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        },
+        "35": {
+          "selected_head_count": 2,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        },
+        "41": {
+          "selected_head_count": 3,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        }
+      }
+    },
+    "worker_install": {
+      "prompt_length": 527,
+      "audio_prompt_start": 5,
+      "audio_prompt_length": 450,
+      "storage_mode": "tensor_buffers",
+      "warmup_triggered": true,
+      "warmup_compilation_time_s": 0.0
+    },
+    "timings_ms": {
+      "prompt_build": 100.525,
+      "generate": 3137.267,
+      "capture_fetch": 15.184,
+      "qk_reconstruction": 13.683,
+      "word_aggregation": 0.251,
+      "total_backend": 3266.909
+    }
+  }
+}

@@ -57,7 +57,10 @@ LANGUAGE_NAME_TO_CODE = {
 LANGUAGE_CODE_TO_NAME = {
     code: name for name, code in LANGUAGE_NAME_TO_CODE.items()
 }
-VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast")
+VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast")
+# The stable set is used by default in comparison scripts; the experimental
+# vLLM backend is opt-in until validated under the full SimulStream loop.
+STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast")
 
 
 def _resolve_hf_snapshot(repo_subpath: str) -> str:
@@ -140,6 +143,12 @@ class CascadeRuntimeConfig:
     gemma_audio_alignment_top_k_heads: int = 8
     gemma_audio_alignment_filter_width: int = 7
     gemma_audio_alignment_max_new_tokens: int = 256
+    # vLLM-specific config for the experimental gemma_vllm_qk_fast backend.
+    # Defaults reflect the validated cudagraph=full seam (PLAN.md section 6).
+    gemma_vllm_enforce_eager: bool = False
+    gemma_vllm_enable_prefix_caching: bool = False
+    gemma_vllm_cudagraph_mode: str | None = "full"
+    gemma_vllm_gpu_memory_utilization: float = 0.5
 
     def __post_init__(self) -> None:
         if self.translation_alignatt_heads_path is None:
@@ -409,6 +418,17 @@ def build_alignment_backend(
             filter_width=int(config.gemma_audio_alignment_filter_width),
             max_new_tokens=int(config.gemma_audio_alignment_max_new_tokens),
             audio_align_probe_mode=config.gemma_audio_align_probe_mode,
+        )
+    if config.alignment_backend_name == "gemma_vllm_qk_fast":
+        from gemma_vllm_alignment_backend import GemmaVLLMAttentionAlignmentBackend
+
+        return GemmaVLLMAttentionAlignmentBackend(
+            model_name=gemma_path,
+            runtime_config=config,
+            audio_heads_path=config.gemma_audio_alignment_heads_path,
+            audio_heads_top_k=int(config.gemma_audio_alignment_top_k_heads),
+            filter_width=int(config.gemma_audio_alignment_filter_width),
+            max_new_tokens=int(config.gemma_audio_alignment_max_new_tokens),
         )
     raise ValueError(f"Unknown alignment_backend_name: {config.alignment_backend_name!r}")
 

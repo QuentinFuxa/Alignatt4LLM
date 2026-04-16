@@ -27,6 +27,7 @@ For each change, examine the existing system and redesign it into the most elega
 
 - `qwen_forced` = `Qwen3-ASR + Qwen3 Forced Aligner`
 - `gemma_onepass_qk_fast` = Gemma 4 ASR + audio AlignAtt `qk_fast` in one pass
+- `gemma_vllm_qk_fast` = **experimental** Gemma 4 ASR + audio AlignAtt through vLLM (worker_cls + tensor observer, cudagraph=full by default)
 
 Everything else is considered historical or archived. In particular:
 
