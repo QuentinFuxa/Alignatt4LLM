@@ -1582,3 +1582,111 @@ All three directions stay under `2000 ms CU` at the same operating point.
 - **Automatic head selection**: `alignatt_heads_path_for(source, target)`
   resolves the correct heads file; `temporary_runtime_config` auto-switches
   when `target_lang` changes.
+
+
+## 2026-04-16 SimulStream Delivery Validation
+
+### SimulStream Integration
+
+The cascade is now wrapped as a real `SpeechProcessor` subclass
+(`CascadeAlignAttProcessor` in `cascade_simulstream_processor.py`) that
+plugs into the SimulStream framework. This is the canonical delivery path;
+all final evaluations and speed measurements go through this processor.
+
+#### Architectural Fixes Applied
+
+Five blockers were identified and fixed before validation:
+
+1. **Session isolation**: the processor shares module-global state from
+   `qwen3asr_gemma_cascade_core`. A single-instance guard (`pool_size=1`)
+   now prevents accidental multi-session corruption.
+2. **Stale AlignAtt heads on language change**: `set_source_language()` and
+   `set_target_language()` now call `mt_backend.refresh_alignatt_artifacts()`
+   when the heads path changes. This removes old forward hooks, reloads the
+   correct direction's head file, and re-registers recorders — so switching
+   from en→de to en→it is deterministic.
+3. **EOS in stream traces**: `run_simulstream_evaluation.py` and
+   `run_simulstream_batch.py` now append a final `is_eos: true` update to
+   `stream_updates.jsonl` when `end_of_stream()` produces new output.
+4. **Batch audio identity**: every stream update in the batch runner now
+   carries a `wav_name` field, making concatenated traces unambiguous.
+5. **GPU peak memory**: `benchmark_simulstream_speed.py` resets
+   `torch.cuda.reset_peak_memory_stats()` before the timed section so the
+   reported peak reflects run-time usage only.
+
+### SimulStream Quality Results (control audio: ccpXHNfaoy.wav, 360 s)
+
+All results below were produced through the real `CascadeAlignAttProcessor`
+path, not the research harness.
+
+#### `< 2 s` regime (`chunk_ms = 450`)
+
+| Direction | BLEU | chrF | xCOMET-XL | `LongYAAL CU` | `LongYAAL CA` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| en→de | 28.22 | 63.53 | 0.8622 | 1747 | 2246 |
+| en→it | 36.87 | 71.48 | 0.7663 | 1814 | 2667 |
+| en→zh | 41.85 | 38.32 | 0.7405 | 1763 | 2001 |
+
+All three directions stay comfortably under `2000 ms CU`.
+
+These numbers are **bit-identical** to the research-harness reference points,
+confirming that the SimulStream processor introduces no behavioral divergence.
+
+#### `< 4 s` regime (`chunk_ms = 800`)
+
+| Direction | BLEU | chrF | xCOMET-XL | `LongYAAL CU` | `LongYAAL CA` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| en→de | 38.01 | 67.17 | 0.9394 | 3340 | 4070 |
+
+Quality is close to the `chunk_ms = 800` reference (BLEU 38.76, CU 3717);
+the small delta is from using `min_start_seconds = 2.0` and
+`max_history_utterances = 1` vs the reference's `5.0` / `0`.
+
+### Speed Profile (SimulStream path, A100 40 GB)
+
+| Direction | `chunk_ms` | RTF | Mean chunk | P95 chunk | Max chunk | EOS | Peak GPU |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| en→de | 450 | 1.03 | 465 ms | 1161 ms | 2209 ms | 54 ms | 17.2 GB |
+| en→zh | 450 | 0.87 | — | — | — | — | — |
+
+RTF is ~1.0 for the 360 s control audio at `chunk_ms = 450`. This is a
+hardware constraint (A100 40 GB running ASR + Gemma E4B simultaneously),
+not a code issue:
+
+- **Qwen3-ASR** (vLLM): 6.6 GB
+- **Gemma E4B** (transformers, eager attention): 17.2 GB
+- Total: ~24 GB of 40 GB
+
+The compute-unaware metrics (`LongYAAL CU`) are hardware-independent and
+remain the primary paper-facing metric. RTF matters for deployment but
+does not affect the quality-latency tradeoff analysis.
+
+### Operating Points
+
+#### `< 2 s CU` (recommended)
+
+```
+chunk_ms = 450
+min_start_seconds = 2.0
+partial_max_new_tokens = 16
+partial_followup_max_new_tokens = 8
+max_history_utterances = 1
+translation_alignatt_rewind_threshold = 8
+translation_alignatt_inaccessible_ms = 0
+translation_alignatt_min_source_mass = 0.0
+```
+
+With provenance filter (`min_source_mass = 0.2`), en→de improves to
+BLEU 29.58, chrF 64.00, CU 1990 — still under 2 s.
+
+#### `< 4 s CU`
+
+```
+chunk_ms = 800
+min_start_seconds = 2.0
+partial_max_new_tokens = 16
+partial_followup_max_new_tokens = 8
+max_history_utterances = 1
+translation_alignatt_rewind_threshold = 8
+translation_alignatt_inaccessible_ms = 0
+```
