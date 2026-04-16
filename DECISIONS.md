@@ -585,6 +585,54 @@ Artifact: `outputs/night1_cs_en_chunk450/` — also carries the new
 per-update `alignatt_metadata` schema so it is usable for future
 replay work.
 
+### Step 7 (stretch): continuous-confidence offline replay
+
+Landed as `scripts/continuous_confidence_replay.py`. Reads a
+stream_updates.jsonl with observer metadata and derives a per-token
+continuous confidence scalar from the 4-way provenance distribution
+(`source_accessible`, `source_inaccessible`, `non_source_prompt`,
+`suffix`):
+
+    conf_raw = 0.5 * source_accessible
+             - 0.2 * source_inaccessible
+             - 0.3 * (entropy_nats / log(4))
+             + 0.3
+    conf    = sigmoid(6 * (conf_raw - 0.5))
+
+Compared against the online runtime's discrete accept/reject decisions:
+
+| Artifact                                   | accepted mean | rejected mean | F1 at best single threshold |
+|--------------------------------------------|---------------|---------------|-----------------------------|
+| `night1_ende_stable_k3_chunk700` (en→de)   | 0.225         | 0.217         | 0.717 @ thr=0.15            |
+| `night1_cs_en_chunk450` (cs→en)            | 0.356         | 0.298         | 0.649 @ thr=0.20            |
+
+**Honest result:** the naive linear scalar **does not cleanly replicate
+the discrete-gate decisions**. Mean confidence deltas between accepted
+and rejected tokens are small (≤ 0.06) and best-F1 plateaus around
+0.65–0.72. Even per-stop-reason means cluster tightly
+(e.g. `alignatt:source_frontier` mean 0.22 vs `alignatt:rewind` mean
+0.25 on the en→de artifact — not separable).
+
+Interpretation for the paper: the 4-way provenance distribution, by
+itself, carries weak discriminative information about commit safety.
+The discrete gates clearly use quantities beyond provenance magnitudes
+— positional indices (`unsafe_target_token_index`, frontier positions),
+accessibility counts, and rewind thresholds. A continuous scalar that
+genuinely replaces the three-gate policy would need to incorporate
+these, or would need per-head weights learned from labelled commit
+decisions.
+
+Artifacts: `outputs/night1_*/confidence_replay_report.txt` and
+`confidence_replay.csv`. The CSV is per-token and carries the raw
+provenance plus derived scalar, so follow-up replay experiments
+(different weightings, richer features, learned classifiers) can
+run against it without re-scoring inference.
+
+The existence of a running replay driver closes the Step 7 loop:
+the schema instrumentation is usable, the first-pass analysis gives
+a defensible negative result, and the data artefact is in place for
+follow-up exploration.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +

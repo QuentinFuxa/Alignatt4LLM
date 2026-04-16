@@ -106,11 +106,17 @@ By morning, the repo should satisfy all three:
       valid Pareto knob but strictly dominated by the chunk_ms
       curve. Emit-policy A/B is bit-identical on BLEU / chrF
       (content-invariant).
-- [x] Step 7 — unblocked via the `a0edcc6` schema instrumentation;
-      continuous-confidence replay is now feasible as a dedicated
-      future pass. Not run tonight (need a dedicated replay driver),
-      but the prior blocker ("no per-update observer data") no longer
-      applies.
+- [x] Step 7 — continuous-confidence offline replay shipped as
+      `scripts/continuous_confidence_replay.py`; ran on the K=3@700
+      and cs→en artifacts. Honest negative result documented: the
+      naive provenance-only scalar replicates the discrete-gate
+      accept/reject decisions at only F1 ≈ 0.65-0.72; the observer's
+      4-way provenance alone carries weak discriminative information
+      about commit safety, so a continuous replacement for the three
+      discrete gates would need positional features and/or learned
+      weights. Paper branch is alive but not trivially solvable; the
+      CSV artefacts under `outputs/night1_*/confidence_replay.csv`
+      support follow-up exploration without re-running inference.
 
 Use the current local assets for tonight's loop. The repo currently has `test-set/` but not a local official dev-set workflow. Do not block engineering work on that; just keep in mind that final submission still needs dev logs.
 
