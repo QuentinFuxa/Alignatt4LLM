@@ -1,141 +1,152 @@
-# Token Alignment Heads in ASR models
+# Gemma Alignment Heads
 
-## What Are Token Alignment Heads?
+This directory is now Gemma-first.
 
-Token alignment heads are specific attention heads in a translation LLM that are responsible for mapping source language tokens to target language tokens during inference. They were identified by the paper "Token Alignment Heads: Unveiling Attention's Role in LLM Multilingual Translation" (ICLR 2026 submission).
+The main text-side artifact here is [`detect_translation_heads.py`](/home/fuxa/cascade_simultaneous/assets/attention_heads/detect_translation_heads.py), which implements the paper-style Translation Score pipeline for causal decoder attention heads:
 
-When these heads are ablated (zeroed out), the model loses its ability to translate and reverts to copying the source text verbatim. Other heads can be removed with minimal impact on translation quality.
+1. load parallel sentence pairs for a direction,
+2. annotate word alignments with `gpt-5-mini`,
+3. filter to reliable lexical anchors,
+4. run the Gemma translation model with `output_attentions=True`,
+5. score every `(layer, head)` by full-sequence argmax accuracy on aligned target tokens.
 
-## Procedure
+## What Lives Here
 
-### Step 1: Word Alignment Annotation (GPT-5-mini)
+- `word_alignments_<direction>.json`
+  Clean GPT-derived word mappings after anchor filtering.
+- `raw_alignments_<direction>.jsonl`
+  Resume-friendly raw alignment annotations.
+- `translation_heads_google_gemma-4-E4B-it_<direction>.json`
+  Ranked text translation heads for Gemma.
+- `audio_alignment_heads_google_gemma-4-E4B-it_*.json`
+  Audio-side attention-head bundles used by the current alignment probe.
 
-We used **GPT-5-mini** (OpenAI) with structured JSON output to annotate word-level alignments between 919 English-Chinese parallel sentence pairs from the **MCIF dataset** (conference talk transcripts).
+## Current Defaults
 
-For each sentence pair, GPT-5-mini:
-- Tokenized both source (English) and target (Chinese) into words
-- Produced span-level alignments with confidence scores
-- Example: `"Sara Papi"` <-> `"Sara Papi"` (conf=1.0), `"University of Trento"` <-> `"特伦托 大学"` (conf=0.9)
+- Translation model default: `google/gemma-4-E4B-it`
+- Alignment model default: `gpt-5-mini`
+- Direction default: `cs-en`
 
-Result: **919 pairs annotated, 8450 raw alignments**.
+The detector no longer bakes in a local corpus path. You must pass explicit parallel text with `--src-path` and `--tgt-path` so we do not silently calibrate on stale or evaluation data.
 
-### Step 2: Anchor Filtering
+## Czech -> English For IWSLT 2026
 
-Not all alignments are useful for head detection. We filtered to keep only **high-quality anchor alignments** -- named entities, technical terms, numbers, and content words that serve as reliable position markers. We reject:
-- Function words (the, a, is, etc.)
-- Weak anchors (common verbs, pronouns)
-- Pure punctuation
-- Very short tokens without distinguishing signals (digits, uppercase, Greek letters)
+Use parallel Czech-English training text to discover heads, then validate the promoted head set on the official dev set.
 
-Result: **4181 filtered alignments across 880 pairs** (49% keep rate).
+Recommended order:
 
-### Step 3: Translation Score Computation
+1. `CzEng 2.0` as the primary head-discovery corpus.
+2. `Europarl` and `VoxPopuli cs->en translated data` as political / speech-domain supplements.
+3. `OpenSubtitles v2018` only as an optional robustness supplement, not the core signal.
 
-For each of the 880 pairs:
-1. Build the ASR modeltranslation prompt: `将以下文本翻译为中文...` + source + placeholder
-2. Concatenate the reference target text
-3. Tokenize and map word-level alignment spans to tokenizer token positions
-4. Run a forward pass through ASR modelwith `output_attentions=True`
-5. For each attention head at each layer, check:
-   - For each target token that has a valid alignment, does the **full-sequence argmax** of that head's attention land on the aligned source token?
-   - `TS_h = (# correct alignments) / (# total aligned target tokens)`
+Do not use raw ASR-only corpora such as `ParCzech` or `Common Voice` by themselves for text-side head discovery, because the scoring algorithm needs parallel source-target text.
 
-This is the exact algorithm from the paper (Section 2.2). The **full-sequence argmax** is critical -- we check whether the head's maximum attention across ALL positions (prompt, source, and previously generated target tokens) falls on the correct source token. This is much stricter than restricting the argmax to source-only positions.
+Do not use the official Czech-to-English test set for calibration.
 
-### Step 4: Head Classification
+Keep the official 2026 Czech dev set for downstream validation and promotion decisions.
 
-A head is classified as a **token alignment head** if its average Translation Score across all 880 pairs exceeds **0.1** (paper's threshold).
+More detail lives in [`IWSLT26_CZ_EN.md`](/home/fuxa/cascade_simultaneous/assets/attention_heads/IWSLT26_CZ_EN.md).
 
-## Results
+## Current Czech -> English Artifact
 
-**Model**: `tencent/HY-MT1.5-1.8B` (32 layers x 16 heads = 512 total)
-**Direction**: English -> Chinese
-**Data**: 880 MCIF pairs, 6769 scored target tokens
+The current `cs-en` text-head artifact is:
 
-### Token Alignment Heads Found: 49 / 512 (9.6%)
+- [`translation_heads_google_gemma-4-E4B-it_cs-en.json`](/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_cs-en.json)
 
-| Rank | Layer | Head | Translation Score |
-|------|-------|------|-------------------|
-| 1 | 9 | 5 | 0.899 |
-| 2 | 13 | 1 | 0.812 |
-| 3 | 4 | 12 | 0.746 |
-| 4 | 9 | 6 | 0.729 |
-| 5 | 8 | 8 | 0.699 |
-| 6 | 8 | 6 | 0.685 |
-| 7 | 1 | 10 | 0.584 |
-| 8 | 9 | 7 | 0.568 |
-| 9 | 12 | 11 | 0.482 |
-| 10 | 8 | 0 | 0.481 |
+It was scored from:
 
-The top head (**Layer 9, Head 5**) correctly attends to the aligned source token **90% of the time** across 880 sentence pairs.
+- [`raw_alignments_cs-en.jsonl`](/home/fuxa/cascade_simultaneous/assets/attention_heads/raw_alignments_cs-en.jsonl)
+- [`word_alignments_cs-en.json`](/home/fuxa/cascade_simultaneous/assets/attention_heads/word_alignments_cs-en.json)
 
-### Key Properties Observed
+Run summary:
 
-1. **Sparsity**: Only 9.6% of heads are token alignment heads. This is slightly above the paper's 3-8% range for general LLMs, which makes sense since ASR modelis a translation-specialized model.
+- raw aligned pairs collected: `516`
+- filtered usable pairs: `512`
+- aligned target tokens scored: `6043`
+- token alignment heads found: `69 / 336`
 
-2. **Middle-layer concentration**: Token alignment heads are concentrated in layers 2-19, peaking at layers 8-15. The earliest and latest layers contain very few. This matches the paper's findings and the general understanding that middle layers handle cross-lingual mapping while early layers handle surface features and late layers structure the output.
+Top `cs-en` heads:
 
-3. **Top-heavy distribution**: The top 6 heads (layers 4, 8, 9, 13) account for the bulk of translation alignment capability, with TS > 0.68. There is then a sharp drop-off.
+1. `(11, 3)` with `TS=0.8341`
+2. `(17, 3)` with `TS=0.7785`
+3. `(20, 0)` with `TS=0.7369`
+4. `(6, 5)` with `TS=0.6948`
+5. `(11, 2)` with `TS=0.5755`
+6. `(22, 4)` with `TS=0.5137`
+7. `(7, 2)` with `TS=0.5037`
+8. `(10, 0)` with `TS=0.4990`
 
-## Comparison with Previous Results (SimAlign-based)
+## Cross-Language Comparison
 
-We previously detected heads using SimAlign (unsupervised cross-lingual embeddings) with a **source-restricted argmax** -- only checking which source token gets maximum attention among source positions. That method found 16 heads.
+Compared with the existing Gemma text-head runs:
 
-The new method (GPT-5-mini + full-sequence argmax) reveals that **11 of those 16 old heads were false positives**. They appeared to attend to source tokens only because the argmax was restricted to source positions. In reality, their full-sequence attention maximum was on BOS or prompt tokens, not source tokens at all. Examples:
+- `en-de`: `84` heads from `903` scored pairs
+- `en-it`: `83` heads from `907` scored pairs
+- `en-zh`: `82` heads from `880` scored pairs
+- `cs-en`: `69` heads from `512` scored pairs
 
-- L11H11: old TS=0.77, new TS=0.006 (attention was on BOS)
-- L8H11: old TS=0.76, new TS=0.000
-- L11H10: old TS=0.82, new TS=0.013
+The lower raw head count for `cs-en` should be interpreted mainly as a sample-size effect. The previous directions were scored on roughly `900` usable pairs, while the current Czech-English pass used `512`.
 
-Only 5 of the 16 old heads survive the correct full-sequence test.
+### Shared Core
 
-## How to Use These Heads
+The top-8 overlap of `cs-en` with every existing direction is `6 / 8`. The six heads shared by all four directions in the top-8 are:
 
-### 1. Alignment Attention (alignatt) for Streaming Translation
+- `(11, 3)`
+- `(6, 5)`
+- `(17, 3)`
+- `(20, 0)`
+- `(11, 2)`
+- `(10, 0)`
 
-The primary use in this codebase is **alignment attention** -- using token alignment heads to determine WHEN to emit translation output in a simultaneous/streaming setting. During streaming translation:
+This is the main qualitative result: Czech-English does not reveal a different alignment-head family. It strongly confirms the same multilingual Gemma alignment core already seen in `en-de`, `en-it`, and `en-zh`.
 
-- Monitor the top-K alignment heads' attention patterns
-- When these heads shift attention from old source tokens to new ones, it signals that the model is now translating new content
-- This provides a principled way to segment translation output without arbitrary time-based or token-count heuristics
+### Relative Similarity
 
-The heads JSON is loaded by the cascade system in `systems/cascade_speech_processors/mt/alignatt_mt.py`.
+At top-16 resolution, `cs-en` is closest to the European directions:
 
-### 2. Head Pruning / Ablation
+- overlap with `en-it`: `15 / 16`
+- overlap with `en-de`: `14 / 16`
+- overlap with `en-zh`: `12 / 16`
 
-Zeroing out token alignment heads collapses translation capability. This can be used for:
-- **Controlled degradation studies**: Understanding how translation quality degrades as heads are removed
-- **Model compression**: Identifying which heads MUST be preserved for translation
+This suggests that Czech-English behaves more like the European directions than like English-Chinese, but the difference is modest enough that it should not be overclaimed from the current sample size.
 
-### 3. Training Data Filtering (TRater)
+### Consequence For The Shared Kernel
 
-The paper introduces TRater: score training data by computing the loss difference when alignment heads are masked vs. unmasked. High-scoring data is critical for translation capability. This can guide data selection for fine-tuning.
+The existing shared-kernel artifact:
 
-## Files
+- [`translation_heads_shared_kernel_top8.json`](/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_shared_kernel_top8.json)
 
-| File | Description |
-|------|-------------|
-| `detect_translation_heads.py` | Full pipeline script (align + detect). Reusable on other models/languages. |
-| `translation_heads_tencent_HY-MT1_5-1_8B_en-zh.json` | Head scores, ranked heads, and full 32x16 TS matrix |
-| `word_alignments_en-zh.json` | Clean EN-ZH word mappings (880 pairs, 4181 alignments) |
-| `raw_alignments_en-zh.jsonl` | Raw GPT-5-mini annotations (919 pairs, all confidence levels) |
+contains `7` heads derived from `en-de`, `en-it`, and `en-zh`. Czech-English contains all of those heads as well, but one of them, `(5, 0)`, drops to rank `12` in `cs-en` rather than staying in the Czech top-8.
 
-## Rerunning on Other Models / Languages
+So:
+
+- a strict top-8 intersection across all four directions would reduce the shared kernel from `7` heads to `6`
+- keeping the current `7`-head shared kernel remains a defensible baseline
+- if Czech-English is folded into the multilingual regime, a more stable choice is a shared kernel built from the four-language top-16 intersection
+
+That four-language top-16 shared kernel contains `12` heads:
+
+- `(11, 3)`
+- `(6, 5)`
+- `(17, 3)`
+- `(20, 0)`
+- `(11, 2)`
+- `(5, 0)`
+- `(10, 0)`
+- `(7, 2)`
+- `(10, 4)`
+- `(22, 4)`
+- `(6, 4)`
+- `(17, 0)`
+
+## Example
 
 ```bash
-# Different language pair with custom parallel data:
-python detect_translation_heads.py --direction en-de \
-  --src-path /path/to/en.txt --tgt-path /path/to/de.txt
-
-# Different translation model:
-python detect_translation_heads.py --mt-model tencent/HY-MT1.5-7B
-
-# Use a different alignment LLM:
-python detect_translation_heads.py --alignment-model gpt-4o-mini
-
-# Skip alignment (reuse existing), only re-detect:
-python detect_translation_heads.py --step detect \
-  --alignment-file raw_alignments_en-zh.jsonl
+python assets/attention_heads/detect_translation_heads.py \
+  --direction cs-en \
+  --model google/gemma-4-E4B-it \
+  --src-path /path/to/czeng.cs \
+  --tgt-path /path/to/czeng.en \
+  --dataset-name czeng2.0 \
+  --workers 20
 ```
-
-Requirements: `transformers`, `torch` (GPU), OpenAI API key (`~/.openai_api_key` or `OPENAI_API_KEY` env var).

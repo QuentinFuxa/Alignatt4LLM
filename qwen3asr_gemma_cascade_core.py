@@ -206,6 +206,7 @@ gemma_model_name = _resolve_hf_snapshot(
 )
 
 LANGUAGE_NAME_TO_CODE = {
+    "Czech": "cs",
     "English": "en",
     "German": "de",
     "Italian": "it",
