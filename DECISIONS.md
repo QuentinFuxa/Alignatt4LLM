@@ -678,6 +678,45 @@ with empirical support for why.
 Artifacts: `outputs/night1_*/per_gate_separability.txt`. Source:
 `scripts/per_gate_separability.py`.
 
+### Step 7 v2: per-gate separability with positional / monotonicity features
+
+The v1 analysis used only provenance features. Rewind is *defined*
+by a backward jump in `aligned_source_local_positions`, so the v2
+script (`scripts/per_gate_separability_v2.py`) reads
+stream_updates.jsonl directly and adds:
+
+- `max_backward_jump` — max(aligned[i] − aligned[i+1]) over adjacent draft tokens
+- `n_backward_pairs`, `monotonicity_ratio`, `position_drift`
+- `unsafe_idx_ratio`, `accepted_ratio`, `accessibility_ratio`
+- `n_tokens`, `source_unit_count`, etc.
+
+Cross-artifact top-feature table under v2 (n_pos / F1 per gate):
+
+| Gate                       | Artifact            | Top feature (v2)                       | F1    |
+|----------------------------|---------------------|----------------------------------------|-------|
+| `alignatt:source_frontier` | en→de K3@700        | `unsafe_token.source_inaccessible`     | 0.978 |
+| `alignatt:source_frontier` | cs→en               | `unsafe_token.source_inaccessible`     | 0.910 |
+| `alignatt:rewind`          | en→de K3@700 (n=10) | `max_backward_jump ≥ 9`                | 0.667 |
+| `alignatt:rewind`          | cs→en (n=64)        | `max_backward_jump ≥ 9`                | 0.696 |
+
+**Positional features do not rescue rewind.** Even `max_backward_jump`,
+which is the closest-to-definition feature for rewind, caps at F1
+~0.67-0.70 across both artifacts — *lower* than the provenance-based
+v1 cap of F1 0.72-0.75. This is the kind of confirmation the paper
+needed: no single feature we've measured cleanly replicates the
+rewind gate; the discrete gate carries state (threshold config,
+accepted-window history, rewind_from/to positions) that a continuous
+scalar cannot recover from observer provenance alone.
+
+**Paper claim that survives tonight:** the three-gate MT policy
+partitions cleanly into (i) **one reducible gate** — `source_frontier`
+is a discrete readout of a continuous provenance quantity — and (ii)
+**one irreducible gate** — `rewind` depends on state beyond
+observer provenance. The continuous-confidence paper direction can
+absorb (i) cleanly and must leave (ii) as a distinct mechanism.
+
+Artifacts: `outputs/night1_*/per_gate_separability_v2.txt`.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +

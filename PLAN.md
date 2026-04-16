@@ -107,18 +107,24 @@ By morning, the repo should satisfy all three:
       curve. Emit-policy A/B is bit-identical on BLEU / chrF
       (content-invariant).
 - [x] Step 7 — continuous-confidence offline replay shipped as
-      `scripts/continuous_confidence_replay.py` plus a per-gate
-      separability analysis in `scripts/per_gate_separability.py`.
-      Sharper finding than the first-pass aggregate F1: the three
-      discrete gates are structurally asymmetric — `source_frontier`
-      is **cleanly absorbable** by a continuous threshold on one
-      provenance feature (F1 0.91 on cs→en, 0.98 on en→de K3@700),
-      while `rewind` caps at F1 ≤ 0.75 under the same feature family
-      and needs positional / threshold state that isn't in provenance
-      alone. Paper framing: promote the continuous scalar as primary
-      mechanism, recover `source_frontier` as a one-line threshold,
-      keep `rewind` as an independent discrete gate. CSV + TXT
-      reports in `outputs/night1_*/per_gate_separability.txt`.
+      `scripts/continuous_confidence_replay.py` plus per-gate
+      separability analyses in `scripts/per_gate_separability.py`
+      (v1, provenance-only) and `scripts/per_gate_separability_v2.py`
+      (v2, adds positional + monotonicity features straight from
+      `alignatt_metadata`). Convergent finding across both analyses
+      and both artifacts:
+      - `source_frontier` is **cleanly absorbable** — a single
+        threshold on `unsafe_token.source_inaccessible` reaches
+        F1 0.91 (cs→en) / 0.98 (en→de K3@700);
+      - `rewind` is **irreducible to a single observed feature** —
+        caps at F1 ≤ 0.75 with provenance features (v1) and at
+        F1 ≤ 0.70 even with `max_backward_jump` / monotonicity
+        features (v2), so the gate depends on state beyond what
+        the observer exposes per-token.
+      Paper framing: promote the continuous scalar as primary MT
+      mechanism, absorb `source_frontier` as a one-line threshold,
+      keep `rewind` as a distinct mechanism studied on its own
+      terms. CSV + TXT reports in `outputs/night1_*/per_gate_*.txt`.
 
 Use the current local assets for tonight's loop. The repo currently has `test-set/` but not a local official dev-set workflow. Do not block engineering work on that; just keep in mind that final submission still needs dev logs.
 
