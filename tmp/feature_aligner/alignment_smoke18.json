@@ -1,0 +1,193 @@
+{
+  "tag": "smoke18",
+  "backend": "gemma_feature_aligner",
+  "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step",
+  "audio_duration_s": 18.0,
+  "words": [
+    {
+      "text": "Hi",
+      "start_time": 1.7673670959472656,
+      "end_time": 1.7673670959472656
+    },
+    {
+      "text": "I'm",
+      "start_time": 2.022489013671875,
+      "end_time": 2.022489013671875
+    },
+    {
+      "text": "Siyu",
+      "start_time": 2.334949951171875,
+      "end_time": 2.334949951171875
+    },
+    {
+      "text": "Yuan",
+      "start_time": 2.6886578369140626,
+      "end_time": 2.6886578369140626
+    },
+    {
+      "text": "from",
+      "start_time": 3.1435498046875,
+      "end_time": 3.1435498046875
+    },
+    {
+      "text": "Fudan",
+      "start_time": 3.41333740234375,
+      "end_time": 3.41333740234375
+    },
+    {
+      "text": "University",
+      "start_time": 3.9025503540039064,
+      "end_time": 3.9025503540039064
+    },
+    {
+      "text": "I'm",
+      "start_time": 4.84293212890625,
+      "end_time": 4.8552978515625
+    },
+    {
+      "text": "here",
+      "start_time": 5.0808627319335935,
+      "end_time": 5.0808627319335935
+    },
+    {
+      "text": "to",
+      "start_time": 5.253753662109375,
+      "end_time": 5.253753662109375
+    },
+    {
+      "text": "introduce",
+      "start_time": 5.527227783203125,
+      "end_time": 5.527227783203125
+    },
+    {
+      "text": "our",
+      "start_time": 6.0935083007812505,
+      "end_time": 6.0935083007812505
+    },
+    {
+      "text": "work",
+      "start_time": 6.543641967773437,
+      "end_time": 6.543641967773437
+    },
+    {
+      "text": "distilling",
+      "start_time": 7.4761810302734375,
+      "end_time": 7.4761810302734375
+    },
+    {
+      "text": "script",
+      "start_time": 7.927666015625,
+      "end_time": 7.927666015625
+    },
+    {
+      "text": "knowledge",
+      "start_time": 8.382877807617188,
+      "end_time": 8.382877807617188
+    },
+    {
+      "text": "from",
+      "start_time": 9.0682958984375,
+      "end_time": 9.0682958984375
+    },
+    {
+      "text": "large",
+      "start_time": 9.3806494140625,
+      "end_time": 9.3806494140625
+    },
+    {
+      "text": "language",
+      "start_time": 9.59704833984375,
+      "end_time": 9.59704833984375
+    },
+    {
+      "text": "models",
+      "start_time": 10.099739990234376,
+      "end_time": 10.099739990234376
+    },
+    {
+      "text": "for",
+      "start_time": 10.820771484375,
+      "end_time": 10.820771484375
+    },
+    {
+      "text": "constrained",
+      "start_time": 11.138681640625,
+      "end_time": 11.138681640625
+    },
+    {
+      "text": "language",
+      "start_time": 11.540531005859375,
+      "end_time": 11.540531005859375
+    },
+    {
+      "text": "planning",
+      "start_time": 12.017454833984376,
+      "end_time": 12.017454833984376
+    },
+    {
+      "text": "In",
+      "start_time": 13.446639404296874,
+      "end_time": 13.446639404296874
+    },
+    {
+      "text": "everyday",
+      "start_time": 13.72462890625,
+      "end_time": 13.72462890625
+    },
+    {
+      "text": "life",
+      "start_time": 14.166186523437501,
+      "end_time": 14.166186523437501
+    },
+    {
+      "text": "humans",
+      "start_time": 14.94693359375,
+      "end_time": 14.94693359375
+    },
+    {
+      "text": "often",
+      "start_time": 15.361304931640625,
+      "end_time": 15.361304931640625
+    },
+    {
+      "text": "plan",
+      "start_time": 15.679903564453125,
+      "end_time": 15.679903564453125
+    },
+    {
+      "text": "their",
+      "start_time": 15.935142822265625,
+      "end_time": 15.935142822265625
+    },
+    {
+      "text": "actions",
+      "start_time": 16.3609619140625,
+      "end_time": 16.3609619140625
+    },
+    {
+      "text": "by",
+      "start_time": 16.996337890625,
+      "end_time": 16.996337890625
+    },
+    {
+      "text": "following",
+      "start_time": 17.23357421875,
+      "end_time": 17.23357421875
+    },
+    {
+      "text": "step-by-step",
+      "start_time": 17.65048583984375,
+      "end_time": 17.663929443359375
+    }
+  ],
+  "metrics": {
+    "num_words": 35,
+    "monotone": true,
+    "mae_s": 0.14271065412248868,
+    "median_error_s": 0.145050048828125,
+    "p90_error_s": 0.24716772460937553,
+    "max_error_s": 0.3002600097656245,
+    "word_count_match": true,
+    "inference_time_s": 0.0072650909423828125
+  }
+}

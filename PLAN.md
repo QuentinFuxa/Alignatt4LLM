@@ -1,458 +1,471 @@
 # PLAN.md
-# Validate and Harden the Two-Pass Full-Gemma Path
+# Next Agent Brief: Build a Small Dedicated Aligner on Frozen Gemma Audio Features
 
-## 1. Mission — STATUS: Phases 1-2, 4-6 Complete
+## 1. Mission
 
-### Completed
+We now have two important facts:
 
-1. **Phase 1**: `run_gemma_two_pass_validation.py` rewritten as artifact-producing harness
-2. **Phase 2**: Backend-level comparison on smoke18 — saved to `tmp/two_pass_validation/`
-3. **Phase 4**: Harder clip (rxrToXvRyM_first18) — saved to `tmp/two_pass_validation/`
-4. **Phase 5**: Stale repo claims cleaned in 4 files
-5. **Phase 6**: Decision — current structure is adequate (see below)
+1. Gemma ASR itself is viable when run with default attention.
+2. Gemma's current alignment path works, but it depends on running the full model in eager attention mode, which is expensive and not the right long-term deployment story.
 
-6. **Phase 3**: Cascade-level comparison on smoke18 — saved to `tmp/two_pass_validation/`
+The next step is to build the most promising Qwen-independent successor to the current eager-attention aligner:
 
-### Results Summary
+**a small dedicated transcript-conditioned aligner on top of frozen Gemma audio features.**
 
-#### smoke18 (backend-level comparison)
+This should become the main non-Qwen research path.
 
-| Metric | Two-Pass Gemma | Hybrid (Qwen+Gemma) |
-|--------|---------------:|---------------------:|
-| Word count | 35 | 35 |
-| Runtime (s) | 7.9 | 1.2 |
-| Monotonicity | 0.922 | 0.959 |
-| Mean timing diff | — | 0.089s |
-| Max timing diff | — | 0.680s |
+The objective is not to make Gemma attention a little prettier.
+The objective is to replace the expensive eager second pass with a purpose-built aligner that is:
 
-Transcripts nearly identical. Two-pass: "Si Yuan" (correct). Hybrid: "Siyu Yuan" (correct).
-
-#### smoke18 (cascade-level comparison)
-
-| Metric | Two-Pass Gemma | Hybrid (Qwen+Gemma) |
-|--------|---------------:|---------------------:|
-| Updates | 12 | 13 |
-| ASR | "Si Yuan", "While distinct script knowledge..." | "Siyu Yuan", "Distinguishing script knowledge..." |
-| Translation | Truncated earlier (shorter DE output) | Longer DE output, closer to complete |
-
-Both cascades produce sensible ASR and German translations. The hybrid
-cascade produces slightly more complete output (13 vs 12 updates) and
-better-preserved title semantics ("Distinguishing" vs "While distinct").
-The two-pass cascade is viable but the ASR quality difference propagates
-into MT: minor transcript variations cause different translation phrasing.
-
-**Rule C consideration**: the bottleneck is not integration instability —
-both paths run cleanly. The two-pass path produces slightly weaker
-cascade output because of the ASR quality gap (entity spelling, title wording).
-
-#### rxrToXvRyM_first18 (harder clip, two-pass only)
-
-- 47 words, 4.9s runtime, monotone timestamps spanning 0.6–17.5s
-- Transcript correct semantically; entity noise: "Mara" for "Myra", "Sándor Musch" for "Esin Durmus", "Dandrowski" for "Dan Jurafsky"
-- Failure mode is **mild entity noise**, not semantic degradation or alignment breakdown
-
-#### Decision (per PLAN.md Decision Rules)
-
-**Rule A applies**: Two-pass full-Gemma works cleanly on smoke18.
-
-**Rule B partially applies**: rxrToXvRyM_first18 shows entity-name noise (WER ~0.26)
-but no hallucination, no alignment breakdown, and sensible timings. The result
-is mixed but plausible — not a clear degradation.
-
-**Phase 6 decision**: Keep current structure. `GemmaTwoPassAlignmentBackend` is a
-clean 76-line wrapper. No deeper refactor needed until a real coupling bug appears.
-
-### Artifacts
-
-- `tmp/two_pass_validation/two_pass_smoke18.json`
-- `tmp/two_pass_validation/hybrid_smoke18.json`
-- `tmp/two_pass_validation/comparison_backend_smoke18.json`
-- `tmp/two_pass_validation/comparison_cascade_smoke18.json`
-- `tmp/two_pass_validation/cascade_two_pass_smoke18/` (full cascade output)
-- `tmp/two_pass_validation/cascade_hybrid_smoke18/` (full cascade output)
-- `tmp/two_pass_validation/two_pass_rxrToXvRyM_first18.json`
+1. faster than the current eager Gemma forced-alignment pass
+2. at least as stable or better in timestamps
+3. fully independent from Qwen at inference time
+4. principled and defensible in a paper
 
 
-## 2. Current Ground Truth
+## 2. Why This Is the Right Next Design
 
-Treat these as the current working facts unless you find a concrete contradiction in code or saved artifacts.
+The repo now has three relevant front-end stories:
 
-### 2.1 The old Gemma ASR failure story was mostly a measurement artifact
+1. `qwen`
+   - practical baseline
+   - Qwen ASR + Qwen aligner
+2. `hybrid_qwen_asr_gemma_aligner`
+   - Qwen ASR + Gemma eager-attention alignment
+   - strong practical research baseline
+3. `gemma_two_pass`
+   - Gemma ASR + Gemma eager-attention forced alignment
+   - Qwen-independent, but expensive
 
-From the latest ablation work:
+The current weakness of `gemma_two_pass` is not that Gemma ASR is unusable.
+The weakness is that alignment still requires the full Gemma model in eager mode.
 
-- [run_gemma_asr_fairness.py](/home/fuxa/cascade_simultaneous/run_gemma_asr_fairness.py)
-- [ITERATION_RESULT.md](/home/fuxa/cascade_simultaneous/ITERATION_RESULT.md)
-- [gemma_asr_fairness_ablation_smoke18.json](/home/fuxa/cascade_simultaneous/tmp/alignment_research/gemma_asr_fairness_ablation_smoke18.json)
-- [gemma_asr_fairness_ablation_rxrToXvRyM_first18.json](/home/fuxa/cascade_simultaneous/tmp/alignment_research/gemma_asr_fairness_ablation_rxrToXvRyM_first18.json)
+That suggests the clean next move:
 
-The main result is:
+- keep Gemma ASR
+- replace eager alignment with a lightweight dedicated aligner trained on Gemma-side representations
 
-1. `attn_implementation="eager"` is the dominant cause of the catastrophic old ASR results
-2. default attention gives much better transcripts
-3. the earlier strong "domain mismatch" story is no longer defensible in its old form
-
-### 2.2 A two-pass full-Gemma path now exists
-
-The relevant implementation files are:
-
-1. [gemma_two_pass_frontend.py](/home/fuxa/cascade_simultaneous/gemma_two_pass_frontend.py)
-2. [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py)
-3. [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py)
-4. [run_gemma_two_pass_validation.py](/home/fuxa/cascade_simultaneous/run_gemma_two_pass_validation.py)
-
-### 2.3 What is still missing
-
-The current implementation is promising, but not yet fully defensible as a repo-level result because:
-
-1. the validation evidence is mostly written into `ITERATION_RESULT.md`
-2. there is no strong saved JSON artifact for the new two-pass validation itself
-3. the comparison so far is backend-level on one clip, not yet a clearly saved cascade-level comparison
-4. stale text in older notes and core docstrings still conflicts with the new conclusion
-
-So the next goal is not "invent something new".
-The next goal is to make the current story coherent and auditable.
+This is more promising than continuing to rely on raw LM attention forever.
 
 
-## 3. Design Principle for This Iteration
+## 3. Target Outcome
 
-Assume the architectural insight is already correct:
+By the end of this iteration, we want the repo to contain the first working version of:
 
-1. default attention for Gemma ASR
-2. eager attention for Gemma forced alignment
-3. two passes when we want a full-Gemma front-end with timings
+- a **Gemma-feature aligner**
+- trained or at least scaffolded to predict transcript-to-audio timing
+- usable as a drop-in replacement for the current eager Gemma alignment pass in an offline alignment setting
 
-Do not spend this iteration rediscovering that.
+The first success criterion is not full streaming deployment.
+The first success criterion is:
 
-Instead, make the implementation and evidence good enough that another researcher could inspect the repo and understand:
-
-1. what the two-pass path is
-2. how to run it
-3. what evidence we have for it
-4. how it compares to the hybrid path on one controlled example
+1. given audio + transcript
+2. produce monotone word timings
+3. with a clean architecture and measurable offline quality
 
 
-## 4. Hard Constraints
+## 4. What Exactly To Build
 
-### 4.1 Research integrity
+Build **Design 1** from the previous discussion:
 
-1. No lexical repair hacks.
+### Core design
+
+1. Run Gemma's audio front-end / multimodal encoder stack to obtain frozen audio features.
+2. Feed those audio features, plus the known transcript, into a small dedicated aligner network.
+3. Predict aligned positions or word-end times for transcript units.
+4. Project them to monotone word timings.
+
+### Important scope choice
+
+This aligner is **not** Gemma ASR.
+It is **not** a separate speech recognizer.
+It is a transcript-conditioned forced aligner.
+
+So its input is:
+
+1. audio
+2. known transcript
+
+And its output is:
+
+1. word timings or subword timings
+2. aggregated into the repo's existing `WordAlignment` format
+
+
+## 5. Hard Constraints
+
+### 5.1 Research integrity
+
+1. No lexical repair rules.
 2. No content-specific transcript fixes.
-3. No benchmark-specific substitutions.
-4. No rhetorical overclaiming.
-5. If a result is only shown on one clip, say that clearly.
+3. No hand-coded word timing heuristics tied to specific examples.
+4. No hidden fallback to Qwen at inference time in the new path.
+5. If you bootstrap training labels from Qwen, that is acceptable for training only, but must be stated clearly.
 
-### 4.2 Cost discipline
+### 5.2 Architectural cleanliness
 
-1. Do not do broad sweeps.
-2. Do not run many full cascade evaluations.
-3. Validate on one short clip first.
-4. Add one harder follow-up clip only after the first result is saved cleanly.
-5. Avoid restarting expensive hot models unless necessary.
+1. Keep the aligner small and clearly separate from Gemma itself.
+2. Do not tangle training scaffolding into the runtime path.
+3. Make it obvious which parts are frozen Gemma and which parts are the new aligner.
+4. Preserve the current backends; add a new experimental path rather than destabilizing the existing ones.
 
-### 4.3 Scope discipline
+### 5.3 Cost discipline
 
-This iteration is about validation, comparison, and repo coherence.
-
-Not the focus:
-
-1. discovering new Gemma heads
-2. broad robustness benchmarking
-3. large-scale translation-quality studies
-4. major paper writing
-5. deep refactoring unless the current structure blocks validation
+1. Do not launch large training sweeps immediately.
+2. Start with one or a few clips just to prove the pipeline works.
+3. Prefer proving the representation and target pipeline before spending time on optimization.
+4. Treat full cascade runs as out of scope until offline alignment works.
 
 
-## 5. Files to Read First
+## 6. Files to Read First
 
-### 5.1 Core instructions
+### 6.1 Core repo instructions
 
 1. [AGENTS.md](/home/fuxa/cascade_simultaneous/AGENTS.md)
 2. [CLAUDE.md](/home/fuxa/cascade_simultaneous/CLAUDE.md)
 
-### 5.2 New implementation and result files
+### 6.2 Current Gemma alignment implementation
 
-1. [gemma_two_pass_frontend.py](/home/fuxa/cascade_simultaneous/gemma_two_pass_frontend.py)
-2. [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py)
-3. [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py)
-4. [run_gemma_two_pass_validation.py](/home/fuxa/cascade_simultaneous/run_gemma_two_pass_validation.py)
-5. [ITERATION_RESULT.md](/home/fuxa/cascade_simultaneous/ITERATION_RESULT.md)
+1. [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py)
+2. [gemma_two_pass_frontend.py](/home/fuxa/cascade_simultaneous/gemma_two_pass_frontend.py)
+3. [alignment_backend.py](/home/fuxa/cascade_simultaneous/alignment_backend.py)
+4. [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py)
 
-### 5.3 Existing comparison and hybrid context
+### 6.3 Existing evaluation harnesses and artifacts
 
-1. [hybrid_alignment_backend.py](/home/fuxa/cascade_simultaneous/hybrid_alignment_backend.py)
-2. [run_hybrid_audit.py](/home/fuxa/cascade_simultaneous/run_hybrid_audit.py)
-3. [phase4_cascade_comparison.json](/home/fuxa/cascade_simultaneous/tmp/hybrid_audit/phase4_cascade_comparison.json)
-4. [phase5_recommendation.md](/home/fuxa/cascade_simultaneous/tmp/hybrid_audit/phase5_recommendation.md)
+1. [run_alignment_single_audio.py](/home/fuxa/cascade_simultaneous/run_alignment_single_audio.py)
+2. [run_gemma_two_pass_validation.py](/home/fuxa/cascade_simultaneous/run_gemma_two_pass_validation.py)
+3. [ITERATION_RESULT.md](/home/fuxa/cascade_simultaneous/ITERATION_RESULT.md)
+4. [two_pass_smoke18.json](/home/fuxa/cascade_simultaneous/tmp/two_pass_validation/two_pass_smoke18.json)
+5. [two_pass_rxrToXvRyM_first18.json](/home/fuxa/cascade_simultaneous/tmp/two_pass_validation/two_pass_rxrToXvRyM_first18.json)
+6. [comparison_backend_smoke18.json](/home/fuxa/cascade_simultaneous/tmp/two_pass_validation/comparison_backend_smoke18.json)
+7. [phase3_robustness_summary.json](/home/fuxa/cascade_simultaneous/tmp/hybrid_audit/phase3_robustness_summary.json)
 
-### 5.4 Older notes that may now be stale
+### 6.4 Existing teacher/timestamp sources
 
-1. [PLAN_RESULT_IMPLEMENTATION.md](/home/fuxa/cascade_simultaneous/PLAN_RESULT_IMPLEMENTATION.md)
-2. [PLAN_AUDIT_NOTE.md](/home/fuxa/cascade_simultaneous/PLAN_AUDIT_NOTE.md)
-
-
-## 6. Primary Goal
-
-Create a saved, auditable validation package for the two-pass full-Gemma path on one short audio.
-
-That package should include:
-
-1. transcript
-2. word timings
-3. diagnostics
-4. runtime
-5. comparison against hybrid on the same clip
-6. enough metadata to reproduce the run
-
-Right now the repo has the implementation but not yet the clean artifact story.
+1. [qwen_alignment_backend.py](/home/fuxa/cascade_simultaneous/qwen_alignment_backend.py)
+2. [smoke18_qwen_teacher.json](/home/fuxa/cascade_simultaneous/tmp/alignment_research/smoke18_qwen_teacher.json)
+3. any other existing teacher bundles already produced in `tmp/alignment_research/`
 
 
-## 7. Secondary Goal
+## 7. Recommended First Architecture
 
-Run one real cascade-level comparison between:
+Start simple.
 
-1. `alignment_backend_name="gemma_two_pass"`
-2. `alignment_backend_name="hybrid_qwen_asr_gemma_aligner"`
+### 7.1 Feature source
 
-on the same short audio and save the outputs in a form that can be inspected later.
+Use **frozen Gemma audio features**.
 
-This comparison does not need to be broad.
-It needs to be honest, saved, and interpretable.
+You need to decide which feature tap is the cleanest first target.
+Recommended order of preference:
+
+1. final audio encoder features before they are mixed into the text model
+2. audio token embeddings after projection into the shared model space
+3. if needed, a small stack of layerwise features, but only if clearly justified
+
+Prefer one feature source first.
+Do not start with multi-layer fusion unless the single-feature baseline clearly fails.
+
+### 7.2 Transcript units
+
+Start with **token- or subword-level alignment targets** that can be aggregated to words.
+
+Why:
+
+1. easier to supervise densely
+2. easier to align with the existing `aggregate_token_timings_to_words` style logic
+3. less fragile than predicting whole-word spans from scratch at the first attempt
+
+### 7.3 Aligner model
+
+Start with a **small transcript-conditioned aligner**, for example:
+
+1. transcript embedding layer
+2. 2-4 layers of cross-attention or lightweight transformer blocks
+3. output head that scores audio positions for each transcript token
+
+The key property is monotone alignability, not model cleverness.
+
+### 7.4 Output representation
+
+Recommended first target:
+
+- predict a discrete distribution over audio positions for each transcript token
+
+Then:
+
+1. choose peak or expected position
+2. enforce monotonicity
+3. convert positions to seconds
+4. aggregate token timings to words
+
+This is the simplest first version that matches the existing pipeline.
 
 
-## 8. Step-by-Step Work Plan
+## 8. Supervision Strategy
 
-## Phase 1: Strengthen the validation script into an artifact-producing harness
+### 8.1 Recommended first supervision
+
+Bootstrap from existing timestamp teachers.
+
+Use one of these, in this order:
+
+1. Qwen forced-aligner timestamps
+2. current Gemma eager forced-alignment timestamps
+
+Recommended first choice:
+
+- **Qwen forced-aligner timestamps** as training targets
+
+Why:
+
+1. they are already available in the repo
+2. they are cleaner than raw eager-attention peaks
+3. they let the new aligner learn a stable target even if Gemma attention is noisy
+
+### 8.2 Important rule
+
+Using Qwen timestamps for **training supervision** is acceptable.
+Using Qwen at **inference time** in the new backend is not.
+
+State that distinction clearly in code and notes.
+
+### 8.3 First training data regime
+
+Start tiny.
+
+1. prove the pipeline on 1 clip
+2. then 3-5 clips
+3. only then worry about a larger supervision set
+
+The first milestone is pipeline correctness, not benchmark breadth.
+
+
+## 9. What the Agent Must Produce
+
+## Phase 1: Build the feature extraction pipeline
 
 ### Objective
 
-Turn [run_gemma_two_pass_validation.py](/home/fuxa/cascade_simultaneous/run_gemma_two_pass_validation.py) from a console-oriented script into a proper validation harness.
+Make Gemma audio features available cleanly for alignment training and inference.
 
 ### Tasks
 
-1. Make it write JSON artifacts to `tmp/...`.
-2. Save at least:
-   - clip id or wav path
-   - transcript text
-   - word list with times
-   - diagnostics
-   - runtime seconds
-   - backend name
-   - attention mode per pass
-3. If comparison mode is enabled, also save the hybrid result in the same artifact or in a paired artifact.
-4. Make the artifact schema obvious and stable enough for later comparison.
+1. Identify the correct point in the Gemma stack to extract frozen audio features.
+2. Build a reusable function or module that returns:
+   - audio features
+   - feature-frame timing scale
+   - any needed metadata for mapping positions to seconds
+3. Save one artifact for one clip showing:
+   - feature shape
+   - audio duration
+   - feature-step duration or equivalent
 
 ### Exit criterion
 
-There is at least one saved JSON artifact for a two-pass run, not just printed output and prose.
+We can reproducibly extract Gemma audio features for one clip and map feature indices back to time.
 
 
-## Phase 2: Run one saved backend-level comparison on `smoke18`
+## Phase 2: Build the first dedicated aligner module
 
 ### Objective
 
-Produce the cleanest first evidence on the easiest short clip already used in this line of work.
-
-### Recommended clip
-
-1. `tmp/alignatt_smoke18.wav`
+Create a small aligner network that consumes frozen audio features plus transcript tokens.
 
 ### Tasks
 
-1. Run the two-pass frontend and save the artifact.
-2. Run the hybrid frontend on the same audio and save the artifact.
-3. Save a direct comparison summary containing:
-   - transcript text
-   - word count
-   - timing differences where comparable
-   - runtime
-   - diagnostics
+1. Add a new module for the aligner.
+2. Keep it small and explicit.
+3. Define its input contract and output contract clearly.
+4. Implement inference for one audio+transcript pair.
+
+### Recommended output contract
+
+For each transcript token:
+
+1. predicted audio position
+2. confidence or score if easy to expose
+
+### Exit criterion
+
+There is a working model object that can run forward on one `(audio_features, transcript)` pair.
+
+
+## Phase 3: Build the supervision and training harness
+
+### Objective
+
+Train the first version of the dedicated aligner on a tiny dataset.
+
+### Tasks
+
+1. Build a tiny dataset generator from existing repo artifacts or teacher outputs.
+2. Use Qwen timestamps as first supervision.
+3. Train on a very small number of examples first.
+4. Save:
+   - model checkpoint
+   - training config
+   - a small JSON summary of loss and settings
 
 ### Important note
 
-This is not yet the real final benchmark.
-It is the first clean saved validation artifact.
+Do not spend this iteration on fancy hyperparameter search.
+The first question is whether the concept works at all.
 
 ### Exit criterion
 
-The repo contains a machine-readable two-pass-vs-hybrid comparison on `smoke18`.
+A small trained aligner checkpoint exists and can be run offline.
 
 
-## Phase 3: Run one actual cascade-level comparison on the same short audio
+## Phase 4: Convert predictions into `WordAlignment`
 
 ### Objective
 
-Move beyond backend-level comparison and check whether the real cascade behaves sensibly with the new frontend.
+Make the new aligner useful inside the existing repo abstractions.
 
 ### Tasks
 
-1. Run the actual cascade once with `alignment_backend_name="gemma_two_pass"`.
-2. Run the actual cascade once with `alignment_backend_name="hybrid_qwen_asr_gemma_aligner"`.
-3. Save outputs in a comparable way.
-4. Record only the most relevant facts:
-   - final transcript
-   - final translation
-   - number of updates
-   - rough delay/runtime stats if already available
-   - any obvious behavioral differences
-
-### Discipline
-
-Do this on one short audio only.
-Do not fan out.
+1. Convert token-level predictions into time values.
+2. Enforce monotonicity.
+3. Aggregate to words.
+4. Return the existing `AlignmentResult` / `WordAlignment` contract.
 
 ### Exit criterion
 
-You have one real saved cascade-level comparison that can support or weaken the claim that the two-pass path is viable in practice.
+The new aligner can produce a standard repo-compatible alignment result for one known transcript.
 
 
-## Phase 4: Probe one harder clip
+## Phase 5: Offline evaluation on one clip
 
 ### Objective
 
-Check whether the new path still looks serious outside the most favorable short example.
+Get the first honest quality read.
 
-### Recommended harder clip
+### Recommended first clip
 
-1. `tmp/rxrToXvRyM_first18.wav`
+1. `tmp/alignatt_smoke18.wav`
+
+### Compare against
+
+1. Qwen teacher timestamps
+2. current Gemma eager forced alignment
+
+### Metrics to report
+
+1. MAE
+2. median error
+3. P90 error
+4. monotonicity
+5. inference runtime
+
+### Exit criterion
+
+We know whether the first dedicated aligner is at least in the right regime.
+
+
+## Phase 6: Small extension to a few clips
+
+### Objective
+
+Check whether the result is real and not just clip memorization.
 
 ### Tasks
 
-1. Run the two-pass frontend on the harder clip.
-2. Save the artifact.
-3. If cost is manageable, compare once against hybrid at backend level.
-4. Focus on whether the failure mode is:
-   - mild entity noise
-   - real semantic degradation
-   - alignment breakdown
-   - runtime instability
+1. Evaluate on 3-5 short clips max.
+2. Keep the report compact.
+3. Focus on whether quality and runtime are promising enough to justify another iteration.
 
 ### Exit criterion
 
-We know whether the two-pass path still looks plausible on a less forgiving clip.
+We can tell whether this is a live research path or a dead end.
 
 
-## Phase 5: Clean the stale repo story
+## 10. Integration Goal for Later, Not First
 
-### Objective
+Do **not** try to fully integrate into the streaming cascade in the first implementation pass.
 
-Bring the repo’s written claims back into alignment with the corrected Gemma evidence.
+The correct order is:
 
-### Files likely needing updates
+1. offline forced alignment works
+2. repo-compatible outputs exist
+3. quality/runtime are promising
+4. then add a new runtime backend using the dedicated aligner
 
-1. [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py)
-2. [PLAN_RESULT_IMPLEMENTATION.md](/home/fuxa/cascade_simultaneous/PLAN_RESULT_IMPLEMENTATION.md)
-3. [PLAN_AUDIT_NOTE.md](/home/fuxa/cascade_simultaneous/PLAN_AUDIT_NOTE.md)
-4. [ITERATION_RESULT.md](/home/fuxa/cascade_simultaneous/ITERATION_RESULT.md)
-
-### What to fix
-
-1. remove or qualify stale statements that say Gemma ASR is simply unreliable on this audio
-2. distinguish clearly between:
-   - old eager-tainted ASR result
-   - corrected default-attention ASR result
-   - current status of the two-pass full-Gemma path
-3. avoid claiming broader robustness than we have actually shown
-
-### Exit criterion
-
-A reader no longer encounters conflicting stories in code comments and notes.
+If you integrate too early, debugging will become much harder.
 
 
-## Phase 6: Decide whether a deeper refactor is now justified
+## 11. Suggested New Files
 
-### Objective
+You do not have to use exactly these names, but the separation should look like this.
 
-Only after the saved evidence exists, decide whether the current structure is good enough or whether a deeper split is worth doing.
+1. `gemma_audio_features.py`
+   - feature extraction from frozen Gemma audio path
+2. `gemma_feature_aligner.py`
+   - small dedicated aligner model
+3. `run_gemma_feature_aligner_train.py`
+   - tiny training harness
+4. `run_gemma_feature_aligner_eval.py`
+   - offline evaluation harness
+5. optional small note documenting the first result
 
-### Question to answer
-
-Should we now split Gemma ASR runtime and Gemma alignment runtime into more explicit classes, or is the current implementation already clean enough for the next research step?
-
-### Guidance
-
-Do not refactor for aesthetics alone.
-Refactor only if the current coupling between `transcribe()` and the alignment backend still creates a real risk of confusion or future misuse.
-
-### Exit criterion
-
-You can justify either:
-
-1. keep current structure for now
-2. do one deeper explicit runtime split next
+Keep training/eval code separate from runtime backend code.
 
 
-## 9. Expected Deliverables
+## 12. Deliverables
 
 ### Code deliverables
 
-1. improved [run_gemma_two_pass_validation.py](/home/fuxa/cascade_simultaneous/run_gemma_two_pass_validation.py) that saves artifacts
-2. any minimal supporting changes needed to make saved comparison artifacts clean
-3. documentation cleanup in the most relevant stale files
+1. frozen Gemma audio feature extraction utility
+2. small dedicated aligner module
+3. tiny training harness
+4. offline evaluation harness
+5. repo-compatible alignment conversion path
 
 ### Artifact deliverables
 
-1. one saved two-pass validation artifact on `smoke18`
-2. one saved backend-level comparison artifact on `smoke18`
-3. one saved cascade-level comparison artifact on `smoke18`
-4. one saved two-pass artifact on `rxrToXvRyM_first18`
+1. one saved feature-inspection artifact
+2. one saved trained-checkpoint summary
+3. one offline evaluation artifact on `smoke18`
+4. one small multi-clip evaluation artifact
 
 ### Documentation deliverables
 
-One concise updated result note stating:
+One concise result note stating:
 
-1. what was run
-2. what artifacts were produced
-3. whether two-pass Gemma still looks serious after real saved comparisons
-4. what should happen next
+1. what feature source was used
+2. what supervision was used
+3. what the first runtime and MAE numbers are
+4. whether this path is promising enough to continue
 
 
-## 10. Decision Rules
+## 13. Decision Rules
 
 ### Rule A
 
-If the two-pass path looks good on the saved backend-level and cascade-level `smoke18` comparisons, keep it as a serious mainline research path.
+If the dedicated aligner is clearly faster than eager Gemma alignment and lands in the same approximate MAE regime, this becomes the new main Qwen-independent alignment path.
 
 ### Rule B
 
-If it works well on `smoke18` but weakens sharply on `rxrToXvRyM_first18`, state that clearly and frame the conclusion as mixed rather than general.
+If it is much faster but somewhat worse, that is still promising.
+The next iteration should focus on improving quality.
 
 ### Rule C
 
-If the backend-level result is good but the real cascade-level result is awkward or unstable, say the bottleneck is integration/runtime behavior rather than Gemma ASR quality.
+If it is accurate but not materially faster, the path is still interesting, but the justification becomes architectural cleanliness rather than runtime advantage.
 
 ### Rule D
 
-If hybrid remains clearly better in practice, the conclusion should be:
-
-1. hybrid remains the baseline
-2. two-pass full Gemma is promising but not yet the best deployment tradeoff
-3. that conclusion is now based on corrected evidence rather than the old eager-tainted ASR result
+If it is both slower and worse than eager Gemma alignment, stop and reassess before integrating it further.
 
 
-## 11. Suggested Execution Order
-
-Keep the iteration narrow and disciplined.
-
-1. upgrade the validation script to save artifacts
-2. save the two-pass `smoke18` result
-3. save the backend-level `smoke18` comparison versus hybrid
-4. save one actual cascade-level `smoke18` comparison
-5. run one harder two-pass clip
-6. clean stale docs
-7. decide whether a deeper class split is the next iteration
-
-Do not scale beyond that unless the mechanism is already clearly working.
-
-
-## 12. Final Standard
+## 14. Final Standard
 
 At the end of this iteration, another researcher should be able to inspect the repo and understand:
 
-1. that a two-pass full-Gemma path exists
-2. what saved evidence supports it
-3. how it compares to the hybrid path on one real short example
-4. what remains uncertain
-5. what the next rational step should be
+1. how Gemma audio features are extracted
+2. how the new dedicated aligner works
+3. what supervision it used
+4. how it performs offline on a few clips
+5. whether it is a credible successor to the eager Gemma alignment pass
 
 That is the bar for this iteration.
