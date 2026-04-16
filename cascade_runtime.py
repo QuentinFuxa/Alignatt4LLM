@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
-from typing import Any
+from typing import Any, Sequence
 import os
 import string
 import subprocess
@@ -12,7 +12,7 @@ import wave
 
 import numpy as np
 
-from alignment_backend import AlignmentBackend
+from alignment_backend import AlignmentBackend, WordAlignment
 from cascade_artifacts import (
     DEFAULT_OUTPUT_DIR,
     DEFAULT_WAV_PATH,
@@ -157,6 +157,18 @@ class CascadeRuntimeConfig:
     gemma_vllm_enable_prefix_caching: bool = False
     gemma_vllm_cudagraph_mode: str | None = "full"
     gemma_vllm_gpu_memory_utilization: float = 0.5
+    # Step 5: Qwen-style prompt-prefix streaming for the Gemma ASR backend.
+    # When enabled (gemma_vllm_qk_fast only), the previously decoded text
+    # (minus asr_streaming_rollback_words tail words) is injected as an
+    # assistant-turn prefix so the model only decodes the text delta.
+    # The state is per-utterance and resets on sentence commit.
+    asr_streaming_prefix_enabled: bool = False
+    # Word-level rollback is used (not token-level) so the rolled-back
+    # prefix always ends at a clean word boundary. This preserves the
+    # `len(words) == len(remove_punctuation(text).split())` invariant
+    # that `find_end_time` relies on for sentence commits.
+    asr_streaming_rollback_words: int = 2
+    asr_streaming_unfixed_chunks: int = 2
 
     def __post_init__(self) -> None:
         if self.translation_alignatt_heads_path is None:
@@ -755,6 +767,15 @@ class CascadeSession:
         self.state = CascadeState()
         self.mt_prompt_cache = PromptCacheState()
         self.translation_units = TranslationUnitManager(self)
+        # Step 5: Qwen-style prompt-prefix streaming state. The session
+        # carries the previous *full* ASR hypothesis (text + words) across
+        # chunks so the next backend call can reuse it as an assistant-side
+        # prefix, decoding only the text delta. Resets on utterance commit
+        # and on clear().
+        self._asr_streaming_last_text: str = ""
+        self._asr_streaming_last_words: tuple[WordAlignment, ...] = ()
+        self._asr_streaming_chunk_count: int = 0
+        self._asr_streaming_committed_segment_count: int = len(self.state.utt_sources)
 
     def load_models(self) -> None:
         self.bundle.load()
@@ -764,6 +785,17 @@ class CascadeSession:
         self.state = CascadeState(speech_id=speech_id)
         self.mt_prompt_cache = PromptCacheState()
         self.translation_units = TranslationUnitManager(self)
+        self._reset_asr_streaming_state(reset_backend=True)
+
+    def _reset_asr_streaming_state(self, *, reset_backend: bool) -> None:
+        self._asr_streaming_last_text = ""
+        self._asr_streaming_last_words = ()
+        self._asr_streaming_chunk_count = 0
+        self._asr_streaming_committed_segment_count = len(self.state.utt_sources)
+        if reset_backend:
+            alignment_backend = getattr(self.bundle, "alignment_backend", None)
+            if alignment_backend is not None:
+                alignment_backend.reset_streaming_state()
 
     def current_audio_seconds(self) -> float:
         return len(self.state.source) / SAMPLE_RATE
@@ -850,10 +882,21 @@ class CascadeSession:
         audio = np.array(
             self.state.source[self.state.utt_timestamps[-1] :], dtype=np.float32
         )
+
+        if (
+            self.config.asr_streaming_prefix_enabled
+            and len(self.state.utt_sources) != self._asr_streaming_committed_segment_count
+        ):
+            self._reset_asr_streaming_state(reset_backend=True)
+
+        prefix_text, prefix_words = self._compute_streaming_prefix(alignment_backend)
+
         result = alignment_backend.transcribe_and_align(
             audio,
             sample_rate=SAMPLE_RATE,
             language=self.config.source_lang,
+            streaming_prefix_text=prefix_text,
+            streaming_prefix_words=prefix_words,
         )
         if result is None:
             return None
@@ -862,10 +905,26 @@ class CascadeSession:
         self.state.asr_hypotheses.append(asr_hypo)
         self.state.partial_word_timestamps_ms = normalize_word_timestamps_ms(result.words)
 
+        if self.config.asr_streaming_prefix_enabled:
+            self._asr_streaming_last_text = asr_hypo
+            self._asr_streaming_last_words = tuple(result.words)
+            self._asr_streaming_chunk_count += 1
+
         asr_segment = longest_common_prefix(
             self.state.asr_hypotheses[-2],
             self.state.asr_hypotheses[-1],
         )
+        if os.environ.get("CASCADE_ASR_STREAMING_DEBUG"):
+            audio_s = (len(self.state.source) - self.state.utt_timestamps[-1]) / SAMPLE_RATE
+            print(
+                f"[asr-stream] chunk={self._asr_streaming_chunk_count} "
+                f"audio_slice_s={audio_s:.2f} "
+                f"prefix_words={len(prefix_words)} "
+                f"hypo_words={len(result.words)} n_utt={n_utterances(asr_segment)} "
+                f"hypo[-60:]={asr_hypo[-60:]!r} "
+                f"lcp[-60:]={asr_segment[-60:]!r}",
+                flush=True,
+            )
         if n_utterances(asr_segment) >= 1:
             rightest_punct_idx = max(
                 asr_segment.rfind(". "),
@@ -891,10 +950,59 @@ class CascadeSession:
                 if n_words_right > 0
                 else []
             )
+            if self.config.asr_streaming_prefix_enabled:
+                self._reset_asr_streaming_state(reset_backend=True)
 
         if self.state.utt_sources[1:]:
             return self.render_public_asr_text()
         return normalize_partial_asr_hypothesis(self.state.asr_hypotheses[-1])
+
+    def _compute_streaming_prefix(
+        self,
+        alignment_backend: AlignmentBackend,
+    ) -> tuple[str, tuple[WordAlignment, ...]]:
+        """Build the Qwen-style rolled-back assistant prefix for streaming.
+
+        Uses word-level rollback so the prefix always ends at a clean word
+        boundary. This preserves the word-count invariant that
+        :func:`find_end_time` relies on for sentence commits, which
+        token-level rollback broke when the rolled-back boundary landed
+        mid-word and the continuation's word aggregation produced a
+        fragment word that did not match the full text's split.
+        """
+        del alignment_backend
+        if not self.config.asr_streaming_prefix_enabled:
+            return "", ()
+        if self._asr_streaming_chunk_count < self.config.asr_streaming_unfixed_chunks:
+            return "", ()
+        last_text = self._asr_streaming_last_text
+        last_words = self._asr_streaming_last_words
+        if not last_text or not last_words:
+            return "", ()
+        rollback = max(0, int(self.config.asr_streaming_rollback_words))
+        keep_count = len(last_words) - rollback
+        if keep_count <= 0:
+            return "", ()
+        kept_words = last_words[:keep_count]
+        cursor = 0
+        last_end_pos = 0
+        for word in kept_words:
+            candidate = word.text
+            if not candidate:
+                continue
+            idx = last_text.find(candidate, cursor)
+            if idx < 0:
+                return "", ()
+            cursor = idx + len(candidate)
+            last_end_pos = cursor
+        # Include trailing punctuation immediately after the last kept
+        # word so sentence-terminal markers are preserved in the prefix.
+        while last_end_pos < len(last_text) and last_text[last_end_pos] in ".,!?;:":
+            last_end_pos += 1
+        prefix_text = last_text[:last_end_pos]
+        if not prefix_text:
+            return "", ()
+        return prefix_text, tuple(kept_words)
 
     def render_translation(self) -> tuple[str, MTBackendResult | None]:
         return self.translation_units.render_translation()

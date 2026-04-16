@@ -69,6 +69,9 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "gemma_audio_alignment_top_k_heads",
             "gemma_audio_alignment_filter_width",
             "gemma_audio_alignment_max_new_tokens",
+            "asr_streaming_prefix_enabled",
+            "asr_streaming_rollback_words",
+            "asr_streaming_unfixed_chunks",
         ]
         overrides = {
             key: getattr(config, key)

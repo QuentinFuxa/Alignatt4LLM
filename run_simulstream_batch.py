@@ -206,6 +206,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--translation-alignatt-min-source-mass", default=0.0, type=float)
     parser.add_argument("--translation-alignatt-rewind-threshold", default=8, type=int)
     parser.add_argument("--translation-alignatt-inaccessible-ms", default=0.0, type=float)
+    parser.add_argument(
+        "--asr-streaming-prefix-enabled",
+        action="store_true",
+        help="Experimental Qwen-style prompt-prefix streaming for gemma_vllm_qk_fast.",
+    )
+    parser.add_argument("--asr-streaming-rollback-words", default=2, type=int)
+    parser.add_argument("--asr-streaming-unfixed-chunks", default=2, type=int)
     return parser.parse_args()
 
 
@@ -233,6 +240,9 @@ def main() -> None:
         translation_alignatt_min_source_mass=args.translation_alignatt_min_source_mass,
         translation_alignatt_rewind_threshold=args.translation_alignatt_rewind_threshold,
         translation_alignatt_inaccessible_ms=args.translation_alignatt_inaccessible_ms,
+        asr_streaming_prefix_enabled=args.asr_streaming_prefix_enabled,
+        asr_streaming_rollback_words=args.asr_streaming_rollback_words,
+        asr_streaming_unfixed_chunks=args.asr_streaming_unfixed_chunks,
     )
 
     print("Loading models ...")
@@ -292,6 +302,8 @@ def main() -> None:
         "gemma_audio_alignment_heads_path", "gemma_audio_align_probe_mode",
         "translation_emit_policy", "translation_max_tail_rewrite_words",
         "temperature", "repetition_penalty",
+        "asr_streaming_prefix_enabled", "asr_streaming_rollback_words",
+        "asr_streaming_unfixed_chunks",
     ]:
         runtime_config[key] = getattr(processor.session.config, key, None)
 

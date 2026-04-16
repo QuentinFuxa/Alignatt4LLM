@@ -28,7 +28,12 @@ import wave
 import numpy as np
 import torch
 
-from alignment_backend import AlignAttObserverToken, AlignmentBackend, AlignmentResult
+from alignment_backend import (
+    AlignAttObserverToken,
+    AlignmentBackend,
+    AlignmentResult,
+    WordAlignment,
+)
 from cascade_mt_backend import AlignAttHead, compute_alignatt_source_argmaxes
 from gemma_alignment_probe import (
     GEMMA_AUDIO_MAX_SECONDS_DEFAULT,
@@ -1343,9 +1348,10 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         audio: np.ndarray,
         *,
         language: str,
+        assistant_prefix: str = "",
     ) -> list[dict[str, Any]]:
         del language
-        return [
+        messages: list[dict[str, Any]] = [
             {
                 "role": "user",
                 "content": [
@@ -1354,15 +1360,24 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
                 ],
             }
         ]
+        if assistant_prefix:
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": [{"type": "text", "text": assistant_prefix}],
+                }
+            )
+        return messages
 
     def _render_vllm_messages(
         self,
         *,
         audio_file_url: str,
         language: str,
+        assistant_prefix: str = "",
     ) -> list[dict[str, Any]]:
         del language
-        return [
+        messages: list[dict[str, Any]] = [
             {
                 "role": "user",
                 "content": [
@@ -1371,6 +1386,14 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
                 ],
             }
         ]
+        if assistant_prefix:
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": [{"type": "text", "text": assistant_prefix}],
+                }
+            )
+        return messages
 
     def _write_temp_audio_file(
         self,
@@ -1600,6 +1623,8 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         *,
         sample_rate: int,
         language: str,
+        streaming_prefix_text: str = "",
+        streaming_prefix_words: tuple[WordAlignment, ...] = (),
     ) -> AlignmentResult | None:
         if self.llm is None or self.processor is None or self.tokenizer is None:
             raise RuntimeError("Gemma vLLM backend is not loaded. Call load() first.")
@@ -1613,8 +1638,22 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         audio = np.asarray(audio, dtype=np.float32)
         audio_duration_s = self._enforce_audio_cap(audio, sample_rate=sample_rate)
 
+        use_streaming_prefix = bool(streaming_prefix_text)
+
         prompt_build_start = perf_counter()
-        processor_messages = self._render_processor_messages(audio, language=language)
+        # Replicate Qwen3-ASR's streaming_transcribe pattern for the
+        # streaming path: tokenize the *user-only* turn through the chat
+        # template (add_generation_prompt=True), then append the previously
+        # decoded text as a raw token suffix. The vLLM call becomes
+        # llm.generate(prompt_token_ids=...) instead of llm.chat() with
+        # continue_final_message=True. This matches how Qwen3-ASR's
+        # streaming_transcribe() drives its own vLLM backend and avoids
+        # the chat-template edge cases that surfaced on Gemma.
+        processor_messages = self._render_processor_messages(
+            audio,
+            language=language,
+            assistant_prefix="",
+        )
         prompt_inputs = self.processor.apply_chat_template(
             processor_messages,
             add_generation_prompt=True,
@@ -1622,16 +1661,23 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
             return_dict=True,
             return_tensors="pt",
         )
-        prompt_token_ids = [
+        user_only_token_ids = [
             int(token_id) for token_id in prompt_inputs["input_ids"][0].tolist()
         ]
         audio_span = detect_audio_span(
-            prompt_token_ids,
+            user_only_token_ids,
             audio_token_id=self.audio_token_id,
             audio_ms_per_token=self.audio_ms_per_token,
         )
         if audio_span is None:
             raise RuntimeError("Could not detect the audio token span in the Gemma prompt.")
+        if use_streaming_prefix:
+            prefix_token_ids = self.tokenizer.encode(
+                streaming_prefix_text, add_special_tokens=False
+            )
+            prompt_token_ids = list(user_only_token_ids) + list(prefix_token_ids)
+        else:
+            prompt_token_ids = user_only_token_ids
         prompt_build_ms = (perf_counter() - prompt_build_start) * 1000.0
 
         install_result = self._install_observer(
@@ -1653,12 +1699,6 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
             ],
         )
 
-        temp_audio_path = self._write_temp_audio_file(audio, sample_rate=sample_rate)
-        vllm_messages = self._render_vllm_messages(
-            audio_file_url=temp_audio_path.resolve().as_uri(),
-            language=language,
-        )
-
         sampling_params = SamplingParams(
             temperature=0.0,
             max_tokens=self.max_new_tokens,
@@ -1669,18 +1709,40 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         )
 
         generate_start = perf_counter()
-        outputs = self.llm.chat(
-            vllm_messages,
-            sampling_params=sampling_params,
-            use_tqdm=False,
-        )
+        if use_streaming_prefix:
+            # Qwen3-ASR-style call: prompt_token_ids (user turn tokens +
+            # tokenized text suffix) + raw audio via multi_modal_data.
+            inp = {
+                "prompt_token_ids": prompt_token_ids,
+                "multi_modal_data": {
+                    "audio": [np.asarray(audio, dtype=np.float32)]
+                },
+            }
+            outputs = self.llm.generate(
+                [inp],
+                sampling_params=sampling_params,
+                use_tqdm=False,
+            )
+        else:
+            temp_audio_path = self._write_temp_audio_file(audio, sample_rate=sample_rate)
+            vllm_messages = self._render_vllm_messages(
+                audio_file_url=temp_audio_path.resolve().as_uri(),
+                language=language,
+                assistant_prefix="",
+            )
+            outputs = self.llm.chat(
+                vllm_messages,
+                sampling_params=sampling_params,
+                use_tqdm=False,
+            )
         generate_ms = (perf_counter() - generate_start) * 1000.0
         if not outputs or not outputs[0].outputs:
             raise RuntimeError("vLLM Gemma ASR produced no completion output.")
 
         output = outputs[0]
         completion = output.outputs[0]
-        text = str(completion.text).strip()
+        raw_completion_text = str(completion.text)
+        text = raw_completion_text.strip()
         generated_ids = self._trim_trailing_non_text_token_ids(
             [int(token_id) for token_id in completion.token_ids],
             text=text,
@@ -1764,9 +1826,23 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
             aligned_source_positions=aligned_audio_positions,
         )
 
+        if use_streaming_prefix:
+            full_text = streaming_prefix_text + raw_completion_text.rstrip()
+            full_words = tuple(streaming_prefix_words) + tuple(words)
+        else:
+            full_text = text
+            full_words = tuple(words)
+
         diagnostics = {
             "backend": self.name,
             "observer_backend": "vllm_qk_fast_experimental",
+            "streaming_prefix": {
+                "enabled": use_streaming_prefix,
+                "prefix_chars": len(streaming_prefix_text),
+                "prefix_word_count": len(streaming_prefix_words),
+                "continuation_chars": len(text),
+                "continuation_word_count": len(words),
+            },
             "executor_backend": self.executor_backend,
             "worker_mode": self.worker_mode,
             "patch_mode": self.patch_mode,
@@ -1821,8 +1897,8 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         }
 
         return AlignmentResult(
-            text=text,
-            words=words,
+            text=full_text,
+            words=full_words,
             audio_duration_s=audio_duration_s,
             observer_tokens=observer_tokens,
             diagnostics=diagnostics,

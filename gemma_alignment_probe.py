@@ -1459,9 +1459,17 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         *,
         sample_rate: int,
         language: str,
+        streaming_prefix_text: str = "",
+        streaming_prefix_words: tuple[WordAlignment, ...] = (),
     ) -> AlignmentResult | None:
         if self.model is None:
             raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
+        if streaming_prefix_text or streaming_prefix_words:
+            raise NotImplementedError(
+                "Transformers-based gemma_onepass_qk_fast does not yet support "
+                "prompt-prefix streaming. Use gemma_vllm_qk_fast with "
+                "asr_streaming_prefix_enabled=True for that path."
+            )
         total_start = perf_counter()
 
         audio = np.asarray(audio, dtype=np.float32)

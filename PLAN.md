@@ -2,6 +2,267 @@
 
 # Gemma-Only Future: Status + Next for vLLM-Native qk_fast AlignAtt
 
+## Critical Review (2026-04-16)
+
+This section supersedes the optimistic reading one might get from the
+latest streaming-prefix experiment if read too quickly.
+
+### What is solid and should be kept
+
+- The **non-streaming** `gemma_vllm_qk_fast` seam is now a real system
+  result, not a sketch:
+  - explicit opt-in backend name
+  - compact observer contract preserved
+  - custom `worker_cls` bootstrap before warmup / cudagraph capture
+  - end-to-end SimulStream runs exist on two clips
+  - positive RTF gap vs `gemma_onepass_qk_fast` on both clips
+- The **custom worker + tensor observer + deferred warmup** design looks
+  like the right foundational systems move. It is narrow, measurable,
+  and aligned with the paper-defensible goal of recovering the observer
+  engine-natively instead of through late Python hooks.
+- The **diagnostic substrate** added around that seam is also good:
+  - repeat-on-same-engine harness
+  - decode-drift diagnostics
+  - prompt-observer cache diagnostics
+  - single-audio seam comparison tooling
+
+### What is not yet defensible
+
+- The new **ASR streaming prefix** branch is still only a promising
+  experiment, not part of the migration story yet.
+- The current `smoke18` gain (`RTF 2.305 -> 1.387`) is **not yet a clean
+  ablation** of prefix-prefill alone. The streaming branch changed two
+  things at once:
+  1. it injects a rolled-back text prefix
+  2. it changes the vLLM invocation path from `llm.chat(...)` with a
+     temp audio file to `llm.generate(prompt_token_ids=...,
+     multi_modal_data=...)`
+- The currently checked-in `smoke18` artifacts for non-streaming and
+  streaming also come from **different git SHAs**, so the speed gap is
+  directionally interesting but not yet the kind of same-code A/B we can
+  defend in a paper.
+- The streaming branch currently depends on the old **punctuation-based
+  commit rule** in `CascadeSession.transcribe_audio`. On longer clips,
+  that makes the branch fail structurally: if Gemma continuation does not
+  insert sentence-final punctuation, commits never fire, `utt_timestamps`
+  does not advance, and the growing audio slice eventually hits Gemma's
+  30 s encoder cap.
+- The runtime does **not** yet fail fast if
+  `asr_streaming_prefix_enabled=True` is used with an unsupported backend.
+  Today that mismatch is caught only later through
+  `NotImplementedError`.
+- The new streaming state machine is **not** protected by targeted tests
+  yet. The existing test suite passing is good, but it mostly validates
+  the observer seam, not the new ASR prefix-carry logic.
+- The design docs outside this file are now partially stale: they still
+  describe the public runtime surface as two frontends only. Treat this
+  file and the actual code as the ground truth until the docs are synced.
+
+### Revised next steps
+
+1. **Run a clean same-SHA, same-audio control for the streaming claim.**
+   Before any further design conclusions, compare on `tmp/alignatt_smoke18.wav`:
+   - non-streaming `gemma_vllm_qk_fast`
+   - a control path using the same `llm.generate(prompt_token_ids + multi_modal_data)`
+     invocation but with **no** injected text prefix
+   - the actual prefix-prefill path
+   The goal is to separate:
+   - benefit from the API / input-path change
+   - benefit from prefix-prefill itself
+   Do not quote `1.387` as "the" prefix-prefill gain until this control exists.
+
+2. **Add fast-fail validation and focused tests around the streaming branch.**
+   Minimum scope:
+   - reject `asr_streaming_prefix_enabled=True` unless
+     `alignment_backend_name == "gemma_vllm_qk_fast"`
+   - test `_compute_streaming_prefix()` on repeated words and trailing punctuation
+   - test streaming-state reset on utterance commit / session reset
+   - test that the returned streaming `AlignmentResult` still satisfies the
+     word-count invariant the commit logic relies on
+   These are lightweight and high-signal; they protect the new stateful logic
+   without bloating the repo.
+
+3. **Keep the main migration story centered on the non-streaming vLLM seam.**
+   Until step 1 is clean and the commit signal problem is solved, the
+   primary claim remains:
+   - `gemma_vllm_qk_fast` non-streaming is a valid experimental backend
+   - it is faster than `gemma_onepass_qk_fast`
+   - it keeps the compact AlignAtt observer contract
+   Do not let the still-fragile streaming branch redefine the repo's main
+   success criterion prematurely.
+
+4. **Only then decide whether the right next research move is stability-based commit.**
+   The "stability-based commit" idea is still the most principled current
+   candidate for making prefix-prefill usable beyond punctuation-friendly
+   models. But it should be opened only after the same-code control above
+   confirms that the remaining speed win is really due to prefix-prefill.
+   Otherwise we risk solving the wrong problem.
+
+5. **Sync the docs only after the story above stabilizes.**
+   Once the backend/streaming picture is clean, update:
+   - `ALIGNATT_LLM.md`
+   - `E4B_ALIGNATT_CASCADE_DESIGN.md`
+   so they stop contradicting the actual runtime surface.
+
+
+## Streaming Prefix-Prefill Experiment (2026-04-16) — Status, Gains, Difficulties
+
+This section is the most recent experimental record. Read it after the
+critical review above; the older handoff below is still valid but
+pre-dates these findings.
+
+### What was built
+
+An opt-in "prompt-prefix streaming" path for `gemma_vllm_qk_fast`,
+reusing the idea from Qwen3-ASR's `streaming_transcribe`: carry the
+previously decoded text across chunks and inject it as the assistant
+turn's prefill so the model only decodes the text delta, not the whole
+sentence from scratch. Knobs:
+
+- `CascadeRuntimeConfig.asr_streaming_prefix_enabled` (off by default)
+- `CascadeRuntimeConfig.asr_streaming_rollback_words` (default 2)
+- `CascadeRuntimeConfig.asr_streaming_unfixed_chunks` (default 2)
+
+Corresponding CLI flag on `run_simulstream_batch.py`:
+`--asr-streaming-prefix-enabled`, `--asr-streaming-rollback-words`,
+`--asr-streaming-unfixed-chunks`. The code path is fully gated — with
+the flag off, behaviour is byte-for-byte identical to the previous
+non-streaming `gemma_vllm_qk_fast`.
+
+Word-level rollback is used on purpose (not Qwen-style token-level):
+it keeps the prefix ending on a clean word boundary, which preserves
+the invariant `find_end_time` relies on (`len(words) ==
+len(remove_punctuation(text).split())`). Token-level rollback was
+tried first and broke this invariant when the boundary landed
+mid-word.
+
+### Measured gain — smoke18 (18 s clip)
+
+On `tmp/alignatt_smoke18.wav` the RTF drops cleanly:
+
+- `gemma_vllm_qk_fast` non-streaming: RTF `2.305`
+- `gemma_vllm_qk_fast` streaming prefix: RTF `1.387`
+- relative improvement: ~39.8% RTF reduction
+- qwen_forced baseline (reference only): RTF `0.798`
+
+Commit cadence also improved: 12 distinct commit frontiers vs. 4
+non-streaming, and the emitted German translation reaches
+substantially further through the audio in the same wallclock
+window. No observer failures. Artifacts:
+`outputs/simulstream_gemma_vllm_streaming_v2_smoke18/`.
+
+### Difficulty — the approach does not yet generalise
+
+On `test-set/audio/ccpXHNfaoy_short60s.wav` the streaming run hits a
+hard wall: the backend crashes with
+`GemmaAudioTooLongError: Audio is 30.150s but Gemma encoder cap is
+30.000s`. Gemma's audio encoder is hard-capped at 30 s, and the
+cascade only truncates the audio slice when a sentence-level commit
+advances `utt_timestamps`. In non-streaming the first commit on this
+clip lands at ~22 s of audio (well within the cap); in streaming mode
+no commit fires at all before 30 s is reached, so the growing audio
+slice overflows the encoder.
+
+Debug tracing (`CASCADE_ASR_STREAMING_DEBUG=1`) shows why: the
+streaming ASR hypotheses on this clip never contain a sentence-
+terminal period. Samples:
+
+- chunk 5 (4.05 s): `"Hi I'm Si Yuan from Fudan University"` — no period
+- chunk 20 (10.80 s): `"...Distinctness script knowledge from large language models"` — no period
+- chunk 44 (21.60 s, where non-streaming commits): `"...step-by-step instructions in the form of generated scripts"` — no period
+- through chunk 62 (29.70 s): still no period anywhere in the hypothesis
+
+Because the LCP-based commit logic only fires on
+`n_utterances(asr_segment) >= 1` (which requires `.`, `!`, or `?` in
+the LCP), commits never trigger and the audio slice grows unbounded
+until the 30 s cap blows up.
+
+### Why the approach does not produce periods on Gemma
+
+The prompt-prefix continuation is structurally unable to insert
+retroactive punctuation. At chunk N, the prefix is the previous
+hypothesis minus a short rollback tail; the continuation only covers
+that rollback tail plus any new words at the current audio frontier.
+A sentence boundary that *should* have been placed several chunks ago
+(e.g. after "University" at ~5 s) is already frozen deep inside the
+prefix and the model has no mechanism to rewrite it. Non-streaming
+avoids this because it regenerates the entire transcription each
+chunk, so once the audio is long enough the model can re-decide
+globally where periods go.
+
+### Hypotheses tested and ruled out
+
+- **"Gemma has a streaming-only mode"** — wrong. Both Qwen3-ASR and
+  Gemma are stateless multimodal LLMs; "streaming" is just a harness
+  around repeated inference calls.
+- **"It's a chat-template quirk with `continue_final_message=True`"**
+  — also wrong. We replicated Qwen3-ASR's exact call shape:
+  `llm.generate(prompt_token_ids=user_turn + tokenize(prefix_text),
+  multi_modal_data={"audio": [audio_np]}, ...)`, bypassing
+  `llm.chat()` entirely. Behaviour is byte-identical to the
+  `continue_final_message=True` path: same periodless hypotheses,
+  same cap crash. So the invocation path is not the variable.
+- **"A stronger prompt instruction will bring periods back"** — also
+  ruled out. Adding an explicit "preserve sentence punctuation" rule
+  to the ASR instruction *did* cause the model to emit periods, but
+  it achieved this by hallucinating fake sentences to punctuate
+  ("This thing's script knowledge is amazing!" in place of the real
+  audio). That is an AGENTS.md "screugneugneu" violation and is not
+  defensible — reverted.
+
+### What this tells us about Qwen3-ASR vs Gemma-4
+
+The remaining honest explanation is model behaviour under
+prompt-prefix continuation. Qwen3-ASR (dedicated ASR head) inserts
+sentence-terminal periods inside its continuation when the audio
+justifies it; Gemma-4 (general multimodal LLM) does not reliably do
+so on this input. That is a property of the model weights, not of
+the inference plumbing.
+
+### Options for a defensible path forward
+
+1. **Stability-based commit** — principled, model-agnostic. Replace
+   the "LCP must contain `.`, `!`, or `?`" rule with "LCP has been
+   stable for N consecutive chunks past some minimum length → commit
+   at that boundary". This decouples commit semantics from the
+   model's punctuation behaviour and keeps the prefix-prefill
+   decode-delta win. The claim we could defend in a paper is:
+   *stability-based acceptance is a more fundamental streaming-ASR
+   signal than punctuation, and it is what actually makes
+   prompt-prefix streaming usable across models that were not
+   trained for it.*
+
+2. **Abandon prefix-prefill; use prior text as hint context inside
+   the user turn** (e.g. `"Transcript so far: {prev_text}. Continue
+   transcribing from the audio."`). Model regenerates fresh each
+   chunk, so punctuation is produced correctly, but decode is back
+   to O(full sentence) — we lose the smoke18 RTF gain and end up
+   roughly where non-streaming was.
+
+3. **Do nothing under this track and move to the KV-cache-native
+   prompt observer (step 1)**. This merges back into the other open
+   work item and does not directly address the repeated-decode
+   bottleneck.
+
+Current recommendation: option 1. It is a small, localised change to
+the cascade's commit logic, compatible with both streaming and
+non-streaming backends, and it is the finding that would carry a
+research paper — "how to make prompt-prefix streaming work for ASR
+models that do not emit punctuation in continuation mode".
+
+### What is in the repo right now
+
+- Streaming prefix-prefill is implemented, gated, tested to import
+  and to pass the existing 32 unit tests.
+- smoke18 end-to-end run under streaming succeeded with RTF `1.387`
+  and coherent German translation.
+- Longer clips (short60s) crash under streaming because of the
+  commit-signal incompatibility described above. This is not an
+  observer bug, not a vLLM bug, and not a chat-template bug.
+- The non-streaming `gemma_vllm_qk_fast` path is untouched and still
+  the validated reference (RTF `2.305` on smoke18, `2.580` on
+  short60s).
+
 
 ## Handoff (2026-04-16) — For the Next Agent
 
@@ -15,12 +276,16 @@
 - the canonical SimulStream comparison still defaults to the two
   stable backends only
 - 32 unit tests in `test_alignment_helpers.py` pass
-- `gemma_vllm_qk_fast` has one validated end-to-end SimulStream run on
-  `tmp/alignatt_smoke18.wav`:
-  - RTF `2.305` vs `gemma_onepass_qk_fast` `2.950` (same clip, same
-    pipeline) — about 21.9% faster
-  - still much slower than `qwen_forced` RTF `0.798`
-  - artifact: `outputs/simulstream_gemma_vllm_integration_smoke18/`
+- `gemma_vllm_qk_fast` has two validated end-to-end SimulStream runs:
+  - `tmp/alignatt_smoke18.wav` (18 s):
+    RTF `2.305` vs `gemma_onepass_qk_fast` `2.950` — about 21.9% faster.
+    Artifact: `outputs/simulstream_gemma_vllm_integration_smoke18/`.
+  - `test-set/audio/ccpXHNfaoy_short60s.wav` (60 s, 3.3× longer,
+    different content):
+    RTF `2.580` vs `gemma_onepass_qk_fast` `3.100` — about 16.8% faster.
+    Artifacts: `outputs/simulstream_gemma_vllm_short60s/` and
+    `outputs/simulstream_gemma_onepass_short60s/`.
+  - still much slower than `qwen_forced` RTF `0.798` on `smoke18`.
 - validated vLLM seam defaults: `worker_cls=gemma_vllm_worker.GemmaAlignAttWorker`,
   `cudagraph_mode="full"`, `enforce_eager=False`,
   `enable_prefix_caching=False`
@@ -36,10 +301,13 @@
 
 In rough priority order for a paper-defensible result:
 
-1. **Multi-audio generalization.** Everything is based on one clip.
-   The RTF gain and observer stability need confirmation on a small
-   diverse set (say 5-10 clips) before any broader claim. Not yet
-   a full-set sweep — first a second clip, then a sanity set.
+1. **Multi-audio generalization.** The two-clip sanity check is now
+   passed (`smoke18` at 18 s and `ccpXHNfaoy_short60s` at 60 s, both
+   show a positive RTF gap for `gemma_vllm_qk_fast` over
+   `gemma_onepass_qk_fast` with no observer failures). The next
+   widening, a 5–10 clip sanity set, is not yet done. The direction
+   is confirmed, the magnitude (16.8%–21.9%) is not yet well
+   characterised across clips.
 
 2. **Step 1: prefix-caching semantic gap.** Still open. Identical hot
    replays drift in text when prefix caching is on, even though
@@ -69,16 +337,17 @@ In rough priority order for a paper-defensible result:
 
 ### Suggested next concrete action
 
-Run the new `gemma_vllm_qk_fast` backend through
-`run_simulstream_batch.py` on one additional clip (e.g., a second
-`test-set/audio/*.wav`) to check that (a) the observer stays intact
-and (b) the RTF improvement is not specific to `smoke18`. **Do not**
-widen to a full sweep before that sanity check passes.
+The second-clip sanity check is done (see the two-run table above).
+The plan's own evidence says the next lever with the larger remaining
+end-to-end RTF headroom is **Step 5: the incremental-ASR track**, not
+more backend-observer work. That track is now being opened as a
+separate investigation, with the rule from the "What not to do" list
+still honoured: observer work and incremental-ASR work stay as two
+independent questions with two independent success criteria.
 
-If that passes, the next natural question is whether to open the
-incremental-ASR track (step 5) or invest in the KV-cache-native
-prompt observer (step 1). The current evidence says step 5 has the
-larger remaining headroom on end-to-end RTF.
+A full 5–10 clip sanity set is still pending but should not hold up
+the incremental-ASR investigation. Treat it as orthogonal multi-audio
+generalization work to run alongside, not a blocker.
 
 ### What not to do
 
@@ -766,21 +1035,75 @@ Stop condition:
   closed most of the Gemma-vs-Qwen-decode gap that a full Transformers
   path left open
 
-### 5. If end-to-end RTF is still poor, open the incremental-ASR track
+### 5. Open the incremental-ASR track, reusing Qwen3-ASR's streaming idea
 
 Goal:
 
 - avoid misdiagnosing a system bottleneck as an observer bottleneck
+- cut the dominant remaining cost (repeated full-sentence decode) by
+  giving the Gemma ASR path the same stateful-streaming contract that
+  makes `qwen_forced` fast
+
+Rationale — what the current code actually does and why it is slow:
+
+- `CascadeSession.transcribe_audio` slices
+  `state.source[utt_timestamps[-1]:]` and hands the whole growing
+  audio tail to the backend every chunk
+- `utt_timestamps[-1]` only advances on sentence-level punctuation
+  commits, so between commits the backend re-decodes every previously
+  generated word from scratch each chunk
+- on the diagnostic single-audio run recorded earlier in this doc,
+  decode was `2821 ms` of `3810 ms` total (~74%), while prompt forward
+  was only `630 ms`, so the repeated decode is the lever, not the
+  audio encoder
+
+Reusable idea from Qwen3-ASR (`.venv-inference/.../qwen_asr/inference/qwen3_asr.py`):
+
+- `Qwen3ASRModel.streaming_transcribe` feeds all audio seen so far,
+  but injects the previously decoded text (minus a configurable
+  `unfixed_token_num` rollback tail) as an assistant-side prompt
+  prefix
+- as a result, each chunk only needs to decode the small text *delta*
+  (rolled-back tail + any new words), not the whole sentence again
+- this matches vLLM's prefix-cache friendly serving pattern on the
+  text side without requiring KV-cache-native observer work on the
+  audio side
+
+Concrete direction for Gemma:
+
+- carry a per-utterance `streaming_prefix_text` through
+  `AlignmentBackend.transcribe_and_align`
+- `gemma_vllm_qk_fast` renders its chat prompt with that text as the
+  assistant prefill so generation resumes after it
+- a small rollback tail (a handful of tokens) keeps boundary
+  corrections and punctuation-driven sentence commits possible
+- state resets at sentence commits (`utt_timestamps` advance) so the
+  next sentence starts cold
+
+Scope boundaries (to honour "do not conflate observer work with
+incremental-ASR work"):
+
+- do not change observer semantics
+- do not re-enable vLLM prefix caching as part of this step
+- observer still captures only the newly generated token span each
+  call; timings for the frozen prefix are carried over from the
+  previous call, exactly as they already stabilised then
 
 Required outcome:
 
-- treat stateful incremental ASR across chunks as its own project if the
-  backend is fast enough but SimulStream still reruns too much audio
+- streaming prefix-prompt mode available behind an explicit flag on
+  `gemma_vllm_qk_fast`
+- `gemma_vllm_qk_fast` RTF on `tmp/alignatt_smoke18.wav` drops
+  materially below `2.305` under that flag without regressing text
+  quality vs the non-streaming path
+- then the same check on `ccpXHNfaoy_short60s.wav` to confirm the gain
+  is not smoke18-specific
 
 Stop condition:
 
-- backend-observer work and incremental-ASR work are tracked as separate
-  questions with separate success criteria
+- backend-observer work and incremental-ASR work are tracked as
+  separate questions with separate success criteria
+- streaming mode is opt-in, not a silent default
 
 
 ## Gated Surface Change
@@ -807,7 +1130,7 @@ The vLLM backend remains:
 
 ## Minimal validation that must stay in scope
 
-### Unit-level validation (31 tests pass)
+### Unit-level validation (32 tests pass)
 
 The following invariants are covered by `test_alignment_helpers.py`:
 

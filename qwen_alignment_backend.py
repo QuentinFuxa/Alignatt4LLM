@@ -116,9 +116,17 @@ class QwenAlignmentBackend(AlignmentBackend):
         *,
         sample_rate: int,
         language: str,
+        streaming_prefix_text: str = "",
+        streaming_prefix_words: tuple[WordAlignment, ...] = (),
     ) -> AlignmentResult | None:
         if self.asr is None:
             raise RuntimeError("QwenAlignmentBackend is not loaded. Call load() first.")
+        if streaming_prefix_text or streaming_prefix_words:
+            raise NotImplementedError(
+                "QwenAlignmentBackend does not yet support prompt-prefix streaming; "
+                "the Qwen3-ASR vLLM path has its own streaming_transcribe() API that "
+                "the cascade does not route through this backend."
+            )
 
         audio = np.asarray(audio, dtype=np.float32)
         audio_duration_s = float(len(audio)) / float(sample_rate)

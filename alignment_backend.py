@@ -101,11 +101,34 @@ class AlignmentBackend(ABC):
         *,
         sample_rate: int,
         language: str,
+        streaming_prefix_text: str = "",
+        streaming_prefix_words: tuple["WordAlignment", ...] = (),
     ) -> AlignmentResult | None:
         """Return ``None`` if the backend detected an invalid output (e.g.
         timestamp running past the end of the provided audio).
+
+        ``streaming_prefix_text`` and ``streaming_prefix_words`` are optional
+        state carried by the caller across chunks to enable Qwen-style
+        prompt-prefix streaming. When both are empty, behaviour is
+        identical to the non-streaming contract. When ``streaming_prefix_text``
+        is non-empty, backends that support streaming may inject it as an
+        assistant-side prompt prefix so the model only decodes the text
+        delta; the returned ``AlignmentResult.text`` and ``words`` must
+        still describe the *full* hypothesis (prefix + continuation).
+        Backends that do not support streaming must raise
+        ``NotImplementedError`` when ``streaming_prefix_text`` is non-empty.
         """
         raise NotImplementedError
 
     def reset_caches(self) -> None:
+        return None
+
+    def reset_streaming_state(self) -> None:
+        """Reset any backend-internal streaming caches tied to an utterance.
+
+        The session calls this when ``utt_timestamps`` advances, i.e. when
+        the current utterance has been committed and the next audio slice
+        no longer shares a prefix with the previous one. Default is a
+        no-op; streaming-capable backends override this.
+        """
         return None
