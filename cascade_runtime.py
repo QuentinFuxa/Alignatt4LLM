@@ -62,6 +62,12 @@ VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast", "gemma_
 # vLLM backend is opt-in until validated under the full SimulStream loop.
 STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast")
 
+# MT backend surface is separate from the ASR alignment backend surface. The
+# pivot in PLAN.md keeps qwen_forced on the ASR side and experiments on the MT
+# side, so mt_backend_name is an independent runtime axis.
+VALID_MT_BACKEND_NAMES = ("gemma_transformers_alignatt", "gemma_vllm_alignatt")
+STABLE_MT_BACKEND_NAMES = ("gemma_transformers_alignatt",)
+
 
 def _resolve_hf_snapshot(repo_subpath: str) -> str:
     candidates = [
@@ -144,6 +150,7 @@ class CascadeRuntimeConfig:
     gemma_transformers_prompt_kv_reuse: bool = True
     translation_scheduler_stall_seconds: float = 1.2
     alignment_backend_name: str = "qwen_forced"
+    mt_backend_name: str = "gemma_transformers_alignatt"
     gemma_audio_alignment_heads_path: str | None = (
         "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
     )
@@ -157,6 +164,16 @@ class CascadeRuntimeConfig:
     gemma_vllm_enable_prefix_caching: bool = False
     gemma_vllm_cudagraph_mode: str | None = "full"
     gemma_vllm_gpu_memory_utilization: float = 0.5
+    # vLLM-specific config for the experimental gemma_vllm_alignatt MT backend.
+    # Prefix caching stays off by default (PLAN.md Phase 1 requirement); the MT
+    # backend reuses the Gemma max_model_len so prompt budgeting is identical
+    # to the Transformers MT path. The 0.5 utilization default matches the ASR
+    # vLLM backend: Gemma 4 E4B weights (audio tower bundled) take ~15 GiB, so
+    # anything below ~0.45 leaves no budget for the KV cache on a 40 GiB A100.
+    mt_vllm_enforce_eager: bool = False
+    mt_vllm_enable_prefix_caching: bool = False
+    mt_vllm_cudagraph_mode: str | None = "full"
+    mt_vllm_gpu_memory_utilization: float = 0.5
     # Step 5: Qwen-style prompt-prefix streaming for the Gemma ASR backend.
     # When enabled (gemma_vllm_qk_fast only), the previously decoded text
     # (minus asr_streaming_rollback_words tail words) is injected as an
@@ -178,6 +195,10 @@ class CascadeRuntimeConfig:
         if self.alignment_backend_name not in VALID_ALIGNMENT_BACKEND_NAMES:
             raise ValueError(
                 f"Unknown alignment_backend_name: {self.alignment_backend_name!r}"
+            )
+        if self.mt_backend_name not in VALID_MT_BACKEND_NAMES:
+            raise ValueError(
+                f"Unknown mt_backend_name: {self.mt_backend_name!r}"
             )
 
     def apply_overrides(self, **overrides) -> None:
@@ -462,6 +483,7 @@ class LoadedModelBundle:
         self.alignment_backend: AlignmentBackend | None = None
         self.mt_backend = None
         self._alignment_backend_id: str | None = None
+        self._mt_backend_id: str | None = None
         self._mt_heads_path: str | None = None
 
     def ensure_alignment_backend(self) -> AlignmentBackend:
@@ -484,13 +506,15 @@ class LoadedModelBundle:
         return self.alignment_backend
 
     def ensure_mt_backend(self):
-        if self.mt_backend is None:
+        current_backend_id = getattr(self.config, "mt_backend_name", "gemma_transformers_alignatt")
+        if self.mt_backend is None or self._mt_backend_id != current_backend_id:
             self.mt_backend = build_mt_backend(
                 model_name=self.gemma_path,
                 runtime_config=self.config,
             )
             self.mt_backend.load()
             self._mt_heads_path = self.config.translation_alignatt_heads_path
+            self._mt_backend_id = current_backend_id
         else:
             self.mt_backend.runtime_config = self.config
             current_heads_path = self.config.translation_alignatt_heads_path

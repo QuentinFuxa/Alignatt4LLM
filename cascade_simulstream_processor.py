@@ -49,6 +49,9 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             alignment_backend_name=str(
                 getattr(config, "alignment_backend_name", "qwen_forced")
             ),
+            mt_backend_name=str(
+                getattr(config, "mt_backend_name", "gemma_transformers_alignatt")
+            ),
         )
         override_keys = [
             "min_start_seconds",
@@ -87,6 +90,7 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             runtime_config.source_lang,
             runtime_config.target_lang,
             runtime_config.alignment_backend_name,
+            runtime_config.mt_backend_name,
             runtime_config.translation_alignatt_heads_path,
             runtime_config.translation_alignatt_top_k_heads,
             runtime_config.translation_alignatt_filter_width,

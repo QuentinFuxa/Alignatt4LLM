@@ -304,10 +304,24 @@ def build_mt_backend(
     model_name: str,
     runtime_config: SimpleNamespace,
 ) -> "BaseMTBackend":
-    return TransformersAlignAttGemmaMTBackend(
-        model_name=model_name,
-        runtime_config=runtime_config,
-    )
+    # Explicit dispatch on mt_backend_name so callers can compare the stable
+    # Transformers path against the experimental vLLM path (PLAN.md Phase 0).
+    # Defaults to the Transformers backend when the field is absent so existing
+    # callers (tests, legacy notebooks) keep working.
+    backend_name = getattr(runtime_config, "mt_backend_name", "gemma_transformers_alignatt")
+    if backend_name == "gemma_transformers_alignatt":
+        return TransformersAlignAttGemmaMTBackend(
+            model_name=model_name,
+            runtime_config=runtime_config,
+        )
+    if backend_name == "gemma_vllm_alignatt":
+        from gemma_vllm_mt_backend import VLLMAlignAttGemmaMTBackend
+
+        return VLLMAlignAttGemmaMTBackend(
+            model_name=model_name,
+            runtime_config=runtime_config,
+        )
+    raise ValueError(f"Unknown mt_backend_name: {backend_name!r}")
 
 
 class BaseMTBackend(ABC):
