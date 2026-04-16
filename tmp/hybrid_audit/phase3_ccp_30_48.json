@@ -1,0 +1,452 @@
+{
+  "tag": "ccp_30_48",
+  "clip": {
+    "tag": "ccp_30_48",
+    "wav": "test-set/audio/ccpXHNfaoy.wav",
+    "start_s": 30.0,
+    "end_s": 48.0,
+    "description": "Same talk, different content (30-48s)"
+  },
+  "qwen": {
+    "text": "Cake, and show that large language models can effectively decompose goals into steps. However, previous work mainly focuses on planning for the abstract goals of stereotypical activities. Planning for the goals with specific goals, specific constraints.",
+    "audio_duration_s": 18.0,
+    "words": [
+      {
+        "text": "Cake",
+        "start_time": 0.0,
+        "end_time": 0.4
+      },
+      {
+        "text": "and",
+        "start_time": 1.28,
+        "end_time": 1.44
+      },
+      {
+        "text": "show",
+        "start_time": 1.44,
+        "end_time": 1.76
+      },
+      {
+        "text": "that",
+        "start_time": 1.76,
+        "end_time": 2.08
+      },
+      {
+        "text": "large",
+        "start_time": 2.56,
+        "end_time": 2.88
+      },
+      {
+        "text": "language",
+        "start_time": 2.88,
+        "end_time": 3.12
+      },
+      {
+        "text": "models",
+        "start_time": 3.12,
+        "end_time": 3.6
+      },
+      {
+        "text": "can",
+        "start_time": 3.6,
+        "end_time": 3.84
+      },
+      {
+        "text": "effectively",
+        "start_time": 3.84,
+        "end_time": 4.56
+      },
+      {
+        "text": "decompose",
+        "start_time": 4.64,
+        "end_time": 5.2
+      },
+      {
+        "text": "goals",
+        "start_time": 5.2,
+        "end_time": 5.44
+      },
+      {
+        "text": "into",
+        "start_time": 5.44,
+        "end_time": 5.68
+      },
+      {
+        "text": "steps",
+        "start_time": 5.68,
+        "end_time": 6.32
+      },
+      {
+        "text": "However",
+        "start_time": 7.36,
+        "end_time": 7.92
+      },
+      {
+        "text": "previous",
+        "start_time": 8.24,
+        "end_time": 8.8
+      },
+      {
+        "text": "work",
+        "start_time": 8.8,
+        "end_time": 9.04
+      },
+      {
+        "text": "mainly",
+        "start_time": 9.04,
+        "end_time": 9.36
+      },
+      {
+        "text": "focuses",
+        "start_time": 9.36,
+        "end_time": 9.84
+      },
+      {
+        "text": "on",
+        "start_time": 9.84,
+        "end_time": 10.08
+      },
+      {
+        "text": "planning",
+        "start_time": 10.08,
+        "end_time": 10.4
+      },
+      {
+        "text": "for",
+        "start_time": 10.48,
+        "end_time": 10.72
+      },
+      {
+        "text": "the",
+        "start_time": 10.72,
+        "end_time": 10.8
+      },
+      {
+        "text": "abstract",
+        "start_time": 10.8,
+        "end_time": 11.28
+      },
+      {
+        "text": "goals",
+        "start_time": 11.36,
+        "end_time": 11.76
+      },
+      {
+        "text": "of",
+        "start_time": 12.08,
+        "end_time": 12.24
+      },
+      {
+        "text": "stereotypical",
+        "start_time": 12.24,
+        "end_time": 12.88
+      },
+      {
+        "text": "activities",
+        "start_time": 12.96,
+        "end_time": 13.92
+      },
+      {
+        "text": "Planning",
+        "start_time": 14.4,
+        "end_time": 14.72
+      },
+      {
+        "text": "for",
+        "start_time": 14.72,
+        "end_time": 14.88
+      },
+      {
+        "text": "the",
+        "start_time": 14.88,
+        "end_time": 15.04
+      },
+      {
+        "text": "goals",
+        "start_time": 15.04,
+        "end_time": 15.28
+      },
+      {
+        "text": "with",
+        "start_time": 15.36,
+        "end_time": 15.6
+      },
+      {
+        "text": "specific",
+        "start_time": 15.6,
+        "end_time": 16.16
+      },
+      {
+        "text": "goals",
+        "start_time": 16.16,
+        "end_time": 16.64
+      },
+      {
+        "text": "specific",
+        "start_time": 16.64,
+        "end_time": 17.2
+      },
+      {
+        "text": "constraints",
+        "start_time": 17.2,
+        "end_time": 17.76
+      }
+    ],
+    "diagnostics": {
+      "backend": "qwen_asr_qwen_aligner"
+    }
+  },
+  "gemma": {
+    "text": "Cake, and show that large language models can effectively decompose goals into steps. However, previous work mainly focuses on planning for the abstract goals of stereotypical activities. Planning for the goals with specific goals, specific constraints.",
+    "audio_duration_s": 18.0,
+    "words": [
+      {
+        "text": "Cake",
+        "start_time": 0.1599999999999996,
+        "end_time": 0.1599999999999996
+      },
+      {
+        "text": "and",
+        "start_time": 1.3199999999999996,
+        "end_time": 1.3199999999999996
+      },
+      {
+        "text": "show",
+        "start_time": 1.7999999999999994,
+        "end_time": 1.7999999999999994
+      },
+      {
+        "text": "that",
+        "start_time": 2.5199999999999996,
+        "end_time": 2.5199999999999996
+      },
+      {
+        "text": "large",
+        "start_time": 2.9599999999999995,
+        "end_time": 2.9599999999999995
+      },
+      {
+        "text": "language",
+        "start_time": 3.3199999999999994,
+        "end_time": 3.3199999999999994
+      },
+      {
+        "text": "models",
+        "start_time": 3.76,
+        "end_time": 3.76
+      },
+      {
+        "text": "can",
+        "start_time": 3.96,
+        "end_time": 3.96
+      },
+      {
+        "text": "effectively",
+        "start_time": 4.56,
+        "end_time": 4.56
+      },
+      {
+        "text": "decompose",
+        "start_time": 5.319999999999999,
+        "end_time": 5.319999999999999
+      },
+      {
+        "text": "goals",
+        "start_time": 5.4399999999999995,
+        "end_time": 5.4399999999999995
+      },
+      {
+        "text": "into",
+        "start_time": 5.68,
+        "end_time": 5.68
+      },
+      {
+        "text": "steps",
+        "start_time": 6.079999999999999,
+        "end_time": 6.079999999999999
+      },
+      {
+        "text": "However",
+        "start_time": 8.08,
+        "end_time": 8.08
+      },
+      {
+        "text": "previous",
+        "start_time": 8.799999999999999,
+        "end_time": 8.799999999999999
+      },
+      {
+        "text": "work",
+        "start_time": 9.2,
+        "end_time": 9.2
+      },
+      {
+        "text": "mainly",
+        "start_time": 9.4,
+        "end_time": 9.4
+      },
+      {
+        "text": "focuses",
+        "start_time": 9.879999999999999,
+        "end_time": 9.879999999999999
+      },
+      {
+        "text": "on",
+        "start_time": 10.08,
+        "end_time": 10.08
+      },
+      {
+        "text": "planning",
+        "start_time": 10.76,
+        "end_time": 10.76
+      },
+      {
+        "text": "for",
+        "start_time": 10.879999999999999,
+        "end_time": 10.879999999999999
+      },
+      {
+        "text": "the",
+        "start_time": 11.0,
+        "end_time": 11.0
+      },
+      {
+        "text": "abstract",
+        "start_time": 11.28,
+        "end_time": 11.28
+      },
+      {
+        "text": "goals",
+        "start_time": 11.28,
+        "end_time": 11.28
+      },
+      {
+        "text": "of",
+        "start_time": 12.28,
+        "end_time": 12.28
+      },
+      {
+        "text": "stereotypical",
+        "start_time": 12.76,
+        "end_time": 12.76
+      },
+      {
+        "text": "activities",
+        "start_time": 13.799999999999999,
+        "end_time": 13.799999999999999
+      },
+      {
+        "text": "Planning",
+        "start_time": 14.84,
+        "end_time": 14.84
+      },
+      {
+        "text": "for",
+        "start_time": 15.08,
+        "end_time": 15.08
+      },
+      {
+        "text": "the",
+        "start_time": 15.32,
+        "end_time": 15.32
+      },
+      {
+        "text": "goals",
+        "start_time": 15.64,
+        "end_time": 15.64
+      },
+      {
+        "text": "with",
+        "start_time": 15.8,
+        "end_time": 15.8
+      },
+      {
+        "text": "specific",
+        "start_time": 16.12,
+        "end_time": 16.12
+      },
+      {
+        "text": "goals",
+        "start_time": 17.52,
+        "end_time": 17.52
+      },
+      {
+        "text": "specific",
+        "start_time": 17.52,
+        "end_time": 17.52
+      },
+      {
+        "text": "constraints",
+        "start_time": 17.52,
+        "end_time": 17.52
+      }
+    ],
+    "diagnostics": {
+      "backend": "gemma_attention_aligner",
+      "mode": "forced_alignment",
+      "audio_span_length": 450,
+      "audio_ms_per_token": 40.0,
+      "monotonicity": 0.9512195121951219,
+      "aligned_audio_positions": [
+        15,
+        19,
+        44,
+        56,
+        74,
+        85,
+        94,
+        105,
+        110,
+        125,
+        144,
+        147,
+        153,
+        163,
+        194,
+        213,
+        218,
+        231,
+        241,
+        246,
+        258,
+        263,
+        280,
+        283,
+        286,
+        293,
+        293,
+        318,
+        330,
+        356,
+        369,
+        382,
+        388,
+        394,
+        402,
+        406,
+        414,
+        449,
+        433,
+        440,
+        449,
+        0
+      ],
+      "transcript_token_count": 42,
+      "word_end_offset_s": 0.4800000000000004
+    }
+  },
+  "comparison": {
+    "qwen_text": "Cake, and show that large language models can effectively decompose goals into steps. However, previous work mainly focuses on planning for the abstract goals of stereotypical activities. Planning for the goals with specific goals, specific constraints.",
+    "gemma_text": "Cake, and show that large language models can effectively decompose goals into steps. However, previous work mainly focuses on planning for the abstract goals of stereotypical activities. Planning for the goals with specific goals, specific constraints.",
+    "qwen_word_count": 36,
+    "gemma_word_count": 36,
+    "paired_words": 36,
+    "word_end_mae_seconds": 0.1744444444444445,
+    "word_end_median_error_seconds": 0.15999999999999837,
+    "word_end_p90_error_seconds": 0.3600000000000012,
+    "monotonicity": 0.9512195121951219,
+    "tag": "ccp_30_48",
+    "description": "Same talk, different content (30-48s)",
+    "duration_s": 18.0
+  }
+}

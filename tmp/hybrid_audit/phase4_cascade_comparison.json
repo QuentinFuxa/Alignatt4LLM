@@ -1,0 +1,20 @@
+{
+  "qwen": {
+    "final_asr_len": 724,
+    "final_translation_len": 717,
+    "num_updates": 358,
+    "delays_count": 717,
+    "mean_delay_ms": 181486.86497559276,
+    "median_delay_ms": 175680.0,
+    "p90_delay_ms": 328320.0
+  },
+  "hybrid": {
+    "final_asr_len": 728,
+    "final_translation_len": 720,
+    "num_updates": 344,
+    "delays_count": 720,
+    "mean_delay_ms": 182361.3515625,
+    "median_delay_ms": 178080.0,
+    "p90_delay_ms": 329280.0
+  }
+}

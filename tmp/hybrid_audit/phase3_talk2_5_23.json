@@ -1,0 +1,580 @@
+{
+  "tag": "talk2_5_23",
+  "clip": {
+    "tag": "talk2_5_23",
+    "wav": "test-set/audio/DyXpuURBMP.wav",
+    "start_s": 5.0,
+    "end_s": 23.0,
+    "description": "Different talk/speaker (DyXpuURBMP 5-23s)"
+  },
+  "qwen": {
+    "text": "And today I'll be presenting our work, Analytically, characterizing design bias in deep data sets models. This work was done in collaboration with some folks at the University of Washington and the Allen Institute for AI, namely Sebastian Santi, Ronan Le Bras, Katarina Ryanica, and Martin Sapp.",
+    "audio_duration_s": 18.0,
+    "words": [
+      {
+        "text": "And",
+        "start_time": 0.0,
+        "end_time": 0.4
+      },
+      {
+        "text": "today",
+        "start_time": 0.56,
+        "end_time": 0.72
+      },
+      {
+        "text": "I'll",
+        "start_time": 0.72,
+        "end_time": 0.8
+      },
+      {
+        "text": "be",
+        "start_time": 0.8,
+        "end_time": 0.96
+      },
+      {
+        "text": "presenting",
+        "start_time": 0.96,
+        "end_time": 1.44
+      },
+      {
+        "text": "our",
+        "start_time": 1.44,
+        "end_time": 1.44
+      },
+      {
+        "text": "work",
+        "start_time": 1.44,
+        "end_time": 1.84
+      },
+      {
+        "text": "Analytically",
+        "start_time": 1.92,
+        "end_time": 2.56
+      },
+      {
+        "text": "characterizing",
+        "start_time": 3.36,
+        "end_time": 3.84
+      },
+      {
+        "text": "design",
+        "start_time": 3.84,
+        "end_time": 4.24
+      },
+      {
+        "text": "bias",
+        "start_time": 4.24,
+        "end_time": 4.56
+      },
+      {
+        "text": "in",
+        "start_time": 4.64,
+        "end_time": 4.72
+      },
+      {
+        "text": "deep",
+        "start_time": 4.88,
+        "end_time": 5.04
+      },
+      {
+        "text": "data",
+        "start_time": 5.04,
+        "end_time": 5.04
+      },
+      {
+        "text": "sets",
+        "start_time": 5.04,
+        "end_time": 5.28
+      },
+      {
+        "text": "models",
+        "start_time": 5.36,
+        "end_time": 5.92
+      },
+      {
+        "text": "This",
+        "start_time": 6.32,
+        "end_time": 6.56
+      },
+      {
+        "text": "work",
+        "start_time": 6.56,
+        "end_time": 6.72
+      },
+      {
+        "text": "was",
+        "start_time": 6.72,
+        "end_time": 6.88
+      },
+      {
+        "text": "done",
+        "start_time": 6.88,
+        "end_time": 7.12
+      },
+      {
+        "text": "in",
+        "start_time": 7.12,
+        "end_time": 7.2
+      },
+      {
+        "text": "collaboration",
+        "start_time": 7.2,
+        "end_time": 8.0
+      },
+      {
+        "text": "with",
+        "start_time": 8.0,
+        "end_time": 8.08
+      },
+      {
+        "text": "some",
+        "start_time": 8.08,
+        "end_time": 8.24
+      },
+      {
+        "text": "folks",
+        "start_time": 8.32,
+        "end_time": 8.56
+      },
+      {
+        "text": "at",
+        "start_time": 8.56,
+        "end_time": 8.72
+      },
+      {
+        "text": "the",
+        "start_time": 8.72,
+        "end_time": 8.8
+      },
+      {
+        "text": "University",
+        "start_time": 8.8,
+        "end_time": 9.28
+      },
+      {
+        "text": "of",
+        "start_time": 9.28,
+        "end_time": 9.36
+      },
+      {
+        "text": "Washington",
+        "start_time": 9.36,
+        "end_time": 9.92
+      },
+      {
+        "text": "and",
+        "start_time": 10.24,
+        "end_time": 10.64
+      },
+      {
+        "text": "the",
+        "start_time": 11.28,
+        "end_time": 11.44
+      },
+      {
+        "text": "Allen",
+        "start_time": 11.44,
+        "end_time": 11.68
+      },
+      {
+        "text": "Institute",
+        "start_time": 11.68,
+        "end_time": 12.0
+      },
+      {
+        "text": "for",
+        "start_time": 12.0,
+        "end_time": 12.08
+      },
+      {
+        "text": "AI",
+        "start_time": 12.16,
+        "end_time": 12.48
+      },
+      {
+        "text": "namely",
+        "start_time": 12.48,
+        "end_time": 13.04
+      },
+      {
+        "text": "Sebastian",
+        "start_time": 13.12,
+        "end_time": 13.52
+      },
+      {
+        "text": "Santi",
+        "start_time": 13.52,
+        "end_time": 13.92
+      },
+      {
+        "text": "Ronan",
+        "start_time": 14.32,
+        "end_time": 14.48
+      },
+      {
+        "text": "Le",
+        "start_time": 14.48,
+        "end_time": 14.64
+      },
+      {
+        "text": "Bras",
+        "start_time": 14.64,
+        "end_time": 15.04
+      },
+      {
+        "text": "Katarina",
+        "start_time": 15.36,
+        "end_time": 15.84
+      },
+      {
+        "text": "Ryanica",
+        "start_time": 15.84,
+        "end_time": 16.32
+      },
+      {
+        "text": "and",
+        "start_time": 16.64,
+        "end_time": 16.8
+      },
+      {
+        "text": "Martin",
+        "start_time": 16.8,
+        "end_time": 17.12
+      },
+      {
+        "text": "Sapp",
+        "start_time": 17.12,
+        "end_time": 17.44
+      }
+    ],
+    "diagnostics": {
+      "backend": "qwen_asr_qwen_aligner"
+    }
+  },
+  "gemma": {
+    "text": "And today I'll be presenting our work, Analytically, characterizing design bias in deep data sets models. This work was done in collaboration with some folks at the University of Washington and the Allen Institute for AI, namely Sebastian Santi, Ronan Le Bras, Katarina Ryanica, and Martin Sapp.",
+    "audio_duration_s": 18.0,
+    "words": [
+      {
+        "text": "And",
+        "start_time": 0.35999999999999954,
+        "end_time": 0.35999999999999954
+      },
+      {
+        "text": "today",
+        "start_time": 0.7999999999999996,
+        "end_time": 0.7999999999999996
+      },
+      {
+        "text": "I'll",
+        "start_time": 0.9999999999999996,
+        "end_time": 1.0799999999999996
+      },
+      {
+        "text": "be",
+        "start_time": 1.1199999999999997,
+        "end_time": 1.1199999999999997
+      },
+      {
+        "text": "presenting",
+        "start_time": 1.3199999999999996,
+        "end_time": 1.3199999999999996
+      },
+      {
+        "text": "our",
+        "start_time": 1.8399999999999994,
+        "end_time": 1.8399999999999994
+      },
+      {
+        "text": "work",
+        "start_time": 2.2399999999999998,
+        "end_time": 2.2399999999999998
+      },
+      {
+        "text": "Analytically",
+        "start_time": 2.3199999999999994,
+        "end_time": 2.5999999999999996
+      },
+      {
+        "text": "characterizing",
+        "start_time": 3.84,
+        "end_time": 3.84
+      },
+      {
+        "text": "design",
+        "start_time": 4.239999999999999,
+        "end_time": 4.239999999999999
+      },
+      {
+        "text": "bias",
+        "start_time": 4.56,
+        "end_time": 4.56
+      },
+      {
+        "text": "in",
+        "start_time": 4.8,
+        "end_time": 4.8
+      },
+      {
+        "text": "deep",
+        "start_time": 5.199999999999999,
+        "end_time": 5.199999999999999
+      },
+      {
+        "text": "data",
+        "start_time": 5.56,
+        "end_time": 5.56
+      },
+      {
+        "text": "sets",
+        "start_time": 5.56,
+        "end_time": 5.56
+      },
+      {
+        "text": "models",
+        "start_time": 6.239999999999999,
+        "end_time": 6.239999999999999
+      },
+      {
+        "text": "This",
+        "start_time": 6.52,
+        "end_time": 6.52
+      },
+      {
+        "text": "work",
+        "start_time": 6.68,
+        "end_time": 6.68
+      },
+      {
+        "text": "was",
+        "start_time": 6.8,
+        "end_time": 6.8
+      },
+      {
+        "text": "done",
+        "start_time": 7.319999999999999,
+        "end_time": 7.319999999999999
+      },
+      {
+        "text": "in",
+        "start_time": 7.52,
+        "end_time": 7.52
+      },
+      {
+        "text": "collaboration",
+        "start_time": 7.879999999999999,
+        "end_time": 7.879999999999999
+      },
+      {
+        "text": "with",
+        "start_time": 7.92,
+        "end_time": 7.92
+      },
+      {
+        "text": "some",
+        "start_time": 8.28,
+        "end_time": 8.28
+      },
+      {
+        "text": "folks",
+        "start_time": 8.6,
+        "end_time": 8.6
+      },
+      {
+        "text": "at",
+        "start_time": 8.84,
+        "end_time": 8.84
+      },
+      {
+        "text": "the",
+        "start_time": 8.84,
+        "end_time": 8.84
+      },
+      {
+        "text": "University",
+        "start_time": 9.16,
+        "end_time": 9.16
+      },
+      {
+        "text": "of",
+        "start_time": 9.32,
+        "end_time": 9.32
+      },
+      {
+        "text": "Washington",
+        "start_time": 10.2,
+        "end_time": 10.2
+      },
+      {
+        "text": "and",
+        "start_time": 11.08,
+        "end_time": 11.08
+      },
+      {
+        "text": "the",
+        "start_time": 11.28,
+        "end_time": 11.28
+      },
+      {
+        "text": "Allen",
+        "start_time": 11.559999999999999,
+        "end_time": 11.559999999999999
+      },
+      {
+        "text": "Institute",
+        "start_time": 11.959999999999999,
+        "end_time": 11.959999999999999
+      },
+      {
+        "text": "for",
+        "start_time": 12.2,
+        "end_time": 12.2
+      },
+      {
+        "text": "AI",
+        "start_time": 12.719999999999999,
+        "end_time": 12.719999999999999
+      },
+      {
+        "text": "namely",
+        "start_time": 13.28,
+        "end_time": 13.28
+      },
+      {
+        "text": "Sebastian",
+        "start_time": 13.52,
+        "end_time": 13.52
+      },
+      {
+        "text": "Santi",
+        "start_time": 14.08,
+        "end_time": 14.08
+      },
+      {
+        "text": "Ronan",
+        "start_time": 14.68,
+        "end_time": 14.68
+      },
+      {
+        "text": "Le",
+        "start_time": 14.68,
+        "end_time": 14.68
+      },
+      {
+        "text": "Bras",
+        "start_time": 15.28,
+        "end_time": 15.28
+      },
+      {
+        "text": "Katarina",
+        "start_time": 15.8,
+        "end_time": 15.84
+      },
+      {
+        "text": "Ryanica",
+        "start_time": 15.96,
+        "end_time": 16.4
+      },
+      {
+        "text": "and",
+        "start_time": 16.8,
+        "end_time": 16.8
+      },
+      {
+        "text": "Martin",
+        "start_time": 17.16,
+        "end_time": 17.16
+      },
+      {
+        "text": "Sapp",
+        "start_time": 17.52,
+        "end_time": 17.52
+      }
+    ],
+    "diagnostics": {
+      "backend": "gemma_attention_aligner",
+      "mode": "forced_alignment",
+      "audio_span_length": 450,
+      "audio_ms_per_token": 40.0,
+      "monotonicity": 0.9152542372881356,
+      "aligned_audio_positions": [
+        20,
+        31,
+        36,
+        0,
+        38,
+        39,
+        44,
+        57,
+        67,
+        66,
+        69,
+        76,
+        93,
+        107,
+        117,
+        125,
+        131,
+        141,
+        150,
+        143,
+        167,
+        171,
+        174,
+        178,
+        181,
+        194,
+        199,
+        208,
+        209,
+        218,
+        226,
+        232,
+        231,
+        240,
+        244,
+        266,
+        288,
+        293,
+        300,
+        310,
+        316,
+        329,
+        332,
+        343,
+        349,
+        363,
+        366,
+        378,
+        374,
+        393,
+        394,
+        406,
+        407,
+        410,
+        421,
+        424,
+        431,
+        440,
+        449,
+        449
+      ],
+      "transcript_token_count": 60,
+      "word_end_offset_s": 0.4800000000000004
+    }
+  },
+  "comparison": {
+    "qwen_text": "And today I'll be presenting our work, Analytically, characterizing design bias in deep data sets models. This work was done in collaboration with some folks at the University of Washington and the Allen Institute for AI, namely Sebastian Santi, Ronan Le Bras, Katarina Ryanica, and Martin Sapp.",
+    "gemma_text": "And today I'll be presenting our work, Analytically, characterizing design bias in deep data sets models. This work was done in collaboration with some folks at the University of Washington and the Allen Institute for AI, namely Sebastian Santi, Ronan Le Bras, Katarina Ryanica, and Martin Sapp.",
+    "qwen_word_count": 47,
+    "gemma_word_count": 47,
+    "paired_words": 47,
+    "word_end_mae_seconds": 0.14297872340425502,
+    "word_end_median_error_seconds": 0.11999999999999922,
+    "word_end_p90_error_seconds": 0.3199999999999994,
+    "monotonicity": 0.9152542372881356,
+    "tag": "talk2_5_23",
+    "description": "Different talk/speaker (DyXpuURBMP 5-23s)",
+    "duration_s": 18.0
+  }
+}

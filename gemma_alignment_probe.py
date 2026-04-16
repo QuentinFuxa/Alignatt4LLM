@@ -369,6 +369,9 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             ms_per_token = getattr(self.processor, "audio_ms_per_token", None)
             if ms_per_token is not None:
                 self.audio_ms_per_token = float(ms_per_token)
+            audio_seq_length = getattr(self.processor, "audio_seq_length", None)
+            if audio_seq_length is not None and ms_per_token is not None:
+                self.max_audio_seconds = float(audio_seq_length) * float(ms_per_token) / 1000.0
 
         if self.model is None:
             original_warmup = None

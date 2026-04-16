@@ -333,6 +333,7 @@ def build_alignment_backend() -> AlignmentBackend:
         return HybridQwenAsrGemmaAlignerBackend(
             asr_backend=asr_backend,
             gemma_backend=gemma_backend,
+            strict=bool(getattr(config, "hybrid_strict_mode", False)),
         )
     raise ValueError(f"Unknown alignment_backend_name: {name!r}")
 

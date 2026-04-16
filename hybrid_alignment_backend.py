@@ -24,14 +24,20 @@ class HybridQwenAsrGemmaAlignerBackend(AlignmentBackend):
         *,
         asr_backend: AlignmentBackend,
         gemma_backend,
+        strict: bool = False,
     ):
         """``asr_backend`` produces the transcript; ``gemma_backend`` produces timings.
 
         ``gemma_backend`` must implement
         :meth:`gemma_alignment_probe.GemmaAttentionAlignmentBackend.align_transcript`.
+
+        When ``strict=True``, Gemma-side failures raise instead of falling
+        back to ASR timings. Use this during evaluation to surface
+        implementation bugs; leave it off for robust runtime behavior.
         """
         self.asr_backend = asr_backend
         self.gemma_backend = gemma_backend
+        self.strict = bool(strict)
 
     def load(self) -> None:
         self.asr_backend.load()
@@ -67,6 +73,8 @@ class HybridQwenAsrGemmaAlignerBackend(AlignmentBackend):
                 transcript=transcript,
             )
         except Exception as exc:  # noqa: BLE001 — surface reason in diagnostics
+            if self.strict:
+                raise
             gemma_error = f"{type(exc).__name__}: {exc}"
 
         if gemma_result is None or not gemma_result.words:
@@ -76,10 +84,11 @@ class HybridQwenAsrGemmaAlignerBackend(AlignmentBackend):
                 fallback_reason = "gemma_returned_none"
             else:
                 fallback_reason = "gemma_returned_no_words"
-            # Fall back to whatever the ASR backend produced (may be empty
-            # when the ASR is run without its own forced aligner). The
-            # caller can audit fallback rate via ``gemma_alignment_used``
-            # and ``fallback_reason``.
+            if self.strict:
+                raise RuntimeError(
+                    f"Hybrid strict mode: Gemma alignment failed ({fallback_reason}). "
+                    f"Error: {gemma_error}"
+                )
             return AlignmentResult(
                 text=transcript,
                 words=asr_result.words,

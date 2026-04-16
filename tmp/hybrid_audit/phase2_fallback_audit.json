@@ -1,0 +1,2399 @@
+{
+  "wav_path": "test-set/audio/ccpXHNfaoy.wav",
+  "heads_path": "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json",
+  "metrics": {
+    "num_ticks": 13,
+    "num_words_tracked": 54,
+    "identity_changes": 8,
+    "mean_stdev_end_s": 0.11510489456046374,
+    "median_stdev_end_s": 0.07184015977436416,
+    "mean_drift_range_s": 0.2762962962962963,
+    "max_drift_range_s": 1.2399999999999984,
+    "num_backward_jumps": 31,
+    "max_backward_jump_s": 0.7599999999999998,
+    "mean_time_to_stable_s": 5.111111111111111,
+    "stability_threshold_s": 0.05,
+    "fallback_aware_ticks": 13,
+    "gemma_used_ticks": 13,
+    "fallback_ticks": 0,
+    "fallback_rate": 0.0,
+    "fallback_reasons": {}
+  },
+  "ticks": [
+    {
+      "tick_s": 5.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5999999999999996,
+          "end_time": 1.5999999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.3999999999999995
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.3999999999999995,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9599999999999995,
+          "end_time": 2.9599999999999995
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.119999999999999,
+          "end_time": 4.119999999999999
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.52,
+          "end_time": 4.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 8,
+        "gemma_word_count": 8,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.8,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 125
+      }
+    },
+    {
+      "tick_s": 7.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5999999999999996,
+          "end_time": 1.5999999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.3599999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.3599999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9999999999999996,
+          "end_time": 2.9999999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.4799999999999995,
+          "end_time": 3.4799999999999995
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.119999999999999,
+          "end_time": 4.119999999999999
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.72,
+          "end_time": 5.72
+        },
+        {
+          "text": "our",
+          "start_time": 6.239999999999999,
+          "end_time": 6.239999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 6.359999999999999,
+          "end_time": 6.359999999999999
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 13,
+        "gemma_word_count": 13,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.8571428571428571,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 175
+      }
+    },
+    {
+      "tick_s": 9.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work, distilling script knowledge from.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5999999999999996,
+          "end_time": 1.5999999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.3599999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.3599999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.3999999999999995,
+          "end_time": 3.3999999999999995
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.5999999999999996,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.4799999999999995,
+          "end_time": 5.4799999999999995
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.159999999999999,
+          "end_time": 6.159999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.119999999999999,
+          "end_time": 7.119999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.799999999999999,
+          "end_time": 7.799999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.52,
+          "end_time": 8.52
+        },
+        {
+          "text": "from",
+          "start_time": 8.52,
+          "end_time": 8.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 17,
+        "gemma_word_count": 17,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.8846153846153846,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 225
+      }
+    },
+    {
+      "tick_s": 11.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distinguishing script knowledge from language models for.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2399999999999998,
+          "end_time": 2.2399999999999998
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9999999999999996,
+          "end_time": 2.9999999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.239999999999999,
+          "end_time": 6.239999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 6.4799999999999995,
+          "end_time": 6.4799999999999995
+        },
+        {
+          "text": "distinguishing",
+          "start_time": 8.16,
+          "end_time": 8.16
+        },
+        {
+          "text": "script",
+          "start_time": 8.16,
+          "end_time": 8.16
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.76,
+          "end_time": 8.76
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "language",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "models",
+          "start_time": 10.08,
+          "end_time": 10.08
+        },
+        {
+          "text": "for",
+          "start_time": 10.52,
+          "end_time": 10.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 20,
+        "gemma_word_count": 20,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.896551724137931,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 275
+      }
+    },
+    {
+      "tick_s": 13.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from language models for constrained language planning.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5999999999999996,
+          "end_time": 1.5999999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.3599999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.3599999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.3999999999999995,
+          "end_time": 3.3999999999999995
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.56,
+          "end_time": 5.56
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.079999999999999,
+          "end_time": 6.079999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.159999999999999,
+          "end_time": 7.159999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.799999999999999,
+          "end_time": 7.799999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.879999999999999,
+          "end_time": 8.879999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.24,
+          "end_time": 9.24
+        },
+        {
+          "text": "language",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "models",
+          "start_time": 10.12,
+          "end_time": 10.12
+        },
+        {
+          "text": "for",
+          "start_time": 10.68,
+          "end_time": 10.68
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.24,
+          "end_time": 11.24
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.52,
+          "end_time": 12.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 23,
+        "gemma_word_count": 23,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.9375,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 325
+      }
+    },
+    {
+      "tick_s": 15.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, human",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.5599999999999996
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.4799999999999995,
+          "end_time": 3.4799999999999995
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.239999999999999,
+          "end_time": 6.239999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.119999999999999,
+          "end_time": 7.119999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.44,
+          "end_time": 8.44
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.6,
+          "end_time": 10.6
+        },
+        {
+          "text": "for",
+          "start_time": 10.68,
+          "end_time": 10.68
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.24,
+          "end_time": 11.24
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.68,
+          "end_time": 13.68
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.52,
+          "end_time": 14.52
+        },
+        {
+          "text": "human",
+          "start_time": 14.52,
+          "end_time": 14.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 28,
+        "gemma_word_count": 28,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.9736842105263158,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 375
+      }
+    },
+    {
+      "tick_s": 17.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 1.7999999999999994,
+          "end_time": 2.3599999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.3599999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9999999999999996,
+          "end_time": 2.9999999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.159999999999999,
+          "end_time": 6.159999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.119999999999999,
+          "end_time": 7.119999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.799999999999999,
+          "end_time": 7.799999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.44,
+          "end_time": 8.44
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.639999999999999,
+          "end_time": 10.639999999999999
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.24,
+          "end_time": 11.24
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.52,
+          "end_time": 15.52
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.4,
+          "end_time": 16.4
+        },
+        {
+          "text": "by",
+          "start_time": 16.4,
+          "end_time": 16.4
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 33,
+        "gemma_word_count": 33,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.9302325581395349,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 425
+      }
+    },
+    {
+      "tick_s": 19.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step instructions.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5999999999999996,
+          "end_time": 1.5999999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.3599999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.3599999999999994,
+          "end_time": 2.7199999999999998
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 5.0,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.159999999999999,
+          "end_time": 6.159999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.159999999999999,
+          "end_time": 7.159999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.44,
+          "end_time": 8.44
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.639999999999999,
+          "end_time": 10.639999999999999
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.28,
+          "end_time": 11.28
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.32,
+          "end_time": 15.32
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.32,
+          "end_time": 16.32
+        },
+        {
+          "text": "by",
+          "start_time": 17.0,
+          "end_time": 17.0
+        },
+        {
+          "text": "following",
+          "start_time": 17.16,
+          "end_time": 17.16
+        },
+        {
+          "text": "step-by-step",
+          "start_time": 17.16,
+          "end_time": 18.44
+        },
+        {
+          "text": "instructions",
+          "start_time": 18.52,
+          "end_time": 18.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 36,
+        "gemma_word_count": 36,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.9019607843137255,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 475
+      }
+    },
+    {
+      "tick_s": 21.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step instructions in the form of granted scripts.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.9199999999999995
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.159999999999999,
+          "end_time": 6.159999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.159999999999999,
+          "end_time": 7.159999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.799999999999999,
+          "end_time": 7.799999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.44,
+          "end_time": 8.44
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.639999999999999,
+          "end_time": 10.639999999999999
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.28,
+          "end_time": 11.28
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.32,
+          "end_time": 15.32
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.88,
+          "end_time": 16.88
+        },
+        {
+          "text": "by",
+          "start_time": 17.0,
+          "end_time": 17.0
+        },
+        {
+          "text": "following",
+          "start_time": 17.28,
+          "end_time": 17.28
+        },
+        {
+          "text": "step-by-step",
+          "start_time": 17.28,
+          "end_time": 18.48
+        },
+        {
+          "text": "instructions",
+          "start_time": 19.04,
+          "end_time": 19.04
+        },
+        {
+          "text": "in",
+          "start_time": 19.52,
+          "end_time": 19.52
+        },
+        {
+          "text": "the",
+          "start_time": 19.56,
+          "end_time": 19.56
+        },
+        {
+          "text": "form",
+          "start_time": 20.0,
+          "end_time": 20.0
+        },
+        {
+          "text": "of",
+          "start_time": 20.08,
+          "end_time": 20.08
+        },
+        {
+          "text": "granted",
+          "start_time": 20.52,
+          "end_time": 20.52
+        },
+        {
+          "text": "scripts",
+          "start_time": 20.52,
+          "end_time": 20.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 42,
+        "gemma_word_count": 42,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.9473684210526315,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 525
+      }
+    },
+    {
+      "tick_s": 23.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step instructions in the form of granted scripts. Previous work has",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2399999999999998,
+          "end_time": 2.2399999999999998
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.76
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.3999999999999995,
+          "end_time": 3.3999999999999995
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.4799999999999995,
+          "end_time": 4.4799999999999995
+        },
+        {
+          "text": "I'm",
+          "start_time": 5.0,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.159999999999999,
+          "end_time": 6.159999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 7.119999999999999,
+          "end_time": 7.119999999999999
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.799999999999999,
+          "end_time": 7.799999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.879999999999999,
+          "end_time": 8.879999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.639999999999999,
+          "end_time": 10.639999999999999
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.24,
+          "end_time": 11.24
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.32,
+          "end_time": 15.32
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.44,
+          "end_time": 16.44
+        },
+        {
+          "text": "by",
+          "start_time": 17.0,
+          "end_time": 17.0
+        },
+        {
+          "text": "following",
+          "start_time": 17.28,
+          "end_time": 17.28
+        },
+        {
+          "text": "step-by-step",
+          "start_time": 17.72,
+          "end_time": 18.68
+        },
+        {
+          "text": "instructions",
+          "start_time": 19.04,
+          "end_time": 19.04
+        },
+        {
+          "text": "in",
+          "start_time": 19.48,
+          "end_time": 19.48
+        },
+        {
+          "text": "the",
+          "start_time": 19.56,
+          "end_time": 19.56
+        },
+        {
+          "text": "form",
+          "start_time": 20.04,
+          "end_time": 20.04
+        },
+        {
+          "text": "of",
+          "start_time": 20.08,
+          "end_time": 20.08
+        },
+        {
+          "text": "granted",
+          "start_time": 20.599999999999998,
+          "end_time": 20.599999999999998
+        },
+        {
+          "text": "scripts",
+          "start_time": 21.759999999999998,
+          "end_time": 21.759999999999998
+        },
+        {
+          "text": "Previous",
+          "start_time": 22.36,
+          "end_time": 22.36
+        },
+        {
+          "text": "work",
+          "start_time": 22.52,
+          "end_time": 22.52
+        },
+        {
+          "text": "has",
+          "start_time": 22.52,
+          "end_time": 22.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 45,
+        "gemma_word_count": 45,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.95,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 575
+      }
+    },
+    {
+      "tick_s": 25.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step instructions in the form of granted scripts. Previous work has exploited language models.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5599999999999996,
+          "end_time": 1.5599999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.3599999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.3599999999999994,
+          "end_time": 2.76
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.119999999999999,
+          "end_time": 4.119999999999999
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.079999999999999,
+          "end_time": 6.079999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 6.4799999999999995,
+          "end_time": 6.4799999999999995
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.879999999999999,
+          "end_time": 8.879999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.12,
+          "end_time": 10.12
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.24,
+          "end_time": 11.24
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.32,
+          "end_time": 15.32
+        },
+        {
+          "text": "plan",
+          "start_time": 15.64,
+          "end_time": 15.64
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.44,
+          "end_time": 16.44
+        },
+        {
+          "text": "by",
+          "start_time": 17.0,
+          "end_time": 17.0
+        },
+        {
+          "text": "following",
+          "start_time": 17.28,
+          "end_time": 17.28
+        },
+        {
+          "text": "step-by-step",
+          "start_time": 17.68,
+          "end_time": 18.64
+        },
+        {
+          "text": "instructions",
+          "start_time": 19.04,
+          "end_time": 19.04
+        },
+        {
+          "text": "in",
+          "start_time": 19.48,
+          "end_time": 19.48
+        },
+        {
+          "text": "the",
+          "start_time": 19.56,
+          "end_time": 19.56
+        },
+        {
+          "text": "form",
+          "start_time": 20.04,
+          "end_time": 20.04
+        },
+        {
+          "text": "of",
+          "start_time": 20.08,
+          "end_time": 20.08
+        },
+        {
+          "text": "granted",
+          "start_time": 20.599999999999998,
+          "end_time": 20.599999999999998
+        },
+        {
+          "text": "scripts",
+          "start_time": 21.759999999999998,
+          "end_time": 21.759999999999998
+        },
+        {
+          "text": "Previous",
+          "start_time": 22.36,
+          "end_time": 22.36
+        },
+        {
+          "text": "work",
+          "start_time": 23.0,
+          "end_time": 23.0
+        },
+        {
+          "text": "has",
+          "start_time": 23.16,
+          "end_time": 23.16
+        },
+        {
+          "text": "exploited",
+          "start_time": 23.599999999999998,
+          "end_time": 23.599999999999998
+        },
+        {
+          "text": "language",
+          "start_time": 24.32,
+          "end_time": 24.32
+        },
+        {
+          "text": "models",
+          "start_time": 24.52,
+          "end_time": 24.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 48,
+        "gemma_word_count": 48,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.9375,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 625
+      }
+    },
+    {
+      "tick_s": 27.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step instructions in the form of granted scripts. Previous work has exploited language models to plan for abstract goals of",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5999999999999996,
+          "end_time": 1.5999999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.2799999999999994
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.76
+        },
+        {
+          "text": "Yuan",
+          "start_time": 2.9999999999999996,
+          "end_time": 2.9999999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5199999999999996,
+          "end_time": 3.5199999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.119999999999999,
+          "end_time": 4.119999999999999
+        },
+        {
+          "text": "I'm",
+          "start_time": 4.96,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.159999999999999,
+          "end_time": 6.159999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 6.4799999999999995,
+          "end_time": 6.4799999999999995
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.879999999999999,
+          "end_time": 8.879999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.12,
+          "end_time": 10.12
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.28,
+          "end_time": 11.28
+        },
+        {
+          "text": "language",
+          "start_time": 11.719999999999999,
+          "end_time": 11.719999999999999
+        },
+        {
+          "text": "planning",
+          "start_time": 12.12,
+          "end_time": 12.12
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.32,
+          "end_time": 15.32
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.88,
+          "end_time": 16.88
+        },
+        {
+          "text": "by",
+          "start_time": 17.0,
+          "end_time": 17.0
+        },
+        {
+          "text": "following",
+          "start_time": 17.28,
+          "end_time": 17.28
+        },
+        {
+          "text": "step-by-step",
+          "start_time": 17.56,
+          "end_time": 18.64
+        },
+        {
+          "text": "instructions",
+          "start_time": 19.04,
+          "end_time": 19.04
+        },
+        {
+          "text": "in",
+          "start_time": 19.48,
+          "end_time": 19.48
+        },
+        {
+          "text": "the",
+          "start_time": 19.56,
+          "end_time": 19.56
+        },
+        {
+          "text": "form",
+          "start_time": 19.919999999999998,
+          "end_time": 19.919999999999998
+        },
+        {
+          "text": "of",
+          "start_time": 20.08,
+          "end_time": 20.08
+        },
+        {
+          "text": "granted",
+          "start_time": 20.599999999999998,
+          "end_time": 20.599999999999998
+        },
+        {
+          "text": "scripts",
+          "start_time": 21.72,
+          "end_time": 21.72
+        },
+        {
+          "text": "Previous",
+          "start_time": 22.36,
+          "end_time": 22.36
+        },
+        {
+          "text": "work",
+          "start_time": 22.56,
+          "end_time": 22.56
+        },
+        {
+          "text": "has",
+          "start_time": 23.16,
+          "end_time": 23.16
+        },
+        {
+          "text": "exploited",
+          "start_time": 23.599999999999998,
+          "end_time": 23.599999999999998
+        },
+        {
+          "text": "language",
+          "start_time": 24.32,
+          "end_time": 24.32
+        },
+        {
+          "text": "models",
+          "start_time": 24.919999999999998,
+          "end_time": 24.919999999999998
+        },
+        {
+          "text": "to",
+          "start_time": 25.4,
+          "end_time": 25.4
+        },
+        {
+          "text": "plan",
+          "start_time": 25.56,
+          "end_time": 25.56
+        },
+        {
+          "text": "for",
+          "start_time": 25.84,
+          "end_time": 25.84
+        },
+        {
+          "text": "abstract",
+          "start_time": 26.28,
+          "end_time": 26.28
+        },
+        {
+          "text": "goals",
+          "start_time": 26.52,
+          "end_time": 26.52
+        },
+        {
+          "text": "of",
+          "start_time": 26.52,
+          "end_time": 26.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 54,
+        "gemma_word_count": 54,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.9710144927536232,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 675
+      }
+    },
+    {
+      "tick_s": 29.0,
+      "text": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step instructions in the form of granted scripts. Previous work has exploited language models to plan for abstract goals of stereotypical activities.",
+      "words": [
+        {
+          "text": "Hi",
+          "start_time": 1.5999999999999996,
+          "end_time": 1.5999999999999996
+        },
+        {
+          "text": "I'm",
+          "start_time": 2.2399999999999998,
+          "end_time": 2.2399999999999998
+        },
+        {
+          "text": "Siyu",
+          "start_time": 2.2799999999999994,
+          "end_time": 2.7199999999999998
+        },
+        {
+          "text": "Yuan",
+          "start_time": 3.0399999999999996,
+          "end_time": 3.0399999999999996
+        },
+        {
+          "text": "from",
+          "start_time": 3.5599999999999996,
+          "end_time": 3.5599999999999996
+        },
+        {
+          "text": "Fudan",
+          "start_time": 3.6399999999999997,
+          "end_time": 3.84
+        },
+        {
+          "text": "University",
+          "start_time": 4.119999999999999,
+          "end_time": 4.119999999999999
+        },
+        {
+          "text": "I'm",
+          "start_time": 5.039999999999999,
+          "end_time": 5.159999999999999
+        },
+        {
+          "text": "here",
+          "start_time": 5.3999999999999995,
+          "end_time": 5.3999999999999995
+        },
+        {
+          "text": "to",
+          "start_time": 5.64,
+          "end_time": 5.64
+        },
+        {
+          "text": "introduce",
+          "start_time": 5.68,
+          "end_time": 5.68
+        },
+        {
+          "text": "our",
+          "start_time": 6.159999999999999,
+          "end_time": 6.159999999999999
+        },
+        {
+          "text": "work",
+          "start_time": 6.4799999999999995,
+          "end_time": 6.4799999999999995
+        },
+        {
+          "text": "distilling",
+          "start_time": 7.719999999999999,
+          "end_time": 7.719999999999999
+        },
+        {
+          "text": "script",
+          "start_time": 8.04,
+          "end_time": 8.04
+        },
+        {
+          "text": "knowledge",
+          "start_time": 8.879999999999999,
+          "end_time": 8.879999999999999
+        },
+        {
+          "text": "from",
+          "start_time": 9.2,
+          "end_time": 9.2
+        },
+        {
+          "text": "large",
+          "start_time": 9.48,
+          "end_time": 9.48
+        },
+        {
+          "text": "language",
+          "start_time": 9.92,
+          "end_time": 9.92
+        },
+        {
+          "text": "models",
+          "start_time": 10.12,
+          "end_time": 10.12
+        },
+        {
+          "text": "for",
+          "start_time": 10.84,
+          "end_time": 10.84
+        },
+        {
+          "text": "constrained",
+          "start_time": 11.28,
+          "end_time": 11.28
+        },
+        {
+          "text": "language",
+          "start_time": 11.76,
+          "end_time": 11.76
+        },
+        {
+          "text": "planning",
+          "start_time": 12.24,
+          "end_time": 12.24
+        },
+        {
+          "text": "In",
+          "start_time": 13.639999999999999,
+          "end_time": 13.639999999999999
+        },
+        {
+          "text": "everyday",
+          "start_time": 13.92,
+          "end_time": 13.92
+        },
+        {
+          "text": "life",
+          "start_time": 14.639999999999999,
+          "end_time": 14.639999999999999
+        },
+        {
+          "text": "humans",
+          "start_time": 15.04,
+          "end_time": 15.04
+        },
+        {
+          "text": "often",
+          "start_time": 15.32,
+          "end_time": 15.32
+        },
+        {
+          "text": "plan",
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "text": "their",
+          "start_time": 15.96,
+          "end_time": 15.96
+        },
+        {
+          "text": "actions",
+          "start_time": 16.44,
+          "end_time": 16.44
+        },
+        {
+          "text": "by",
+          "start_time": 17.0,
+          "end_time": 17.0
+        },
+        {
+          "text": "following",
+          "start_time": 17.28,
+          "end_time": 17.28
+        },
+        {
+          "text": "step-by-step",
+          "start_time": 17.56,
+          "end_time": 18.64
+        },
+        {
+          "text": "instructions",
+          "start_time": 19.04,
+          "end_time": 19.04
+        },
+        {
+          "text": "in",
+          "start_time": 19.48,
+          "end_time": 19.48
+        },
+        {
+          "text": "the",
+          "start_time": 19.56,
+          "end_time": 19.56
+        },
+        {
+          "text": "form",
+          "start_time": 20.0,
+          "end_time": 20.0
+        },
+        {
+          "text": "of",
+          "start_time": 20.08,
+          "end_time": 20.08
+        },
+        {
+          "text": "granted",
+          "start_time": 20.599999999999998,
+          "end_time": 20.599999999999998
+        },
+        {
+          "text": "scripts",
+          "start_time": 21.72,
+          "end_time": 21.72
+        },
+        {
+          "text": "Previous",
+          "start_time": 22.36,
+          "end_time": 22.36
+        },
+        {
+          "text": "work",
+          "start_time": 22.599999999999998,
+          "end_time": 22.599999999999998
+        },
+        {
+          "text": "has",
+          "start_time": 23.16,
+          "end_time": 23.16
+        },
+        {
+          "text": "exploited",
+          "start_time": 23.4,
+          "end_time": 23.4
+        },
+        {
+          "text": "language",
+          "start_time": 24.32,
+          "end_time": 24.32
+        },
+        {
+          "text": "models",
+          "start_time": 24.88,
+          "end_time": 24.88
+        },
+        {
+          "text": "to",
+          "start_time": 25.4,
+          "end_time": 25.4
+        },
+        {
+          "text": "plan",
+          "start_time": 25.68,
+          "end_time": 25.68
+        },
+        {
+          "text": "for",
+          "start_time": 25.84,
+          "end_time": 25.84
+        },
+        {
+          "text": "abstract",
+          "start_time": 26.12,
+          "end_time": 26.12
+        },
+        {
+          "text": "goals",
+          "start_time": 26.64,
+          "end_time": 26.64
+        },
+        {
+          "text": "of",
+          "start_time": 27.32,
+          "end_time": 27.32
+        },
+        {
+          "text": "stereotypical",
+          "start_time": 27.8,
+          "end_time": 27.8
+        },
+        {
+          "text": "activities",
+          "start_time": 28.52,
+          "end_time": 28.52
+        }
+      ],
+      "diagnostics": {
+        "backend": "hybrid_qwen_asr_gemma_aligner",
+        "asr_backend": "qwen_asr_qwen_aligner",
+        "aligner_backend": "gemma_attention_aligner",
+        "gemma_alignment_used": true,
+        "fallback_reason": null,
+        "gemma_error": null,
+        "asr_word_count": 56,
+        "gemma_word_count": 56,
+        "word_count_truncated": false,
+        "gemma_monotonicity": 0.9305555555555556,
+        "gemma_offset_s": 0.4800000000000004,
+        "gemma_audio_span_length": 725
+      }
+    }
+  ]
+}
