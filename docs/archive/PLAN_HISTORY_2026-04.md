@@ -1,4 +1,8 @@
-# PLAN.md
+# PLAN HISTORY — captured 2026-04-16
+
+Archived narrative from the long-running `PLAN.md` as it existed before the Phase 0–5 push and the `full_vllm` merge. Preserved as-is. **Not a source of current truth.** See root `PLAN.md` for the current direction.
+
+---
 
 # Gemma-Only Future: Status + Next for vLLM-Native qk_fast AlignAtt
 

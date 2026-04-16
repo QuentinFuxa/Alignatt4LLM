@@ -17,23 +17,26 @@ For each change, examine the existing system and redesign it into the most elega
 - Do not hesitate to remove, replace, or redesign code that is poorly conceived. During this phase, strong cleanup and bold simplification are encouraged when they improve the system.d
 - What we want here, is, more generally, break alignatt for LLMs. Goal is to write a paper. That's a challenge, and that justify the investigation you should deep dive in. The more interessting and clever/replicable/solid/ implementaiton, the happier i am
 
-## qwen3asr_gemma_cascade.py notes
-- The active runtime now lives in `cascade_runtime.py`.
-- `qwen3asr_gemma_cascade_core.py` is only a temporary compatibility shim over that runtime.
-- The ASR part still runs with `qwen_asr` (vLLM-backed) when `alignment_backend_name="qwen_forced"`, while Gemma uses Transformers+AlignAtt for MT and for the Gemma one-pass ASR path.
+## Runtime notes
+- The active runtime lives in `cascade_runtime.py`.
+- `qwen3asr_gemma_cascade_core.py` is only a temporary compatibility shim consumed by historical scripts under `scripts/`; no active code imports it.
+- We now have **vLLM on both sides** (ASR and MT). The recommended combination is `qwen_forced` ASR + `gemma_vllm_alignatt` MT. See `docs/RUNTIME_ARCHITECTURE.md` for the full matrix.
 - Use the repo environment `.venv-inference`.
 
-### Supported runtime frontends
+### Supported ASR / alignment backends
 
-- `qwen_forced` = `Qwen3-ASR + Qwen3 Forced Aligner`
-- `gemma_onepass_qk_fast` = Gemma 4 ASR + audio AlignAtt `qk_fast` in one pass
-- `gemma_vllm_qk_fast` = **experimental** Gemma 4 ASR + audio AlignAtt through vLLM (worker_cls + tensor observer, cudagraph=full by default)
+- `qwen_forced` = `Qwen3-ASR-1.7B` + `Qwen3-ForcedAligner-0.6B` (vLLM) — **stable, default**
+- `gemma_onepass_qk_fast` = Gemma 4 ASR + audio AlignAtt `qk_fast` in one Transformers pass — stable, experimental
+- `gemma_vllm_qk_fast` = Gemma 4 ASR via vLLM + engine-native audio observer (worker_cls + tensor buffers, cudagraph=full by default) — experimental
 
-Everything else is considered historical or archived. In particular:
+### Supported MT backends
 
-- `hybrid_*` is no longer an active runtime backend
-- `gemma_two_pass` is no longer an active runtime backend
-- `eager` remains acceptable only for explicit calibration / debug tooling, not for the runtime comparison path
+- `gemma_transformers_alignatt` = Gemma-4-E4B MT through Transformers + Python-hook AlignAtt — **stable, default**
+- `gemma_vllm_alignatt` = Gemma-4-E4B MT through vLLM + engine-native MT AlignAtt observer — experimental, Phase 5-validated
+
+MT backend selection is an independent runtime axis (`--mt-backend-name` on `run_simulstream_batch.py`). See `docs/MT_VLLM_BACKEND.md`.
+
+Everything else is historical or archived. `hybrid_*` and `gemma_two_pass` are no longer active backends. `eager` remains acceptable only for explicit calibration / debug tooling.
 
 ### Important assumptions that are now encoded in the code
 
@@ -89,3 +92,15 @@ Everything else is considered historical or archived. In particular:
 
 - Simulstream is the recommanded framework to run inference.
 - Omnisteval the recommanted framwork to run evaluation.
+
+## Where to find things
+
+- `PLAN.md` — current plan (short; history archived).
+- `DECISIONS.md` — append-only session-level decision log.
+- `docs/RUNTIME_ARCHITECTURE.md` — ASR + MT axes, module map, session lifecycle.
+- `docs/MT_VLLM_BACKEND.md` — experimental `gemma_vllm_alignatt` design.
+- `docs/RESULTS.md` — consolidated quality/latency numbers and the `chunk_ms` calibration curve.
+- `docs/TROUBLESHOOTING.md` — GPU / vLLM gotchas (compile cache, utilization, trimming).
+- `docs/archive/` — historical design docs.
+- `docs/reference/` — upstream model cards + referenced papers/implementations.
+- `scripts/` — dated research scripts, preserved for reference only.

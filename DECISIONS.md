@@ -164,3 +164,147 @@ the same files but disjoint regions.
   speed, for model-intrinsic reasons (size, ASR-specialisation). The
   strategic pivot to "Qwen ASR + Gemma MT through vLLM" (see updated
   PLAN.md) is supported by today's evidence.
+
+---
+
+## 2026-04-16 (late) — MT vLLM Phases 0–6 push + repo reorganization
+
+### Phases 0–5 delivered
+
+The `full_vllm`-merged `mt_backend_name` axis got fully fleshed out
+with PLAN's Phase 0 → Phase 5 sequence:
+
+- **Phase 0 (surface):** `VALID_MT_BACKEND_NAMES`,
+  `STABLE_MT_BACKEND_NAMES`, `CascadeRuntimeConfig.mt_backend_name` (default stable),
+  `build_mt_backend()` dispatcher, `--mt-backend-name` CLI flag, `_bundle_key`
+  includes it, `LoadedModelBundle.ensure_mt_backend()` rebuilds on change.
+  All runtime tests pass with no default behaviour change.
+- **Phase 1:** minimal `gemma_vllm_mt_backend.py` — render same prompt as
+  Transformers, `llm.generate(prompt_token_ids=...)`, deterministic decode.
+  Three subtle fixes: trailing EOS token trimming, `mt_vllm_gpu_memory_utilization`
+  bumped from 0.3 → 0.5 (Gemma-4 E4B weights are 15.28 GiB), subprocess
+  isolation in the parity harness (cross-allocator GPU memory contamination
+  between TF and vLLM in one process).
+- **Phase 2:** engine-native MT observer via `gemma_vllm_mt_observer.py` +
+  `gemma_vllm_mt_worker.py`. Parallel to the ASR-side observer but captures
+  **K at prompt *and* decode positions** so the 4-way provenance partition
+  (accessible / inaccessible / non-source / suffix) can be reconstructed
+  from `softmax([prompt_K | decode_K])`. Single-prompt validation:
+  both backends agree on blocked frontier and stop reason on two partial
+  prompts.
+- **Phase 3:** policy loop integrated; observer sequence trimmed to the
+  draft length (drop trailing EOS), same stop-reason vocabulary
+  (`alignatt:source_frontier` / `rewind` / `provenance_weak`). Curated 6-prompt
+  parity: draft text matches 6/6, stop reason and blocked frontier match 5/6.
+  Provenance *magnitudes* diverge because of numerical drift between vLLM's
+  fused-QKV + proportional-RoPE path and Transformers' separate projections —
+  documented in `docs/MT_VLLM_BACKEND.md` as expected-and-known.
+- **Phase 4:** `run_mt_backend_parity.py` extended to a `--prompt-set`
+  curated harness; each backend runs in its own subprocess (avoids
+  the cross-allocator issue above).
+- **Phase 5:** end-to-end SimulStream with `qwen_forced` + `gemma_vllm_alignatt`
+  on `tmp/alignatt_smoke18.wav` — RTF 0.536, coherent German, no crashes,
+  no observer failures. No runtime code change beyond Phase 0's surface work.
+
+### Phase 6 (measurement, in progress)
+
+Single-clip numbers on `test-set/audio/ccpXHNfaoy.wav` (360 s, en→de) at
+baseline latency (`chunk_ms=450`):
+
+| BLEU | chrF | COMET-XL | LongYAAL CU | LongYAAL CA | RTF |
+|------|------|----------|-------------|-------------|-----|
+| 27.51 | 63.54 | 0.861 | 1766 ms | 1473 ms | 0.401 |
+
+Chunk-size calibration curve on `OiqEWDVtWk.wav` (299 s, en→de):
+
+| chunk_ms | CA | CU | BLEU | COMET |
+|---|---|---|---|---|
+| 450 | 1650 | 1931 | 26.96 | 0.830 |
+| **700** | **3539** | **3789** | **31.25** | **0.889** |
+| 850 | 4740 | 5024 | 36.95 | 0.914 |
+| 1500 | 7169 | 7556 | 38.91 | 0.924 |
+
+Full results and caveats in `docs/RESULTS.md`.
+
+**Key empirical finding:** `translation_alignatt_inaccessible_ms` has
+effectively **zero** effect on LongYAAL CA in this architecture (tested
+at 0 vs 2000 ms on the same clip: both 1650 ms CA, identical BLEU).
+The cascade's scheduler already waits on commits/finals, so the
+partial-only accessibility mask doesn't bite. **Chunk size is the clean
+latency knob.**
+
+### Repo reorganization
+
+Pre-reorg: 47 `.py` files and 6 `.md` files at the repo root; big design
+doc at `assets/alignatt_doc/E4B_ALIGNATT_CASCADE_DESIGN.md` (~1700 lines)
+mixed current and historical content.
+
+Post-reorg:
+
+- **30 `.py` files at root**, all actively maintained. 16 dated research
+  scripts moved to `scripts/` (with a `scripts/README.md` explaining
+  they're preserved for reference only and how to run them via
+  `PYTHONPATH=.`).
+- **Docs centralized under `docs/`:**
+  - `docs/RUNTIME_ARCHITECTURE.md` (new) — current ASR + MT axes, module map
+  - `docs/MT_VLLM_BACKEND.md` (new) — Phase 0–5 design incl. Gemma-4 architecture quirks
+  - `docs/RESULTS.md` (new) — consolidated quality/latency numbers
+  - `docs/TROUBLESHOOTING.md` (new) — GPU gotchas (compile cache, utilization, cross-allocator)
+  - `docs/archive/` — `E4B_ALIGNATT_CASCADE_DESIGN.md`, `ALIGNATT_LLM.md`,
+    `SIMULSTREAM_TWO_FRONTENDS.md`, `PLAN_test_cs_en_qwen3_gemma.md`,
+    the pre-reorg `PLAN_HISTORY_2026-04.md`, and the existing archive
+  - `docs/reference/` — upstream `Qwen3_aligner.md` model card + AlignAtt
+    reference paper/code (previously under `assets/alignatt_doc/`)
+  - `assets/alignatt_doc/` removed (was mostly historical + upstream refs)
+- **PLAN.md simplified** from 1682 lines to ~80. Historical narrative in
+  `docs/archive/PLAN_HISTORY_2026-04.md`; current plan references
+  `docs/RESULTS.md` / `docs/MT_VLLM_BACKEND.md` / `docs/TROUBLESHOOTING.md`
+  for details.
+- **`README.md`** added at root with entry-point map.
+- **`AGENTS.md`** updated: acknowledges vLLM-on-both-sides, separate ASR/MT
+  axes, adds a "where to find things" pointer section.
+
+Full test suite passes after reorg (111/111). All active imports resolve.
+All moved scripts still compile.
+
+### What the repo looks like now (high level)
+
+```
+/
+├── README.md                           # entry point
+├── AGENTS.md, CLAUDE.md                # operational guidance
+├── PLAN.md                             # short current plan
+├── DECISIONS.md                        # append-only session log (this file)
+├── docs/
+│   ├── RUNTIME_ARCHITECTURE.md
+│   ├── MT_VLLM_BACKEND.md
+│   ├── RESULTS.md
+│   ├── TROUBLESHOOTING.md
+│   ├── archive/          # historical plans + design notes
+│   └── reference/        # upstream model cards + reference code
+├── scripts/              # dated research scripts (not maintained)
+├── test_*.py             # pytest suite (at root)
+├── run_simulstream_batch.py            # canonical runner
+├── run_simulstream_compare.py
+├── run_alignment_single_audio.py
+├── run_mt_backend_parity.py
+├── evaluate_cascade_outputs.py
+├── cascade_*.py          # active runtime
+├── alignment_backend.py, qwen_alignment_backend.py
+├── gemma_alignment_probe.py
+├── gemma_vllm_alignment_backend.py, gemma_vllm_worker.py       # Gemma ASR vLLM
+└── gemma_vllm_mt_backend.py, gemma_vllm_mt_observer.py,
+    gemma_vllm_mt_worker.py                                      # Gemma MT vLLM
+```
+
+### Open threads for the next session
+
+See `PLAN.md` "Immediate next steps":
+
+1. Multi-clip measurement on the 20-clip English test-set at two operating points.
+2. Multilingual generalisation (en→it, en→zh) — heads and references already exist.
+3. End-of-audio flush bug for `alignatt_frontier` (last N words never commit).
+4. `asr_alignatt_frontier_margin_ms` sweep on Qwen for a paper figure.
+5. Reopen MT vLLM prefix caching behind a cache-native observer port.
+6. Investigate Phase 2/3 numerical drift on provenance magnitudes
+   (argmax agrees, sums don't).
