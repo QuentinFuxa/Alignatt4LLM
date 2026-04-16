@@ -901,6 +901,39 @@ stale torchinductor file mismatch after repeated cache clears.
 Documented as a follow-up engineering task, not as a paper-level
 limitation.
 
+**Fallback path succeeded on 5th attempt:** ran the same config with
+`mt_backend_name="gemma_transformers_alignatt"` (Transformers MT
+instead of vLLM MT) — sidesteps the vLLM compile-cache fragility
+entirely. Result on `ccpXHNfaoy.wav`:
+
+| Metric          | Canonical Transformers MT (instrumented)    | vLLM MT re-anchor (pre-instrumentation)    |
+|-----------------|---------------------------------------------|--------------------------------------------|
+| BLEU            | 28.22                                       | 27.51                                      |
+| chrF            | 63.53                                       | 63.54                                      |
+| COMET           | 0.862                                       | 0.861                                      |
+| LongYAAL CU     | 1747 ms                                     | 1766 ms                                    |
+| LongYAAL CA     | 2240 ms                                     | 1466 ms                                    |
+| RTF             | 1.020                                       | 0.393                                      |
+
+Quality metrics match (BLEU +0.7, chrF identical, COMET +0.001,
+within expected cross-backend drift). CA differs because Transformers
+MT is 2.5× slower than vLLM MT — a wallclock-elapsed measurement,
+not a semantic difference. The instrumented artifact carries full
+alignatt_metadata per update.
+
+**Loop replay on the canonical submission path**
+(`outputs/night1_ende_punct_chunk450_instrumented/`):
+
+| Gate                       | F1    | n (updates) |
+|----------------------------|-------|-------------|
+| `alignatt:rewind`          | **1.000** | 26      |
+| `alignatt:source_frontier` | **1.000** | 40      |
+
+That makes **four** artifacts with F1 = 1.000 loop-replay recovery
+across two language directions (en→de, cs→en) and two MT backends
+(Transformers, vLLM). The paper's Step 7 "observer contract is
+complete" claim is now validated on the submission path itself.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +

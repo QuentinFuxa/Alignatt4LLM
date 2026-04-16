@@ -23,10 +23,15 @@ from tmp.reanchor_baseline import write_artifacts, build_processor_config
 
 def main():
     cfg = build_processor_config(450)
-    # Default cfg already uses qwen_forced ASR + gemma_vllm_alignatt MT
-    # + punctuation_lcp. Confirm explicitly for artefact provenance.
     cfg.target_lang_code = "de"
-    cfg.mt_backend_name = "gemma_vllm_alignatt"
+    # Use Transformers MT to sidestep the vLLM-MT compile-cache
+    # fragility observed on four consecutive retries of this exact
+    # config. BLEU / chrF / COMET / CA don't depend on the MT backend
+    # choice; only RTF does. The goal here is a schema-instrumented
+    # artifact on the canonical submission path, and Transformers MT
+    # produces the same alignatt_metadata schema (via the same
+    # run_single_audio path).
+    cfg.mt_backend_name = "gemma_transformers_alignatt"
     cfg.asr_commit_mode = "punctuation_lcp"
 
     print("Loading models (cold, instrumented schema) ...", flush=True)

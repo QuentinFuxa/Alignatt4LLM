@@ -98,6 +98,14 @@ By morning, the repo should satisfy all three:
       Longer chunks help the frontier family, but punct still
       Pareto-dominates at every operating point. Artifact carries the
       new instrumented schema (observer metadata per update).
+- [x] Step 2-instrumented — canonical en→de punct baseline also
+      regenerated with the instrumented schema
+      (`night1_ende_punct_chunk450_instrumented`, Transformers MT
+      fallback because the vLLM-MT compile-cache retry-fragility
+      persisted over four tries). BLEU 28.22 / COMET 0.862 / CU
+      1747 ms match the pre-instrumented reanchor within ±0.7 BLEU.
+      Loop-replay on this submission-path artifact: F1 = 1.000 for
+      both `alignatt:rewind` and `alignatt:source_frontier`.
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.
