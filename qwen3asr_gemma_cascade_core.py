@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
 import os
+import subprocess
 from types import SimpleNamespace
 from typing import Any, List
 import string
@@ -204,6 +205,27 @@ gemma_model_name = _resolve_hf_snapshot(
     "models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c"
 )
 
+LANGUAGE_NAME_TO_CODE = {
+    "English": "en",
+    "German": "de",
+    "Italian": "it",
+    "Chinese": "zh",
+}
+
+
+def alignatt_heads_path_for(source_lang: str, target_lang: str) -> str:
+    source_code = LANGUAGE_NAME_TO_CODE.get(source_lang, source_lang.lower())
+    target_code = LANGUAGE_NAME_TO_CODE.get(target_lang, target_lang.lower())
+    return (
+        "assets/attention_heads/"
+        f"translation_heads_google_gemma-4-E4B-it_{source_code}-{target_code}.json"
+    )
+
+
+def target_lang_code_for(target_lang: str) -> str:
+    return LANGUAGE_NAME_TO_CODE.get(target_lang, target_lang.lower())
+
+
 config = SimpleNamespace(
     source_lang="English",
     target_lang="German",
@@ -211,7 +233,7 @@ config = SimpleNamespace(
     min_start_seconds=5.0,
     translation_variant_id=FOUNDATIONAL_TRANSLATION_VARIANT_ID,
     max_history_utterances=0,
-    translation_alignatt_heads_path="assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-de.json",
+    translation_alignatt_heads_path=alignatt_heads_path_for("English", "German"),
     translation_alignatt_top_k_heads=8,
     translation_alignatt_filter_width=7,
     translation_alignatt_probe_mode="qk_fast",
@@ -220,6 +242,7 @@ config = SimpleNamespace(
     # permissive inline rewind guard to preserve German reordering freedom.
     translation_alignatt_inaccessible_ms=0.0,
     translation_alignatt_rewind_threshold=8,
+    translation_alignatt_min_source_mass=0.0,
     max_new_tokens=160,
     partial_max_new_tokens=48,
     partial_followup_max_new_tokens=16,
@@ -369,6 +392,18 @@ def temporary_runtime_config(**overrides):
             raise AttributeError(f"Unknown runtime config override: {key}")
         original_values[key] = getattr(config, key)
         setattr(config, key, value)
+
+    # If the caller switched target_lang but did not explicitly pin a heads
+    # path, realign it to the matching per-direction file so we do not silently
+    # re-use en-de heads for en-it / en-zh.
+    if "target_lang" in overrides and "translation_alignatt_heads_path" not in overrides:
+        original_values.setdefault(
+            "translation_alignatt_heads_path",
+            getattr(config, "translation_alignatt_heads_path"),
+        )
+        config.translation_alignatt_heads_path = alignatt_heads_path_for(
+            config.source_lang, config.target_lang
+        )
 
     try:
         yield
@@ -861,6 +896,7 @@ def apply_translation_emit_policy(
         raw_translation,
         max_tail_rewrite_words=config.translation_max_tail_rewrite_words,
         is_final=is_final,
+        target_lang_code=target_lang_code_for(config.target_lang),
     )
 
 
@@ -888,6 +924,24 @@ def load_wav(path: str) -> np.ndarray:
     return audio
 
 
+def _git_sha() -> str | None:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL, text=True
+        ).strip()
+    except Exception:
+        return None
+
+
+def _enrich_provenance(run_provenance: dict[str, Any] | None) -> dict[str, Any]:
+    provenance = dict(run_provenance or {})
+    provenance.setdefault("git_sha", _git_sha())
+    provenance.setdefault("framework_mode", "research_harness")
+    provenance.setdefault("source_lang", config.source_lang)
+    provenance.setdefault("target_lang", config.target_lang)
+    return provenance
+
+
 def run_stream_to_artifacts(
     wav_path: str,
     chunk_ms: int = 960,
@@ -897,6 +951,8 @@ def run_stream_to_artifacts(
     variant = get_translation_variant()
     load_models()
     clear_state()
+
+    target_lang_code = target_lang_code_for(config.target_lang)
 
     audio = load_wav(wav_path)
     chunk_size = int(SAMPLE_RATE * chunk_ms / 1000)
@@ -938,12 +994,14 @@ def run_stream_to_artifacts(
             raw_translation,
             wallclock_elapsed_ms,
             word_elapsed_ms,
+            target_lang_code=target_lang_code,
         )
         new_words = register_translation_words(
             last_translation,
             translation,
             audio_processed_ms,
             word_delays_ms,
+            target_lang_code=target_lang_code,
         )
         updates.append(
             StreamUpdate(
@@ -980,7 +1038,7 @@ def run_stream_to_artifacts(
         )
         current_time = audio_processed_ms / 1000.0
         print(f"[{current_time:6.2f}s] ASR: {current_asr}")
-        print(f"[{current_time:6.2f}s] DE : {translation}")
+        print(f"[{current_time:6.2f}s] {target_lang_code.upper():<3}: {translation}")
         last_translation = translation
         last_raw_translation = raw_translation
 
@@ -998,12 +1056,14 @@ def run_stream_to_artifacts(
         final_raw_translation,
         final_elapsed_ms,
         word_elapsed_ms,
+        target_lang_code=target_lang_code,
     )
     final_new_words = register_translation_words(
         last_translation,
         final_translation,
         audio_duration_ms,
         word_delays_ms,
+        target_lang_code=target_lang_code,
     )
     if final_asr != last_asr or final_translation != last_translation:
         updates.append(
@@ -1059,6 +1119,10 @@ def run_stream_to_artifacts(
         translation_variant=variant.variant_id,
         source_language=config.source_lang,
         target_language=config.target_lang,
+        source_language_code=LANGUAGE_NAME_TO_CODE.get(
+            config.source_lang, config.source_lang.lower()
+        ),
+        target_language_code=target_lang_code_for(config.target_lang),
         latency_unit=config.latency_unit,
         audio_duration_ms=audio_duration_ms,
         final_asr_text=final_asr,
@@ -1075,6 +1139,7 @@ def run_stream_to_artifacts(
             "translation_alignatt_probe_mode": config.translation_alignatt_probe_mode,
             "translation_alignatt_inaccessible_ms": config.translation_alignatt_inaccessible_ms,
             "translation_alignatt_rewind_threshold": config.translation_alignatt_rewind_threshold,
+            "translation_alignatt_min_source_mass": config.translation_alignatt_min_source_mass,
             "min_start_seconds": config.min_start_seconds,
             "max_history_utterances": config.max_history_utterances,
             "max_new_tokens": config.max_new_tokens,
@@ -1100,7 +1165,7 @@ def run_stream_to_artifacts(
             "gemma_transformers_prompt_kv_reuse": config.gemma_transformers_prompt_kv_reuse,
             "translation_scheduler_stall_seconds": config.translation_scheduler_stall_seconds,
         },
-        run_provenance=dict(run_provenance or {}),
+        run_provenance=_enrich_provenance(run_provenance),
     )
 
 

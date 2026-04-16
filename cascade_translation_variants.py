@@ -137,6 +137,7 @@ class TranslationVariant:
                         "content": self._render_structured_user_message(
                             source_text=example.source,
                             context_block="(none)",
+                            source_lang=source_lang,
                             is_partial=example.is_partial,
                             assistant_prefix_seeded=False,
                         )[0],
@@ -148,9 +149,12 @@ class TranslationVariant:
         current_user_content, source_char_span = self._render_structured_user_message(
             source_text=text,
             context_block=self._render_context_block(
+                source_lang=source_lang,
+                target_lang=target_lang,
                 source_history=source_history,
                 translation_history=translation_history,
             ),
+            source_lang=source_lang,
             is_partial=is_partial,
             assistant_prefix_seeded=bool(assistant_prefill.strip()),
         )
@@ -191,10 +195,11 @@ class TranslationVariant:
         *,
         source_text: str,
         context_block: str,
+        source_lang: str,
         is_partial: bool,
         assistant_prefix_seeded: bool,
     ) -> tuple[str, tuple[int, int]]:
-        source_header = "[Current English ASR prefix]\n"
+        source_header = f"[Current {source_lang} ASR prefix]\n"
         content_sections = []
         if context_block != "(none)":
             content_sections.append(
@@ -209,6 +214,8 @@ class TranslationVariant:
     @staticmethod
     def _render_context_block(
         *,
+        source_lang: str,
+        target_lang: str,
         source_history: list[str],
         translation_history: list[str],
     ) -> str:
@@ -220,7 +227,8 @@ class TranslationVariant:
         if not pairs:
             return "(none)"
         return "\n\n".join(
-            f"English: {source}\nGerman: {translation}" for source, translation in pairs
+            f"{source_lang}: {source}\n{target_lang}: {translation}"
+            for source, translation in pairs
         )
 
 
@@ -249,7 +257,8 @@ def make_structured_prefix_variant(*, variant_id: str, description: str) -> Tran
 ALIGNATT_PREFIX_TRANSLATION_VARIANT = make_structured_prefix_variant(
     variant_id="alignatt_prefix",
     description=(
-        "Use an accepted German prefix as assistant prefill and let runtime AlignAtt decide how much new target text is safe to emit."
+        "Use an accepted target-language prefix as assistant prefill and let "
+        "runtime AlignAtt decide how much new target text is safe to emit."
     ),
 )
 

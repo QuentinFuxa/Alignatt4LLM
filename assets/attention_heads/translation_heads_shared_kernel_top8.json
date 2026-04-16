@@ -1,0 +1,47 @@
+{
+  "token_alignment_heads": [
+    {
+      "layer": 11,
+      "head": 3,
+      "ts": 0.8524306666666668
+    },
+    {
+      "layer": 6,
+      "head": 5,
+      "ts": 0.7834709999999999
+    },
+    {
+      "layer": 17,
+      "head": 3,
+      "ts": 0.7471336666666666
+    },
+    {
+      "layer": 20,
+      "head": 0,
+      "ts": 0.697312
+    },
+    {
+      "layer": 5,
+      "head": 0,
+      "ts": 0.6768923333333333
+    },
+    {
+      "layer": 11,
+      "head": 2,
+      "ts": 0.6282336666666667
+    },
+    {
+      "layer": 10,
+      "head": 0,
+      "ts": 0.5761686666666667
+    }
+  ],
+  "direction": "shared_kernel",
+  "regime": "shared_kernel",
+  "top_k": 8,
+  "source_directions": [
+    "en-de",
+    "en-it",
+    "en-zh"
+  ]
+}

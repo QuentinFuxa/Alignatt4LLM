@@ -4,7 +4,7 @@ from dataclasses import replace
 from typing import Sequence
 
 from cascade_artifacts import StreamUpdate
-from cascade_text_surface import normalize_incremental_target_text
+from cascade_text_surface import normalize_incremental_target_text, split_target_emission_units
 
 
 FREEZE_MAJOR_TAIL_REWRITES = "freeze_major_tail_rewrites"
@@ -30,9 +30,15 @@ def register_translation_timestamps(
     current_translation: str,
     timestamp_ms: float,
     metric_timestamps_ms: list[float],
+    *,
+    target_lang_code: str | None = None,
 ) -> list[str]:
-    previous_words = previous_translation.split()
-    current_words = current_translation.split()
+    previous_words = split_target_emission_units(
+        previous_translation, target_lang_code=target_lang_code
+    )
+    current_words = split_target_emission_units(
+        current_translation, target_lang_code=target_lang_code
+    )
     prefix_len = longest_common_prefix_words(previous_words, current_words)
 
     del metric_timestamps_ms[prefix_len:]
@@ -47,12 +53,15 @@ def register_translation_words(
     current_translation: str,
     audio_processed_ms: float,
     word_delays_ms: list[float],
+    *,
+    target_lang_code: str | None = None,
 ) -> list[str]:
     return register_translation_timestamps(
         previous_translation,
         current_translation,
         audio_processed_ms,
         word_delays_ms,
+        target_lang_code=target_lang_code,
     )
 
 
@@ -73,6 +82,7 @@ def stabilize_emitted_translation(
     *,
     max_tail_rewrite_words: int,
     is_final: bool,
+    target_lang_code: str | None = None,
 ) -> tuple[str, str]:
     previous_translation = previous_translation.strip()
     raw_translation = raw_translation.strip()
@@ -83,8 +93,12 @@ def stabilize_emitted_translation(
     if max_tail_rewrite_words < 0 or not previous_translation or not raw_translation:
         return raw_translation, RAW_PASSTHROUGH
 
-    previous_words = previous_translation.split()
-    raw_words = raw_translation.split()
+    previous_words = split_target_emission_units(
+        previous_translation, target_lang_code=target_lang_code
+    )
+    raw_words = split_target_emission_units(
+        raw_translation, target_lang_code=target_lang_code
+    )
     if not major_rewrite_exceeds_tail_window(
         previous_words,
         raw_words,
@@ -101,6 +115,7 @@ def stabilize_nonexpanding_major_rewrites(
     *,
     max_tail_rewrite_words: int,
     is_final: bool,
+    target_lang_code: str | None = None,
 ) -> tuple[str, str]:
     previous_translation = previous_translation.strip()
     raw_translation = raw_translation.strip()
@@ -111,8 +126,12 @@ def stabilize_nonexpanding_major_rewrites(
     if max_tail_rewrite_words < 0 or not previous_translation or not raw_translation:
         return raw_translation, RAW_PASSTHROUGH
 
-    previous_words = previous_translation.split()
-    raw_words = raw_translation.split()
+    previous_words = split_target_emission_units(
+        previous_translation, target_lang_code=target_lang_code
+    )
+    raw_words = split_target_emission_units(
+        raw_translation, target_lang_code=target_lang_code
+    )
     if (
         major_rewrite_exceeds_tail_window(
             previous_words,
@@ -133,6 +152,7 @@ def apply_emission_policy(
     *,
     max_tail_rewrite_words: int,
     is_final: bool,
+    target_lang_code: str | None = None,
 ) -> tuple[str, str]:
     previous_translation = normalize_incremental_target_text(previous_translation)
     raw_translation = normalize_incremental_target_text(raw_translation)
@@ -143,6 +163,7 @@ def apply_emission_policy(
             raw_translation,
             max_tail_rewrite_words=max_tail_rewrite_words,
             is_final=is_final,
+            target_lang_code=target_lang_code,
         )
     if emit_policy == FREEZE_NONEXPANDING_MAJOR_REWRITES:
         return stabilize_nonexpanding_major_rewrites(
@@ -150,6 +171,7 @@ def apply_emission_policy(
             raw_translation,
             max_tail_rewrite_words=max_tail_rewrite_words,
             is_final=is_final,
+            target_lang_code=target_lang_code,
         )
 
     action = FINAL_PASSTHROUGH if is_final else RAW_PASSTHROUGH
@@ -162,6 +184,7 @@ def replay_stream_updates(
     final_translation_text: str,
     emit_policy: str,
     max_tail_rewrite_words: int,
+    target_lang_code: str | None = None,
 ) -> tuple[list[StreamUpdate], list[float], list[float]]:
     emitted_updates: list[StreamUpdate] = []
     word_delays_ms: list[float] = []
@@ -177,6 +200,7 @@ def replay_stream_updates(
             raw_translation,
             update.wallclock_elapsed_ms,
             word_elapsed_ms,
+            target_lang_code=target_lang_code,
         )
         emitted_translation, action = apply_emission_policy(
             emit_policy,
@@ -184,12 +208,14 @@ def replay_stream_updates(
             raw_translation,
             max_tail_rewrite_words=max_tail_rewrite_words,
             is_final=index == last_update_index,
+            target_lang_code=target_lang_code,
         )
         new_words = register_translation_words(
             previous_emitted_translation,
             emitted_translation,
             update.audio_processed_ms,
             word_delays_ms,
+            target_lang_code=target_lang_code,
         )
         emitted_updates.append(
             replace(
@@ -211,6 +237,7 @@ def replay_stream_updates(
             final_translation_text,
             last_update.audio_processed_ms,
             word_delays_ms,
+            target_lang_code=target_lang_code,
         )
         emitted_updates[-1] = replace(
             last_update,

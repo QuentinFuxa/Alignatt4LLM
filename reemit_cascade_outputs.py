@@ -7,12 +7,15 @@ from pathlib import Path
 
 from cascade_artifacts import (
     DEFAULT_OUTPUT_DIR,
+    DEFAULT_SOURCE_LANG_CODE,
+    DEFAULT_TARGET_LANG_CODE,
     HYPOTHESIS_FILENAME,
     FINAL_ASR_FILENAME,
     InferenceArtifacts,
     MANIFEST_FILENAME,
     StreamUpdate,
     STREAM_UPDATES_FILENAME,
+    final_asr_filename,
     write_inference_artifacts,
 )
 from cascade_emission import (
@@ -99,7 +102,12 @@ def main() -> None:
     manifest = load_json(input_dir / MANIFEST_FILENAME)
     hypothesis = load_json(input_dir / HYPOTHESIS_FILENAME)
     raw_updates = load_stream_updates(input_dir / STREAM_UPDATES_FILENAME)
-    final_asr_text = (input_dir / FINAL_ASR_FILENAME).read_text(encoding="utf-8").strip()
+    source_lang_code = manifest.get("source_language_code", DEFAULT_SOURCE_LANG_CODE)
+    target_lang_code = manifest.get("target_language_code", DEFAULT_TARGET_LANG_CODE)
+    candidate_asr_path = input_dir / final_asr_filename(source_lang_code)
+    if not candidate_asr_path.exists():
+        candidate_asr_path = input_dir / FINAL_ASR_FILENAME
+    final_asr_text = candidate_asr_path.read_text(encoding="utf-8").strip()
     final_translation_text = hypothesis["prediction"].strip()
 
     emitted_updates, word_delays_ms, word_elapsed_ms = replay_stream_updates(
@@ -107,6 +115,7 @@ def main() -> None:
         final_translation_text=final_translation_text,
         emit_policy=args.emit_policy,
         max_tail_rewrite_words=args.max_tail_rewrite_words,
+        target_lang_code=target_lang_code,
     )
     replayed_final_translation_text = (
         emitted_updates[-1].translation_text if emitted_updates else final_translation_text
@@ -135,6 +144,8 @@ def main() -> None:
         translation_variant=manifest.get("translation_variant"),
         source_language=manifest["source_language"],
         target_language=manifest["target_language"],
+        source_language_code=source_lang_code,
+        target_language_code=target_lang_code,
         latency_unit=manifest["latency_unit"],
         audio_duration_ms=manifest["audio_duration_ms"],
         final_asr_text=final_asr_text,
