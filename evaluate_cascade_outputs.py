@@ -16,10 +16,12 @@ from cascade_artifacts import (
     DEFAULT_OUTPUT_DIR,
     DEFAULT_SEGMENTATION_PATH,
     DEFAULT_SOURCE_REF_PATH,
+    DEFAULT_TARGET_LANG_CODE,
     DEFAULT_TARGET_REF_PATH,
     HYPOTHESIS_FILENAME,
     HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
     MANIFEST_FILENAME,
+    reference_path_for,
     write_evaluation_outputs,
 )
 from omnisteval import evaluate_instances
@@ -43,8 +45,19 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--target-reference",
-        default=DEFAULT_TARGET_REF_PATH,
-        help="Target-language reference text file.",
+        default=None,
+        help=(
+            "Target-language reference text file. Defaults to the manifest's "
+            "target_language_code when present, else en->de."
+        ),
+    )
+    parser.add_argument(
+        "--target-lang-code",
+        default=None,
+        help=(
+            "ISO-ish target language code (e.g. 'de', 'it', 'zh'). Overrides "
+            "the manifest value; determines the resegmentation language."
+        ),
     )
     parser.add_argument(
         "--source-reference",
@@ -96,6 +109,28 @@ def load_manifest(output_dir: str) -> dict | None:
     if not manifest_path.exists():
         return None
     return json.loads(manifest_path.read_text(encoding="utf-8"))
+
+
+def resolve_target_lang_code(output_dir: str, cli_override: str | None) -> str:
+    if cli_override:
+        return cli_override
+
+    manifest = load_manifest(output_dir)
+    if manifest is None:
+        return DEFAULT_TARGET_LANG_CODE
+
+    code = manifest.get("target_language_code")
+    if isinstance(code, str) and code:
+        return code
+    return DEFAULT_TARGET_LANG_CODE
+
+
+def resolve_target_reference(cli_override: str | None, target_lang_code: str) -> str:
+    if cli_override:
+        return cli_override
+    if target_lang_code == DEFAULT_TARGET_LANG_CODE:
+        return DEFAULT_TARGET_REF_PATH
+    return reference_path_for(target_lang_code)
 
 
 def resolve_fix_emission_ca(output_dir: str, cli_override: bool | None) -> bool:
@@ -162,13 +197,20 @@ def filter_longform_reference_inputs(
     return filtered_segments, filtered_references
 
 
-def evaluate_base_metrics(instances: list) -> tuple[dict[str, float], list[str]]:
+BLEU_TOKENIZER_BY_LANG = {"zh": "zh", "ja": "ja-mecab", "ko": "ko-mecab"}
+
+
+def evaluate_base_metrics(
+    instances: list, *, target_lang_code: str | None = None
+) -> tuple[dict[str, float], list[str]]:
+    tokenizer = BLEU_TOKENIZER_BY_LANG.get((target_lang_code or "").lower(), "13a")
     return evaluate_instances(
         instances,
         compute_quality=True,
         compute_latency=True,
         is_longform=True,
         compute_comet=False,
+        bleu_tokenizer=tokenizer,
     )
 
 
@@ -249,10 +291,12 @@ def main() -> None:
     hypothesis_path = resolve_hypothesis_path(args.output_dir)
     fix_emission_ca = resolve_fix_emission_ca(args.output_dir, args.fix_emission_ca)
     compute_comet = not args.skip_comet
+    target_lang_code = resolve_target_lang_code(args.output_dir, args.target_lang_code)
+    target_reference_path = resolve_target_reference(args.target_reference, target_lang_code)
     allowed_sources = read_hypothesis_sources(hypothesis_path)
     filtered_segments, filtered_references = filter_longform_reference_inputs(
         args.speech_segmentation,
-        args.target_reference,
+        target_reference_path,
         allowed_sources,
     )
 
@@ -269,13 +313,14 @@ def main() -> None:
             encoding="utf-8",
         )
 
+        char_level = target_lang_code == "zh"
         ref_words, hyp_words, segmentation, ref_sentences = load_resegmentation_inputs(
             speech_segmentation=str(filtered_segmentation_path),
             text_segmentation=None,
             ref_sentences_file=str(filtered_reference_path),
             hypothesis_file=str(hypothesis_path),
             hypothesis_format="jsonl",
-            char_level=False,
+            char_level=char_level,
             offset_delays=False,
             fix_emission_ca_flag=fix_emission_ca,
         )
@@ -284,14 +329,14 @@ def main() -> None:
             hyp_words,
             segmentation,
             ref_sentences,
-            char_level=False,
-            lang="de",
+            char_level=char_level,
+            lang=target_lang_code,
         )
 
     source_sentences = None
     if compute_comet:
         all_source_sentences = load_lines(args.source_reference)
-        if len(all_source_sentences) != len(load_lines(args.target_reference)):
+        if len(all_source_sentences) != len(load_lines(target_reference_path)):
             raise ValueError(
                 "The source reference file must contain exactly one line per target reference segment."
             )
@@ -310,7 +355,7 @@ def main() -> None:
                 "The source reference file must contain exactly one line per target reference segment."
             )
 
-    scores, instance_report = evaluate_base_metrics(instances)
+    scores, instance_report = evaluate_base_metrics(instances, target_lang_code=target_lang_code)
     metric_blockers: list[dict[str, str]] = []
     if compute_comet:
         comet_score, comet_blocker = try_compute_comet_score(
@@ -333,7 +378,8 @@ def main() -> None:
     settings = {
         "hypothesis_file": str(hypothesis_path),
         "speech_segmentation": args.speech_segmentation,
-        "target_reference": args.target_reference,
+        "target_reference": target_reference_path,
+        "target_lang_code": target_lang_code,
         "matched_sources": sorted(allowed_sources),
         "source_reference": args.source_reference if compute_comet else "skipped",
         "comet_model": args.comet_model if compute_comet else "skipped",

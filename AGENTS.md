@@ -1,3 +1,5 @@
+Welcome on the A100 Machine, dedicated for your needs !
+
 For each change, examine the existing system and redesign it into the most elegant solution that would have emerged if the change had been a foundational assumption from the start.
 
 ## Defensible Research Code

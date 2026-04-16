@@ -9,14 +9,19 @@ from cascade_mt_backend import (
     LayerInputCapture,
     MTBackendResult,
     SelectedLayerInputRecorder,
+    TokenProvenanceBreakdown,
     compute_alignatt_source_argmaxes,
     compute_prefix_online_alignatt_source_argmaxes,
     extract_source_attention_rows_per_token_from_fast_path,
     extract_source_qk_rows_per_token,
     extract_source_attention_rows_per_token,
+    load_alignatt_heads,
     map_attention_head_to_key_value_head,
+    multilingual_union_alignatt_heads,
     resolve_prompt_and_suffix_key_states_for_layer,
+    shared_kernel_alignatt_heads,
     source_local_position_to_unit_index,
+    write_alignatt_heads_file,
     PromptSourceMap,
     PromptSourceUnitSpan,
 )
@@ -101,6 +106,56 @@ def test_prefix_online_alignatt_source_argmaxes_matches_tracker_updates():
     expected = [tracker.update(source_attention_rows) for source_attention_rows in rows_per_token]
 
     assert compute_prefix_online_alignatt_source_argmaxes(rows_per_token, filter_width=5) == expected
+
+
+def test_batched_prefix_online_tail_matches_online_loop_with_assistant_prefill():
+    """Pin the invariant we rely on when an assistant_prefill is present.
+
+    In a real streaming decode, the prompt already contains an accepted target
+    prefix (``assistant_prefill``). The batched prefix-online probe rebuilds
+    attention rows for every prefill token AND every drafted token in one
+    forward, but only the drafted tail is actionable. This test asserts that
+    the tail alignments match those produced by a true online loop that walks
+    token-by-token over the same sequence with an ``IncrementalAlignAttTracker``
+    that has been warm-started on the prefill rows.
+
+    Concretely: ``batched[prefill_len:] == [tracker.update(row) for row in draft_rows]``
+    after ``tracker`` has already consumed the prefill rows. Any drift here
+    would mean the probe disagrees with what a strict online decoder would
+    observe at those same positions, which would invalidate AlignAtt's
+    acceptance reasoning.
+    """
+
+    torch.manual_seed(17)
+    prefill_rows = [torch.rand(3, 9) for _ in range(4)]
+    draft_rows = [torch.rand(3, 9) for _ in range(5)]
+    all_rows = prefill_rows + draft_rows
+    filter_width = 7
+
+    batched_tail = compute_prefix_online_alignatt_source_argmaxes(
+        all_rows, filter_width=filter_width
+    )[len(prefill_rows):]
+
+    online_tracker = IncrementalAlignAttTracker(filter_width=filter_width)
+    for row in prefill_rows:
+        online_tracker.update(row)
+    online_tail = [online_tracker.update(row) for row in draft_rows]
+
+    assert batched_tail == online_tail
+
+
+def test_empty_source_rows_yield_no_alignment_without_breaking_prefill_flow():
+    """A zero-width source window must not crash the probe under prefill.
+
+    Edge case seen near ``translation_alignatt_inaccessible_ms`` transitions:
+    the accessible source slice can be momentarily empty. In that regime the
+    aligned source position is undefined (``None``) and the tracker must treat
+    every incoming token as "no alignment evidence yet" rather than raise.
+    """
+
+    tracker = IncrementalAlignAttTracker(filter_width=3)
+    rows = [torch.zeros(2, 0) for _ in range(3)]
+    assert [tracker.update(row) for row in rows] == [None, None, None]
 
 
 def test_prefix_online_alignatt_source_argmaxes_can_differ_from_full_suffix_global():
@@ -276,7 +331,7 @@ def test_extract_source_attention_rows_per_token_from_fast_path_matches_causal_s
         )
     ]
 
-    rows_per_token = extract_source_attention_rows_per_token_from_fast_path(
+    rows_per_token, provenance = extract_source_attention_rows_per_token_from_fast_path(
         layer_inputs_by_layer=layer_inputs,
         prompt_kv_snapshot=prompt_kv_snapshot,
         alignatt_heads=[AlignAttHead(layer=3, head=0, ts=1.0)],
@@ -294,6 +349,7 @@ def test_extract_source_attention_rows_per_token_from_fast_path_matches_causal_s
     assert len(rows_per_token) == 2
     assert torch.allclose(rows_per_token[0], expected[0].unsqueeze(0), atol=1e-6)
     assert torch.allclose(rows_per_token[1], expected[1].unsqueeze(0), atol=1e-6)
+    assert provenance == []
 
 
 def test_resolve_prompt_and_suffix_key_states_for_layer_prefers_runtime_cache_for_full_attention():
@@ -600,3 +656,490 @@ def test_alignatt_rewind_keeps_safe_prefix_up_to_offending_token():
     assert unsafe_target_token_index == 3
     # Safe prefix is kept: tokens before the offending one survive the rewind.
     assert accepted_candidate_ids == [101, 102, 103]
+
+
+def test_alignatt_tolerates_local_reorder_within_rewind_threshold():
+    """Local reorderings near the frontier must not trigger a rewind.
+
+    Motivation (Phase 3): the monotone-acceptance contract is compatible with
+    short-range reordering — e.g. German verb clusters moving a few source
+    positions backward during decoding — as long as the backward jump stays
+    within ``translation_alignatt_rewind_threshold``. If every tiny dip reset
+    the accepted prefix, AlignAtt would shrink ``accepted_target`` whenever
+    the draft briefly re-attends to an earlier source unit, which is the exact
+    failure mode we explicitly do NOT want.
+    """
+
+    from types import SimpleNamespace
+
+    runtime_config = SimpleNamespace(translation_alignatt_rewind_threshold=3)
+    policy = AlignAttDecoderPolicy(tokenizer=None, runtime_config=runtime_config)
+
+    aligned_source_local_positions = [0, 3, 5, 4, 6]  # 5->4 is a 1-step dip
+    accessible_source_token_count = 10
+
+    accepted: list[int] = []
+    last_aligned: int | None = None
+    for token_index, aligned in enumerate(aligned_source_local_positions):
+        unsafe_reason, _, _, _ = policy.should_stop_in_loop(
+            current_source_local_position=aligned,
+            last_aligned_source_local_position=last_aligned,
+            accessible_source_token_count=accessible_source_token_count,
+        )
+        assert unsafe_reason is None, f"unexpected stop at token {token_index}: {unsafe_reason}"
+        accepted.append(token_index)
+        last_aligned = aligned
+
+    assert accepted == [0, 1, 2, 3, 4]
+
+
+def test_write_and_load_alignatt_heads_file_round_trips(tmp_path):
+    heads = [
+        AlignAttHead(layer=11, head=3, ts=0.852),
+        AlignAttHead(layer=6, head=5, ts=0.783),
+        AlignAttHead(layer=17, head=3, ts=0.747),
+    ]
+    path = tmp_path / "shared_kernel_heads.json"
+
+    write_alignatt_heads_file(
+        heads,
+        path,
+        direction="shared_kernel",
+        extra_metadata={"regime": "shared_kernel", "source_directions": ["en-de", "en-it", "en-zh"]},
+    )
+
+    loaded = load_alignatt_heads(str(path), top_k=len(heads))
+    assert loaded == heads
+
+    truncated = load_alignatt_heads(str(path), top_k=2)
+    assert truncated == heads[:2]
+
+
+class _FakeTokenizer:
+    """Minimal tokenizer double used to exercise stability-unit trimming."""
+
+    def __init__(self, token_strings):
+        self._tokens = list(token_strings)
+
+    def convert_ids_to_tokens(self, ids):
+        return [self._tokens[int(token_id)] for token_id in ids]
+
+
+def test_token_starts_stability_unit_recognises_space_and_cjk_boundaries():
+    assert AlignAttDecoderPolicy.token_starts_stability_unit("▁weil")
+    assert AlignAttDecoderPolicy.token_starts_stability_unit("Ġhello")
+    assert AlignAttDecoderPolicy.token_starts_stability_unit("<0x0A>")
+    # Each Han character is its own stability unit even without leading space.
+    assert AlignAttDecoderPolicy.token_starts_stability_unit("因")
+    assert AlignAttDecoderPolicy.token_starts_stability_unit("▁世")
+    # Japanese kana share the no-whitespace convention.
+    assert AlignAttDecoderPolicy.token_starts_stability_unit("あ")
+    # Pure intra-word continuations (BPE fragments of Latin-script words) do not.
+    assert not AlignAttDecoderPolicy.token_starts_stability_unit("ation")
+    assert not AlignAttDecoderPolicy.token_starts_stability_unit("")
+
+
+def _make_policy(tokens):
+    from types import SimpleNamespace
+
+    return AlignAttDecoderPolicy(
+        tokenizer=_FakeTokenizer(tokens),
+        runtime_config=SimpleNamespace(),
+    )
+
+
+def test_trim_to_last_stability_unit_drops_trailing_incomplete_word_for_space_language():
+    tokens = ["▁weil", "▁ich", "▁ihn", "▁ge", "sehen"]
+    policy = _make_policy(tokens)
+    trimmed = policy.trim_to_last_stability_unit(list(range(len(tokens))))
+    # The last stability unit is the compound "▁ge sehen"; trimming drops it.
+    assert trimmed == [0, 1, 2]
+
+
+def test_trim_to_last_stability_unit_keeps_prefix_characters_for_chinese_script():
+    # Mirrors the failure mode described in PLAN.md: 因为我看见了他 would
+    # previously collapse to an empty list because no token starts with ▁.
+    tokens = ["因", "为", "我", "看", "见", "了", "他"]
+    policy = _make_policy(tokens)
+    trimmed = policy.trim_to_last_stability_unit(list(range(len(tokens))))
+    assert trimmed == [0, 1, 2, 3, 4, 5]
+
+
+def test_structured_prompt_context_block_is_language_agnostic():
+    rendered = ALIGNATT_PREFIX_TRANSLATION_VARIANT.render_messages(
+        source_lang="English",
+        target_lang="Italian",
+        text="because I have seen",
+        source_frontier=None,
+        source_history=["hello world"],
+        translation_history=["ciao mondo"],
+        is_partial=True,
+        assistant_prefill="perché l'ho",
+    )
+
+    current_user_message = rendered.messages[1]["content"]
+    assert "English: hello world" in current_user_message
+    assert "Italian: ciao mondo" in current_user_message
+    assert "German:" not in current_user_message
+
+
+def test_split_target_emission_units_splits_by_whitespace_for_latin_targets():
+    from cascade_text_surface import split_target_emission_units
+
+    assert split_target_emission_units(
+        "weil ich ihn gesehen habe", target_lang_code="de"
+    ) == ["weil", "ich", "ihn", "gesehen", "habe"]
+    assert split_target_emission_units(
+        "perché l'ho visto", target_lang_code="it"
+    ) == ["perché", "l'ho", "visto"]
+
+
+def test_split_target_emission_units_is_char_level_for_chinese():
+    from cascade_text_surface import split_target_emission_units
+
+    # Matches OmniSTEval's char_level=True resegmentation for zh. No empty
+    # strings from spacing artefacts; each Han character is one unit.
+    assert split_target_emission_units(
+        "因为 我看见了他", target_lang_code="zh"
+    ) == ["因", "为", "我", "看", "见", "了", "他"]
+
+
+def test_split_target_emission_units_nfkc_normalises_before_char_split_for_zh():
+    """Char-level unit count must survive OmniSTEval's NFKC normalization.
+
+    The evaluator runs ``unicodedata.normalize("NFKC", prediction)`` before
+    splitting into characters. If our in-flight unit count disagrees with the
+    post-NFKC count, ``load_hypothesis_jsonl`` fails the
+    ``len(units) == len(cu_values)`` assertion and the whole zh evaluation
+    run is unusable. Locking the invariant here keeps the char-level
+    inference/evaluation contract bit-identical on either side.
+    """
+    import unicodedata
+
+    from cascade_artifacts import InferenceArtifacts
+    from cascade_text_surface import split_target_emission_units
+
+    # Halfwidth/fullwidth digits and kana are the canonical NFKC test: NFKC
+    # decomposes "①" into multiple codepoints and folds fullwidth forms to
+    # halfwidth. Plain ``list(text)`` would undercount the eventual NFKC
+    # characters by these deltas.
+    text = "① ②\u3000ＡＢ因为"  # includes fullwidth digits, fullwidth space, fullwidth latin
+    units = split_target_emission_units(text, target_lang_code="zh")
+    rebuilt = "".join(units)
+    assert rebuilt == unicodedata.normalize("NFKC", rebuilt)
+    assert len(units) == len(rebuilt)
+    assert (
+        len(rebuilt)
+        == len(unicodedata.normalize("NFKC", text).replace(" ", "").replace("\u3000", ""))
+    )
+
+    # End-to-end: the hypothesis record serialised for char-level targets
+    # must have ``prediction`` bytes that equal the NFKC-normalised join of
+    # units, so that evaluator and runtime count units identically.
+    artifacts = InferenceArtifacts(
+        wav_path="x.wav",
+        chunk_ms=450,
+        translation_variant="alignatt_prefix",
+        source_language="English",
+        target_language="Chinese",
+        latency_unit="word",
+        audio_duration_ms=1000.0,
+        final_asr_text="x",
+        final_translation_text=text,
+        translation_word_delays_ms=[100.0] * len(units),
+        translation_word_elapsed_ms=[100.0] * len(units),
+        updates=[],
+        runtime_config={},
+        target_language_code="zh",
+    )
+    record = artifacts.hypothesis_record()
+    assert len(record["prediction"]) == len(record["delays"])
+    assert record["prediction"] == unicodedata.normalize("NFKC", record["prediction"])
+
+
+def test_freeze_major_tail_rewrites_guards_chinese_at_character_granularity():
+    """The tail-rewrite window must count Han characters for zh targets.
+
+    Without a target-language-aware splitter this test would collapse both
+    translations into a single "word" each, the rewrite window check would
+    become vacuous, and the runtime would emit a 10-char-wide rewrite as if it
+    were a no-op surface edit. That would contradict the monotone acceptance
+    contract for en->zh serving.
+    """
+    from cascade_emission import FREEZE_MAJOR_TAIL_REWRITES, apply_emission_policy
+
+    previous = "因为我看见了他走进房间坐下喝茶"  # 14 characters
+    raw = "于是我听见了他走进房间坐下喝茶"  # differs in the first 2 characters
+
+    emitted, action = apply_emission_policy(
+        FREEZE_MAJOR_TAIL_REWRITES,
+        previous,
+        raw,
+        max_tail_rewrite_words=3,
+        is_final=False,
+        target_lang_code="zh",
+    )
+
+    # Rewrite reaches far beyond the 3-character tail window, so it must be
+    # frozen to the previously emitted Chinese surface, not silently accepted.
+    assert action == "frozen_major_tail_rewrite"
+    assert emitted == previous
+
+
+def test_freeze_major_tail_rewrites_allows_local_chinese_tail_edit():
+    from cascade_emission import FREEZE_MAJOR_TAIL_REWRITES, apply_emission_policy
+
+    previous = "因为我看见了他走进"
+    raw = "因为我看见了他走来"  # differs only in the last character
+
+    emitted, action = apply_emission_policy(
+        FREEZE_MAJOR_TAIL_REWRITES,
+        previous,
+        raw,
+        max_tail_rewrite_words=3,
+        is_final=False,
+        target_lang_code="zh",
+    )
+
+    assert action == "raw_passthrough"
+    assert emitted == raw
+
+
+def test_register_translation_words_aligns_delays_with_characters_for_chinese():
+    from cascade_emission import register_translation_words
+
+    delays: list[float] = []
+    # First emission adds one character: "因".
+    new_units = register_translation_words(
+        "", "因", 100.0, delays, target_lang_code="zh"
+    )
+    assert new_units == ["因"]
+    assert delays == [100.0]
+
+    # Second emission extends to "因为我"; only the new characters get stamps.
+    new_units = register_translation_words(
+        "因", "因为我", 250.0, delays, target_lang_code="zh"
+    )
+    assert new_units == ["为", "我"]
+    assert delays == [100.0, 250.0, 250.0]
+
+
+def test_alignatt_heads_path_resolves_to_shipped_files_for_every_supported_direction():
+    """Every configured target language must have a real heads file on disk.
+
+    Dropping a new ``LANGUAGE_NAME_TO_CODE`` entry without shipping its
+    ``translation_heads_*.json`` would silently fall back to en-de (because
+    the MT backend calls ``load_alignatt_heads`` with that missing path at
+    runtime) and poison every downstream multilingual comparison. Locking
+    this invariant here means that failure surfaces at test time, not during
+    a GPU sweep.
+    """
+    import json
+    from pathlib import Path
+
+    from qwen3asr_gemma_cascade_core import LANGUAGE_NAME_TO_CODE, alignatt_heads_path_for
+
+    source_lang = "English"
+    for target_label in ("German", "Italian", "Chinese"):
+        assert target_label in LANGUAGE_NAME_TO_CODE, target_label
+        heads_path = Path(alignatt_heads_path_for(source_lang, target_label))
+        assert heads_path.exists(), heads_path
+        payload = json.loads(heads_path.read_text(encoding="utf-8"))
+        assert payload.get("token_alignment_heads"), heads_path
+        # The expected direction string is the one the offline head-detector
+        # writes. Catches accidental mismatches between filename and content.
+        expected_direction = (
+            f"{LANGUAGE_NAME_TO_CODE[source_lang]}-{LANGUAGE_NAME_TO_CODE[target_label]}"
+        )
+        assert payload.get("direction") == expected_direction, (heads_path, payload.get("direction"))
+
+
+def test_shared_kernel_alignatt_heads_intersects_directions_and_averages_scores():
+    heads_by_direction = {
+        "en-de": [
+            AlignAttHead(layer=11, head=3, ts=0.80),
+            AlignAttHead(layer=6, head=5, ts=0.70),
+            AlignAttHead(layer=9, head=0, ts=0.65),
+        ],
+        "en-it": [
+            AlignAttHead(layer=11, head=3, ts=0.78),
+            AlignAttHead(layer=6, head=5, ts=0.74),
+            AlignAttHead(layer=2, head=1, ts=0.60),
+        ],
+        "en-zh": [
+            AlignAttHead(layer=11, head=3, ts=0.82),
+            AlignAttHead(layer=6, head=5, ts=0.66),
+            AlignAttHead(layer=9, head=0, ts=0.64),
+        ],
+    }
+
+    kernel = shared_kernel_alignatt_heads(heads_by_direction)
+
+    identities = [(h.layer, h.head) for h in kernel]
+    assert identities == [(11, 3), (6, 5)]
+    # (11,3) mean is higher than (6,5) mean, so it must come first.
+    assert kernel[0].ts > kernel[1].ts
+
+
+def test_shared_kernel_alignatt_heads_returns_empty_when_no_full_overlap():
+    heads_by_direction = {
+        "en-de": [AlignAttHead(layer=1, head=0, ts=0.9)],
+        "en-zh": [AlignAttHead(layer=2, head=0, ts=0.9)],
+    }
+
+    assert shared_kernel_alignatt_heads(heads_by_direction) == []
+
+
+def test_multilingual_union_alignatt_heads_ranks_by_mean_ts_and_caps_budget():
+    heads_by_direction = {
+        "en-de": [
+            AlignAttHead(layer=11, head=3, ts=0.80),
+            AlignAttHead(layer=9, head=0, ts=0.50),
+        ],
+        "en-it": [
+            AlignAttHead(layer=11, head=3, ts=0.80),
+            AlignAttHead(layer=2, head=1, ts=0.60),
+        ],
+    }
+
+    union = multilingual_union_alignatt_heads(heads_by_direction, max_heads=2)
+
+    assert [(h.layer, h.head) for h in union] == [(11, 3), (2, 1)]
+    # The shared head averages to 0.80, not 0.40, because we use mean not sum.
+    assert abs(union[0].ts - 0.80) < 1e-9
+
+
+def test_structured_prompt_header_tracks_source_language_label():
+    rendered = ALIGNATT_PREFIX_TRANSLATION_VARIANT.render_messages(
+        source_lang="English",
+        target_lang="Chinese",
+        text="because I have seen him",
+        source_frontier=None,
+        source_history=[],
+        translation_history=[],
+        is_partial=True,
+        assistant_prefill="因为我",
+    )
+
+    current_user_message = rendered.messages[1]["content"]
+    assert "[Current English ASR prefix]" in current_user_message
+    assert rendered.messages[-1] == {"role": "assistant", "content": "因为我"}
+
+
+def test_provenance_partitions_attention_mass_into_four_regions():
+    """Provenance masses must sum to ~1.0 and respect the source partition.
+
+    Uses the same fixture as the causal-softmax test (2 prompt positions both
+    in source, 2 draft tokens, 1 head) with accessible_source_token_count=1
+    so position 0 is accessible and position 1 is inaccessible. Since every
+    prompt position is a source position, non_source_prompt should be ~0.
+    """
+    module = FakeAttentionModule()
+    hidden_states = torch.tensor(
+        [
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+            ]
+        ],
+        dtype=torch.float32,
+    )
+    cos = torch.ones(1, 2, 2, dtype=torch.float32)
+    sin = torch.zeros(1, 2, 2, dtype=torch.float32)
+    layer_inputs = {
+        3: LayerInputCapture(
+            module=module,
+            hidden_states=hidden_states,
+            position_embeddings=(cos, sin),
+        )
+    }
+    prompt_kv_snapshot = [
+        (
+            3,
+            torch.tensor(
+                [
+                    [
+                        [[1.0, 0.0], [0.0, 1.0]],
+                        [[0.0, 0.0], [0.0, 0.0]],
+                    ]
+                ],
+                dtype=torch.float32,
+            ),
+            torch.zeros(1, 2, 2, 2, dtype=torch.float32),
+            2,
+        )
+    ]
+
+    _, provenance = extract_source_attention_rows_per_token_from_fast_path(
+        layer_inputs_by_layer=layer_inputs,
+        prompt_kv_snapshot=prompt_kv_snapshot,
+        alignatt_heads=[AlignAttHead(layer=3, head=0, ts=1.0)],
+        source_positions=[0, 1],
+        accessible_source_token_count=1,
+    )
+
+    assert len(provenance) == 2
+    for p in provenance:
+        total = p.source_accessible + p.source_inaccessible + p.non_source_prompt + p.suffix
+        assert abs(total - 1.0) < 1e-5, f"masses sum to {total}"
+        assert p.non_source_prompt < 1e-5
+
+    e = float(torch.exp(torch.tensor(1.0)))
+    assert abs(provenance[0].source_accessible - e / (2 * e + 1)) < 1e-5
+    assert abs(provenance[0].source_inaccessible - 1 / (2 * e + 1)) < 1e-5
+    assert abs(provenance[1].suffix - 0.5) < 1e-5
+
+
+def test_provenance_weak_acceptance_stops_at_low_source_mass_token():
+    """When min_source_mass is set, tokens with weak source support are rejected.
+
+    This exercises the Phase 5 "source-safe" acceptance gate: even if the
+    argmax source position is within the accessible frontier, a token whose
+    attention mass is mostly non-source should not be blindly accepted.
+    """
+    from types import SimpleNamespace
+
+    runtime_config = SimpleNamespace(
+        translation_alignatt_rewind_threshold=3,
+        translation_alignatt_min_source_mass=0.5,
+    )
+    policy = AlignAttDecoderPolicy(tokenizer=None, runtime_config=runtime_config)
+
+    provenance_per_token = [
+        TokenProvenanceBreakdown(source_accessible=0.7, source_inaccessible=0.1, non_source_prompt=0.1, suffix=0.1),
+        TokenProvenanceBreakdown(source_accessible=0.6, source_inaccessible=0.1, non_source_prompt=0.2, suffix=0.1),
+        TokenProvenanceBreakdown(source_accessible=0.3, source_inaccessible=0.1, non_source_prompt=0.4, suffix=0.2),
+        TokenProvenanceBreakdown(source_accessible=0.8, source_inaccessible=0.0, non_source_prompt=0.1, suffix=0.1),
+    ]
+
+    draft_token_ids = [101, 102, 103, 104]
+    aligned_positions = [0, 2, 4, 6]
+    accessible_source_token_count = 10
+
+    accepted: list[int] = []
+    unsafe_reason = None
+    last_aligned: int | None = None
+    min_source_mass = float(runtime_config.translation_alignatt_min_source_mass)
+
+    for token_index, (token_id, aligned) in enumerate(
+        zip(draft_token_ids, aligned_positions)
+    ):
+        unsafe_reason, _, _, _ = policy.should_stop_in_loop(
+            current_source_local_position=aligned,
+            last_aligned_source_local_position=last_aligned,
+            accessible_source_token_count=accessible_source_token_count,
+        )
+        if unsafe_reason in {"rewind", "source_frontier"}:
+            break
+        if (
+            min_source_mass > 0.0
+            and token_index < len(provenance_per_token)
+            and provenance_per_token[token_index].source_accessible < min_source_mass
+        ):
+            unsafe_reason = "provenance_weak"
+            break
+        accepted.append(token_id)
+        last_aligned = aligned
+
+    assert unsafe_reason == "provenance_weak"
+    assert accepted == [101, 102]
