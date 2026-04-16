@@ -28,7 +28,7 @@ from cascade_mt_backend import (
 from cascade_source_text import normalize_source_text_for_mt
 from cascade_text_surface import normalize_incremental_target_text
 from cascade_translation_variants import ALIGNATT_PREFIX_TRANSLATION_VARIANT
-from qwen3asr_gemma_cascade_core import (
+from cascade_runtime import (
     PartialTranslationState,
     derive_monotone_partial_acceptance,
     should_run_partial_mt_update,
@@ -937,7 +937,7 @@ def test_alignatt_heads_path_resolves_to_shipped_files_for_every_supported_direc
     import json
     from pathlib import Path
 
-    from qwen3asr_gemma_cascade_core import LANGUAGE_NAME_TO_CODE, alignatt_heads_path_for
+    from cascade_runtime import LANGUAGE_NAME_TO_CODE, alignatt_heads_path_for
 
     source_lang = "English"
     for target_label in ("German", "Italian", "Chinese"):

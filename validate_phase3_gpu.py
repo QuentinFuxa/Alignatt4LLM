@@ -18,12 +18,14 @@ from cascade_mt_backend import (
 )
 from cascade_source_frontier import build_source_accessibility_frontier
 from cascade_translation_variants import ALIGNATT_PREFIX_TRANSLATION_VARIANT
-from qwen3asr_gemma_cascade_core import config, gemma_model_name, temporary_runtime_config
+from cascade_runtime import CascadeRuntimeConfig, gemma_model_name, temporary_runtime_config
 
 
 def main():
     print("Loading Gemma model...")
+    config = CascadeRuntimeConfig()
     with temporary_runtime_config(
+        config,
         min_start_seconds=2.0,
         partial_max_new_tokens=16,
         partial_followup_max_new_tokens=8,

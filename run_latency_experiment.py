@@ -8,9 +8,10 @@ the prompt KV cache are rebuilt from the freshly reloaded modules every
 time so that code edits actually take effect and cache state cannot leak
 between runs.
 
-Defaults track the current best provisional operating point from PLAN.md so
-that invoking the harness without flags reproduces the recommended
-configuration instead of a degraded one.
+Defaults track the current best provisional operating point from the
+historical plan notes archived under ``docs/archive/`` so that invoking the
+harness without flags reproduces the recommended configuration instead of a
+degraded one.
 """
 from __future__ import annotations
 

@@ -20,6 +20,19 @@ This note is based on:
 - `qwen3asr_gemma_cascade_core.py`
 - `cascade_mt_backend.py`
 
+## Current Runtime Surface
+
+The active runtime now exposes exactly two public ASR frontends:
+
+- `qwen_forced`
+- `gemma_onepass_qk_fast`
+
+SimulStream is the canonical inference path, and the current validation loop
+should start with a single comparison on `tmp/alignatt_smoke18.wav`.
+
+Historical hybrid / two-pass material is archived and no longer represents the
+public runtime surface.
+
 
 ## Short Conclusion
 
