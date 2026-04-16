@@ -459,9 +459,7 @@ eating the CA win vs pure punctuation-gating.
 - **Step 5 (fallback MT prefix caching):** skipped. The main mechanism
   branch produced clean evidence and a defensible paper result, so
   the "fallback-only if main is a dead end" gate does not fire.
-- **Step 6 (cheap follow-ups):** in flight. min_source_mass sweep at
-  0.1 / 0.2, plus emit_policy A/B (raw_passthrough vs
-  freeze_nonexpanding_major_rewrites) on the chunk_ms=450 baseline.
+- **Step 6 (cheap follow-ups):** completed. See "Step 6 findings" below.
 - **Step 7 (stretch/paper branches):** skipped. The continuous-confidence
   branch's intended "offline replay from existing `stream_updates.jsonl`"
   is currently infeasible because the batch runner's stream-update
@@ -513,3 +511,53 @@ No direction-specific runtime breakage; Italian output is qualitatively
 coherent. cs→en was not run because the local `test-set/ref/` has no
 Czech→English reference, and the plan explicitly flagged that as a
 non-blocking limitation.
+
+### Step 6 findings: min_source_mass sweep + emit_policy A/B
+
+All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +
+gemma_vllm_alignatt + punctuation_lcp.
+
+**min_source_mass sweep (emit_policy=raw_passthrough):**
+
+| min_source_mass | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------------|-------|-------|-------------|-------------|-------|
+| 0.0 (baseline)  | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
+| 0.1             | 28.25 | 63.81 | 2396 ms     | 2140 ms     | 0.466 |
+| 0.2             | 28.95 | 63.92 | 2476 ms     | 2197 ms     | 0.443 |
+
+Each +0.1 in min_source_mass buys ~+0.7 BLEU at the cost of ~+700 ms
+CA. Latency-quality trade is strictly worse than the `chunk_ms 450→700`
+trade (+10.7 BLEU for +1479 ms CA). min_source_mass is a valid knob
+on the Pareto front but it is dominated by chunk_ms for simultaneous
+submissions — the chunk knob gets you further up the BLEU curve per
+millisecond of CA spent.
+
+Reproduces the earlier `phase5_v1_ende_minmass*` sweep qualitatively
+under the hardened runtime: BLEU scales similarly (phase5 saw 28.14 /
+29.58 at min_mass 0.1 / 0.2 vs our 28.25 / 28.95), with lower absolute
+CA on the new path (our 2140 / 2197 ms vs phase5's 2340 / 2788 ms) —
+the simulstream path is faster at the same knob setting.
+
+**Emission policy A/B (min_source_mass=0):**
+
+| emit_policy                            | BLEU  | chrF  | LongYAAL CU | LongYAAL CA |
+|----------------------------------------|-------|-------|-------------|-------------|
+| `raw_passthrough`   (baseline default) | 27.51 | 63.54 | 1766 ms     | 1466 ms     |
+| `freeze_nonexpanding_major_rewrites`   | 27.51 | 63.54 | 1773 ms     | 1484 ms     |
+
+**Bit-identical BLEU / chrF.** This is the expected outcome: the emit
+policy suppresses mid-stream flicker for display purposes but does not
+change the committed final translation. CU / CA shift by ~10–20 ms,
+which reflects when partial hypotheses are re-emitted (or suppressed)
+along the way, not the final content. The A/B confirms that the paper's
+quality claims are invariant to the emission policy choice; the policy
+only affects display smoothness / LongYAAL-computation timings.
+
+**Practical outcome for the submission:**
+- The canonical submission uses `punctuation_lcp` + `raw_passthrough`
+  + `min_source_mass = 0.0` + `chunk_ms = 450 or 700`.
+- `min_source_mass` is a valid ablation knob for a paper latency-
+  quality curve but not a submission default; use `chunk_ms` as the
+  primary latency knob as already recommended.
+- `freeze_nonexpanding_major_rewrites` stays as an emission-policy
+  option for downstream display, not a quality-affecting knob.

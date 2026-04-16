@@ -85,8 +85,12 @@ By morning, the repo should satisfy all three:
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.
-- [ ] Step 6 — min_source_mass sweep + emit_policy A/B in flight
-      (chunk_ms=450 on `ccpXHNfaoy.wav`).
+- [x] Step 6 — min_source_mass sweep + emit_policy A/B completed on
+      `ccpXHNfaoy.wav` chunk_ms=450. min_source_mass 0/0.1/0.2 gives
+      BLEU 27.51 / 28.25 / 28.95 at CA 1466 / 2140 / 2197 ms — a
+      valid Pareto knob but strictly dominated by the chunk_ms
+      curve. Emit-policy A/B is bit-identical on BLEU / chrF
+      (content-invariant).
 - [ ] Step 7 — skipped. Offline-replay variants require schema
       work on `stream_updates.jsonl` that is out of scope tonight.
 

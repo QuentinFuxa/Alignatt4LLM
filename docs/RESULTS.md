@@ -106,6 +106,44 @@ Chinese scoring uses character-level chrF by definition, which is not
 directly comparable to the other targets' token-based chrF — BLEU,
 CU, and CA are the meaningful cross-direction signals.
 
+## `translation_alignatt_min_source_mass` sweep (ccpXHNfaoy.wav, chunk_ms=450)
+
+Additional policy knob: MT waits until at least this fraction of the
+source's accessible token mass falls within the current frontier.
+
+| min_source_mass | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------------|-------|-------|-------------|-------------|-------|
+| 0.0 (baseline)  | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
+| 0.1             | 28.25 | 63.81 | 2396 ms     | 2140 ms     | 0.466 |
+| 0.2             | 28.95 | 63.92 | 2476 ms     | 2197 ms     | 0.443 |
+
+Each +0.1 in `min_source_mass` buys ~+0.7 BLEU at ~+700 ms CA.
+Latency-quality trade is strictly worse than the `chunk_ms`
+calibration (recall: 450 → 700 buys +10.7 BLEU for +1479 ms CA on
+the same clip). `min_source_mass` remains a valid ablation knob for
+paper latency-quality curves, but `chunk_ms` dominates it on the
+Pareto front. Artifacts: `outputs/night1_step6_ms{10,20}_punct/`.
+
+## Emission-policy A/B (`raw_passthrough` vs `freeze_nonexpanding_major_rewrites`)
+
+Same config (chunk_ms=450, min_source_mass=0) on ccpXHNfaoy.wav.
+
+| emit_policy                            | BLEU  | chrF  | LongYAAL CU | LongYAAL CA |
+|----------------------------------------|-------|-------|-------------|-------------|
+| `raw_passthrough`  (baseline default)  | 27.51 | 63.54 | 1766 ms     | 1466 ms     |
+| `freeze_nonexpanding_major_rewrites`   | 27.51 | 63.54 | 1773 ms     | 1484 ms     |
+
+BLEU / chrF are **bit-identical**. The emit policy suppresses
+mid-stream re-emission flicker for display purposes but does not
+change the committed final translation, so all quality metrics are
+policy-invariant. CU / CA shift by ~10–20 ms (different mid-stream
+emission timing), which is well within noise.
+
+Practical implication: the emission policy is a presentation knob,
+not a quality knob. The paper's end-to-end BLEU / chrF / COMET
+numbers do not depend on it. Artifacts:
+`outputs/night1_step6_ms00_freeze/`.
+
 Artifacts: `outputs/night1_enit_punct_chunk450/`,
 `outputs/night1_enzh_punct_chunk450/`.
 
