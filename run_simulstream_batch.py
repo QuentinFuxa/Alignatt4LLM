@@ -119,6 +119,7 @@ def run_single_audio(
                 audio_processed_ms, word_delays_ms,
                 target_lang_code=target_lang_code,
             )
+            partial = processor.session.state.partial_translation
             stream_updates.append({
                 "update_idx": len(stream_updates),
                 "wav_name": Path(wav_path).name,
@@ -126,6 +127,15 @@ def run_single_audio(
                 "wallclock_elapsed_ms": wallclock_elapsed_ms,
                 "translation_text": current_translation,
                 "new_words": new_words,
+                # Observer / MT-state fields for offline replay
+                # (continuous-confidence branch, emit-policy replay, etc.).
+                # Optional — absent on older artifacts; consumers must tolerate.
+                "asr_text": processor.session.render_public_asr_text(),
+                "partial_accepted_target": partial.accepted_target,
+                "partial_draft_target": partial.draft_target,
+                "alignatt_metadata": partial.last_alignatt_metadata,
+                "translation_prompt_num_tokens": partial.last_prompt_num_tokens,
+                "translation_prompt_num_cached_tokens": partial.last_num_cached_tokens,
             })
             last_translation = current_translation
             last_raw_translation = current_translation
@@ -145,6 +155,7 @@ def run_single_audio(
             audio_duration_ms, word_delays_ms,
             target_lang_code=target_lang_code,
         )
+        partial = processor.session.state.partial_translation
         stream_updates.append({
             "update_idx": len(stream_updates),
             "wav_name": Path(wav_path).name,
@@ -153,6 +164,12 @@ def run_single_audio(
             "translation_text": final_translation,
             "new_words": eos_new_words,
             "is_eos": True,
+            "asr_text": processor.session.render_public_asr_text(),
+            "partial_accepted_target": partial.accepted_target,
+            "partial_draft_target": partial.draft_target,
+            "alignatt_metadata": partial.last_alignatt_metadata,
+            "translation_prompt_num_tokens": partial.last_prompt_num_tokens,
+            "translation_prompt_num_cached_tokens": partial.last_num_cached_tokens,
         })
 
     final_asr = processor.session.render_public_asr_text()
