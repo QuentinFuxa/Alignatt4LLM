@@ -118,7 +118,15 @@ By morning, the repo should satisfy all three:
       mechanism-branch cap). Loop-replay F1 = 1.000 on both clips.
       Paper qualifier: scalar rewind approximation has per-clip
       variance; scalar source_frontier is stable; loop replay is
-      invariant across clips.
+      invariant across clips. Step 7 v6
+      (`scripts/scalar_substitution_drift.py`): even with gate-level
+      F1 0.97-0.99, substituting the scalar source_frontier inside
+      the full policy loop changes 12-18% of update-level commit
+      decisions on the canonical path (−8 to −12% accepted tokens,
+      scalar skews more conservative). Gate-level F1 is an upper
+      bound on approximation quality, not a drop-in replacement
+      certificate. Loop replay is the only fidelity-preserving
+      offline analysis.
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.

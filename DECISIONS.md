@@ -1071,6 +1071,61 @@ Close to clip 1 on BLEU/chrF (within ~0.6). COMET 0.03 lower
 (different speaker, topic). Artifact:
 `outputs/night1_ende_punct_chunk450_OiqEWDVtWk_instrumented/`.
 
+### Scalar-substitution drift: gate F1 ≠ policy fidelity
+
+The per-gate F1 numbers test whether a scalar can *classify* a gate
+correctly *given an update has one*. The paper-grade question is
+whether a scalar substituted inside the online policy loop produces
+the same commit decisions. Those are not the same question —
+inside a loop, substituting a classifier changes WHICH token the
+loop `break`s at, which can cascade to different accepted prefixes.
+
+`scripts/scalar_substitution_drift.py` does an offline what-if:
+replay two loops per update (exact discrete, and scalar with
+`source_frontier := unsafe.source_inaccessible ≥ 0.002`), compare
+accepted-token counts and final stop reasons.
+
+Cross-artifact drift:
+
+| Artifact                                       | Updates agree | Aggregate token drift | Direction |
+|------------------------------------------------|---------------|-----------------------|-----------|
+| en→de punct chunk450 (clip 1, canonical)       | 293/335 = **87.5%** | **−8.3%** (−179 tok) | scalar more conservative |
+| en→de punct chunk450 (clip 2 OiqEWDVtWk)       | 203/247 = **82.2%** | **−11.8%** (−172 tok) | scalar more conservative |
+| en→de stable_and_accessible K=3 chunk700       | 269/344 = 78.2% | +6.9% (+150 tok) | scalar slightly aggressive |
+| cs→en vLLM MT                                  | 155/280 = 55.4% | −24.0% (−327 tok) | scalar very conservative |
+| cs→en Transformers MT                          | 180/379 = 47.5% | −41.3% (−781 tok) | scalar very conservative |
+
+**Paper-grade finding:** gate-level F1 0.97-0.99 **does not** mean
+scalar substitution is a drop-in replacement. Even on the canonical
+submission path, 12-18% of per-update commit decisions change when
+the source_frontier discrete gate is replaced by its single-feature
+scalar approximation. The substitution typically skews **more
+conservative** on en→de (−8% to −12% accepted tokens) and
+**much more conservative** on cs→en (−24% to −41%). The frontier
+family is more ambiguous: en→de K3@700 drifts slightly more
+aggressive (+7%).
+
+**Why:** F1 asks "when the gate fires, does the classifier agree?";
+policy fidelity asks "does the loop break at the same token?".
+Those differ because:
+1. A scalar can fire as source_frontier at an earlier token index
+   than the discrete gate would (false positive at a position that
+   predates the real firing point).
+2. When discrete rewind fires, scalar may still "see"
+   source_inaccessible earlier and misclassify — even if the
+   gate-level F1 is still high, the cascade through the loop is
+   different.
+
+**Paper conclusion refined:** loop replay remains the only
+fidelity-preserving offline analysis; per-gate scalar F1 is a useful
+upper bound on how close a scalar approximation can get, but
+policy-level substitution requires measuring drift in the full
+loop context. The ~12-18% canonical-path drift is the concrete
+number that quantifies the approximation gap.
+
+Artifacts: `outputs/night1_*/scalar_substitution_drift.txt`.
+Source: `scripts/scalar_substitution_drift.py`.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +
