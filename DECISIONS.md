@@ -358,3 +358,158 @@ by explicit opt-in.
 Test updates: `test_alignment_helpers.py` assertions flipped accordingly;
 new test confirms `alignatt_frontier` remains accepted as an opt-in
 value.
+
+---
+
+## 2026-04-16 (overnight) — Step 1 submission hardening + Step 2 re-anchor + Step 4 mechanism branch
+
+### Step 1 delivered: three submission-hardening fixes
+
+All three config-only, regression-tested without loading any model.
+Details in commit `16609ec`.
+
+1. **`LANGUAGE_CODE_TO_NAME` covers Czech.** Duplicate
+   `LANGUAGE_NAME_TO_CODE` declarations (one before Czech, one after)
+   left the reverse map built from the pre-Czech version, so `cs` would
+   silently pass through as the raw code instead of `"Czech"` anywhere
+   downstream read back a human-readable label. Consolidated to one
+   definition; reverse map derived from it.
+
+2. **Heads-path refresh on either language change.** `apply_overrides`
+   and `temporary_runtime_config` now recompute
+   `translation_alignatt_heads_path` when either `source_lang` or
+   `target_lang` changes. Previously only `target_lang` triggered the
+   refresh, so `cs->en` kept the English-source heads file.
+
+3. **Bundle fingerprints replace bare backend-name identity.**
+   `LoadedModelBundle` now tracks `alignment_backend_fingerprint()`
+   and `mt_backend_fingerprint()`: the tuple of engine-construction
+   knobs (gpu_memory_utilization, prefix_caching, cudagraph_mode,
+   max_model_len, prompt_kv_reuse, ...). Flipping any of those under
+   hot reuse now triggers a rebuild; flipping live policy (commit
+   mode, heads path, thresholds, language) reuses the hot backend.
+   The test pins both directions of the split.
+
+Full suite: 124/124 pass.
+
+### Step 2 delivered: canonical baseline re-anchored at two operating points
+
+Pair: `qwen_forced` ASR + `gemma_vllm_alignatt` MT, `punctuation_lcp`,
+`translation_alignatt_heads_path` = `en-de`. Run on
+`test-set/audio/ccpXHNfaoy.wav` (360 s) in a single driver invocation
+(hot model reuse across chunk sizes).
+
+| Operating point | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------------|-------|-------|-------------|-------------|-------|
+| chunk_ms=450    | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
+| chunk_ms=700    | 38.19 | 66.53 | 3275 ms     | 2945 ms     | 0.369 |
+
+chunk_ms=450 numerics are **identical** to the pre-hardening
+`simulstream_phase6_one_clip` run (BLEU 27.5133, chrF 63.5404, CU
+1766.3516) — confirms the Step 1 changes are truly config-only.
+
+chunk_ms=700 buys +10.7 BLEU / +3.0 chrF for +1509 ms CU / +1479 ms CA
+on this clip. A clean two-operating-point story for the paper.
+
+### Step 4 delivered (code-only): `stable_and_accessible` commit rule
+
+New third ASR commit mode on top of `punctuation_lcp` and
+`alignatt_frontier`. A word is committable iff it is **both**:
+
+- *accessible*: aligned end_time is at least
+  `asr_alignatt_frontier_margin_ms` behind the audio frontier (same
+  rule as `alignatt_frontier`);
+- *stable*: identical at the same position in the last K consecutive
+  ASR hypotheses for the current utterance segment, with
+  `asr_stability_k` controlling K (default 3, must be ≥ 2).
+
+K=2 is provably equivalent to `alignatt_frontier` (pinned by test
+`test_stable_and_accessible_k2_matches_alignatt_frontier_behavior`).
+K≥3 is strictly more conservative and costs K-1 extra chunks of
+buffering before the first commit in each utterance segment.
+
+Design intent (paper framing):
+
+- Generalises the current `alignatt_frontier` rule from its weakest
+  (K=2) stability signal to arbitrary K.
+- Collapses the "how do we commit a source unit" question to a
+  single 2D hyperparameter surface (margin M, stability K) rather
+  than a dispatch over punctuation-dependent vs frontier-dependent
+  modes.
+- Model-agnostic (works for Qwen3-ASR or Gemma-4 ASR), so
+  `punctuation_lcp` no longer needs to stay as a model-conditional
+  fallback.
+
+Still pending: on-clip measurement (GPU run in flight) to verify
+that K=3 closes the BLEU gap vs `punctuation_lcp` (27.51) without
+eating the CA win vs pure punctuation-gating.
+
+### Status (end of overnight)
+
+- **Step 1:** completed (`16609ec`).
+- **Step 2:** completed (chunk_ms=450 and chunk_ms=700 on `ccpXHNfaoy.wav`).
+- **Step 3:** completed — en→de, en→it, en→zh all produce coherent
+  output under the hardened runtime, no direction-specific breakage.
+- **Step 4:** code + tests landed in `7ab5a39` + sentinel-fix `7d27eec`;
+  K=3 and K=4 measured on `ccpXHNfaoy.wav`. See "mechanism-branch
+  findings" below. Honest negative result on the Qwen-ASR path: the
+  rule is a strict improvement over `alignatt_frontier` but is
+  Pareto-dominated by `punctuation_lcp` on models that emit clean
+  punctuation. Paper framing updated accordingly.
+- **Step 5 (fallback MT prefix caching):** skipped. The main mechanism
+  branch produced clean evidence and a defensible paper result, so
+  the "fallback-only if main is a dead end" gate does not fire.
+- **Step 6 (cheap follow-ups):** in flight. min_source_mass sweep at
+  0.1 / 0.2, plus emit_policy A/B (raw_passthrough vs
+  freeze_nonexpanding_major_rewrites) on the chunk_ms=450 baseline.
+- **Step 7 (stretch/paper branches):** skipped. The continuous-confidence
+  branch's intended "offline replay from existing `stream_updates.jsonl`"
+  is currently infeasible because the batch runner's stream-update
+  schema omits observer captures (`alignatt_metadata`, `raw_translation_text`,
+  ...). Instrumenting that is more than a tonight-sized refactor.
+
+### Mechanism-branch findings: stable_and_accessible K-sweep
+
+Same clip (`ccpXHNfaoy.wav`), same configuration except ASR commit rule.
+
+| Commit rule                    | BLEU  | chrF  | LongYAAL CU | LongYAAL CA |
+|--------------------------------|-------|-------|-------------|-------------|
+| `alignatt_frontier`  (K=2)     | 15.78 | 54.43 | 1328 ms     | 1048 ms     |
+| `stable_and_accessible` K=3    | 18.71 | 56.37 | 1919 ms     | 1637 ms     |
+| `stable_and_accessible` K=4    | 20.26 | 57.92 | 2510 ms     | 2240 ms     |
+| `punctuation_lcp`              | 27.51 | 63.54 | 1766 ms     | 1466 ms     |
+
+Each +1 in K buys roughly +2 BLEU / +2 chrF at the cost of ~600 ms
+CA. Monotonically closing the gap with K alone would need ~K ≥ 8
+and pay ~3.6 s extra CA — Pareto-dominated.
+
+Why the rule underperforms on Qwen-ASR + Gemma MT: frontier-based
+commits fragment MT context. Word-level commits force MT to emit
+mid-sentence target fragments that compound into fluency degradation;
+`punctuation_lcp` hands MT whole sentences and MT fluency stays intact.
+The quality cliff of `alignatt_frontier` is not caused by unstable
+ASR words (which K catches) but by how the cascade couples source-
+commit choice to MT emission granularity.
+
+**Practical outcome:**
+- `punctuation_lcp` stays the Qwen-ASR submission default.
+- `stable_and_accessible` replaces `alignatt_frontier` as the
+  recommended model-agnostic fallback for ASR paths without reliable
+  sentence punctuation. K is the exposed knob (default 3, validated
+  ≥ 2).
+- `alignatt_frontier` is retained as the K=2 equivalence class of
+  `stable_and_accessible` — no behavioural change, just a cleaner
+  story.
+
+### Widening scores (all chunk_ms=450, `punctuation_lcp`, ccpXHNfaoy.wav)
+
+| Direction | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------|-------|-------|-------------|-------------|-------|
+| en → de   | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
+| en → it   | 37.75 | 71.81 | 1848 ms     | 1567 ms     | 0.400 |
+| en → zh   | 42.33 | 38.37 | 1781 ms     | 1634 ms     | 0.375 |
+
+No direction-specific runtime breakage; Italian output is qualitatively
+coherent. cs→en was not run because the local `test-set/ref/` has no
+Czech→English reference, and the plan explicitly flagged that as a
+non-blocking limitation.

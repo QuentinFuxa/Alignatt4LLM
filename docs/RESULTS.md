@@ -25,21 +25,89 @@ mt_vllm_gpu_memory_utilization          = 0.5
 
 ## End-to-end SimulStream on `test-set/audio/ccpXHNfaoy.wav` (360 s, en→de)
 
-Config above, baseline latency regime.
+Config above, two defensible operating points re-anchored under the
+2026-04-16 overnight hardening SHA (commit `16609ec` and descendants).
 
-| Metric                | Value   |
-|-----------------------|---------|
-| BLEU                  | 27.51   |
-| chrF                  | 63.54   |
-| COMET (XCOMET-XL)     | 0.861   |
-| LongYAAL (CU)         | 1766 ms |
-| LongYAAL (CA)         | 1473 ms |
-| RTF                   | 0.401   |
-| Wallclock             | 144.5 s |
-| Resegmented instances | 47      |
-| Empty predictions     | 0       |
+| Operating point | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------------|-------|-------|-------------|-------------|-------|
+| chunk_ms = 450  | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
+| chunk_ms = 700  | 38.19 | 66.53 | 3275 ms     | 2945 ms     | 0.369 |
 
-Artifacts: `outputs/simulstream_phase6_one_clip/`.
+chunk_ms=450 BLEU/chrF/CU are **bit-identical** to the pre-hardening
+`simulstream_phase6_one_clip` run (see the Phase-level validation
+section below). COMET for chunk_ms=450 on this path was previously
+measured at 0.861.
+
+Artifacts: `outputs/reanchor_chunk450/`, `outputs/reanchor_chunk700/`.
+Historical baseline (same numerics, chunk_ms=450 only):
+`outputs/simulstream_phase6_one_clip/` (BLEU 27.5133, chrF 63.5404,
+COMET 0.861, CA 1473 ms, CU 1766 ms).
+
+## Mechanism ablation: `stable_and_accessible` K-sweep
+
+Third ASR commit rule introduced 2026-04-16 overnight: a source word is
+committable iff it is both *accessible* (aligned end_time ≥ margin
+behind the audio frontier) AND *stable* (identical at the same position
+in the last K consecutive ASR hypotheses). `alignatt_frontier` is the
+K=2 special case; `asr_stability_k` controls K for K ≥ 2.
+
+Same clip / configuration (`ccpXHNfaoy.wav`, chunk_ms=450,
+margin = 500 ms, `qwen_forced` + `gemma_vllm_alignatt`):
+
+| Commit rule                    | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
+|--------------------------------|-------|-------|-------------|-------------|-------|
+| `alignatt_frontier`  (K=2)     | 15.78 | 54.43 | 1328 ms     | 1048 ms     | 0.43  |
+| `stable_and_accessible` K=3    | 18.71 | 56.37 | 1919 ms     | 1637 ms     | 0.442 |
+| `stable_and_accessible` K=4    | 20.26 | 57.92 | 2510 ms     | 2240 ms     | 0.480 |
+| **`punctuation_lcp`**          | **27.51** | **63.54** | **1766 ms** | **1466 ms** | 0.393 |
+
+Observations:
+
+- K monotonically improves quality over `alignatt_frontier` (K=2): each
+  +1 in K buys roughly +2 BLEU and +2 chrF at chunk_ms=450.
+- Each +1 in K costs roughly +600 ms of CA latency: K=3 → K=4 adds
+  ~603 ms CA for +1.55 BLEU. Clear diminishing returns.
+- On Qwen-ASR + Gemma MT the rule remains Pareto-dominated by
+  `punctuation_lcp`: at K=4 the frontier rule still costs 7 BLEU while
+  costing 750 ms extra CA. Larger K won't close the gap — it would
+  just add latency on top.
+- The gap is caused by how frontier rules fragment MT context:
+  word-level commits force the MT observer to emit
+  mid-sentence target fragments that compound into fluency
+  degradation, while `punctuation_lcp` hands MT complete sentences.
+
+**Practical impact:** `punctuation_lcp` stays the canonical submission
+commit rule on the Qwen-ASR path. `stable_and_accessible` (K ≥ 3)
+replaces `alignatt_frontier` as the recommended model-agnostic
+fallback for paths whose ASR doesn't emit reliable sentence-terminal
+punctuation (Gemma-4 ASR, lower-resource languages). K is the exposed
+tuning knob; the margin remains as-is.
+
+Artifacts: `outputs/night1_ende_stable_k3_chunk450/`,
+`outputs/night1_ende_stable_k4_chunk450/`.
+
+## Widening to en→it / en→zh (same clip, same config)
+
+Sanity checks that the `qwen_forced` + `gemma_vllm_alignatt` pair
+stays correct across target-language switches under the hardened
+runtime (heads-path refresh on any language change, language-code
+map covering `cs`).
+
+| Direction | BLEU  | chrF  | LongYAAL CU | LongYAAL CA | RTF   |
+|-----------|-------|-------|-------------|-------------|-------|
+| en → de   | 27.51 | 63.54 | 1766 ms     | 1466 ms     | 0.393 |
+| en → it   | 37.75 | 71.81 | 1848 ms     | 1567 ms     | 0.400 |
+| en → zh   | 42.33 | 38.37 | 1781 ms     | 1634 ms     | 0.375 |
+
+No direction-specific runtime breakage observed across `de`, `it`, and
+`zh` target languages. Italian output is coherent; higher absolute BLEU
+than en→de reflects the intrinsic proximity of Italian to English.
+Chinese scoring uses character-level chrF by definition, which is not
+directly comparable to the other targets' token-based chrF — BLEU,
+CU, and CA are the meaningful cross-direction signals.
+
+Artifacts: `outputs/night1_enit_punct_chunk450/`,
+`outputs/night1_enzh_punct_chunk450/`.
 
 ## Latency calibration curve on `test-set/audio/OiqEWDVtWk.wav` (299 s, en→de)
 

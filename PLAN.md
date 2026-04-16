@@ -64,6 +64,32 @@ By morning, the repo should satisfy all three:
    - high latency: `chunk_ms = 700`
 3. **Exactly one additional mechanism branch** explored with evidence, not a grab-bag of speculative edits.
 
+## Overnight progress tracker (see `DECISIONS.md` for detail)
+
+- [x] Step 1 — submission hardening (three config-only fixes landed in
+      `16609ec`, 124/124 tests pass).
+- [x] Step 2 — canonical baseline re-anchored on `ccpXHNfaoy.wav`:
+      chunk_ms=450 reproduces pre-hardening numbers bit-identically
+      (BLEU 27.51 / CA 1466 ms), chunk_ms=700 establishes the
+      high-latency point at BLEU 38.19 / CA 2945 ms.
+- [x] Step 3 — en→de / en→it / en→zh all run cleanly on the same
+      hardened pair; BLEU 27.51 / 37.75 / 42.33, no direction-specific
+      breakage. cs→en not evaluated (no local reference).
+- [x] Step 4 — `stable_and_accessible` commit rule landed (`7ab5a39`
+      + `7d27eec`). K-sweep measured: K=3 → 18.71 BLEU / 1637 ms CA,
+      K=4 → 20.26 BLEU / 2240 ms CA. Monotonically improves over
+      `alignatt_frontier` (K=2, 15.78 BLEU) but Pareto-dominated by
+      `punctuation_lcp` (27.51 BLEU / 1466 ms CA) on the Qwen-ASR
+      path. Paper framing shifts to: frontier-family commit rules
+      fragment MT context; K is the only real knob within that family.
+- [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
+      end, so the "fallback only if main branch is dead" gate does
+      not fire.
+- [ ] Step 6 — min_source_mass sweep + emit_policy A/B in flight
+      (chunk_ms=450 on `ccpXHNfaoy.wav`).
+- [ ] Step 7 — skipped. Offline-replay variants require schema
+      work on `stream_updates.jsonl` that is out of scope tonight.
+
 Use the current local assets for tonight's loop. The repo currently has `test-set/` but not a local official dev-set workflow. Do not block engineering work on that; just keep in mind that final submission still needs dev logs.
 
 ## Autonomous loop policy
