@@ -1,4 +1,4 @@
-# Token Alignment Heads in HyMT1.8B (EN-ZH)
+# Token Alignment Heads in ASR models
 
 ## What Are Token Alignment Heads?
 
@@ -32,10 +32,10 @@ Result: **4181 filtered alignments across 880 pairs** (49% keep rate).
 ### Step 3: Translation Score Computation
 
 For each of the 880 pairs:
-1. Build the HyMT translation prompt: `将以下文本翻译为中文...` + source + placeholder
+1. Build the ASR modeltranslation prompt: `将以下文本翻译为中文...` + source + placeholder
 2. Concatenate the reference target text
 3. Tokenize and map word-level alignment spans to tokenizer token positions
-4. Run a forward pass through HyMT1.8B with `output_attentions=True`
+4. Run a forward pass through ASR modelwith `output_attentions=True`
 5. For each attention head at each layer, check:
    - For each target token that has a valid alignment, does the **full-sequence argmax** of that head's attention land on the aligned source token?
    - `TS_h = (# correct alignments) / (# total aligned target tokens)`
@@ -71,7 +71,7 @@ The top head (**Layer 9, Head 5**) correctly attends to the aligned source token
 
 ### Key Properties Observed
 
-1. **Sparsity**: Only 9.6% of heads are token alignment heads. This is slightly above the paper's 3-8% range for general LLMs, which makes sense since HyMT is a translation-specialized model.
+1. **Sparsity**: Only 9.6% of heads are token alignment heads. This is slightly above the paper's 3-8% range for general LLMs, which makes sense since ASR modelis a translation-specialized model.
 
 2. **Middle-layer concentration**: Token alignment heads are concentrated in layers 2-19, peaking at layers 8-15. The earliest and latest layers contain very few. This matches the paper's findings and the general understanding that middle layers handle cross-lingual mapping while early layers handle surface features and late layers structure the output.
 

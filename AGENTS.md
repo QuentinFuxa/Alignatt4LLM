@@ -16,8 +16,8 @@ For each change, examine the existing system and redesign it into the most elega
 - Avoid test bloat, hyper-granular assertion noise, and large test scaffolding for temporary or exploratory changes.
 - Do not hesitate to remove, replace, or redesign code that is poorly conceived. During this phase, strong cleanup and bold simplification are encouraged when they improve the system.d
 - What we want here, is, more generally, break alignatt for LLMs. Goal is to write a paper. That's a challenge, and that justify the investigation you should deep dive in. The more interessting and clever/replicable/solid/ implementaiton, the happier i am
-## qwen3asr_gemma_cascade.py notes
 
+## qwen3asr_gemma_cascade.py notes
 - The ASR part runs with `qwen_asr` (vLLM-backed), while Gemma uses Transformers+AlignAtt in this code path.
 - Use the repo environment `.venv-inference`.
 
@@ -67,3 +67,6 @@ For each change, examine the existing system and redesign it into the most elega
   - first validate the idea on one audio
   - then iterate on that one audio until the mechanism behaves as intended
   - only then scale out to multiple audios or full benchmark runs
+
+- Simulstream is the recommanded framework to run inference.
+- Omnisteval the recommanted framwork to run evaluation.

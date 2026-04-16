@@ -327,6 +327,7 @@ class BaseMTBackend(ABC):
         rendered_prompt: RenderedTranslationPrompt,
         variant: TranslationVariant,
         is_partial: bool,
+        prompt_cache_state: PromptCacheState | None = None,
     ) -> MTBackendResult:
         raise NotImplementedError
 
@@ -885,9 +886,11 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
         self,
         *,
         prompt_ids: Sequence[int],
+        prompt_cache_state: PromptCacheState | None = None,
     ):
         if self.model is None:
             raise RuntimeError("MT backend is not loaded. Run load() first.")
+        prompt_cache = self.prompt_cache if prompt_cache_state is None else prompt_cache_state
         if not self._prompt_cache_enabled():
             outputs, _ = self._run_model(
                 input_ids=prompt_ids,
@@ -895,15 +898,15 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
             )
             prompt_snapshot = self._snapshot_kv(outputs.past_key_values, len(prompt_ids))
             return outputs, outputs.past_key_values, 0, prompt_snapshot
-        prev_ids = list(self.prompt_cache.full_prompt_ids)
+        prev_ids = list(prompt_cache.full_prompt_ids)
         shared_len = 0
-        if self.prompt_cache.prompt_kv_snapshot is not None and prev_ids:
+        if prompt_cache.prompt_kv_snapshot is not None and prev_ids:
             shared_len = self._common_prefix_len(prompt_ids, prev_ids)
         if shared_len == len(prompt_ids) and shared_len > 0:
             shared_len -= 1
 
-        if shared_len > 0 and self.prompt_cache.prompt_kv_snapshot is not None:
-            past_kv = self._restore_kv(self.prompt_cache.prompt_kv_snapshot, shared_len)
+        if shared_len > 0 and prompt_cache.prompt_kv_snapshot is not None:
+            past_kv = self._restore_kv(prompt_cache.prompt_kv_snapshot, shared_len)
             delta_ids = list(prompt_ids[shared_len:])
             outputs, _ = self._run_model(
                 input_ids=delta_ids,
@@ -920,8 +923,8 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
             shared_len = 0
 
         prompt_snapshot = self._snapshot_kv(past_kv, len(prompt_ids))
-        self.prompt_cache.prompt_kv_snapshot = prompt_snapshot
-        self.prompt_cache.full_prompt_ids = list(prompt_ids)
+        prompt_cache.prompt_kv_snapshot = prompt_snapshot
+        prompt_cache.full_prompt_ids = list(prompt_ids)
         return outputs, past_kv, shared_len, prompt_snapshot
 
     def decode_draft(
@@ -929,6 +932,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
         *,
         prompt_token_ids: Sequence[int],
         max_new_tokens: int,
+        prompt_cache_state: PromptCacheState | None = None,
     ) -> DraftDecodingResult:
         if self.model is None or self.tokenizer is None or self.policy is None:
             raise RuntimeError("MT backend is not loaded. Run load() first.")
@@ -936,6 +940,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
         prompt_cache_start = perf_counter()
         outputs, past_key_values, num_cached_tokens, prompt_kv_snapshot = self._forward_prompt_with_cache(
             prompt_ids=prompt_token_ids,
+            prompt_cache_state=prompt_cache_state,
         )
         prompt_cache_ms = (perf_counter() - prompt_cache_start) * 1000.0
         generation_stop_token_ids = set(self.resolve_generation_stop_token_ids())
@@ -1200,6 +1205,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
         rendered_prompt: RenderedTranslationPrompt,
         variant: TranslationVariant,
         is_partial: bool,
+        prompt_cache_state: PromptCacheState | None = None,
     ) -> MTBackendResult:
         if self.model is None or self.tokenizer is None or self.policy is None:
             raise RuntimeError("MT backend is not loaded. Run load() first.")
@@ -1218,6 +1224,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
         draft_result = self.decode_draft(
             prompt_token_ids=prompt_package.prompt_token_ids,
             max_new_tokens=max_new_tokens,
+            prompt_cache_state=prompt_cache_state,
         )
 
         draft_text = self.decode_candidate_text(

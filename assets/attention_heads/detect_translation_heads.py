@@ -8,7 +8,7 @@ Pipeline:
   1. Load a parallel corpus (MCIF dataset, EN-ZH by default).
   2. Use GPT-5-mini to annotate word-level alignments for each pair.
   3. Filter to high-quality anchor alignments.
-  4. Run the translation model (HyMT1.8B), collect attention maps.
+  4. Run the translation model, collect attention maps.
   5. Score every attention head with the paper's Translation Score (TS).
   6. Output:
      - word_alignments_<direction>.json   (GPT-5-mini word mappings)
