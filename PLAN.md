@@ -2,6 +2,492 @@
 
 # Gemma-Only Future: Status + Next for vLLM-Native qk_fast AlignAtt
 
+## Primary Implementation Plan (2026-04-16)
+
+This is now the **primary execution plan** for the repo.
+
+The main direction is no longer:
+
+- "make Gemma ASR work better"
+
+It is:
+
+- **keep `qwen_forced` as the stable ASR frontend**
+- **move Gemma MT + AlignAtt from Transformers to vLLM**
+- **reuse the validated `qk_fast` / tensor-observer / worker-bootstrap work on the MT side**
+
+Everything below this section is either supporting detail or historical
+context. If a later agent has to choose where to spend time, follow this
+section first.
+
+### Decision
+
+Treat the current Gemma-ASR vLLM work as a valuable substrate, not as
+the main product direction.
+
+What we want to ship experimentally is:
+
+- `Qwen3-ASR + Qwen3 forced aligner` on the source side
+- `Gemma E4B MT + runtime AlignAtt` on the target side
+- Gemma MT served through **vLLM** with an engine-native observer,
+  preserving the current acceptance semantics
+
+### Why this pivot is the right one
+
+1. **Qwen ASR is already the strong baseline.**
+   It is faster and more reliable than the current Gemma ASR path.
+
+2. **The research question lives more naturally on MT than on ASR.**
+   AlignAtt in this repo is fundamentally about target-token acceptance
+   under a causal LLM. That is the MT problem.
+
+3. **The MT side already has the right semantics.**
+   The current runtime already has the important ideas:
+   - explicit `accepted_target`
+   - `assistant_prefill = accepted_target`
+   - scheduler over partial MT calls
+   - prefix-online AlignAtt acceptance
+   - provenance-aware truncation
+
+4. **The MT side still has the wrong mechanics.**
+   The current Transformers backend still pays for:
+   - prompt KV snapshot/restore
+   - suffix replay
+   - Python hook recorders
+   - expensive eager fallback paths
+
+5. **The vLLM work we already did is precisely a mechanics improvement.**
+   The worker bootstrap, tensor observer, compact payload, and
+   `qk_fast` reconstruction should be reused where they matter most:
+   the Gemma MT backend.
+
+### Target architecture
+
+The target runtime should be:
+
+- `alignment_backend_name = "qwen_forced"` for ASR
+- `mt_backend_name = "gemma_transformers_alignatt"` as the stable MT backend
+- `mt_backend_name = "gemma_vllm_alignatt"` as the new experimental MT backend
+
+Important:
+
+- `alignment_backend_name` must remain a **source-side ASR** choice
+- MT backend selection must become an explicit, separate runtime axis
+- do **not** overload the current ASR backend names to mean MT changes
+
+### Core invariant
+
+The MT vLLM backend must preserve the semantics of the current
+Transformers MT backend.
+
+That means the new backend is only successful if the runtime can keep:
+
+- the same prompt contract
+- the same `accepted_target` / `draft_target` semantics
+- the same source-frontier rule
+- the same rewind guard semantics
+- the same provenance partitions:
+  - `source_accessible`
+  - `source_inaccessible`
+  - `non_source_prompt`
+  - `suffix`
+
+The vLLM port is a **mechanics rewrite**, not a semantic rewrite.
+
+### Architectural requirements
+
+#### 1. Keep the runtime semantics above the backend unchanged
+
+The following logic in the runtime should remain the source of truth:
+
+- partial translation state in `cascade_runtime.py`
+- scheduler decisions
+- monotone acceptance
+- committed-vs-partial segment handling
+
+Do not push acceptance semantics down into vLLM-specific code.
+
+#### 2. Introduce a separate MT backend surface
+
+Add an explicit runtime config field:
+
+- `mt_backend_name` or `translation_backend_name`
+
+Suggested values:
+
+- `"gemma_transformers_alignatt"` — stable default
+- `"gemma_vllm_alignatt"` — experimental
+
+Then:
+
+- keep `build_alignment_backend()` for ASR only
+- update `build_mt_backend()` to dispatch on the MT backend name
+- keep the default runtime on the stable Transformers MT backend until
+  the vLLM MT path is validated
+
+#### 3. Reuse the vLLM observer substrate, but do not force a giant abstraction first
+
+The following parts of the current Gemma-ASR vLLM work are worth
+reusing almost directly:
+
+- custom `worker_cls`
+- observer bootstrap before warmup / compile / cudagraph
+- tensor-buffer observer state
+- compact payload fetch
+- decode-drift and repeat stability diagnostics
+
+However:
+
+- only extract the clearly generic substrate
+- leave audio-specific prompt rendering inside the ASR backend
+- leave MT-specific source-map / provenance logic inside the MT backend
+
+The right split is likely:
+
+- shared module for generic vLLM Q/K observer machinery
+- ASR backend keeps audio-specific prompt building
+- MT backend keeps text-source prompt mapping and acceptance logic
+
+Do not spend a whole iteration building the perfect abstraction if a
+small shared substrate plus one new MT backend gets us there faster.
+
+#### 4. MT observer must capture enough context for provenance, not only source argmax
+
+This point is crucial.
+
+For MT, a cheap observer that only reconstructs source rows is not
+enough. The current MT policy also uses provenance partitions over:
+
+- accessible source
+- inaccessible source
+- non-source prompt
+- suffix
+
+So the vLLM MT observer must be able to reconstruct attention over the
+full prompt + suffix context, then project:
+
+- source rows for AlignAtt decisions
+- provenance masses for acceptance filtering
+
+Do **not** regress MT acceptance to a source-argmax-only rule just
+because the observer port is hard.
+
+#### 5. Start with prefix caching disabled
+
+For the MT vLLM backend:
+
+- start with `enable_prefix_caching=False`
+- first validate semantics and observer completeness
+- only reopen prefix caching after the observer contract is stable on
+  repeated identical requests
+
+Exactly the same discipline as on the ASR-side vLLM seam applies here.
+
+### File-level implementation plan
+
+#### Phase 0 — Surface cleanup before new behavior
+
+Goal:
+
+- make the runtime reflect the architecture we actually want to compare
+
+Changes:
+
+- in `cascade_runtime.py`
+  - add `VALID_MT_BACKEND_NAMES`
+  - add `STABLE_MT_BACKEND_NAMES`
+  - add `mt_backend_name` to `CascadeRuntimeConfig`
+  - default to the current Transformers MT backend
+- in MT backend construction
+  - make `build_mt_backend()` dispatch explicitly on `mt_backend_name`
+- in CLI / manifests / output metadata
+  - record both ASR backend and MT backend names
+
+Success criterion:
+
+- we can run comparisons with fixed ASR and varying MT backend
+- no silent behavior change for existing stable runs
+
+#### Phase 1 — Build a minimal experimental Gemma vLLM MT backend
+
+Goal:
+
+- create a new backend that matches the `BaseMTBackend` contract and can
+  generate Gemma MT drafts through vLLM
+
+Recommended implementation shape:
+
+- new file, e.g. `gemma_vllm_mt_backend.py`
+- new backend class, e.g. `VLLMAlignAttGemmaMTBackend`
+- same external contract as `TransformersAlignAttGemmaMTBackend`
+
+Minimum features for the first working version:
+
+- render the exact same prompt as the current MT backend
+- call Gemma through vLLM using deterministic decode
+- support `assistant_prefill`
+- return `draft_text`, `draft_token_ids`, stop reason, timing info
+- no change to runtime acceptance semantics
+
+Important:
+
+- prefer `prompt_token_ids`-based serving for determinism and easy
+  position bookkeeping
+- keep the stable Transformers backend untouched during this phase
+
+Success criterion:
+
+- on a fixed partial prompt, vLLM MT draft generation works and returns
+  a sane `MTBackendResult` without AlignAtt yet
+
+#### Phase 2 — Port the MT AlignAtt observer to vLLM
+
+Goal:
+
+- recover the prompt/suffix attention signal needed by the current MT
+  AlignAtt policy under real vLLM execution
+
+Implementation target:
+
+- selected MT translation heads from `translation_alignatt_heads_path`
+- prompt-side K capture from the MT prompt
+- drafted-suffix Q capture for generated target tokens
+- enough prompt/suffix key access to compute:
+  - source rows
+  - provenance partitions
+
+Expected reuse from the ASR vLLM work:
+
+- worker bootstrap pattern
+- tensor observer buffer pattern
+- compact payload shape
+- repeat stability instrumentation
+
+MT-specific additions:
+
+- mapping from rendered MT prompt token ids to source token positions
+- accessible/inaccessible source partition
+- non-source prompt partition
+- suffix partition
+
+Success criterion:
+
+- on one fixed partial MT prompt, the vLLM backend can return:
+  - aligned source positions
+  - blocked source position / unit
+  - provenance per drafted token
+  - stop reason
+
+#### Phase 3 — Match the current MT acceptance semantics
+
+Goal:
+
+- make the vLLM MT backend a mechanics-equivalent implementation of the
+  current partial MT contract
+
+The vLLM MT backend must plug into the existing runtime and produce
+`MTBackendResult` values with the same meaning as the Transformers path.
+
+Required behavior:
+
+- same `assistant_prefill` semantics
+- same `draft_text` normalization
+- same `accepted_target` derivation after runtime acceptance
+- same stop reasons:
+  - `alignatt:source_frontier`
+  - `alignatt:rewind`
+  - `alignatt:provenance_weak`
+- same last-stability-unit truncation behavior
+
+Success criterion:
+
+- on a curated set of single partial prompts, the vLLM MT backend
+  matches the Transformers MT backend closely enough on:
+  - acceptance text
+  - blocked frontier
+  - stop reason
+  - provenance trend
+
+#### Phase 4 — Add a single-prompt parity harness
+
+Goal:
+
+- compare MT backends directly without ASR noise
+
+Add a small harness that:
+
+- builds one rendered MT prompt from:
+  - source text
+  - source frontier
+  - optional history
+  - optional `accepted_target` prefill
+- runs both MT backends on exactly that prompt
+- writes a compact comparison bundle
+
+The harness must report:
+
+- draft text
+- acceptance text
+- generated token count
+- accepted token count
+- stop reason
+- blocked source position / unit
+- provenance summary
+- total backend time
+
+This harness is the minimum loop for MT vLLM correctness before any
+expensive streaming evaluation.
+
+Success criterion:
+
+- one command can compare Transformers MT vs vLLM MT on a single prompt
+
+#### Phase 5 — End-to-end runtime integration, still behind a gate
+
+Goal:
+
+- plug the new MT backend into the real SimulStream loop while keeping
+  Qwen ASR fixed
+
+Required setup:
+
+- `alignment_backend_name="qwen_forced"`
+- `mt_backend_name="gemma_vllm_alignatt"`
+
+Do not:
+
+- change the default compare path yet
+- touch the stable `gemma_transformers_alignatt` path
+- revive Gemma ASR work as part of this phase
+
+Success criterion:
+
+- full SimulStream run on `tmp/alignatt_smoke18.wav`
+- no crashes
+- no observer failures
+- coherent incremental German output
+
+#### Phase 6 — Measure the right comparison
+
+Goal:
+
+- isolate the actual system win from the pivot we care about
+
+The main comparison is:
+
+- `Qwen ASR + Gemma MT transformers`
+vs
+- `Qwen ASR + Gemma MT vLLM`
+
+Not:
+
+- Qwen ASR vs Gemma ASR
+- old ASR-side experimental seams
+
+First run only:
+
+- `tmp/alignatt_smoke18.wav`
+
+Second run only after the first is clean:
+
+- `test-set/audio/ccpXHNfaoy_short60s.wav`
+
+Metrics to read first:
+
+- RTF / wallclock
+- accepted-token growth
+- first non-empty emission
+- stop-reason profile
+- text sanity
+
+Only after that:
+
+- broader evaluation
+
+### Tests that must be added
+
+These tests are high priority and high signal.
+
+#### Unit tests
+
+1. Runtime config / dispatch
+   - `mt_backend_name` parsing
+   - stable vs experimental MT backend lists
+   - `build_mt_backend()` dispatch
+
+2. Prompt/source mapping
+   - source token positions extracted from rendered MT prompt are stable
+   - source span contiguity assumption is either validated or failed loudly
+   - accessible/inaccessible source partition matches the frontier
+
+3. vLLM MT observer payload
+   - prompt K / decode Q payload round-trip
+   - missing prompt capture is detected
+   - prompt observer cache hydration keeps signatures strict
+   - `reset_caches()` clears MT observer cache + drift state
+
+4. Provenance
+   - provenance masses sum to ~1
+   - accessible/inaccessible/non-source/suffix partitions are computed
+     correctly on synthetic captures
+
+5. Acceptance equivalence helpers
+   - prefix-online argmax scan on vLLM rows matches the current helper
+   - last-stability-unit truncation is unchanged
+
+6. Fast-fail safeguards
+   - unsupported MT backend names fail in config
+   - experimental MT backend defaults keep prefix caching off
+
+#### Focused backend parity tests
+
+Add small tests or harness checks for a few curated partial prompts:
+
+- no prefill
+- non-empty `accepted_target` prefill
+- frontier close to current source edge
+- German local reordering case
+- provenance-weak case
+
+The comparison target is the current Transformers MT backend.
+
+These do not need to be giant corpus tests; they need to lock the
+semantic contract.
+
+### System-level validation order
+
+This order is mandatory. Do not skip ahead.
+
+1. unit tests pass
+2. single-prompt MT parity harness works
+3. one-clip end-to-end SimulStream run with Qwen ASR + vLLM MT works
+4. one-clip A/B against Qwen ASR + Transformers MT
+5. second clip sanity check
+6. only then widen
+
+### What not to do
+
+- do not spend the next iteration improving Gemma ASR streaming
+- do not silently replace the stable Transformers MT backend
+- do not conflate ASR backend choice and MT backend choice
+- do not degrade provenance-aware MT acceptance to source-argmax-only
+- do not enable prefix caching by default on the MT vLLM backend
+- do not start with a full benchmark sweep
+- do not claim victory from ASR-side vLLM speed numbers when the pivot
+  question is MT
+
+### Immediate next coding step
+
+The very next implementation step should be:
+
+1. add `mt_backend_name` to the runtime and CLI surfaces
+2. keep all defaults on the current stable path
+3. create a new experimental `gemma_vllm_mt_backend.py`
+4. make one single-prompt harness that compares MT backends with
+   `qwen_forced` completely out of the loop
+
+That is the fastest route to a defensible implementation.
+
 ## Critical Review (2026-04-16)
 
 This section supersedes the optimistic reading one might get from the

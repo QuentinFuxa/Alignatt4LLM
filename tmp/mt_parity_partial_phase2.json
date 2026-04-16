@@ -1,0 +1,91 @@
+{
+  "prompt": {
+    "source_text": "Hi I'm Si Yuan from Fudan University and I",
+    "source_lang": "English",
+    "target_lang": "German",
+    "is_partial": true,
+    "assistant_prefill": "",
+    "variant_id": "alignatt_prefix",
+    "accessible_unit_count": 8,
+    "total_unit_count": 9,
+    "message_count": 2,
+    "continue_final_message": false
+  },
+  "backends": {
+    "gemma_transformers_alignatt": {
+      "draft_text": "Hallo, ich bin Si Yuan von der Fudan University und ich",
+      "acceptance_text": "",
+      "generated_token_count": 13,
+      "accepted_token_count": 0,
+      "draft_semantic_token_count": 13,
+      "accepted_semantic_token_count": 0,
+      "num_cached_tokens": 0,
+      "prompt_num_tokens": 151,
+      "stop_reason": "alignatt:source_frontier",
+      "blocked_source_local_position": 11,
+      "blocked_source_unit_index": 8,
+      "rewind_from_local_position": null,
+      "rewind_to_local_position": null,
+      "unsafe_reason": "source_frontier",
+      "alignatt_not_implemented": false,
+      "provenance_summary": {
+        "per_token_count": 13,
+        "mean_source_accessible": 0.5644194770317811,
+        "mean_source_inaccessible": 0.01983793692376751,
+        "mean_non_source_prompt": 0.32282473146915436,
+        "mean_suffix": 0.09291786428254384
+      },
+      "timings_ms": {
+        "prompt_render": 45.53768190089613,
+        "prompt_cache_restore": 451.92942197900265,
+        "draft_decode": 731.4961480442435,
+        "alignment_probe": 96.87955409754068,
+        "alignment_filter": 0.0387849286198616,
+        "total": 1335.815878934227
+      },
+      "load_ms": 4504.885003087111,
+      "translate_wallclock_ms": 1335.8349850168452,
+      "backend_name": "gemma_transformers_alignatt"
+    },
+    "gemma_vllm_alignatt": {
+      "draft_text": "Hallo, ich bin Si Yuan von der Fudan University und ich",
+      "acceptance_text": "",
+      "generated_token_count": 13,
+      "accepted_token_count": 0,
+      "draft_semantic_token_count": 13,
+      "accepted_semantic_token_count": 0,
+      "num_cached_tokens": null,
+      "prompt_num_tokens": 151,
+      "stop_reason": "alignatt:source_frontier",
+      "blocked_source_local_position": 11,
+      "blocked_source_unit_index": 8,
+      "rewind_from_local_position": null,
+      "rewind_to_local_position": null,
+      "unsafe_reason": "source_frontier",
+      "alignatt_not_implemented": false,
+      "provenance_summary": {
+        "per_token_count": 14,
+        "mean_source_accessible": 0.45793560639555964,
+        "mean_source_inaccessible": 0.013807619747240096,
+        "mean_non_source_prompt": 0.44310921004840303,
+        "mean_suffix": 0.08514755804623876
+      },
+      "timings_ms": {
+        "prompt_render": 131.9425500696525,
+        "prepare_observer": 2834.5949919894338,
+        "generate": 193.36331693921238,
+        "fetch_observer": 25.611306075006723,
+        "reconstruct": 186.73752900213003,
+        "total": 3377.2193680051714
+      },
+      "load_ms": 55085.86928702425,
+      "translate_wallclock_ms": 3377.3020670050755,
+      "backend_name": "gemma_vllm_alignatt"
+    }
+  },
+  "agreement": {
+    "draft_text_equal": true,
+    "acceptance_text_equal": true,
+    "generated_token_count_delta": 0
+  }
+}

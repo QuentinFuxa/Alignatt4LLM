@@ -199,6 +199,13 @@ def parse_args() -> argparse.Namespace:
         default="qwen_forced",
         choices=("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast"),
     )
+    parser.add_argument(
+        "--mt-backend-name",
+        default="gemma_transformers_alignatt",
+        choices=("gemma_transformers_alignatt", "gemma_vllm_alignatt"),
+        help="Experimental MT backend axis (PLAN.md Phase 0). Default stays on "
+        "the stable Transformers MT path.",
+    )
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
     parser.add_argument("--max-history-utterances", default=1, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
@@ -259,6 +266,7 @@ def main() -> None:
         chunk_ms=args.chunk_ms,
         speech_chunk_size=args.chunk_ms / 1000.0,
         alignment_backend_name=args.alignment_backend_name,
+        mt_backend_name=args.mt_backend_name,
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         partial_max_new_tokens=args.partial_max_new_tokens,
@@ -315,6 +323,7 @@ def main() -> None:
     runtime_config: dict[str, Any] = {
         "chunk_ms": args.chunk_ms,
         "alignment_backend_name": args.alignment_backend_name,
+        "mt_backend_name": args.mt_backend_name,
         "min_start_seconds": args.min_start_seconds,
         "max_history_utterances": args.max_history_utterances,
         "partial_max_new_tokens": args.partial_max_new_tokens,
