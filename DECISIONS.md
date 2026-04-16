@@ -552,19 +552,34 @@ attribute is absent. This is not a cs→en-specific problem; it is
 a torch-compile-cache / observer-init ordering interaction that the
 night's en→de runs happened to avoid because of cache warmth on
 their specific input shapes. See `tmp/cs_en_runtime_check.log` for
-the full trace. Fix for this bug is beyond tonight's scope — it
-would need either (a) teaching the patched forward to survive a
-`KeyError` from the compiled path, or (b) initializing a no-op
-observer before engine init so the attribute is always present on
-the compiled path.
+the full trace.
+
+**Fix landed later in the same session (commit c04356b+):**
+`install_stub_observers_on_model` seeds every Gemma4Attention
+layer's `_alignatt_mt_qk_tensor_observer` attribute with an explicit
+`None` at `load_model` time, before vLLM's memory profiling fires.
+The existing `_get_mt_qk_tensor_observer` → `_capture_mt_qk_into_tensor_buffers`
+pair already treats `None` as "no observer configured" and
+early-returns, so pre-seeding puts the attribute in `__dict__`
+without changing behaviour. Verified by rerunning cs→en with
+`mt_backend_name="gemma_vllm_alignatt"` on the canonical path:
+no KeyError, models loaded in 117.7 s, inference RTF 0.544 (vs
+Transformers MT RTF 1.377 on the same clip — 2.5× speedup). The
+output is bit-identical in head text between the Transformers-MT
+workaround and the fixed vLLM-MT canonical path.
 
 Re-run with `mt_backend_name="gemma_transformers_alignatt"` sidesteps
 the observer/compile-cache issue and exercises the Step 1 language-map
-+ heads-path fixes end-to-end. Result on `csJIsDTYMW.wav` (352 s):
++ heads-path fixes end-to-end. Later, with the stub-observer fix
+shipped, the canonical vLLM-MT path runs cleanly on the same clip:
 
-| Config                          | Audio dur | RTF   | Updates |
-|---------------------------------|-----------|-------|---------|
-| cs→en Transformers-MT chunk_ms=450 | 352 s  | 1.377 | 444     |
+| Config                                | Audio dur | RTF   | Updates |
+|---------------------------------------|-----------|-------|---------|
+| cs→en Transformers-MT chunk_ms=450    | 352 s     | 1.377 | 444     |
+| cs→en **vLLM-MT** chunk_ms=450 (fixed) | 352 s     | **0.544** | 473     |
+
+Bit-identical head text between the two backends confirms the fix
+preserves correctness.
 
 Prediction head (first 300 chars):
 

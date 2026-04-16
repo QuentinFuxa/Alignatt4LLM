@@ -74,10 +74,11 @@ By morning, the repo should satisfy all three:
       the high-latency point at BLEU 38.19 / COMET 0.940 / CA 2945 ms.
 - [x] Step 3 — en→de / en→it / en→zh all run cleanly on the same
       hardened pair; BLEU 27.51 / 37.75 / 42.33, no direction-specific
-      breakage. cs→en runtime-validated on csJIsDTYMW.wav with
-      Transformers MT (the canonical vLLM-MT path hit a separate
-      observer/compile-cache interaction bug, documented as a known
-      issue in `DECISIONS.md`).
+      breakage. cs→en runtime-validated on csJIsDTYMW.wav on both the
+      Transformers MT fallback (RTF 1.377) and, after the
+      stub-observer fix, the canonical **vLLM MT path (RTF 0.544)**.
+      Head text bit-identical across backends. The MT
+      observer/compile-cache KeyError is now fixed.
 - [x] Step 4 — `stable_and_accessible` commit rule landed (`7ab5a39`
       + `7d27eec`). Full K-sweep K=2 (alignatt_frontier) through K=6
       measured on `ccpXHNfaoy.wav` at chunk_ms=450. K=3 → 18.71 BLEU /

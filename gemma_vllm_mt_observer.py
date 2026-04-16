@@ -423,6 +423,41 @@ def install_global_gemma4_attention_mt_patch() -> None:
         Gemma4Attention.forward = _make_mt_tensor_buffer_gemma4_attention_forward()
 
 
+def install_stub_observers_on_model(model) -> int:
+    """Install a ``None`` stub on every Gemma4Attention's observer attr.
+
+    The AOT-compiled ``Gemma4Attention.forward`` traces an attribute
+    access to ``_alignatt_mt_qk_tensor_observer`` during first warmup
+    and then, when vLLM's compile cache replays the compiled graph
+    in a fresh process, performs a direct ``__dict__`` lookup on that
+    attribute. If the attribute is missing from ``__dict__`` at replay
+    time (e.g. when ``determine_available_memory``'s dummy_run fires
+    before we have called ``configure_mt_observer``), the compiled
+    path raises ``KeyError``.
+
+    ``_get_mt_qk_tensor_observer`` already treats ``None`` as "no
+    observer configured" and ``_capture_mt_qk_into_tensor_buffers``
+    early-returns on ``None``. Pre-seeding every attention layer with
+    an explicit ``None`` attribute keeps the attribute present on
+    ``__dict__`` so the compiled lookup succeeds. Returns the number
+    of layers stubbed.
+    """
+    layers = _resolve_vllm_gemma_decoder_layers(model)
+    stubbed = 0
+    for layer in layers:
+        attn = getattr(layer, "self_attn", None)
+        if attn is None:
+            continue
+        # Use object.__setattr__ so this works even on modules that
+        # otherwise reject unknown attributes. The attribute ends up
+        # in attn.__dict__, which is the lookup AOT-compiled code
+        # uses.
+        if "_alignatt_mt_qk_tensor_observer" not in attn.__dict__:
+            attn._alignatt_mt_qk_tensor_observer = None
+            stubbed += 1
+    return stubbed
+
+
 def _configure_mt_qk_observer_on_model(
     model,
     *,
