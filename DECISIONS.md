@@ -633,6 +633,51 @@ the schema instrumentation is usable, the first-pass analysis gives
 a defensible negative result, and the data artefact is in place for
 follow-up exploration.
 
+### Step 7 follow-up: per-gate separability
+
+The aggregate accept/reject F1 turned out to be the wrong framing.
+The three discrete gates fire on different conditions, so pooling
+them hides per-gate signal. Added `scripts/per_gate_separability.py`
+(aggregates per-token rows into per-update records, then for each
+discrete stop_reason searches over features × threshold × direction
+for the best single-scalar predictor of "this gate fires on this
+update").
+
+Cross-artifact results, top feature per gate:
+
+| Gate                       | Feature                               | Direction | F1 (en→de K3@700) | F1 (cs→en) |
+|----------------------------|---------------------------------------|-----------|-------------------|------------|
+| `alignatt:source_frontier` | `unsafe_token.source_inaccessible`    | ≥ 0.000   | **0.978**         | **0.910**  |
+| `alignatt:rewind`          | `unsafe_token.source_inaccessible`    | ≤ 0.000   | 0.750             | 0.723      |
+
+**Sharpened paper result:**
+
+- **`alignatt:source_frontier` is cleanly absorbed by a continuous
+  scalar**: a single threshold on the attention mass the unsafe-flagged
+  draft token places on source-inaccessible positions reproduces the
+  gate at F1 0.91-0.98 across both directions. This is the most
+  load-bearing of the three gates, and it turns out to already be a
+  discrete readout of a continuous quantity.
+- **`alignatt:rewind` does not collapse**: under the same feature family
+  it caps at F1 ~0.72-0.75. Rewind fires on the **absence** of
+  source-inaccessible attention (opposite direction), but the
+  separation is much weaker, consistent with rewind being a distinct
+  mechanism that also consumes positional and threshold-based state
+  (`translation_alignatt_rewind_threshold`) that isn't exposed in the
+  provenance distribution alone.
+
+**Paper framing this enables:** the three-gate policy is structurally
+asymmetric. `source_frontier` is a reducible gate — the natural paper
+move is to promote the continuous scalar as the primary mechanism and
+recover `source_frontier` as a one-line threshold. `rewind` stays as
+an independent mechanism that can later be studied on its own terms
+(positional features, learned weights, etc). This is the right shape
+of the contribution: one gate becomes continuous, one stays discrete,
+with empirical support for why.
+
+Artifacts: `outputs/night1_*/per_gate_separability.txt`. Source:
+`scripts/per_gate_separability.py`.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +
