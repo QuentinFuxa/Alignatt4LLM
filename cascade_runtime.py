@@ -200,6 +200,13 @@ class CascadeRuntimeConfig:
     #   for models like Gemma-4 ASR that don't emit sentence-terminal
     #   punctuation on the test clips (`utt_timestamps` never advances
     #   otherwise and the prompt overflows `max_model_len`).
+    # - ``stable_and_accessible`` commits a contiguous word prefix that is
+    #   both accessible (behind the audio frontier by
+    #   ``asr_alignatt_frontier_margin_ms``) AND stable (identical in the
+    #   last ``asr_stability_k`` consecutive ASR hypotheses). K-stability
+    #   (K ≥ 3) is strictly more conservative than the 2-hypothesis LCP
+    #   used by ``alignatt_frontier`` and is designed to close the quality
+    #   cliff of the frontier rule without reverting to punctuation gating.
     # Empirically on en→de with Qwen3-ASR + Gemma vLLM MT on ccpXHNfaoy.wav
     # (360 s): punctuation_lcp → BLEU 27.51 / COMET 0.861 / LongYAAL CU 1766
     # vs alignatt_frontier → BLEU 15.78 / COMET 0.558 / CU 1328. The latency
@@ -207,8 +214,15 @@ class CascadeRuntimeConfig:
     asr_commit_mode: str = "punctuation_lcp"
     # Safety margin between a word's aligned end_time and the current audio
     # frontier, in milliseconds. A word with end_time <= frontier - margin is
-    # considered committable. Only used when asr_commit_mode="alignatt_frontier".
+    # considered committable. Used by both ``alignatt_frontier`` and
+    # ``stable_and_accessible``.
     asr_alignatt_frontier_margin_ms: float = 500.0
+    # Number of consecutive ASR hypotheses that must agree on a word prefix
+    # before ``stable_and_accessible`` considers it committable. K=2 recovers
+    # the behaviour of ``alignatt_frontier``; K≥3 requires stronger
+    # cross-hypothesis agreement at the cost of +(K-2) chunks of initial
+    # buffering per utterance segment. Ignored by other commit modes.
+    asr_stability_k: int = 3
 
     def __post_init__(self) -> None:
         if self.translation_alignatt_heads_path is None:
@@ -244,10 +258,20 @@ class CascadeRuntimeConfig:
                 "alignment_backend_name='gemma_vllm_qk_fast' "
                 f"(got {self.alignment_backend_name!r})."
             )
-        if self.asr_commit_mode not in ("alignatt_frontier", "punctuation_lcp"):
+        valid_commit_modes = (
+            "alignatt_frontier",
+            "punctuation_lcp",
+            "stable_and_accessible",
+        )
+        if self.asr_commit_mode not in valid_commit_modes:
             raise ValueError(
-                "asr_commit_mode must be one of {'alignatt_frontier', 'punctuation_lcp'}, "
+                f"asr_commit_mode must be one of {set(valid_commit_modes)}, "
                 f"got {self.asr_commit_mode!r}."
+            )
+        if int(self.asr_stability_k) < 2:
+            raise ValueError(
+                "asr_stability_k must be >= 2 (LCP of two hypotheses is the "
+                f"weakest possible stability signal); got {self.asr_stability_k!r}."
             )
 
     def apply_overrides(self, **overrides) -> None:
@@ -1107,6 +1131,13 @@ class CascadeSession:
                 audio=audio,
                 is_final_chunk=is_final_chunk,
             )
+        elif self.config.asr_commit_mode == "stable_and_accessible":
+            committed = self._try_commit_stable_and_accessible(
+                asr_hypo=asr_hypo,
+                result=result,
+                audio=audio,
+                is_final_chunk=is_final_chunk,
+            )
         else:
             committed = self._try_commit_punctuation_lcp(
                 asr_hypo=asr_hypo,
@@ -1206,6 +1237,76 @@ class CascadeSession:
                     break
                 k_commit += 1
                 last_end_time_s = float(word.end_time)
+        if k_commit <= 0:
+            return None
+
+        committed_text, remainder_text = split_text_at_word_boundary(asr_hypo, k_commit)
+        self._apply_commit(
+            committed_text=committed_text.strip(),
+            remainder_text=remainder_text.strip(),
+            end_time_s=last_end_time_s,
+        )
+        return None
+
+    def _try_commit_stable_and_accessible(
+        self,
+        *,
+        asr_hypo: str,
+        result: "AlignmentResult",
+        audio: np.ndarray,
+        is_final_chunk: bool = False,
+    ) -> "object":
+        """Commit the word prefix that is both K-stable and accessible.
+
+        A word prefix is K-stable if the same character prefix appears at
+        the head of the last K consecutive ASR hypotheses for the current
+        utterance segment. It is accessible if every word in the prefix
+        has aligned end_time at least ``asr_alignatt_frontier_margin_ms``
+        behind the current audio frontier. The committed prefix is the
+        shorter of the two.
+
+        This generalises ``alignatt_frontier`` (which is the K=2 special
+        case via pairwise LCP) to arbitrary K. Higher K trades a little
+        latency (K-1 extra chunks before the first commit in an utterance
+        segment) for stronger cross-hypothesis agreement, which is the
+        dominant failure mode of K=2 on ASR models with clean punctuation
+        (Qwen3-ASR on en→de: K=2 costs ≈11 BLEU vs punctuation_lcp).
+        """
+        words = result.words
+        if not words:
+            return None
+        if len(words) != len(remove_punctuation(asr_hypo).split()):
+            return None
+
+        if is_final_chunk:
+            k_commit = len(words)
+            last_end_time_s = float(words[-1].end_time)
+        else:
+            k_stable = max(2, int(self.config.asr_stability_k))
+            hypotheses = self.state.asr_hypotheses
+            if len(hypotheses) < k_stable:
+                return None
+            stable_prefix = hypotheses[-k_stable]
+            for hypo in hypotheses[-k_stable + 1 :]:
+                stable_prefix = longest_common_prefix(stable_prefix, hypo)
+                if not stable_prefix:
+                    break
+            n_stable_words = len(remove_punctuation(stable_prefix).strip().split())
+            if n_stable_words <= 0:
+                return None
+
+            audio_frontier_s = float(len(audio)) / float(SAMPLE_RATE)
+            margin_s = max(0.0, float(self.config.asr_alignatt_frontier_margin_ms) / 1000.0)
+            safe_end_time_s = audio_frontier_s - margin_s
+
+            k_commit = 0
+            last_end_time_s = 0.0
+            for word in words[:n_stable_words]:
+                if word.end_time > safe_end_time_s:
+                    break
+                k_commit += 1
+                last_end_time_s = float(word.end_time)
+
         if k_commit <= 0:
             return None
 

@@ -231,22 +231,37 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--asr-commit-mode",
-        choices=("alignatt_frontier", "punctuation_lcp"),
+        choices=("alignatt_frontier", "punctuation_lcp", "stable_and_accessible"),
         default="punctuation_lcp",
         help=(
             "ASR-side commit rule. 'punctuation_lcp' (default) commits when the "
             "LCP of two consecutive ASR hypotheses contains a sentence-terminal "
-            "punctuation mark; works well with Qwen3-ASR. 'alignatt_frontier' is "
-            "the model-agnostic fallback for ASR backends that do not emit "
-            "punctuation (e.g. Gemma-4 ASR). See docs/RESULTS.md for the BLEU/CA "
-            "tradeoff measured on en→de."
+            "punctuation mark; works well with Qwen3-ASR. 'alignatt_frontier' "
+            "is the model-agnostic fallback for ASR backends that do not emit "
+            "punctuation. 'stable_and_accessible' requires both frontier "
+            "accessibility and K-hypothesis stability (K = --asr-stability-k); "
+            "K=2 is equivalent to 'alignatt_frontier', K>=3 is strictly more "
+            "conservative. See docs/RESULTS.md for the BLEU/CA tradeoff."
         ),
     )
     parser.add_argument(
         "--asr-alignatt-frontier-margin-ms",
         type=float,
         default=500.0,
-        help="Safety margin (ms) for alignatt_frontier commit rule. Default 500.",
+        help=(
+            "Safety margin (ms) for alignatt_frontier and "
+            "stable_and_accessible commit rules. Default 500."
+        ),
+    )
+    parser.add_argument(
+        "--asr-stability-k",
+        type=int,
+        default=3,
+        help=(
+            "K for 'stable_and_accessible' commit rule. Word prefix must be "
+            "identical across the last K ASR hypotheses before it is eligible "
+            "for commit. K=2 collapses to 'alignatt_frontier'. Default 3."
+        ),
     )
     return parser.parse_args()
 
@@ -282,6 +297,7 @@ def main() -> None:
         gemma_vllm_force_generate_api=args.gemma_vllm_force_generate_api,
         asr_commit_mode=args.asr_commit_mode,
         asr_alignatt_frontier_margin_ms=args.asr_alignatt_frontier_margin_ms,
+        asr_stability_k=args.asr_stability_k,
     )
 
     print("Loading models ...")
@@ -346,6 +362,7 @@ def main() -> None:
         "asr_streaming_unfixed_chunks",
         "gemma_vllm_force_generate_api",
         "asr_commit_mode", "asr_alignatt_frontier_margin_ms",
+        "asr_stability_k",
     ]:
         runtime_config[key] = getattr(processor.session.config, key, None)
 

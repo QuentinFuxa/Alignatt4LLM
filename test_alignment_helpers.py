@@ -1258,6 +1258,24 @@ def test_asr_commit_mode_rejects_unknown_value():
         )
 
 
+def test_asr_commit_mode_stable_and_accessible_accepted():
+    # Third commit rule: stable_and_accessible is valid and takes
+    # ``asr_stability_k`` as its K knob (default 3, must be >= 2).
+    import pytest
+    from cascade_runtime import CascadeRuntimeConfig
+
+    config = CascadeRuntimeConfig(asr_commit_mode="stable_and_accessible")
+    assert config.asr_commit_mode == "stable_and_accessible"
+    assert config.asr_stability_k == 3
+
+    CascadeRuntimeConfig(
+        asr_commit_mode="stable_and_accessible", asr_stability_k=5
+    )
+
+    with pytest.raises(ValueError, match="asr_stability_k"):
+        CascadeRuntimeConfig(asr_stability_k=1)
+
+
 def _session_with_audio_and_hypothesis(
     *,
     audio_duration_s: float,
@@ -1418,6 +1436,189 @@ def test_alignatt_frontier_returns_none_when_lcp_is_empty():
     )
     assert ret is None
     assert session.state.utt_sources == [""]
+
+
+def _session_with_hypothesis_history(*, audio_duration_s, words, hypotheses,
+                                     margin_ms=500.0, k=3):
+    """Build a CascadeSession with an N-hypothesis history primed."""
+    import numpy as np
+    from cascade_runtime import (
+        CascadeRuntimeConfig,
+        CascadeSession,
+        LoadedModelBundle,
+    )
+    from cascade_source_frontier import normalize_word_timestamps_ms
+
+    SAMPLE_RATE = 16000
+    config = CascadeRuntimeConfig(
+        alignment_backend_name="qwen_forced",
+        asr_commit_mode="stable_and_accessible",
+        asr_alignatt_frontier_margin_ms=margin_ms,
+        asr_stability_k=k,
+    )
+    bundle = LoadedModelBundle(config)
+    session = CascadeSession(bundle)
+    n_samples = int(audio_duration_s * SAMPLE_RATE)
+    session.state.source = np.zeros(n_samples, dtype=np.float32)
+    session.state.asr_hypotheses = list(hypotheses)
+    session.state.partial_word_timestamps_ms = normalize_word_timestamps_ms(words)
+    return session
+
+
+def test_stable_and_accessible_waits_for_k_hypotheses():
+    """K=3: with only two hypotheses on the stack, no commit is possible
+    regardless of how accessible the words are."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from cascade_runtime import CascadeSession
+
+    words = tuple(
+        WordAlignment(f"word{i}", i * 0.3, i * 0.3 + 0.25) for i in range(5)
+    )
+    text = " ".join(w.text for w in words)
+    session = _session_with_hypothesis_history(
+        audio_duration_s=5.0,
+        words=words,
+        hypotheses=[text, text],  # only 2 hypotheses
+        k=3,
+    )
+    result = AlignmentResult(text=text, words=words, audio_duration_s=5.0)
+
+    ret = session._try_commit_stable_and_accessible(
+        asr_hypo=text, result=result, audio=session.state.source,
+    )
+    assert ret is None
+    # No commit: K-stability requires at least K hypotheses.
+    assert session.state.utt_sources == [""]
+
+
+def test_stable_and_accessible_commits_only_words_in_k_way_lcp():
+    """With K=3, a word that only appears in 2 of the last 3 hypotheses is
+    not stable and must not be committed, even if it is accessible."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from cascade_runtime import CascadeSession
+
+    # Current and previous agree on "one two three four five", but three
+    # hypotheses ago the text was "one two three". So K=3 LCP is
+    # "one two three" (first 3 words).
+    words = (
+        WordAlignment("one", 0.0, 0.3),
+        WordAlignment("two", 0.4, 0.7),
+        WordAlignment("three", 0.8, 1.1),
+        WordAlignment("four", 1.2, 1.5),
+        WordAlignment("five", 1.6, 1.9),
+    )
+    session = _session_with_hypothesis_history(
+        audio_duration_s=5.0,  # frontier=5.0, margin=0.5 -> safe <= 4.5; all safe
+        words=words,
+        hypotheses=[
+            "one two three",
+            "one two three four five",
+            "one two three four five",
+        ],
+        k=3,
+    )
+    result = AlignmentResult(
+        text="one two three four five", words=words, audio_duration_s=5.0,
+    )
+
+    ret = session._try_commit_stable_and_accessible(
+        asr_hypo="one two three four five",
+        result=result,
+        audio=session.state.source,
+    )
+    assert ret is None
+    assert session.state.utt_sources[1:] == ["one two three"]
+    assert session.state.asr_hypotheses == ["four five"]
+
+
+def test_stable_and_accessible_intersects_with_frontier_margin():
+    """Even if K-stable, a word past the frontier margin is not yet accessible
+    and must not be committed this chunk."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from cascade_runtime import CascadeSession
+
+    words = (
+        WordAlignment("alpha", 0.0, 0.4),
+        WordAlignment("beta", 0.5, 0.9),
+        WordAlignment("gamma", 1.0, 1.4),  # safe @ frontier 2.0 - margin 0.5
+        WordAlignment("delta", 1.6, 1.9),  # unsafe
+        WordAlignment("epsilon", 2.0, 2.0),  # unsafe
+    )
+    text = "alpha beta gamma delta epsilon"
+    session = _session_with_hypothesis_history(
+        audio_duration_s=2.0,
+        words=words,
+        hypotheses=[text, text, text],
+        k=3,
+    )
+    result = AlignmentResult(text=text, words=words, audio_duration_s=2.0)
+
+    ret = session._try_commit_stable_and_accessible(
+        asr_hypo=text, result=result, audio=session.state.source,
+    )
+    assert ret is None
+    # Only the first three words are both K-stable and accessible.
+    assert session.state.utt_sources[1:] == ["alpha beta gamma"]
+    assert session.state.asr_hypotheses == ["delta epsilon"]
+
+
+def test_stable_and_accessible_eos_flush_commits_everything_aligned():
+    """At end-of-audio, the stability and margin gates become vacuous.
+    The commit must drain the remaining aligned words."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from cascade_runtime import CascadeSession
+
+    words = (
+        WordAlignment("tail", 1.0, 1.4),
+        WordAlignment("end", 1.6, 1.9),
+    )
+    session = _session_with_hypothesis_history(
+        audio_duration_s=2.0,
+        words=words,
+        hypotheses=["tail end"],  # only 1 hypothesis but EOS
+        k=3,
+    )
+    result = AlignmentResult(text="tail end", words=words, audio_duration_s=2.0)
+
+    ret = session._try_commit_stable_and_accessible(
+        asr_hypo="tail end",
+        result=result,
+        audio=session.state.source,
+        is_final_chunk=True,
+    )
+    assert ret is None
+    assert session.state.utt_sources[1:] == ["tail end"]
+    assert session.state.asr_hypotheses == [""]
+
+
+def test_stable_and_accessible_k2_matches_alignatt_frontier_behavior():
+    """K=2 is the weakest non-trivial stability signal and must reproduce the
+    commit boundary of the existing ``alignatt_frontier`` rule exactly."""
+    from alignment_backend import AlignmentResult, WordAlignment
+    from cascade_runtime import CascadeSession
+
+    words = (
+        WordAlignment("a", 0.0, 0.4),
+        WordAlignment("b", 0.5, 0.9),
+        WordAlignment("c", 1.0, 1.4),
+        WordAlignment("d", 1.6, 1.9),
+    )
+    text = "a b c d"
+    session = _session_with_hypothesis_history(
+        audio_duration_s=2.0,
+        words=words,
+        hypotheses=[text, text],
+        margin_ms=500.0,
+        k=2,
+    )
+    result = AlignmentResult(text=text, words=words, audio_duration_s=2.0)
+
+    ret = session._try_commit_stable_and_accessible(
+        asr_hypo=text, result=result, audio=session.state.source,
+    )
+    assert ret is None
+    assert session.state.utt_sources[1:] == ["a b c"]
+    assert session.state.asr_hypotheses == ["d"]
 
 
 def _run_all() -> None:

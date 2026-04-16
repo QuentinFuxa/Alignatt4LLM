@@ -78,6 +78,7 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "gemma_vllm_force_generate_api",
             "asr_commit_mode",
             "asr_alignatt_frontier_margin_ms",
+            "asr_stability_k",
         ]
         overrides = {
             key: getattr(config, key)
