@@ -1,0 +1,106 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_221.wav",
+  "text": "And as we said, we are interested in assessing what capabilities the vision and language models have after pretraining.",
+  "audio_duration_s": 7.659,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.0,
+      "end_time": 0.24
+    },
+    {
+      "text": "as",
+      "start_time": 0.24,
+      "end_time": 0.4
+    },
+    {
+      "text": "we",
+      "start_time": 0.4,
+      "end_time": 0.48
+    },
+    {
+      "text": "said",
+      "start_time": 0.48,
+      "end_time": 0.88
+    },
+    {
+      "text": "we",
+      "start_time": 1.12,
+      "end_time": 1.28
+    },
+    {
+      "text": "are",
+      "start_time": 1.28,
+      "end_time": 1.28
+    },
+    {
+      "text": "interested",
+      "start_time": 1.28,
+      "end_time": 1.84
+    },
+    {
+      "text": "in",
+      "start_time": 1.84,
+      "end_time": 2.08
+    },
+    {
+      "text": "assessing",
+      "start_time": 2.08,
+      "end_time": 2.88
+    },
+    {
+      "text": "what",
+      "start_time": 2.88,
+      "end_time": 3.2
+    },
+    {
+      "text": "capabilities",
+      "start_time": 3.2,
+      "end_time": 4.16
+    },
+    {
+      "text": "the",
+      "start_time": 4.16,
+      "end_time": 4.32
+    },
+    {
+      "text": "vision",
+      "start_time": 4.32,
+      "end_time": 4.56
+    },
+    {
+      "text": "and",
+      "start_time": 4.56,
+      "end_time": 4.72
+    },
+    {
+      "text": "language",
+      "start_time": 4.72,
+      "end_time": 5.12
+    },
+    {
+      "text": "models",
+      "start_time": 5.12,
+      "end_time": 5.6
+    },
+    {
+      "text": "have",
+      "start_time": 5.68,
+      "end_time": 6.08
+    },
+    {
+      "text": "after",
+      "start_time": 6.24,
+      "end_time": 6.8
+    },
+    {
+      "text": "pretraining",
+      "start_time": 6.8,
+      "end_time": 7.6
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

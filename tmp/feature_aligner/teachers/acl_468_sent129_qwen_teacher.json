@@ -1,0 +1,161 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_129.wav",
+  "text": "To do so, we partner with a Belgian law firm that receives each year around four thousand emails from Belgian citizens who ask for advice on a personal legal issue.",
+  "audio_duration_s": 10.399,
+  "words": [
+    {
+      "text": "To",
+      "start_time": 0.24,
+      "end_time": 0.32
+    },
+    {
+      "text": "do",
+      "start_time": 0.32,
+      "end_time": 0.4
+    },
+    {
+      "text": "so",
+      "start_time": 0.4,
+      "end_time": 0.8
+    },
+    {
+      "text": "we",
+      "start_time": 1.12,
+      "end_time": 1.2
+    },
+    {
+      "text": "partner",
+      "start_time": 1.2,
+      "end_time": 1.6
+    },
+    {
+      "text": "with",
+      "start_time": 1.6,
+      "end_time": 1.76
+    },
+    {
+      "text": "a",
+      "start_time": 1.76,
+      "end_time": 1.76
+    },
+    {
+      "text": "Belgian",
+      "start_time": 1.76,
+      "end_time": 2.32
+    },
+    {
+      "text": "law",
+      "start_time": 2.32,
+      "end_time": 2.56
+    },
+    {
+      "text": "firm",
+      "start_time": 2.56,
+      "end_time": 2.96
+    },
+    {
+      "text": "that",
+      "start_time": 3.04,
+      "end_time": 3.28
+    },
+    {
+      "text": "receives",
+      "start_time": 3.28,
+      "end_time": 3.76
+    },
+    {
+      "text": "each",
+      "start_time": 3.84,
+      "end_time": 4.16
+    },
+    {
+      "text": "year",
+      "start_time": 4.16,
+      "end_time": 4.48
+    },
+    {
+      "text": "around",
+      "start_time": 4.48,
+      "end_time": 4.88
+    },
+    {
+      "text": "four",
+      "start_time": 4.88,
+      "end_time": 5.12
+    },
+    {
+      "text": "thousand",
+      "start_time": 5.12,
+      "end_time": 5.6
+    },
+    {
+      "text": "emails",
+      "start_time": 5.76,
+      "end_time": 6.24
+    },
+    {
+      "text": "from",
+      "start_time": 6.24,
+      "end_time": 6.56
+    },
+    {
+      "text": "Belgian",
+      "start_time": 6.56,
+      "end_time": 6.96
+    },
+    {
+      "text": "citizens",
+      "start_time": 6.96,
+      "end_time": 7.76
+    },
+    {
+      "text": "who",
+      "start_time": 8.08,
+      "end_time": 8.24
+    },
+    {
+      "text": "ask",
+      "start_time": 8.24,
+      "end_time": 8.56
+    },
+    {
+      "text": "for",
+      "start_time": 8.56,
+      "end_time": 8.72
+    },
+    {
+      "text": "advice",
+      "start_time": 8.72,
+      "end_time": 9.12
+    },
+    {
+      "text": "on",
+      "start_time": 9.12,
+      "end_time": 9.12
+    },
+    {
+      "text": "a",
+      "start_time": 9.12,
+      "end_time": 9.2
+    },
+    {
+      "text": "personal",
+      "start_time": 9.2,
+      "end_time": 9.68
+    },
+    {
+      "text": "legal",
+      "start_time": 9.68,
+      "end_time": 9.92
+    },
+    {
+      "text": "issue",
+      "start_time": 9.92,
+      "end_time": 10.24
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

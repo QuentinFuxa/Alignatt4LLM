@@ -1,0 +1,101 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_117.wav",
+  "text": "Lastly, statutory articles are in small paragraph, which usually is the typical retrieval unit in most retrieval works.",
+  "audio_duration_s": 7.61,
+  "words": [
+    {
+      "text": "Lastly",
+      "start_time": 0.16,
+      "end_time": 0.64
+    },
+    {
+      "text": "statutory",
+      "start_time": 1.04,
+      "end_time": 1.6
+    },
+    {
+      "text": "articles",
+      "start_time": 1.6,
+      "end_time": 2.08
+    },
+    {
+      "text": "are",
+      "start_time": 2.16,
+      "end_time": 2.32
+    },
+    {
+      "text": "in",
+      "start_time": 2.32,
+      "end_time": 2.4
+    },
+    {
+      "text": "small",
+      "start_time": 2.4,
+      "end_time": 2.72
+    },
+    {
+      "text": "paragraph",
+      "start_time": 2.72,
+      "end_time": 3.44
+    },
+    {
+      "text": "which",
+      "start_time": 3.84,
+      "end_time": 4.08
+    },
+    {
+      "text": "usually",
+      "start_time": 4.08,
+      "end_time": 4.48
+    },
+    {
+      "text": "is",
+      "start_time": 4.48,
+      "end_time": 4.64
+    },
+    {
+      "text": "the",
+      "start_time": 4.64,
+      "end_time": 4.72
+    },
+    {
+      "text": "typical",
+      "start_time": 4.72,
+      "end_time": 5.28
+    },
+    {
+      "text": "retrieval",
+      "start_time": 5.28,
+      "end_time": 5.76
+    },
+    {
+      "text": "unit",
+      "start_time": 5.76,
+      "end_time": 6.08
+    },
+    {
+      "text": "in",
+      "start_time": 6.16,
+      "end_time": 6.32
+    },
+    {
+      "text": "most",
+      "start_time": 6.32,
+      "end_time": 6.56
+    },
+    {
+      "text": "retrieval",
+      "start_time": 6.56,
+      "end_time": 7.04
+    },
+    {
+      "text": "works",
+      "start_time": 7.04,
+      "end_time": 7.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

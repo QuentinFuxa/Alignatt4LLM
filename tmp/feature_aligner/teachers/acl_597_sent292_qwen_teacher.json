@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_292.wav",
+  "text": "A classifier using BART or cold BART, and a generator using BART.",
+  "audio_duration_s": 4.833,
+  "words": [
+    {
+      "text": "A",
+      "start_time": 0.16,
+      "end_time": 0.24
+    },
+    {
+      "text": "classifier",
+      "start_time": 0.24,
+      "end_time": 0.96
+    },
+    {
+      "text": "using",
+      "start_time": 0.96,
+      "end_time": 1.44
+    },
+    {
+      "text": "BART",
+      "start_time": 1.44,
+      "end_time": 1.84
+    },
+    {
+      "text": "or",
+      "start_time": 1.92,
+      "end_time": 2.32
+    },
+    {
+      "text": "cold",
+      "start_time": 2.32,
+      "end_time": 2.56
+    },
+    {
+      "text": "BART",
+      "start_time": 2.56,
+      "end_time": 2.88
+    },
+    {
+      "text": "and",
+      "start_time": 3.2,
+      "end_time": 3.36
+    },
+    {
+      "text": "a",
+      "start_time": 3.36,
+      "end_time": 3.36
+    },
+    {
+      "text": "generator",
+      "start_time": 3.36,
+      "end_time": 3.92
+    },
+    {
+      "text": "using",
+      "start_time": 3.92,
+      "end_time": 4.4
+    },
+    {
+      "text": "BART",
+      "start_time": 4.4,
+      "end_time": 4.72
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

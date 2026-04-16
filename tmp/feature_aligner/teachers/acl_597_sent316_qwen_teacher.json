@@ -1,0 +1,116 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_316.wav",
+  "text": "High coverage of CAS can be achieved probably, because the classifier can focus on selecting relevant commit messages for each class.",
+  "audio_duration_s": 9.558,
+  "words": [
+    {
+      "text": "High",
+      "start_time": 0.24,
+      "end_time": 0.4
+    },
+    {
+      "text": "coverage",
+      "start_time": 0.4,
+      "end_time": 0.96
+    },
+    {
+      "text": "of",
+      "start_time": 1.04,
+      "end_time": 1.28
+    },
+    {
+      "text": "CAS",
+      "start_time": 1.28,
+      "end_time": 2.08
+    },
+    {
+      "text": "can",
+      "start_time": 2.08,
+      "end_time": 2.32
+    },
+    {
+      "text": "be",
+      "start_time": 2.32,
+      "end_time": 2.48
+    },
+    {
+      "text": "achieved",
+      "start_time": 2.48,
+      "end_time": 2.96
+    },
+    {
+      "text": "probably",
+      "start_time": 3.04,
+      "end_time": 3.6
+    },
+    {
+      "text": "because",
+      "start_time": 4.16,
+      "end_time": 4.64
+    },
+    {
+      "text": "the",
+      "start_time": 4.64,
+      "end_time": 4.72
+    },
+    {
+      "text": "classifier",
+      "start_time": 4.72,
+      "end_time": 5.44
+    },
+    {
+      "text": "can",
+      "start_time": 5.44,
+      "end_time": 5.76
+    },
+    {
+      "text": "focus",
+      "start_time": 5.76,
+      "end_time": 6.16
+    },
+    {
+      "text": "on",
+      "start_time": 6.16,
+      "end_time": 6.32
+    },
+    {
+      "text": "selecting",
+      "start_time": 6.32,
+      "end_time": 6.96
+    },
+    {
+      "text": "relevant",
+      "start_time": 7.2,
+      "end_time": 7.6
+    },
+    {
+      "text": "commit",
+      "start_time": 7.6,
+      "end_time": 7.84
+    },
+    {
+      "text": "messages",
+      "start_time": 7.84,
+      "end_time": 8.56
+    },
+    {
+      "text": "for",
+      "start_time": 8.64,
+      "end_time": 8.8
+    },
+    {
+      "text": "each",
+      "start_time": 8.8,
+      "end_time": 9.04
+    },
+    {
+      "text": "class",
+      "start_time": 9.04,
+      "end_time": 9.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

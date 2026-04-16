@@ -1,0 +1,101 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_288.wav",
+  "text": "Also, the number of unique tokens is quite large at eight thousand eight hundred thirty thousand. This is.",
+  "audio_duration_s": 7.866,
+  "words": [
+    {
+      "text": "Also",
+      "start_time": 0.16,
+      "end_time": 0.56
+    },
+    {
+      "text": "the",
+      "start_time": 0.56,
+      "end_time": 0.64
+    },
+    {
+      "text": "number",
+      "start_time": 0.64,
+      "end_time": 0.96
+    },
+    {
+      "text": "of",
+      "start_time": 0.96,
+      "end_time": 1.12
+    },
+    {
+      "text": "unique",
+      "start_time": 1.12,
+      "end_time": 1.44
+    },
+    {
+      "text": "tokens",
+      "start_time": 1.44,
+      "end_time": 1.92
+    },
+    {
+      "text": "is",
+      "start_time": 1.92,
+      "end_time": 2.08
+    },
+    {
+      "text": "quite",
+      "start_time": 2.08,
+      "end_time": 2.48
+    },
+    {
+      "text": "large",
+      "start_time": 2.48,
+      "end_time": 2.96
+    },
+    {
+      "text": "at",
+      "start_time": 3.2,
+      "end_time": 3.36
+    },
+    {
+      "text": "eight",
+      "start_time": 3.6,
+      "end_time": 4.0
+    },
+    {
+      "text": "thousand",
+      "start_time": 4.64,
+      "end_time": 5.12
+    },
+    {
+      "text": "eight",
+      "start_time": 5.28,
+      "end_time": 5.52
+    },
+    {
+      "text": "hundred",
+      "start_time": 6.16,
+      "end_time": 6.48
+    },
+    {
+      "text": "thirty",
+      "start_time": 6.48,
+      "end_time": 6.88
+    },
+    {
+      "text": "thousand",
+      "start_time": 6.88,
+      "end_time": 7.36
+    },
+    {
+      "text": "This",
+      "start_time": 7.52,
+      "end_time": 7.76
+    },
+    {
+      "text": "is",
+      "start_time": 7.76,
+      "end_time": 7.84
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

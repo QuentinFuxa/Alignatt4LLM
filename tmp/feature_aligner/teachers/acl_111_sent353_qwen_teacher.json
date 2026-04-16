@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_353.wav",
+  "text": "First, generate features in the number of classes of the original dataset.",
+  "audio_duration_s": 8.035,
+  "words": [
+    {
+      "text": "First",
+      "start_time": 0.16,
+      "end_time": 0.64
+    },
+    {
+      "text": "generate",
+      "start_time": 0.8,
+      "end_time": 1.6
+    },
+    {
+      "text": "features",
+      "start_time": 1.76,
+      "end_time": 2.32
+    },
+    {
+      "text": "in",
+      "start_time": 2.32,
+      "end_time": 2.4
+    },
+    {
+      "text": "the",
+      "start_time": 2.4,
+      "end_time": 2.4
+    },
+    {
+      "text": "number",
+      "start_time": 3.92,
+      "end_time": 5.44
+    },
+    {
+      "text": "of",
+      "start_time": 5.44,
+      "end_time": 5.68
+    },
+    {
+      "text": "classes",
+      "start_time": 5.92,
+      "end_time": 5.92
+    },
+    {
+      "text": "of",
+      "start_time": 6.56,
+      "end_time": 6.72
+    },
+    {
+      "text": "the",
+      "start_time": 6.72,
+      "end_time": 6.8
+    },
+    {
+      "text": "original",
+      "start_time": 6.8,
+      "end_time": 7.2
+    },
+    {
+      "text": "dataset",
+      "start_time": 7.2,
+      "end_time": 7.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

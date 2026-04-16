@@ -1,0 +1,186 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_169.wav",
+  "text": "Regarding the zero-shot evaluation of Siamese Biancoda, we find that directly using the embeddings of a pre-trained Camembert model without optimizing for the information retrieval task gives poor results, which is consistent with previous findings.",
+  "audio_duration_s": 14.553,
+  "words": [
+    {
+      "text": "Regarding",
+      "start_time": 0.16,
+      "end_time": 0.56
+    },
+    {
+      "text": "the",
+      "start_time": 0.56,
+      "end_time": 0.64
+    },
+    {
+      "text": "zeroshot",
+      "start_time": 0.64,
+      "end_time": 1.28
+    },
+    {
+      "text": "evaluation",
+      "start_time": 1.28,
+      "end_time": 1.84
+    },
+    {
+      "text": "of",
+      "start_time": 1.84,
+      "end_time": 1.92
+    },
+    {
+      "text": "Siamese",
+      "start_time": 1.92,
+      "end_time": 2.48
+    },
+    {
+      "text": "Biancoda",
+      "start_time": 2.48,
+      "end_time": 3.12
+    },
+    {
+      "text": "we",
+      "start_time": 3.6,
+      "end_time": 3.68
+    },
+    {
+      "text": "find",
+      "start_time": 3.68,
+      "end_time": 4.0
+    },
+    {
+      "text": "that",
+      "start_time": 4.0,
+      "end_time": 4.16
+    },
+    {
+      "text": "directly",
+      "start_time": 4.16,
+      "end_time": 4.56
+    },
+    {
+      "text": "using",
+      "start_time": 4.56,
+      "end_time": 4.96
+    },
+    {
+      "text": "the",
+      "start_time": 4.96,
+      "end_time": 5.04
+    },
+    {
+      "text": "embeddings",
+      "start_time": 5.04,
+      "end_time": 5.6
+    },
+    {
+      "text": "of",
+      "start_time": 5.6,
+      "end_time": 5.68
+    },
+    {
+      "text": "a",
+      "start_time": 5.68,
+      "end_time": 5.76
+    },
+    {
+      "text": "pretrained",
+      "start_time": 5.76,
+      "end_time": 6.4
+    },
+    {
+      "text": "Camembert",
+      "start_time": 6.4,
+      "end_time": 6.96
+    },
+    {
+      "text": "model",
+      "start_time": 6.96,
+      "end_time": 7.36
+    },
+    {
+      "text": "without",
+      "start_time": 7.44,
+      "end_time": 7.92
+    },
+    {
+      "text": "optimizing",
+      "start_time": 8.0,
+      "end_time": 8.72
+    },
+    {
+      "text": "for",
+      "start_time": 8.72,
+      "end_time": 8.88
+    },
+    {
+      "text": "the",
+      "start_time": 8.88,
+      "end_time": 9.04
+    },
+    {
+      "text": "information",
+      "start_time": 9.04,
+      "end_time": 9.68
+    },
+    {
+      "text": "retrieval",
+      "start_time": 9.68,
+      "end_time": 10.0
+    },
+    {
+      "text": "task",
+      "start_time": 10.0,
+      "end_time": 10.56
+    },
+    {
+      "text": "gives",
+      "start_time": 10.96,
+      "end_time": 11.28
+    },
+    {
+      "text": "poor",
+      "start_time": 11.28,
+      "end_time": 11.6
+    },
+    {
+      "text": "results",
+      "start_time": 11.6,
+      "end_time": 12.24
+    },
+    {
+      "text": "which",
+      "start_time": 12.64,
+      "end_time": 12.8
+    },
+    {
+      "text": "is",
+      "start_time": 12.8,
+      "end_time": 12.88
+    },
+    {
+      "text": "consistent",
+      "start_time": 12.88,
+      "end_time": 13.28
+    },
+    {
+      "text": "with",
+      "start_time": 13.44,
+      "end_time": 13.68
+    },
+    {
+      "text": "previous",
+      "start_time": 13.68,
+      "end_time": 13.92
+    },
+    {
+      "text": "findings",
+      "start_time": 13.92,
+      "end_time": 14.48
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

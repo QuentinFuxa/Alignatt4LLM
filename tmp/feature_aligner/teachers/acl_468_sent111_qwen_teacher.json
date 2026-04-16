@@ -1,0 +1,66 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_111.wav",
+  "text": "This information retrieval task comes with its own set of challenges.",
+  "audio_duration_s": 4.353,
+  "words": [
+    {
+      "text": "This",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "information",
+      "start_time": 0.4,
+      "end_time": 1.04
+    },
+    {
+      "text": "retrieval",
+      "start_time": 1.04,
+      "end_time": 1.44
+    },
+    {
+      "text": "task",
+      "start_time": 1.44,
+      "end_time": 1.84
+    },
+    {
+      "text": "comes",
+      "start_time": 1.92,
+      "end_time": 2.32
+    },
+    {
+      "text": "with",
+      "start_time": 2.32,
+      "end_time": 2.56
+    },
+    {
+      "text": "its",
+      "start_time": 2.56,
+      "end_time": 2.8
+    },
+    {
+      "text": "own",
+      "start_time": 2.88,
+      "end_time": 3.12
+    },
+    {
+      "text": "set",
+      "start_time": 3.12,
+      "end_time": 3.44
+    },
+    {
+      "text": "of",
+      "start_time": 3.44,
+      "end_time": 3.6
+    },
+    {
+      "text": "challenges",
+      "start_time": 3.6,
+      "end_time": 4.32
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

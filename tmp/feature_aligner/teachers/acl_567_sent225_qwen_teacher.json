@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_225.wav",
+  "text": "For more metrics and results on them, do check out our paper.",
+  "audio_duration_s": 3.752,
+  "words": [
+    {
+      "text": "For",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "more",
+      "start_time": 0.32,
+      "end_time": 0.64
+    },
+    {
+      "text": "metrics",
+      "start_time": 0.64,
+      "end_time": 1.28
+    },
+    {
+      "text": "and",
+      "start_time": 1.28,
+      "end_time": 1.44
+    },
+    {
+      "text": "results",
+      "start_time": 1.44,
+      "end_time": 1.84
+    },
+    {
+      "text": "on",
+      "start_time": 1.84,
+      "end_time": 2.08
+    },
+    {
+      "text": "them",
+      "start_time": 2.08,
+      "end_time": 2.32
+    },
+    {
+      "text": "do",
+      "start_time": 2.32,
+      "end_time": 2.48
+    },
+    {
+      "text": "check",
+      "start_time": 2.48,
+      "end_time": 2.72
+    },
+    {
+      "text": "out",
+      "start_time": 2.72,
+      "end_time": 2.96
+    },
+    {
+      "text": "our",
+      "start_time": 2.96,
+      "end_time": 3.04
+    },
+    {
+      "text": "paper",
+      "start_time": 3.04,
+      "end_time": 3.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

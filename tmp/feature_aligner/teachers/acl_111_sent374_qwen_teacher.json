@@ -1,0 +1,81 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_374.wav",
+  "text": "In MT-DNN, MT-DNN maintain heads in the number of tasks in the training set.",
+  "audio_duration_s": 10.137375,
+  "words": [
+    {
+      "text": "In",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "MTDNN",
+      "start_time": 0.56,
+      "end_time": 0.96
+    },
+    {
+      "text": "MTDNN",
+      "start_time": 0.96,
+      "end_time": 0.96
+    },
+    {
+      "text": "maintain",
+      "start_time": 4.08,
+      "end_time": 5.04
+    },
+    {
+      "text": "heads",
+      "start_time": 5.52,
+      "end_time": 6.56
+    },
+    {
+      "text": "in",
+      "start_time": 6.56,
+      "end_time": 6.56
+    },
+    {
+      "text": "the",
+      "start_time": 6.72,
+      "end_time": 6.8
+    },
+    {
+      "text": "number",
+      "start_time": 6.8,
+      "end_time": 7.28
+    },
+    {
+      "text": "of",
+      "start_time": 7.28,
+      "end_time": 7.36
+    },
+    {
+      "text": "tasks",
+      "start_time": 8.08,
+      "end_time": 8.8
+    },
+    {
+      "text": "in",
+      "start_time": 9.04,
+      "end_time": 9.2
+    },
+    {
+      "text": "the",
+      "start_time": 9.2,
+      "end_time": 9.28
+    },
+    {
+      "text": "training",
+      "start_time": 9.28,
+      "end_time": 9.68
+    },
+    {
+      "text": "set",
+      "start_time": 9.68,
+      "end_time": 9.92
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

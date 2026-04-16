@@ -1,0 +1,51 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_381.wav",
+  "text": "MTDNN maintains number of classes, heads, output layers.",
+  "audio_duration_s": 3.563,
+  "words": [
+    {
+      "text": "MTDNN",
+      "start_time": 0.08,
+      "end_time": 0.64
+    },
+    {
+      "text": "maintains",
+      "start_time": 0.8,
+      "end_time": 1.2
+    },
+    {
+      "text": "number",
+      "start_time": 1.2,
+      "end_time": 1.52
+    },
+    {
+      "text": "of",
+      "start_time": 1.52,
+      "end_time": 1.68
+    },
+    {
+      "text": "classes",
+      "start_time": 1.76,
+      "end_time": 2.16
+    },
+    {
+      "text": "heads",
+      "start_time": 2.16,
+      "end_time": 2.56
+    },
+    {
+      "text": "output",
+      "start_time": 2.64,
+      "end_time": 3.04
+    },
+    {
+      "text": "layers",
+      "start_time": 3.04,
+      "end_time": 3.44
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

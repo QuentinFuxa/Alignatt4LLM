@@ -1,0 +1,91 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_261.wav",
+  "text": "I present two related researches, but they are problems of limited applicability and scarce data resources.",
+  "audio_duration_s": 8.159,
+  "words": [
+    {
+      "text": "I",
+      "start_time": 0.08,
+      "end_time": 0.32
+    },
+    {
+      "text": "present",
+      "start_time": 0.32,
+      "end_time": 0.8
+    },
+    {
+      "text": "two",
+      "start_time": 0.8,
+      "end_time": 1.2
+    },
+    {
+      "text": "related",
+      "start_time": 1.2,
+      "end_time": 1.76
+    },
+    {
+      "text": "researches",
+      "start_time": 1.76,
+      "end_time": 2.48
+    },
+    {
+      "text": "but",
+      "start_time": 2.8,
+      "end_time": 3.12
+    },
+    {
+      "text": "they",
+      "start_time": 3.12,
+      "end_time": 3.2
+    },
+    {
+      "text": "are",
+      "start_time": 3.2,
+      "end_time": 3.44
+    },
+    {
+      "text": "problems",
+      "start_time": 3.44,
+      "end_time": 4.08
+    },
+    {
+      "text": "of",
+      "start_time": 4.08,
+      "end_time": 4.4
+    },
+    {
+      "text": "limited",
+      "start_time": 4.64,
+      "end_time": 5.12
+    },
+    {
+      "text": "applicability",
+      "start_time": 5.12,
+      "end_time": 6.0
+    },
+    {
+      "text": "and",
+      "start_time": 6.48,
+      "end_time": 6.72
+    },
+    {
+      "text": "scarce",
+      "start_time": 6.72,
+      "end_time": 7.12
+    },
+    {
+      "text": "data",
+      "start_time": 7.12,
+      "end_time": 7.44
+    },
+    {
+      "text": "resources",
+      "start_time": 7.44,
+      "end_time": 8.08
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_149.wav",
+  "text": "Which can't be explained by the fact that those codes focus less on individuals and their concerns.",
+  "audio_duration_s": 5.373,
+  "words": [
+    {
+      "text": "Which",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "can't",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "be",
+      "start_time": 0.56,
+      "end_time": 0.64
+    },
+    {
+      "text": "explained",
+      "start_time": 0.64,
+      "end_time": 1.04
+    },
+    {
+      "text": "by",
+      "start_time": 1.04,
+      "end_time": 1.12
+    },
+    {
+      "text": "the",
+      "start_time": 1.12,
+      "end_time": 1.12
+    },
+    {
+      "text": "fact",
+      "start_time": 1.12,
+      "end_time": 1.44
+    },
+    {
+      "text": "that",
+      "start_time": 1.44,
+      "end_time": 1.6
+    },
+    {
+      "text": "those",
+      "start_time": 1.6,
+      "end_time": 2.0
+    },
+    {
+      "text": "codes",
+      "start_time": 2.0,
+      "end_time": 2.32
+    },
+    {
+      "text": "focus",
+      "start_time": 2.32,
+      "end_time": 2.64
+    },
+    {
+      "text": "less",
+      "start_time": 2.64,
+      "end_time": 2.88
+    },
+    {
+      "text": "on",
+      "start_time": 2.96,
+      "end_time": 3.2
+    },
+    {
+      "text": "individuals",
+      "start_time": 3.28,
+      "end_time": 4.16
+    },
+    {
+      "text": "and",
+      "start_time": 4.16,
+      "end_time": 4.4
+    },
+    {
+      "text": "their",
+      "start_time": 4.4,
+      "end_time": 4.56
+    },
+    {
+      "text": "concerns",
+      "start_time": 4.56,
+      "end_time": 5.2
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

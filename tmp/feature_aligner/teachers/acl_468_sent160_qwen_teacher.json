@@ -1,0 +1,56 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_160.wav",
+  "text": "Additionally, we train our own camembert-based model, uh, bi-encoders.",
+  "audio_duration_s": 5.323,
+  "words": [
+    {
+      "text": "Additionally",
+      "start_time": 0.16,
+      "end_time": 0.8
+    },
+    {
+      "text": "we",
+      "start_time": 0.8,
+      "end_time": 0.96
+    },
+    {
+      "text": "train",
+      "start_time": 0.96,
+      "end_time": 1.36
+    },
+    {
+      "text": "our",
+      "start_time": 1.44,
+      "end_time": 1.68
+    },
+    {
+      "text": "own",
+      "start_time": 1.76,
+      "end_time": 2.16
+    },
+    {
+      "text": "camembertbased",
+      "start_time": 2.24,
+      "end_time": 3.12
+    },
+    {
+      "text": "model",
+      "start_time": 3.12,
+      "end_time": 3.68
+    },
+    {
+      "text": "uh",
+      "start_time": 4.16,
+      "end_time": 4.64
+    },
+    {
+      "text": "biencoders",
+      "start_time": 4.64,
+      "end_time": 5.28
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

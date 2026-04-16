@@ -1,0 +1,121 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_119.wav",
+  "text": "The recent advances in NLP have sparked huge interest in many legal tasks, such as legal judgment prediction or automated contract review.",
+  "audio_duration_s": 8.782,
+  "words": [
+    {
+      "text": "The",
+      "start_time": 0.24,
+      "end_time": 0.32
+    },
+    {
+      "text": "recent",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "advances",
+      "start_time": 0.56,
+      "end_time": 1.04
+    },
+    {
+      "text": "in",
+      "start_time": 1.04,
+      "end_time": 1.12
+    },
+    {
+      "text": "NLP",
+      "start_time": 1.12,
+      "end_time": 1.6
+    },
+    {
+      "text": "have",
+      "start_time": 1.6,
+      "end_time": 1.76
+    },
+    {
+      "text": "sparked",
+      "start_time": 1.76,
+      "end_time": 2.16
+    },
+    {
+      "text": "huge",
+      "start_time": 2.24,
+      "end_time": 2.64
+    },
+    {
+      "text": "interest",
+      "start_time": 2.64,
+      "end_time": 3.04
+    },
+    {
+      "text": "in",
+      "start_time": 3.04,
+      "end_time": 3.2
+    },
+    {
+      "text": "many",
+      "start_time": 3.2,
+      "end_time": 3.52
+    },
+    {
+      "text": "legal",
+      "start_time": 3.52,
+      "end_time": 3.76
+    },
+    {
+      "text": "tasks",
+      "start_time": 3.76,
+      "end_time": 4.16
+    },
+    {
+      "text": "such",
+      "start_time": 4.16,
+      "end_time": 4.32
+    },
+    {
+      "text": "as",
+      "start_time": 4.32,
+      "end_time": 4.56
+    },
+    {
+      "text": "legal",
+      "start_time": 4.96,
+      "end_time": 5.2
+    },
+    {
+      "text": "judgment",
+      "start_time": 5.2,
+      "end_time": 5.6
+    },
+    {
+      "text": "prediction",
+      "start_time": 5.6,
+      "end_time": 6.16
+    },
+    {
+      "text": "or",
+      "start_time": 6.16,
+      "end_time": 6.56
+    },
+    {
+      "text": "automated",
+      "start_time": 6.56,
+      "end_time": 7.04
+    },
+    {
+      "text": "contract",
+      "start_time": 7.12,
+      "end_time": 7.52
+    },
+    {
+      "text": "review",
+      "start_time": 7.52,
+      "end_time": 7.76
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

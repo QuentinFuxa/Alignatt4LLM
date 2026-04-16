@@ -1,0 +1,146 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_147.wav",
+  "text": "One question in the datasets, and around eighty percent of these cited articles come from either the Civil Code, Judicial Code, Criminal Investigation Code, or Penal Codes.",
+  "audio_duration_s": 10.77,
+  "words": [
+    {
+      "text": "One",
+      "start_time": 0.0,
+      "end_time": 0.32
+    },
+    {
+      "text": "question",
+      "start_time": 0.32,
+      "end_time": 0.8
+    },
+    {
+      "text": "in",
+      "start_time": 0.8,
+      "end_time": 0.96
+    },
+    {
+      "text": "the",
+      "start_time": 0.96,
+      "end_time": 1.04
+    },
+    {
+      "text": "datasets",
+      "start_time": 1.04,
+      "end_time": 1.84
+    },
+    {
+      "text": "and",
+      "start_time": 2.4,
+      "end_time": 2.48
+    },
+    {
+      "text": "around",
+      "start_time": 2.48,
+      "end_time": 2.88
+    },
+    {
+      "text": "eighty",
+      "start_time": 2.88,
+      "end_time": 3.2
+    },
+    {
+      "text": "percent",
+      "start_time": 3.2,
+      "end_time": 3.68
+    },
+    {
+      "text": "of",
+      "start_time": 3.68,
+      "end_time": 3.84
+    },
+    {
+      "text": "these",
+      "start_time": 3.84,
+      "end_time": 4.16
+    },
+    {
+      "text": "cited",
+      "start_time": 4.24,
+      "end_time": 4.8
+    },
+    {
+      "text": "articles",
+      "start_time": 4.8,
+      "end_time": 5.36
+    },
+    {
+      "text": "come",
+      "start_time": 5.36,
+      "end_time": 5.6
+    },
+    {
+      "text": "from",
+      "start_time": 5.6,
+      "end_time": 5.84
+    },
+    {
+      "text": "either",
+      "start_time": 5.92,
+      "end_time": 6.08
+    },
+    {
+      "text": "the",
+      "start_time": 6.08,
+      "end_time": 6.16
+    },
+    {
+      "text": "Civil",
+      "start_time": 6.16,
+      "end_time": 6.56
+    },
+    {
+      "text": "Code",
+      "start_time": 6.56,
+      "end_time": 6.96
+    },
+    {
+      "text": "Judicial",
+      "start_time": 7.28,
+      "end_time": 7.68
+    },
+    {
+      "text": "Code",
+      "start_time": 7.68,
+      "end_time": 8.08
+    },
+    {
+      "text": "Criminal",
+      "start_time": 8.24,
+      "end_time": 8.64
+    },
+    {
+      "text": "Investigation",
+      "start_time": 8.64,
+      "end_time": 9.36
+    },
+    {
+      "text": "Code",
+      "start_time": 9.36,
+      "end_time": 9.68
+    },
+    {
+      "text": "or",
+      "start_time": 9.76,
+      "end_time": 10.0
+    },
+    {
+      "text": "Penal",
+      "start_time": 10.0,
+      "end_time": 10.32
+    },
+    {
+      "text": "Codes",
+      "start_time": 10.32,
+      "end_time": 10.72
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

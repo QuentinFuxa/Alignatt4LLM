@@ -1,0 +1,81 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_407.wav",
+  "text": "While empty DNN achieved two percent improvement over the the target dataset fine tuning.",
+  "audio_duration_s": 9.502,
+  "words": [
+    {
+      "text": "While",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "empty",
+      "start_time": 0.32,
+      "end_time": 0.88
+    },
+    {
+      "text": "DNN",
+      "start_time": 0.88,
+      "end_time": 1.12
+    },
+    {
+      "text": "achieved",
+      "start_time": 1.52,
+      "end_time": 1.6
+    },
+    {
+      "text": "two",
+      "start_time": 1.84,
+      "end_time": 2.32
+    },
+    {
+      "text": "percent",
+      "start_time": 3.76,
+      "end_time": 4.32
+    },
+    {
+      "text": "improvement",
+      "start_time": 4.4,
+      "end_time": 5.12
+    },
+    {
+      "text": "over",
+      "start_time": 5.2,
+      "end_time": 5.44
+    },
+    {
+      "text": "the",
+      "start_time": 5.44,
+      "end_time": 5.76
+    },
+    {
+      "text": "the",
+      "start_time": 6.24,
+      "end_time": 6.96
+    },
+    {
+      "text": "target",
+      "start_time": 7.36,
+      "end_time": 8.0
+    },
+    {
+      "text": "dataset",
+      "start_time": 8.0,
+      "end_time": 8.4
+    },
+    {
+      "text": "fine",
+      "start_time": 8.4,
+      "end_time": 8.8
+    },
+    {
+      "text": "tuning",
+      "start_time": 8.8,
+      "end_time": 9.28
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

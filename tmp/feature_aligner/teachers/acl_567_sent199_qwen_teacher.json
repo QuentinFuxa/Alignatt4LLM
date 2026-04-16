@@ -1,0 +1,151 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_199.wav",
+  "text": "Foiling basically means that we take the caption of an image and produce a foil by altering the caption such that it does not describe the image anymore.",
+  "audio_duration_s": 12.52,
+  "words": [
+    {
+      "text": "Foiling",
+      "start_time": 0.16,
+      "end_time": 0.64
+    },
+    {
+      "text": "basically",
+      "start_time": 0.64,
+      "end_time": 1.28
+    },
+    {
+      "text": "means",
+      "start_time": 1.28,
+      "end_time": 1.84
+    },
+    {
+      "text": "that",
+      "start_time": 1.84,
+      "end_time": 2.16
+    },
+    {
+      "text": "we",
+      "start_time": 2.16,
+      "end_time": 2.32
+    },
+    {
+      "text": "take",
+      "start_time": 2.32,
+      "end_time": 2.72
+    },
+    {
+      "text": "the",
+      "start_time": 2.72,
+      "end_time": 2.8
+    },
+    {
+      "text": "caption",
+      "start_time": 2.8,
+      "end_time": 3.6
+    },
+    {
+      "text": "of",
+      "start_time": 3.68,
+      "end_time": 3.84
+    },
+    {
+      "text": "an",
+      "start_time": 3.84,
+      "end_time": 4.0
+    },
+    {
+      "text": "image",
+      "start_time": 4.0,
+      "end_time": 4.4
+    },
+    {
+      "text": "and",
+      "start_time": 4.64,
+      "end_time": 4.88
+    },
+    {
+      "text": "produce",
+      "start_time": 4.88,
+      "end_time": 5.28
+    },
+    {
+      "text": "a",
+      "start_time": 5.28,
+      "end_time": 5.36
+    },
+    {
+      "text": "foil",
+      "start_time": 5.36,
+      "end_time": 6.0
+    },
+    {
+      "text": "by",
+      "start_time": 6.4,
+      "end_time": 6.72
+    },
+    {
+      "text": "altering",
+      "start_time": 6.8,
+      "end_time": 7.44
+    },
+    {
+      "text": "the",
+      "start_time": 7.44,
+      "end_time": 7.52
+    },
+    {
+      "text": "caption",
+      "start_time": 7.52,
+      "end_time": 8.56
+    },
+    {
+      "text": "such",
+      "start_time": 8.8,
+      "end_time": 9.44
+    },
+    {
+      "text": "that",
+      "start_time": 9.44,
+      "end_time": 9.84
+    },
+    {
+      "text": "it",
+      "start_time": 9.84,
+      "end_time": 10.16
+    },
+    {
+      "text": "does",
+      "start_time": 10.16,
+      "end_time": 10.4
+    },
+    {
+      "text": "not",
+      "start_time": 10.4,
+      "end_time": 10.72
+    },
+    {
+      "text": "describe",
+      "start_time": 10.72,
+      "end_time": 11.28
+    },
+    {
+      "text": "the",
+      "start_time": 11.28,
+      "end_time": 11.44
+    },
+    {
+      "text": "image",
+      "start_time": 11.52,
+      "end_time": 11.84
+    },
+    {
+      "text": "anymore",
+      "start_time": 11.84,
+      "end_time": 12.48
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

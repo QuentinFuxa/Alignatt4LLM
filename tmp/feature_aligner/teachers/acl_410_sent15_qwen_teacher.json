@@ -1,0 +1,66 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_15.wav",
+  "text": "Furthermore, complicated operators can be actually decomposed into these basic operators.",
+  "audio_duration_s": 4.924,
+  "words": [
+    {
+      "text": "Furthermore",
+      "start_time": 0.16,
+      "end_time": 0.64
+    },
+    {
+      "text": "complicated",
+      "start_time": 0.64,
+      "end_time": 1.12
+    },
+    {
+      "text": "operators",
+      "start_time": 1.2,
+      "end_time": 1.68
+    },
+    {
+      "text": "can",
+      "start_time": 1.68,
+      "end_time": 1.92
+    },
+    {
+      "text": "be",
+      "start_time": 1.92,
+      "end_time": 2.08
+    },
+    {
+      "text": "actually",
+      "start_time": 2.08,
+      "end_time": 2.56
+    },
+    {
+      "text": "decomposed",
+      "start_time": 2.72,
+      "end_time": 3.2
+    },
+    {
+      "text": "into",
+      "start_time": 3.2,
+      "end_time": 3.52
+    },
+    {
+      "text": "these",
+      "start_time": 3.52,
+      "end_time": 3.76
+    },
+    {
+      "text": "basic",
+      "start_time": 3.76,
+      "end_time": 4.16
+    },
+    {
+      "text": "operators",
+      "start_time": 4.16,
+      "end_time": 4.8
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

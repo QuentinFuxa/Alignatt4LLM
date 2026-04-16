@@ -1,0 +1,111 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_230.wav",
+  "text": "The relation piece shows that they have difficulties in correctly classifying a named spatial relation between objects in an image.",
+  "audio_duration_s": 8.057,
+  "words": [
+    {
+      "text": "The",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "relation",
+      "start_time": 0.4,
+      "end_time": 0.96
+    },
+    {
+      "text": "piece",
+      "start_time": 0.96,
+      "end_time": 1.52
+    },
+    {
+      "text": "shows",
+      "start_time": 1.52,
+      "end_time": 1.84
+    },
+    {
+      "text": "that",
+      "start_time": 1.92,
+      "end_time": 2.08
+    },
+    {
+      "text": "they",
+      "start_time": 2.08,
+      "end_time": 2.16
+    },
+    {
+      "text": "have",
+      "start_time": 2.16,
+      "end_time": 2.32
+    },
+    {
+      "text": "difficulties",
+      "start_time": 2.32,
+      "end_time": 3.04
+    },
+    {
+      "text": "in",
+      "start_time": 3.04,
+      "end_time": 3.12
+    },
+    {
+      "text": "correctly",
+      "start_time": 3.12,
+      "end_time": 3.52
+    },
+    {
+      "text": "classifying",
+      "start_time": 3.52,
+      "end_time": 4.32
+    },
+    {
+      "text": "a",
+      "start_time": 4.32,
+      "end_time": 4.32
+    },
+    {
+      "text": "named",
+      "start_time": 4.32,
+      "end_time": 4.72
+    },
+    {
+      "text": "spatial",
+      "start_time": 4.72,
+      "end_time": 5.2
+    },
+    {
+      "text": "relation",
+      "start_time": 5.2,
+      "end_time": 5.84
+    },
+    {
+      "text": "between",
+      "start_time": 5.84,
+      "end_time": 6.24
+    },
+    {
+      "text": "objects",
+      "start_time": 6.24,
+      "end_time": 7.04
+    },
+    {
+      "text": "in",
+      "start_time": 7.04,
+      "end_time": 7.28
+    },
+    {
+      "text": "an",
+      "start_time": 7.36,
+      "end_time": 7.44
+    },
+    {
+      "text": "image",
+      "start_time": 7.44,
+      "end_time": 7.92
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

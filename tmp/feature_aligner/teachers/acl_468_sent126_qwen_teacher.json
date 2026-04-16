@@ -1,0 +1,66 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_126.wav",
+  "text": "First, we started by compiling a large corpus of legal articles.",
+  "audio_duration_s": 4.223,
+  "words": [
+    {
+      "text": "First",
+      "start_time": 0.16,
+      "end_time": 0.56
+    },
+    {
+      "text": "we",
+      "start_time": 0.64,
+      "end_time": 0.8
+    },
+    {
+      "text": "started",
+      "start_time": 0.8,
+      "end_time": 1.2
+    },
+    {
+      "text": "by",
+      "start_time": 1.2,
+      "end_time": 1.36
+    },
+    {
+      "text": "compiling",
+      "start_time": 1.36,
+      "end_time": 2.08
+    },
+    {
+      "text": "a",
+      "start_time": 2.08,
+      "end_time": 2.16
+    },
+    {
+      "text": "large",
+      "start_time": 2.16,
+      "end_time": 2.56
+    },
+    {
+      "text": "corpus",
+      "start_time": 2.56,
+      "end_time": 2.96
+    },
+    {
+      "text": "of",
+      "start_time": 2.96,
+      "end_time": 3.12
+    },
+    {
+      "text": "legal",
+      "start_time": 3.2,
+      "end_time": 3.44
+    },
+    {
+      "text": "articles",
+      "start_time": 3.52,
+      "end_time": 4.16
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

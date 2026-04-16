@@ -1,0 +1,96 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_27.wav",
+  "text": "So, for example, here in the second step, we can obtain this divisors, which is twenty-seven, and.",
+  "audio_duration_s": 7.695,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "for",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "example",
+      "start_time": 0.56,
+      "end_time": 0.88
+    },
+    {
+      "text": "here",
+      "start_time": 0.88,
+      "end_time": 1.12
+    },
+    {
+      "text": "in",
+      "start_time": 1.12,
+      "end_time": 1.28
+    },
+    {
+      "text": "the",
+      "start_time": 1.28,
+      "end_time": 1.28
+    },
+    {
+      "text": "second",
+      "start_time": 1.28,
+      "end_time": 1.68
+    },
+    {
+      "text": "step",
+      "start_time": 1.68,
+      "end_time": 2.0
+    },
+    {
+      "text": "we",
+      "start_time": 2.48,
+      "end_time": 3.04
+    },
+    {
+      "text": "can",
+      "start_time": 3.04,
+      "end_time": 3.2
+    },
+    {
+      "text": "obtain",
+      "start_time": 3.2,
+      "end_time": 3.68
+    },
+    {
+      "text": "this",
+      "start_time": 3.84,
+      "end_time": 4.16
+    },
+    {
+      "text": "divisors",
+      "start_time": 4.48,
+      "end_time": 5.12
+    },
+    {
+      "text": "which",
+      "start_time": 5.36,
+      "end_time": 5.52
+    },
+    {
+      "text": "is",
+      "start_time": 5.52,
+      "end_time": 5.6
+    },
+    {
+      "text": "twentyseven",
+      "start_time": 6.08,
+      "end_time": 6.64
+    },
+    {
+      "text": "and",
+      "start_time": 7.52,
+      "end_time": 7.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_394.wav",
+  "text": "Then it reformulates the task into a per sentence per classification task.",
+  "audio_duration_s": 8.15,
+  "words": [
+    {
+      "text": "Then",
+      "start_time": 0.16,
+      "end_time": 0.56
+    },
+    {
+      "text": "it",
+      "start_time": 1.04,
+      "end_time": 1.6
+    },
+    {
+      "text": "reformulates",
+      "start_time": 1.6,
+      "end_time": 2.48
+    },
+    {
+      "text": "the",
+      "start_time": 2.48,
+      "end_time": 2.48
+    },
+    {
+      "text": "task",
+      "start_time": 2.48,
+      "end_time": 2.88
+    },
+    {
+      "text": "into",
+      "start_time": 2.88,
+      "end_time": 3.36
+    },
+    {
+      "text": "a",
+      "start_time": 3.52,
+      "end_time": 3.76
+    },
+    {
+      "text": "per",
+      "start_time": 3.76,
+      "end_time": 4.16
+    },
+    {
+      "text": "sentence",
+      "start_time": 4.64,
+      "end_time": 6.08
+    },
+    {
+      "text": "per",
+      "start_time": 6.08,
+      "end_time": 6.4
+    },
+    {
+      "text": "classification",
+      "start_time": 6.4,
+      "end_time": 7.52
+    },
+    {
+      "text": "task",
+      "start_time": 7.52,
+      "end_time": 8.08
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

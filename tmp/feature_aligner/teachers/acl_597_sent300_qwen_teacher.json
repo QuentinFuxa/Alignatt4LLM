@@ -1,0 +1,91 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_300.wav",
+  "text": "The output text can be divided into cross-wide segments based on special cross-specific end point symbols.",
+  "audio_duration_s": 7.634,
+  "words": [
+    {
+      "text": "The",
+      "start_time": 0.08,
+      "end_time": 0.32
+    },
+    {
+      "text": "output",
+      "start_time": 0.32,
+      "end_time": 0.88
+    },
+    {
+      "text": "text",
+      "start_time": 0.88,
+      "end_time": 1.44
+    },
+    {
+      "text": "can",
+      "start_time": 1.44,
+      "end_time": 1.6
+    },
+    {
+      "text": "be",
+      "start_time": 1.6,
+      "end_time": 1.76
+    },
+    {
+      "text": "divided",
+      "start_time": 1.76,
+      "end_time": 2.32
+    },
+    {
+      "text": "into",
+      "start_time": 2.4,
+      "end_time": 2.64
+    },
+    {
+      "text": "crosswide",
+      "start_time": 2.72,
+      "end_time": 3.52
+    },
+    {
+      "text": "segments",
+      "start_time": 3.92,
+      "end_time": 4.48
+    },
+    {
+      "text": "based",
+      "start_time": 4.64,
+      "end_time": 4.96
+    },
+    {
+      "text": "on",
+      "start_time": 4.96,
+      "end_time": 5.12
+    },
+    {
+      "text": "special",
+      "start_time": 5.2,
+      "end_time": 5.6
+    },
+    {
+      "text": "crossspecific",
+      "start_time": 5.6,
+      "end_time": 6.48
+    },
+    {
+      "text": "end",
+      "start_time": 6.56,
+      "end_time": 6.72
+    },
+    {
+      "text": "point",
+      "start_time": 6.72,
+      "end_time": 6.96
+    },
+    {
+      "text": "symbols",
+      "start_time": 6.96,
+      "end_time": 7.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

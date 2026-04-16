@@ -1,0 +1,36 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_370.wav",
+  "text": "A preliminary multitask fine-tuning phase.",
+  "audio_duration_s": 3.283,
+  "words": [
+    {
+      "text": "A",
+      "start_time": 0.08,
+      "end_time": 0.24
+    },
+    {
+      "text": "preliminary",
+      "start_time": 0.24,
+      "end_time": 1.2
+    },
+    {
+      "text": "multitask",
+      "start_time": 1.28,
+      "end_time": 1.92
+    },
+    {
+      "text": "finetuning",
+      "start_time": 1.92,
+      "end_time": 2.72
+    },
+    {
+      "text": "phase",
+      "start_time": 2.72,
+      "end_time": 3.2
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

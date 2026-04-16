@@ -1,0 +1,86 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_359.wav",
+  "text": "But it is not likely that we can train language model using the input datasets.",
+  "audio_duration_s": 4.631,
+  "words": [
+    {
+      "text": "But",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "it",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "is",
+      "start_time": 0.48,
+      "end_time": 0.64
+    },
+    {
+      "text": "not",
+      "start_time": 0.64,
+      "end_time": 0.8
+    },
+    {
+      "text": "likely",
+      "start_time": 0.8,
+      "end_time": 1.28
+    },
+    {
+      "text": "that",
+      "start_time": 1.28,
+      "end_time": 1.52
+    },
+    {
+      "text": "we",
+      "start_time": 1.52,
+      "end_time": 1.6
+    },
+    {
+      "text": "can",
+      "start_time": 1.6,
+      "end_time": 1.76
+    },
+    {
+      "text": "train",
+      "start_time": 1.76,
+      "end_time": 2.16
+    },
+    {
+      "text": "language",
+      "start_time": 2.16,
+      "end_time": 2.56
+    },
+    {
+      "text": "model",
+      "start_time": 2.56,
+      "end_time": 3.04
+    },
+    {
+      "text": "using",
+      "start_time": 3.04,
+      "end_time": 3.44
+    },
+    {
+      "text": "the",
+      "start_time": 3.44,
+      "end_time": 3.52
+    },
+    {
+      "text": "input",
+      "start_time": 3.52,
+      "end_time": 3.92
+    },
+    {
+      "text": "datasets",
+      "start_time": 3.92,
+      "end_time": 4.32
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

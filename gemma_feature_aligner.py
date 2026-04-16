@@ -1,20 +1,17 @@
-"""Small dedicated transcript-conditioned aligner on frozen Gemma audio features.
+"""Transcript-conditioned aligner on frozen Gemma audio features.
+
+Inspired by Qwen3-ForcedAligner: timestamps as discrete classification
+over audio positions, not continuous regression.
 
 Architecture:
-  1. Frozen Gemma text embeddings projected to aligner hidden dim
-  2. Cross-attention transformer: transcript queries attend to audio keys
-  3. Output: dot-product scores over audio positions per transcript token
+  1. Frozen Gemma text embeddings projected to hidden dim
+  2. Frozen Gemma audio features projected to hidden dim
+  3. Cross-attention transformer: transcript queries attend to audio keys
+  4. Classification head: per-token logits over audio positions
 
 Supervision: Qwen teacher timestamps (training only).
 At inference, predicts audio positions independently of Qwen.
-
-Input contract:
-  - audio_features: (num_audio_tokens, audio_dim)  — frozen Gemma audio tower output
-  - transcript_ids: (num_transcript_tokens,)        — tokenized transcript
-
-Output contract:
-  - Per transcript token: predicted audio position (index into audio_features)
-  - Monotonicity is enforced in post-processing, not in the model
+Monotonicity enforced via LIS-based post-processing (à la Qwen3).
 """
 
 from __future__ import annotations
@@ -31,9 +28,9 @@ class TranscriptAudioAligner(nn.Module):
         self,
         text_embed_dim: int,
         audio_dim: int = 1536,
-        hidden_dim: int = 128,
-        num_layers: int = 2,
-        num_heads: int = 4,
+        hidden_dim: int = 256,
+        num_layers: int = 4,
+        num_heads: int = 8,
         dropout: float = 0.1,
     ):
         super().__init__()
@@ -75,11 +72,9 @@ class TranscriptAudioAligner(nn.Module):
         text_embeds: torch.Tensor,
         audio_features: torch.Tensor,
     ) -> torch.Tensor:
-        """Predict expected audio position per transcript token (soft argmax)."""
+        """Predict audio position per transcript token (argmax)."""
         logits = self.forward(text_embeds, audio_features)  # (B, T, A)
-        probs = F.softmax(logits, dim=-1)
-        positions = torch.arange(logits.shape[2], device=logits.device, dtype=logits.dtype)
-        return (probs * positions.unsqueeze(0).unsqueeze(0)).sum(dim=-1)  # (B, T)
+        return logits.argmax(dim=-1).float()  # (B, T)
 
     @staticmethod
     def _sinusoidal_pe(length: int, dim: int, device: torch.device) -> torch.Tensor:
@@ -89,3 +84,60 @@ class TranscriptAudioAligner(nn.Module):
         pe[0, :, 0::2] = torch.sin(pos * div)
         pe[0, :, 1::2] = torch.cos(pos * div)
         return pe
+
+
+def enforce_monotone_lis(positions: list[float]) -> list[float]:
+    """LIS-based monotonicity enforcement, inspired by Qwen3-ForcedAligner.
+
+    Finds the longest increasing subsequence, then interpolates
+    non-monotone positions between valid boundaries.
+    """
+    n = len(positions)
+    if n <= 1:
+        return positions
+
+    # Find LIS indices
+    dp = [1] * n
+    parent = [-1] * n
+    for i in range(1, n):
+        for j in range(i):
+            if positions[j] <= positions[i] and dp[j] + 1 > dp[i]:
+                dp[i] = dp[j] + 1
+                parent[i] = j
+
+    # Reconstruct LIS
+    best_end = max(range(n), key=lambda i: dp[i])
+    lis_indices = set()
+    idx = best_end
+    while idx != -1:
+        lis_indices.add(idx)
+        idx = parent[idx]
+
+    result = list(positions)
+
+    # Fix non-LIS positions by interpolation
+    sorted_lis = sorted(lis_indices)
+    for i in range(n):
+        if i in lis_indices:
+            continue
+        # Find left and right LIS boundaries
+        left_val = 0.0
+        right_val = positions[sorted_lis[-1]] if sorted_lis else float(n)
+        left_idx = 0
+        right_idx = n - 1
+        for li in sorted_lis:
+            if li < i:
+                left_val = positions[li]
+                left_idx = li
+            elif li > i:
+                right_val = positions[li]
+                right_idx = li
+                break
+        # Linear interpolation
+        if right_idx > left_idx:
+            frac = (i - left_idx) / (right_idx - left_idx)
+            result[i] = left_val + frac * (right_val - left_val)
+        else:
+            result[i] = left_val
+
+    return result

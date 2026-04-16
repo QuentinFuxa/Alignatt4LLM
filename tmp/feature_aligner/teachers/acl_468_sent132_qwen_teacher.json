@@ -1,0 +1,136 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_132.wav",
+  "text": "Lastly, we passed the legal references and filtered out the questions whose references were not articles in one of the codes of law we considered.",
+  "audio_duration_s": 10.522,
+  "words": [
+    {
+      "text": "Lastly",
+      "start_time": 0.16,
+      "end_time": 0.72
+    },
+    {
+      "text": "we",
+      "start_time": 0.96,
+      "end_time": 1.12
+    },
+    {
+      "text": "passed",
+      "start_time": 1.12,
+      "end_time": 1.76
+    },
+    {
+      "text": "the",
+      "start_time": 1.76,
+      "end_time": 1.84
+    },
+    {
+      "text": "legal",
+      "start_time": 1.84,
+      "end_time": 2.16
+    },
+    {
+      "text": "references",
+      "start_time": 2.16,
+      "end_time": 2.96
+    },
+    {
+      "text": "and",
+      "start_time": 2.96,
+      "end_time": 3.12
+    },
+    {
+      "text": "filtered",
+      "start_time": 3.12,
+      "end_time": 3.68
+    },
+    {
+      "text": "out",
+      "start_time": 3.68,
+      "end_time": 4.16
+    },
+    {
+      "text": "the",
+      "start_time": 4.4,
+      "end_time": 4.48
+    },
+    {
+      "text": "questions",
+      "start_time": 4.48,
+      "end_time": 5.36
+    },
+    {
+      "text": "whose",
+      "start_time": 5.68,
+      "end_time": 5.92
+    },
+    {
+      "text": "references",
+      "start_time": 5.92,
+      "end_time": 6.48
+    },
+    {
+      "text": "were",
+      "start_time": 6.48,
+      "end_time": 6.72
+    },
+    {
+      "text": "not",
+      "start_time": 6.72,
+      "end_time": 7.04
+    },
+    {
+      "text": "articles",
+      "start_time": 7.12,
+      "end_time": 7.84
+    },
+    {
+      "text": "in",
+      "start_time": 7.92,
+      "end_time": 8.16
+    },
+    {
+      "text": "one",
+      "start_time": 8.16,
+      "end_time": 8.32
+    },
+    {
+      "text": "of",
+      "start_time": 8.32,
+      "end_time": 8.4
+    },
+    {
+      "text": "the",
+      "start_time": 8.4,
+      "end_time": 8.48
+    },
+    {
+      "text": "codes",
+      "start_time": 8.48,
+      "end_time": 8.96
+    },
+    {
+      "text": "of",
+      "start_time": 9.12,
+      "end_time": 9.28
+    },
+    {
+      "text": "law",
+      "start_time": 9.28,
+      "end_time": 9.6
+    },
+    {
+      "text": "we",
+      "start_time": 9.6,
+      "end_time": 9.68
+    },
+    {
+      "text": "considered",
+      "start_time": 9.68,
+      "end_time": 10.4
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

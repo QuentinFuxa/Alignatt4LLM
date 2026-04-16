@@ -1,0 +1,116 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_175.wav",
+  "text": "This information loss implies that the answer contained in the remaining relevant articles might be incomplete, although it still completely appropriate.",
+  "audio_duration_s": 8.996,
+  "words": [
+    {
+      "text": "This",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "information",
+      "start_time": 0.32,
+      "end_time": 0.96
+    },
+    {
+      "text": "loss",
+      "start_time": 0.96,
+      "end_time": 1.12
+    },
+    {
+      "text": "implies",
+      "start_time": 1.2,
+      "end_time": 1.6
+    },
+    {
+      "text": "that",
+      "start_time": 1.6,
+      "end_time": 1.84
+    },
+    {
+      "text": "the",
+      "start_time": 1.84,
+      "end_time": 2.08
+    },
+    {
+      "text": "answer",
+      "start_time": 2.08,
+      "end_time": 2.56
+    },
+    {
+      "text": "contained",
+      "start_time": 2.56,
+      "end_time": 3.12
+    },
+    {
+      "text": "in",
+      "start_time": 3.2,
+      "end_time": 3.28
+    },
+    {
+      "text": "the",
+      "start_time": 3.28,
+      "end_time": 3.36
+    },
+    {
+      "text": "remaining",
+      "start_time": 3.36,
+      "end_time": 4.08
+    },
+    {
+      "text": "relevant",
+      "start_time": 4.08,
+      "end_time": 4.4
+    },
+    {
+      "text": "articles",
+      "start_time": 4.48,
+      "end_time": 5.04
+    },
+    {
+      "text": "might",
+      "start_time": 5.44,
+      "end_time": 5.76
+    },
+    {
+      "text": "be",
+      "start_time": 5.76,
+      "end_time": 5.92
+    },
+    {
+      "text": "incomplete",
+      "start_time": 5.92,
+      "end_time": 6.72
+    },
+    {
+      "text": "although",
+      "start_time": 7.12,
+      "end_time": 7.28
+    },
+    {
+      "text": "it",
+      "start_time": 7.28,
+      "end_time": 7.36
+    },
+    {
+      "text": "still",
+      "start_time": 7.36,
+      "end_time": 7.68
+    },
+    {
+      "text": "completely",
+      "start_time": 7.68,
+      "end_time": 8.16
+    },
+    {
+      "text": "appropriate",
+      "start_time": 8.16,
+      "end_time": 8.96
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_367.wav",
+  "text": "But we can use prior knowledge about pre-analyzed datasets.",
+  "audio_duration_s": 3.446,
+  "words": [
+    {
+      "text": "But",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "we",
+      "start_time": 0.48,
+      "end_time": 0.8
+    },
+    {
+      "text": "can",
+      "start_time": 0.8,
+      "end_time": 1.04
+    },
+    {
+      "text": "use",
+      "start_time": 1.04,
+      "end_time": 1.28
+    },
+    {
+      "text": "prior",
+      "start_time": 1.28,
+      "end_time": 1.6
+    },
+    {
+      "text": "knowledge",
+      "start_time": 1.6,
+      "end_time": 2.0
+    },
+    {
+      "text": "about",
+      "start_time": 2.0,
+      "end_time": 2.32
+    },
+    {
+      "text": "preanalyzed",
+      "start_time": 2.32,
+      "end_time": 2.96
+    },
+    {
+      "text": "datasets",
+      "start_time": 2.96,
+      "end_time": 3.44
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

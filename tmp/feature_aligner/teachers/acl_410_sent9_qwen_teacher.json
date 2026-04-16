@@ -1,0 +1,86 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_9.wav",
+  "text": "And we also think math problem is a straightforward application to evaluate such reasoning abilities.",
+  "audio_duration_s": 7.593,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "we",
+      "start_time": 0.4,
+      "end_time": 0.48
+    },
+    {
+      "text": "also",
+      "start_time": 0.48,
+      "end_time": 0.8
+    },
+    {
+      "text": "think",
+      "start_time": 0.8,
+      "end_time": 1.2
+    },
+    {
+      "text": "math",
+      "start_time": 1.28,
+      "end_time": 1.76
+    },
+    {
+      "text": "problem",
+      "start_time": 1.84,
+      "end_time": 2.32
+    },
+    {
+      "text": "is",
+      "start_time": 2.48,
+      "end_time": 2.72
+    },
+    {
+      "text": "a",
+      "start_time": 2.72,
+      "end_time": 2.96
+    },
+    {
+      "text": "straightforward",
+      "start_time": 3.04,
+      "end_time": 3.6
+    },
+    {
+      "text": "application",
+      "start_time": 3.6,
+      "end_time": 4.08
+    },
+    {
+      "text": "to",
+      "start_time": 4.16,
+      "end_time": 4.32
+    },
+    {
+      "text": "evaluate",
+      "start_time": 4.4,
+      "end_time": 5.04
+    },
+    {
+      "text": "such",
+      "start_time": 5.28,
+      "end_time": 5.68
+    },
+    {
+      "text": "reasoning",
+      "start_time": 5.68,
+      "end_time": 6.24
+    },
+    {
+      "text": "abilities",
+      "start_time": 6.56,
+      "end_time": 7.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

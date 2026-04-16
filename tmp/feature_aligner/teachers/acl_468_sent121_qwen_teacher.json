@@ -1,0 +1,171 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_121.wav",
+  "text": "In this work, we present a new French native citizen-centric dataset to study whether retrieval model can approximate the efficiency and reliability of legal experts for the task of statutory article retrieval.",
+  "audio_duration_s": 14.836,
+  "words": [
+    {
+      "text": "In",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "this",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "work",
+      "start_time": 0.56,
+      "end_time": 0.88
+    },
+    {
+      "text": "we",
+      "start_time": 0.96,
+      "end_time": 1.12
+    },
+    {
+      "text": "present",
+      "start_time": 1.12,
+      "end_time": 1.52
+    },
+    {
+      "text": "a",
+      "start_time": 1.6,
+      "end_time": 1.68
+    },
+    {
+      "text": "new",
+      "start_time": 1.68,
+      "end_time": 2.08
+    },
+    {
+      "text": "French",
+      "start_time": 2.32,
+      "end_time": 2.64
+    },
+    {
+      "text": "native",
+      "start_time": 2.64,
+      "end_time": 3.2
+    },
+    {
+      "text": "citizencentric",
+      "start_time": 3.2,
+      "end_time": 4.32
+    },
+    {
+      "text": "dataset",
+      "start_time": 4.32,
+      "end_time": 4.88
+    },
+    {
+      "text": "to",
+      "start_time": 5.52,
+      "end_time": 5.6
+    },
+    {
+      "text": "study",
+      "start_time": 5.6,
+      "end_time": 5.92
+    },
+    {
+      "text": "whether",
+      "start_time": 5.92,
+      "end_time": 6.24
+    },
+    {
+      "text": "retrieval",
+      "start_time": 6.24,
+      "end_time": 6.72
+    },
+    {
+      "text": "model",
+      "start_time": 6.72,
+      "end_time": 7.2
+    },
+    {
+      "text": "can",
+      "start_time": 7.2,
+      "end_time": 7.44
+    },
+    {
+      "text": "approximate",
+      "start_time": 7.44,
+      "end_time": 8.4
+    },
+    {
+      "text": "the",
+      "start_time": 8.4,
+      "end_time": 8.56
+    },
+    {
+      "text": "efficiency",
+      "start_time": 8.56,
+      "end_time": 9.28
+    },
+    {
+      "text": "and",
+      "start_time": 9.36,
+      "end_time": 9.68
+    },
+    {
+      "text": "reliability",
+      "start_time": 9.76,
+      "end_time": 10.72
+    },
+    {
+      "text": "of",
+      "start_time": 11.12,
+      "end_time": 11.28
+    },
+    {
+      "text": "legal",
+      "start_time": 11.28,
+      "end_time": 11.68
+    },
+    {
+      "text": "experts",
+      "start_time": 11.68,
+      "end_time": 12.24
+    },
+    {
+      "text": "for",
+      "start_time": 12.24,
+      "end_time": 12.64
+    },
+    {
+      "text": "the",
+      "start_time": 12.64,
+      "end_time": 12.64
+    },
+    {
+      "text": "task",
+      "start_time": 12.64,
+      "end_time": 13.12
+    },
+    {
+      "text": "of",
+      "start_time": 13.12,
+      "end_time": 13.2
+    },
+    {
+      "text": "statutory",
+      "start_time": 13.2,
+      "end_time": 13.76
+    },
+    {
+      "text": "article",
+      "start_time": 13.76,
+      "end_time": 14.16
+    },
+    {
+      "text": "retrieval",
+      "start_time": 14.16,
+      "end_time": 14.72
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

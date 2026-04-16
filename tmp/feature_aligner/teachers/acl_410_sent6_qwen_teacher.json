@@ -1,0 +1,156 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_6.wav",
+  "text": "So on the nap pen side, we can see if we give some samples with just question and answers, we may not be able to obtain the correct answers.",
+  "audio_duration_s": 8.058,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "on",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "the",
+      "start_time": 0.48,
+      "end_time": 0.56
+    },
+    {
+      "text": "nap",
+      "start_time": 0.56,
+      "end_time": 0.8
+    },
+    {
+      "text": "pen",
+      "start_time": 0.8,
+      "end_time": 1.04
+    },
+    {
+      "text": "side",
+      "start_time": 1.04,
+      "end_time": 1.36
+    },
+    {
+      "text": "we",
+      "start_time": 1.68,
+      "end_time": 1.76
+    },
+    {
+      "text": "can",
+      "start_time": 1.76,
+      "end_time": 1.92
+    },
+    {
+      "text": "see",
+      "start_time": 1.92,
+      "end_time": 2.24
+    },
+    {
+      "text": "if",
+      "start_time": 2.24,
+      "end_time": 2.4
+    },
+    {
+      "text": "we",
+      "start_time": 2.4,
+      "end_time": 2.64
+    },
+    {
+      "text": "give",
+      "start_time": 2.64,
+      "end_time": 2.88
+    },
+    {
+      "text": "some",
+      "start_time": 2.88,
+      "end_time": 3.12
+    },
+    {
+      "text": "samples",
+      "start_time": 3.28,
+      "end_time": 3.84
+    },
+    {
+      "text": "with",
+      "start_time": 3.84,
+      "end_time": 4.08
+    },
+    {
+      "text": "just",
+      "start_time": 4.16,
+      "end_time": 4.4
+    },
+    {
+      "text": "question",
+      "start_time": 4.4,
+      "end_time": 4.8
+    },
+    {
+      "text": "and",
+      "start_time": 4.8,
+      "end_time": 4.88
+    },
+    {
+      "text": "answers",
+      "start_time": 4.96,
+      "end_time": 5.36
+    },
+    {
+      "text": "we",
+      "start_time": 5.76,
+      "end_time": 5.84
+    },
+    {
+      "text": "may",
+      "start_time": 5.84,
+      "end_time": 6.0
+    },
+    {
+      "text": "not",
+      "start_time": 6.0,
+      "end_time": 6.16
+    },
+    {
+      "text": "be",
+      "start_time": 6.16,
+      "end_time": 6.24
+    },
+    {
+      "text": "able",
+      "start_time": 6.32,
+      "end_time": 6.56
+    },
+    {
+      "text": "to",
+      "start_time": 6.56,
+      "end_time": 6.64
+    },
+    {
+      "text": "obtain",
+      "start_time": 6.64,
+      "end_time": 7.04
+    },
+    {
+      "text": "the",
+      "start_time": 7.04,
+      "end_time": 7.12
+    },
+    {
+      "text": "correct",
+      "start_time": 7.12,
+      "end_time": 7.44
+    },
+    {
+      "text": "answers",
+      "start_time": 7.44,
+      "end_time": 7.92
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

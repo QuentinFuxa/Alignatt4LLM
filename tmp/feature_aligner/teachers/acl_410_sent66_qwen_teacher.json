@@ -1,0 +1,91 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_66.wav",
+  "text": "But we can see the absolute number, ah, on MathQAI or SWAM are not really high.",
+  "audio_duration_s": 5.636,
+  "words": [
+    {
+      "text": "But",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "we",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "can",
+      "start_time": 0.48,
+      "end_time": 0.72
+    },
+    {
+      "text": "see",
+      "start_time": 0.72,
+      "end_time": 0.96
+    },
+    {
+      "text": "the",
+      "start_time": 0.96,
+      "end_time": 1.04
+    },
+    {
+      "text": "absolute",
+      "start_time": 1.12,
+      "end_time": 1.52
+    },
+    {
+      "text": "number",
+      "start_time": 1.52,
+      "end_time": 2.0
+    },
+    {
+      "text": "ah",
+      "start_time": 2.4,
+      "end_time": 2.64
+    },
+    {
+      "text": "on",
+      "start_time": 2.72,
+      "end_time": 3.04
+    },
+    {
+      "text": "MathQAI",
+      "start_time": 3.04,
+      "end_time": 3.84
+    },
+    {
+      "text": "or",
+      "start_time": 3.84,
+      "end_time": 4.08
+    },
+    {
+      "text": "SWAM",
+      "start_time": 4.08,
+      "end_time": 4.64
+    },
+    {
+      "text": "are",
+      "start_time": 4.64,
+      "end_time": 4.8
+    },
+    {
+      "text": "not",
+      "start_time": 4.8,
+      "end_time": 5.12
+    },
+    {
+      "text": "really",
+      "start_time": 5.12,
+      "end_time": 5.44
+    },
+    {
+      "text": "high",
+      "start_time": 5.44,
+      "end_time": 5.6
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

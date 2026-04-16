@@ -1,0 +1,131 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_328.wav",
+  "text": "We have also formed the task of entering commit messages and summarizing them so that it is applicable to all projects written in English.",
+  "audio_duration_s": 9.219,
+  "words": [
+    {
+      "text": "We",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "have",
+      "start_time": 0.48,
+      "end_time": 0.72
+    },
+    {
+      "text": "also",
+      "start_time": 0.72,
+      "end_time": 1.12
+    },
+    {
+      "text": "formed",
+      "start_time": 1.12,
+      "end_time": 1.44
+    },
+    {
+      "text": "the",
+      "start_time": 1.52,
+      "end_time": 1.6
+    },
+    {
+      "text": "task",
+      "start_time": 1.6,
+      "end_time": 2.08
+    },
+    {
+      "text": "of",
+      "start_time": 2.08,
+      "end_time": 2.4
+    },
+    {
+      "text": "entering",
+      "start_time": 2.48,
+      "end_time": 2.88
+    },
+    {
+      "text": "commit",
+      "start_time": 2.88,
+      "end_time": 3.2
+    },
+    {
+      "text": "messages",
+      "start_time": 3.2,
+      "end_time": 3.92
+    },
+    {
+      "text": "and",
+      "start_time": 3.92,
+      "end_time": 4.24
+    },
+    {
+      "text": "summarizing",
+      "start_time": 4.24,
+      "end_time": 5.04
+    },
+    {
+      "text": "them",
+      "start_time": 5.04,
+      "end_time": 5.04
+    },
+    {
+      "text": "so",
+      "start_time": 5.04,
+      "end_time": 5.28
+    },
+    {
+      "text": "that",
+      "start_time": 5.28,
+      "end_time": 5.6
+    },
+    {
+      "text": "it",
+      "start_time": 5.6,
+      "end_time": 5.76
+    },
+    {
+      "text": "is",
+      "start_time": 5.76,
+      "end_time": 5.92
+    },
+    {
+      "text": "applicable",
+      "start_time": 5.92,
+      "end_time": 6.72
+    },
+    {
+      "text": "to",
+      "start_time": 6.88,
+      "end_time": 7.04
+    },
+    {
+      "text": "all",
+      "start_time": 7.04,
+      "end_time": 7.36
+    },
+    {
+      "text": "projects",
+      "start_time": 7.44,
+      "end_time": 7.92
+    },
+    {
+      "text": "written",
+      "start_time": 8.08,
+      "end_time": 8.48
+    },
+    {
+      "text": "in",
+      "start_time": 8.48,
+      "end_time": 8.8
+    },
+    {
+      "text": "English",
+      "start_time": 8.8,
+      "end_time": 9.12
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

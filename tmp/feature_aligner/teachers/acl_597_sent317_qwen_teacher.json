@@ -1,0 +1,76 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_317.wav",
+  "text": "She is much tended to eat higher lunch air than she is single.",
+  "audio_duration_s": 4.955,
+  "words": [
+    {
+      "text": "She",
+      "start_time": 0.08,
+      "end_time": 0.4
+    },
+    {
+      "text": "is",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "much",
+      "start_time": 0.72,
+      "end_time": 0.96
+    },
+    {
+      "text": "tended",
+      "start_time": 1.28,
+      "end_time": 1.68
+    },
+    {
+      "text": "to",
+      "start_time": 1.76,
+      "end_time": 1.84
+    },
+    {
+      "text": "eat",
+      "start_time": 1.92,
+      "end_time": 1.92
+    },
+    {
+      "text": "higher",
+      "start_time": 2.32,
+      "end_time": 2.48
+    },
+    {
+      "text": "lunch",
+      "start_time": 2.48,
+      "end_time": 3.04
+    },
+    {
+      "text": "air",
+      "start_time": 3.04,
+      "end_time": 3.36
+    },
+    {
+      "text": "than",
+      "start_time": 3.36,
+      "end_time": 3.36
+    },
+    {
+      "text": "she",
+      "start_time": 3.92,
+      "end_time": 4.16
+    },
+    {
+      "text": "is",
+      "start_time": 4.16,
+      "end_time": 4.4
+    },
+    {
+      "text": "single",
+      "start_time": 4.4,
+      "end_time": 4.8
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

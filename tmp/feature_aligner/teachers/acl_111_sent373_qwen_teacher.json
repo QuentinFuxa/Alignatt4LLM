@@ -1,0 +1,76 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_373.wav",
+  "text": "The state of the art in multitask multitask fine tuning called MT DNN.",
+  "audio_duration_s": 7.006625,
+  "words": [
+    {
+      "text": "The",
+      "start_time": 0.16,
+      "end_time": 0.24
+    },
+    {
+      "text": "state",
+      "start_time": 0.24,
+      "end_time": 0.64
+    },
+    {
+      "text": "of",
+      "start_time": 0.64,
+      "end_time": 0.72
+    },
+    {
+      "text": "the",
+      "start_time": 0.72,
+      "end_time": 0.88
+    },
+    {
+      "text": "art",
+      "start_time": 0.88,
+      "end_time": 1.2
+    },
+    {
+      "text": "in",
+      "start_time": 1.2,
+      "end_time": 1.52
+    },
+    {
+      "text": "multitask",
+      "start_time": 1.52,
+      "end_time": 2.24
+    },
+    {
+      "text": "multitask",
+      "start_time": 3.36,
+      "end_time": 4.0
+    },
+    {
+      "text": "fine",
+      "start_time": 4.0,
+      "end_time": 4.56
+    },
+    {
+      "text": "tuning",
+      "start_time": 4.88,
+      "end_time": 5.36
+    },
+    {
+      "text": "called",
+      "start_time": 5.68,
+      "end_time": 6.08
+    },
+    {
+      "text": "MT",
+      "start_time": 6.08,
+      "end_time": 6.56
+    },
+    {
+      "text": "DNN",
+      "start_time": 6.56,
+      "end_time": 6.96
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

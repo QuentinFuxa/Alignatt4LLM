@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_64.wav",
+  "text": "All right. So, ah, the best approaches are often a tree-based model.",
+  "audio_duration_s": 4.611,
+  "words": [
+    {
+      "text": "All",
+      "start_time": 0.16,
+      "end_time": 0.24
+    },
+    {
+      "text": "right",
+      "start_time": 0.24,
+      "end_time": 0.48
+    },
+    {
+      "text": "So",
+      "start_time": 0.96,
+      "end_time": 1.36
+    },
+    {
+      "text": "ah",
+      "start_time": 1.52,
+      "end_time": 1.68
+    },
+    {
+      "text": "the",
+      "start_time": 1.68,
+      "end_time": 1.76
+    },
+    {
+      "text": "best",
+      "start_time": 1.76,
+      "end_time": 2.16
+    },
+    {
+      "text": "approaches",
+      "start_time": 2.16,
+      "end_time": 2.56
+    },
+    {
+      "text": "are",
+      "start_time": 2.56,
+      "end_time": 2.72
+    },
+    {
+      "text": "often",
+      "start_time": 2.72,
+      "end_time": 3.2
+    },
+    {
+      "text": "a",
+      "start_time": 3.2,
+      "end_time": 3.68
+    },
+    {
+      "text": "treebased",
+      "start_time": 3.68,
+      "end_time": 4.16
+    },
+    {
+      "text": "model",
+      "start_time": 4.16,
+      "end_time": 4.48
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

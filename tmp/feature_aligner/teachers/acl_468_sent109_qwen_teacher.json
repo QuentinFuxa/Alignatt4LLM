@@ -1,0 +1,106 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_109.wav",
+  "text": "Given a simple question on a legal matter, such as \"What do I risk if I violate professional confidentiality?\"",
+  "audio_duration_s": 7.417,
+  "words": [
+    {
+      "text": "Given",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "a",
+      "start_time": 0.4,
+      "end_time": 0.48
+    },
+    {
+      "text": "simple",
+      "start_time": 0.48,
+      "end_time": 0.96
+    },
+    {
+      "text": "question",
+      "start_time": 0.96,
+      "end_time": 1.6
+    },
+    {
+      "text": "on",
+      "start_time": 1.68,
+      "end_time": 1.76
+    },
+    {
+      "text": "a",
+      "start_time": 1.76,
+      "end_time": 1.84
+    },
+    {
+      "text": "legal",
+      "start_time": 1.84,
+      "end_time": 2.08
+    },
+    {
+      "text": "matter",
+      "start_time": 2.08,
+      "end_time": 2.48
+    },
+    {
+      "text": "such",
+      "start_time": 2.48,
+      "end_time": 2.8
+    },
+    {
+      "text": "as",
+      "start_time": 3.28,
+      "end_time": 3.68
+    },
+    {
+      "text": "What",
+      "start_time": 3.92,
+      "end_time": 4.08
+    },
+    {
+      "text": "do",
+      "start_time": 4.08,
+      "end_time": 4.24
+    },
+    {
+      "text": "I",
+      "start_time": 4.24,
+      "end_time": 4.4
+    },
+    {
+      "text": "risk",
+      "start_time": 4.4,
+      "end_time": 4.8
+    },
+    {
+      "text": "if",
+      "start_time": 4.8,
+      "end_time": 4.96
+    },
+    {
+      "text": "I",
+      "start_time": 4.96,
+      "end_time": 5.12
+    },
+    {
+      "text": "violate",
+      "start_time": 5.12,
+      "end_time": 5.68
+    },
+    {
+      "text": "professional",
+      "start_time": 5.68,
+      "end_time": 6.32
+    },
+    {
+      "text": "confidentiality",
+      "start_time": 6.32,
+      "end_time": 7.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

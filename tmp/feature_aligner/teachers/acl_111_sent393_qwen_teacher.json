@@ -1,0 +1,106 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_393.wav",
+  "text": "It extract the text from the knowledge base, which in this example is the abstract of the Wikipedia page.",
+  "audio_duration_s": 7.896,
+  "words": [
+    {
+      "text": "It",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "extract",
+      "start_time": 1.04,
+      "end_time": 1.92
+    },
+    {
+      "text": "the",
+      "start_time": 1.92,
+      "end_time": 2.16
+    },
+    {
+      "text": "text",
+      "start_time": 2.16,
+      "end_time": 2.56
+    },
+    {
+      "text": "from",
+      "start_time": 2.56,
+      "end_time": 2.72
+    },
+    {
+      "text": "the",
+      "start_time": 2.72,
+      "end_time": 2.8
+    },
+    {
+      "text": "knowledge",
+      "start_time": 2.8,
+      "end_time": 3.36
+    },
+    {
+      "text": "base",
+      "start_time": 3.68,
+      "end_time": 4.08
+    },
+    {
+      "text": "which",
+      "start_time": 4.08,
+      "end_time": 4.32
+    },
+    {
+      "text": "in",
+      "start_time": 4.32,
+      "end_time": 4.48
+    },
+    {
+      "text": "this",
+      "start_time": 4.48,
+      "end_time": 4.72
+    },
+    {
+      "text": "example",
+      "start_time": 4.72,
+      "end_time": 5.2
+    },
+    {
+      "text": "is",
+      "start_time": 5.2,
+      "end_time": 5.36
+    },
+    {
+      "text": "the",
+      "start_time": 5.36,
+      "end_time": 5.44
+    },
+    {
+      "text": "abstract",
+      "start_time": 5.44,
+      "end_time": 6.0
+    },
+    {
+      "text": "of",
+      "start_time": 6.0,
+      "end_time": 6.24
+    },
+    {
+      "text": "the",
+      "start_time": 6.24,
+      "end_time": 6.72
+    },
+    {
+      "text": "Wikipedia",
+      "start_time": 6.72,
+      "end_time": 7.36
+    },
+    {
+      "text": "page",
+      "start_time": 7.36,
+      "end_time": 7.76
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_366.wav",
+  "text": "So, to fine-tune a language model over this dataset will be ineffective.",
+  "audio_duration_s": 7.124,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.08,
+      "end_time": 0.56
+    },
+    {
+      "text": "to",
+      "start_time": 0.72,
+      "end_time": 0.96
+    },
+    {
+      "text": "finetune",
+      "start_time": 0.96,
+      "end_time": 1.84
+    },
+    {
+      "text": "a",
+      "start_time": 1.92,
+      "end_time": 2.24
+    },
+    {
+      "text": "language",
+      "start_time": 2.24,
+      "end_time": 2.64
+    },
+    {
+      "text": "model",
+      "start_time": 2.64,
+      "end_time": 2.96
+    },
+    {
+      "text": "over",
+      "start_time": 2.96,
+      "end_time": 3.36
+    },
+    {
+      "text": "this",
+      "start_time": 3.52,
+      "end_time": 4.64
+    },
+    {
+      "text": "dataset",
+      "start_time": 4.64,
+      "end_time": 5.2
+    },
+    {
+      "text": "will",
+      "start_time": 5.28,
+      "end_time": 5.44
+    },
+    {
+      "text": "be",
+      "start_time": 5.44,
+      "end_time": 5.68
+    },
+    {
+      "text": "ineffective",
+      "start_time": 6.0,
+      "end_time": 6.88
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

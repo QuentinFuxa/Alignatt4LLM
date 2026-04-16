@@ -1,0 +1,106 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_71.wav",
+  "text": "But we have some extra information, like seventeen fewer pitches, and Stephen has eight pitches, which is totally irrelevant.",
+  "audio_duration_s": 7.521,
+  "words": [
+    {
+      "text": "But",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "we",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "have",
+      "start_time": 0.48,
+      "end_time": 0.72
+    },
+    {
+      "text": "some",
+      "start_time": 0.8,
+      "end_time": 1.04
+    },
+    {
+      "text": "extra",
+      "start_time": 1.04,
+      "end_time": 1.44
+    },
+    {
+      "text": "information",
+      "start_time": 1.44,
+      "end_time": 2.0
+    },
+    {
+      "text": "like",
+      "start_time": 2.0,
+      "end_time": 2.24
+    },
+    {
+      "text": "seventeen",
+      "start_time": 2.24,
+      "end_time": 2.96
+    },
+    {
+      "text": "fewer",
+      "start_time": 2.96,
+      "end_time": 3.28
+    },
+    {
+      "text": "pitches",
+      "start_time": 3.28,
+      "end_time": 3.84
+    },
+    {
+      "text": "and",
+      "start_time": 4.24,
+      "end_time": 4.32
+    },
+    {
+      "text": "Stephen",
+      "start_time": 4.4,
+      "end_time": 4.72
+    },
+    {
+      "text": "has",
+      "start_time": 4.72,
+      "end_time": 4.88
+    },
+    {
+      "text": "eight",
+      "start_time": 5.12,
+      "end_time": 5.28
+    },
+    {
+      "text": "pitches",
+      "start_time": 5.28,
+      "end_time": 5.68
+    },
+    {
+      "text": "which",
+      "start_time": 5.68,
+      "end_time": 5.92
+    },
+    {
+      "text": "is",
+      "start_time": 5.92,
+      "end_time": 6.0
+    },
+    {
+      "text": "totally",
+      "start_time": 6.0,
+      "end_time": 6.56
+    },
+    {
+      "text": "irrelevant",
+      "start_time": 6.88,
+      "end_time": 7.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

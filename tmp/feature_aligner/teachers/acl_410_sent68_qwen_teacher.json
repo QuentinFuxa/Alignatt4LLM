@@ -1,0 +1,156 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_68.wav",
+  "text": "Swamp, and this dataset is challenging because the author tried to manually we adding something to confuse the NLP model, like such as adding irrelevant information and extra quantities.",
+  "audio_duration_s": 12.087,
+  "words": [
+    {
+      "text": "Swamp",
+      "start_time": 0.0,
+      "end_time": 0.32
+    },
+    {
+      "text": "and",
+      "start_time": 0.8,
+      "end_time": 1.12
+    },
+    {
+      "text": "this",
+      "start_time": 1.12,
+      "end_time": 1.52
+    },
+    {
+      "text": "dataset",
+      "start_time": 1.52,
+      "end_time": 1.92
+    },
+    {
+      "text": "is",
+      "start_time": 1.92,
+      "end_time": 2.08
+    },
+    {
+      "text": "challenging",
+      "start_time": 2.08,
+      "end_time": 2.56
+    },
+    {
+      "text": "because",
+      "start_time": 2.56,
+      "end_time": 2.88
+    },
+    {
+      "text": "the",
+      "start_time": 2.88,
+      "end_time": 2.96
+    },
+    {
+      "text": "author",
+      "start_time": 2.96,
+      "end_time": 3.28
+    },
+    {
+      "text": "tried",
+      "start_time": 3.28,
+      "end_time": 3.6
+    },
+    {
+      "text": "to",
+      "start_time": 3.68,
+      "end_time": 3.84
+    },
+    {
+      "text": "manually",
+      "start_time": 4.56,
+      "end_time": 5.12
+    },
+    {
+      "text": "we",
+      "start_time": 5.52,
+      "end_time": 5.76
+    },
+    {
+      "text": "adding",
+      "start_time": 5.92,
+      "end_time": 6.48
+    },
+    {
+      "text": "something",
+      "start_time": 6.48,
+      "end_time": 6.88
+    },
+    {
+      "text": "to",
+      "start_time": 6.96,
+      "end_time": 7.12
+    },
+    {
+      "text": "confuse",
+      "start_time": 7.12,
+      "end_time": 7.52
+    },
+    {
+      "text": "the",
+      "start_time": 7.52,
+      "end_time": 7.6
+    },
+    {
+      "text": "NLP",
+      "start_time": 7.68,
+      "end_time": 7.92
+    },
+    {
+      "text": "model",
+      "start_time": 7.92,
+      "end_time": 8.24
+    },
+    {
+      "text": "like",
+      "start_time": 8.32,
+      "end_time": 8.48
+    },
+    {
+      "text": "such",
+      "start_time": 8.48,
+      "end_time": 8.72
+    },
+    {
+      "text": "as",
+      "start_time": 8.72,
+      "end_time": 8.88
+    },
+    {
+      "text": "adding",
+      "start_time": 8.96,
+      "end_time": 9.28
+    },
+    {
+      "text": "irrelevant",
+      "start_time": 9.68,
+      "end_time": 10.08
+    },
+    {
+      "text": "information",
+      "start_time": 10.16,
+      "end_time": 10.8
+    },
+    {
+      "text": "and",
+      "start_time": 10.88,
+      "end_time": 11.04
+    },
+    {
+      "text": "extra",
+      "start_time": 11.12,
+      "end_time": 11.44
+    },
+    {
+      "text": "quantities",
+      "start_time": 11.44,
+      "end_time": 12.0
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

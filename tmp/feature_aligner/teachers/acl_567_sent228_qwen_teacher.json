@@ -1,0 +1,86 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_228.wav",
+  "text": "However, none of the remaining pieces can be reliably solved in our adversarial foiling settings.",
+  "audio_duration_s": 6.268,
+  "words": [
+    {
+      "text": "However",
+      "start_time": 0.16,
+      "end_time": 0.72
+    },
+    {
+      "text": "none",
+      "start_time": 0.96,
+      "end_time": 1.28
+    },
+    {
+      "text": "of",
+      "start_time": 1.28,
+      "end_time": 1.44
+    },
+    {
+      "text": "the",
+      "start_time": 1.44,
+      "end_time": 1.52
+    },
+    {
+      "text": "remaining",
+      "start_time": 1.52,
+      "end_time": 2.08
+    },
+    {
+      "text": "pieces",
+      "start_time": 2.08,
+      "end_time": 2.56
+    },
+    {
+      "text": "can",
+      "start_time": 2.56,
+      "end_time": 2.72
+    },
+    {
+      "text": "be",
+      "start_time": 2.72,
+      "end_time": 2.88
+    },
+    {
+      "text": "reliably",
+      "start_time": 2.88,
+      "end_time": 3.44
+    },
+    {
+      "text": "solved",
+      "start_time": 3.44,
+      "end_time": 3.92
+    },
+    {
+      "text": "in",
+      "start_time": 3.92,
+      "end_time": 4.08
+    },
+    {
+      "text": "our",
+      "start_time": 4.08,
+      "end_time": 4.24
+    },
+    {
+      "text": "adversarial",
+      "start_time": 4.24,
+      "end_time": 5.04
+    },
+    {
+      "text": "foiling",
+      "start_time": 5.04,
+      "end_time": 5.52
+    },
+    {
+      "text": "settings",
+      "start_time": 5.52,
+      "end_time": 6.24
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

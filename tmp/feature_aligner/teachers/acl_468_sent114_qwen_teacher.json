@@ -1,0 +1,206 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_114.wav",
+  "text": "This difference in language distributions makes it harder for a system to retrieve relevant candidates, as it indirectly requires an inherent interpretation system that can translate a natural question to a legal question that matches the terminology of statutes.",
+  "audio_duration_s": 17.336,
+  "words": [
+    {
+      "text": "This",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "difference",
+      "start_time": 0.4,
+      "end_time": 0.88
+    },
+    {
+      "text": "in",
+      "start_time": 0.88,
+      "end_time": 1.04
+    },
+    {
+      "text": "language",
+      "start_time": 1.04,
+      "end_time": 1.44
+    },
+    {
+      "text": "distributions",
+      "start_time": 1.44,
+      "end_time": 2.24
+    },
+    {
+      "text": "makes",
+      "start_time": 2.24,
+      "end_time": 2.56
+    },
+    {
+      "text": "it",
+      "start_time": 2.56,
+      "end_time": 2.8
+    },
+    {
+      "text": "harder",
+      "start_time": 2.8,
+      "end_time": 3.12
+    },
+    {
+      "text": "for",
+      "start_time": 3.12,
+      "end_time": 3.36
+    },
+    {
+      "text": "a",
+      "start_time": 3.36,
+      "end_time": 3.36
+    },
+    {
+      "text": "system",
+      "start_time": 3.36,
+      "end_time": 4.0
+    },
+    {
+      "text": "to",
+      "start_time": 4.32,
+      "end_time": 4.4
+    },
+    {
+      "text": "retrieve",
+      "start_time": 4.4,
+      "end_time": 4.88
+    },
+    {
+      "text": "relevant",
+      "start_time": 4.88,
+      "end_time": 5.28
+    },
+    {
+      "text": "candidates",
+      "start_time": 5.28,
+      "end_time": 6.08
+    },
+    {
+      "text": "as",
+      "start_time": 6.4,
+      "end_time": 6.56
+    },
+    {
+      "text": "it",
+      "start_time": 6.56,
+      "end_time": 6.64
+    },
+    {
+      "text": "indirectly",
+      "start_time": 6.64,
+      "end_time": 7.68
+    },
+    {
+      "text": "requires",
+      "start_time": 7.68,
+      "end_time": 8.4
+    },
+    {
+      "text": "an",
+      "start_time": 8.4,
+      "end_time": 8.64
+    },
+    {
+      "text": "inherent",
+      "start_time": 8.64,
+      "end_time": 9.44
+    },
+    {
+      "text": "interpretation",
+      "start_time": 9.44,
+      "end_time": 10.16
+    },
+    {
+      "text": "system",
+      "start_time": 10.24,
+      "end_time": 10.8
+    },
+    {
+      "text": "that",
+      "start_time": 11.2,
+      "end_time": 11.44
+    },
+    {
+      "text": "can",
+      "start_time": 11.44,
+      "end_time": 11.6
+    },
+    {
+      "text": "translate",
+      "start_time": 11.6,
+      "end_time": 12.24
+    },
+    {
+      "text": "a",
+      "start_time": 12.32,
+      "end_time": 12.48
+    },
+    {
+      "text": "natural",
+      "start_time": 12.48,
+      "end_time": 12.96
+    },
+    {
+      "text": "question",
+      "start_time": 12.96,
+      "end_time": 13.6
+    },
+    {
+      "text": "to",
+      "start_time": 14.0,
+      "end_time": 14.16
+    },
+    {
+      "text": "a",
+      "start_time": 14.16,
+      "end_time": 14.16
+    },
+    {
+      "text": "legal",
+      "start_time": 14.16,
+      "end_time": 14.72
+    },
+    {
+      "text": "question",
+      "start_time": 14.72,
+      "end_time": 15.2
+    },
+    {
+      "text": "that",
+      "start_time": 15.2,
+      "end_time": 15.36
+    },
+    {
+      "text": "matches",
+      "start_time": 15.36,
+      "end_time": 15.68
+    },
+    {
+      "text": "the",
+      "start_time": 15.76,
+      "end_time": 15.84
+    },
+    {
+      "text": "terminology",
+      "start_time": 15.84,
+      "end_time": 16.48
+    },
+    {
+      "text": "of",
+      "start_time": 16.48,
+      "end_time": 16.56
+    },
+    {
+      "text": "statutes",
+      "start_time": 16.56,
+      "end_time": 17.28
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

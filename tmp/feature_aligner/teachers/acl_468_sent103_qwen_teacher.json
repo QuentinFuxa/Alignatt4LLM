@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_103.wav",
+  "text": "Legal issues are an integral part of many people's life.",
+  "audio_duration_s": 3.307,
+  "words": [
+    {
+      "text": "Legal",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "issues",
+      "start_time": 0.4,
+      "end_time": 0.64
+    },
+    {
+      "text": "are",
+      "start_time": 0.64,
+      "end_time": 0.96
+    },
+    {
+      "text": "an",
+      "start_time": 0.96,
+      "end_time": 1.12
+    },
+    {
+      "text": "integral",
+      "start_time": 1.12,
+      "end_time": 1.52
+    },
+    {
+      "text": "part",
+      "start_time": 1.52,
+      "end_time": 1.84
+    },
+    {
+      "text": "of",
+      "start_time": 1.92,
+      "end_time": 2.16
+    },
+    {
+      "text": "many",
+      "start_time": 2.16,
+      "end_time": 2.4
+    },
+    {
+      "text": "people's",
+      "start_time": 2.4,
+      "end_time": 2.8
+    },
+    {
+      "text": "life",
+      "start_time": 2.8,
+      "end_time": 3.2
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

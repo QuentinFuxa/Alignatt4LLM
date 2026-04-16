@@ -1,0 +1,96 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_26.wav",
+  "text": "So, in our proposed approach, we want to solve those problems in a step-by-step and interpretable manners.",
+  "audio_duration_s": 7.458,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "in",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "our",
+      "start_time": 0.56,
+      "end_time": 0.72
+    },
+    {
+      "text": "proposed",
+      "start_time": 0.72,
+      "end_time": 1.12
+    },
+    {
+      "text": "approach",
+      "start_time": 1.12,
+      "end_time": 1.44
+    },
+    {
+      "text": "we",
+      "start_time": 1.44,
+      "end_time": 1.6
+    },
+    {
+      "text": "want",
+      "start_time": 1.6,
+      "end_time": 1.76
+    },
+    {
+      "text": "to",
+      "start_time": 1.84,
+      "end_time": 1.84
+    },
+    {
+      "text": "solve",
+      "start_time": 1.84,
+      "end_time": 2.24
+    },
+    {
+      "text": "those",
+      "start_time": 2.4,
+      "end_time": 3.68
+    },
+    {
+      "text": "problems",
+      "start_time": 3.68,
+      "end_time": 4.16
+    },
+    {
+      "text": "in",
+      "start_time": 4.16,
+      "end_time": 4.4
+    },
+    {
+      "text": "a",
+      "start_time": 4.4,
+      "end_time": 4.56
+    },
+    {
+      "text": "stepbystep",
+      "start_time": 4.56,
+      "end_time": 5.12
+    },
+    {
+      "text": "and",
+      "start_time": 6.0,
+      "end_time": 6.32
+    },
+    {
+      "text": "interpretable",
+      "start_time": 6.32,
+      "end_time": 6.88
+    },
+    {
+      "text": "manners",
+      "start_time": 6.88,
+      "end_time": 7.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

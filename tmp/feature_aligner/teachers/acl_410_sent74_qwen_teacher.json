@@ -1,0 +1,146 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_74.wav",
+  "text": "So we can actually limit this search space by removing like those results are negatives, so that we can make the uh uh make the answer correct.",
+  "audio_duration_s": 10.225,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.08,
+      "end_time": 0.4
+    },
+    {
+      "text": "we",
+      "start_time": 0.8,
+      "end_time": 0.88
+    },
+    {
+      "text": "can",
+      "start_time": 0.88,
+      "end_time": 1.12
+    },
+    {
+      "text": "actually",
+      "start_time": 1.12,
+      "end_time": 1.6
+    },
+    {
+      "text": "limit",
+      "start_time": 1.6,
+      "end_time": 2.08
+    },
+    {
+      "text": "this",
+      "start_time": 2.4,
+      "end_time": 2.64
+    },
+    {
+      "text": "search",
+      "start_time": 2.64,
+      "end_time": 2.96
+    },
+    {
+      "text": "space",
+      "start_time": 2.96,
+      "end_time": 3.44
+    },
+    {
+      "text": "by",
+      "start_time": 3.44,
+      "end_time": 3.68
+    },
+    {
+      "text": "removing",
+      "start_time": 3.68,
+      "end_time": 4.24
+    },
+    {
+      "text": "like",
+      "start_time": 4.24,
+      "end_time": 4.48
+    },
+    {
+      "text": "those",
+      "start_time": 4.8,
+      "end_time": 5.04
+    },
+    {
+      "text": "results",
+      "start_time": 5.04,
+      "end_time": 5.52
+    },
+    {
+      "text": "are",
+      "start_time": 5.6,
+      "end_time": 5.76
+    },
+    {
+      "text": "negatives",
+      "start_time": 5.76,
+      "end_time": 6.32
+    },
+    {
+      "text": "so",
+      "start_time": 6.72,
+      "end_time": 6.88
+    },
+    {
+      "text": "that",
+      "start_time": 6.88,
+      "end_time": 7.12
+    },
+    {
+      "text": "we",
+      "start_time": 7.12,
+      "end_time": 7.28
+    },
+    {
+      "text": "can",
+      "start_time": 7.28,
+      "end_time": 7.52
+    },
+    {
+      "text": "make",
+      "start_time": 7.52,
+      "end_time": 7.84
+    },
+    {
+      "text": "the",
+      "start_time": 7.84,
+      "end_time": 8.16
+    },
+    {
+      "text": "uh",
+      "start_time": 8.24,
+      "end_time": 8.64
+    },
+    {
+      "text": "uh",
+      "start_time": 8.8,
+      "end_time": 8.8
+    },
+    {
+      "text": "make",
+      "start_time": 9.12,
+      "end_time": 9.36
+    },
+    {
+      "text": "the",
+      "start_time": 9.36,
+      "end_time": 9.44
+    },
+    {
+      "text": "answer",
+      "start_time": 9.44,
+      "end_time": 9.68
+    },
+    {
+      "text": "correct",
+      "start_time": 9.68,
+      "end_time": 10.16
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

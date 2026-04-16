@@ -1,0 +1,171 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_58.wav",
+  "text": "And here, the space is different from sequence to sequence, because the space is different at each time step. While in traditional sequence to sequence model, it is the number of vocabulary.",
+  "audio_duration_s": 10.645,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "here",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "the",
+      "start_time": 0.56,
+      "end_time": 0.72
+    },
+    {
+      "text": "space",
+      "start_time": 0.72,
+      "end_time": 1.2
+    },
+    {
+      "text": "is",
+      "start_time": 1.6,
+      "end_time": 1.76
+    },
+    {
+      "text": "different",
+      "start_time": 1.76,
+      "end_time": 2.16
+    },
+    {
+      "text": "from",
+      "start_time": 2.16,
+      "end_time": 2.48
+    },
+    {
+      "text": "sequence",
+      "start_time": 2.48,
+      "end_time": 2.88
+    },
+    {
+      "text": "to",
+      "start_time": 2.88,
+      "end_time": 2.96
+    },
+    {
+      "text": "sequence",
+      "start_time": 2.96,
+      "end_time": 3.36
+    },
+    {
+      "text": "because",
+      "start_time": 4.0,
+      "end_time": 4.48
+    },
+    {
+      "text": "the",
+      "start_time": 4.56,
+      "end_time": 4.64
+    },
+    {
+      "text": "space",
+      "start_time": 4.64,
+      "end_time": 5.12
+    },
+    {
+      "text": "is",
+      "start_time": 5.12,
+      "end_time": 5.28
+    },
+    {
+      "text": "different",
+      "start_time": 5.28,
+      "end_time": 5.6
+    },
+    {
+      "text": "at",
+      "start_time": 5.6,
+      "end_time": 5.76
+    },
+    {
+      "text": "each",
+      "start_time": 5.76,
+      "end_time": 5.92
+    },
+    {
+      "text": "time",
+      "start_time": 6.08,
+      "end_time": 6.24
+    },
+    {
+      "text": "step",
+      "start_time": 6.24,
+      "end_time": 6.48
+    },
+    {
+      "text": "While",
+      "start_time": 6.56,
+      "end_time": 6.88
+    },
+    {
+      "text": "in",
+      "start_time": 6.88,
+      "end_time": 7.04
+    },
+    {
+      "text": "traditional",
+      "start_time": 7.04,
+      "end_time": 7.52
+    },
+    {
+      "text": "sequence",
+      "start_time": 7.52,
+      "end_time": 7.84
+    },
+    {
+      "text": "to",
+      "start_time": 7.84,
+      "end_time": 7.84
+    },
+    {
+      "text": "sequence",
+      "start_time": 7.84,
+      "end_time": 8.16
+    },
+    {
+      "text": "model",
+      "start_time": 8.16,
+      "end_time": 8.56
+    },
+    {
+      "text": "it",
+      "start_time": 9.12,
+      "end_time": 9.12
+    },
+    {
+      "text": "is",
+      "start_time": 9.12,
+      "end_time": 9.36
+    },
+    {
+      "text": "the",
+      "start_time": 9.36,
+      "end_time": 9.44
+    },
+    {
+      "text": "number",
+      "start_time": 9.44,
+      "end_time": 9.68
+    },
+    {
+      "text": "of",
+      "start_time": 9.68,
+      "end_time": 9.84
+    },
+    {
+      "text": "vocabulary",
+      "start_time": 9.84,
+      "end_time": 10.48
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

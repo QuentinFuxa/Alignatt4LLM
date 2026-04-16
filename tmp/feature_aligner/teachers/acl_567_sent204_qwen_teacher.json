@@ -1,0 +1,101 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_204.wav",
+  "text": "This is not easy to do because a foiled caption may be less likely than the original caption.",
+  "audio_duration_s": 7.327,
+  "words": [
+    {
+      "text": "This",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "is",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "not",
+      "start_time": 0.48,
+      "end_time": 0.64
+    },
+    {
+      "text": "easy",
+      "start_time": 0.64,
+      "end_time": 1.04
+    },
+    {
+      "text": "to",
+      "start_time": 1.12,
+      "end_time": 1.28
+    },
+    {
+      "text": "do",
+      "start_time": 1.28,
+      "end_time": 1.84
+    },
+    {
+      "text": "because",
+      "start_time": 1.84,
+      "end_time": 2.48
+    },
+    {
+      "text": "a",
+      "start_time": 2.56,
+      "end_time": 2.64
+    },
+    {
+      "text": "foiled",
+      "start_time": 2.64,
+      "end_time": 3.2
+    },
+    {
+      "text": "caption",
+      "start_time": 3.2,
+      "end_time": 3.92
+    },
+    {
+      "text": "may",
+      "start_time": 3.92,
+      "end_time": 4.32
+    },
+    {
+      "text": "be",
+      "start_time": 4.32,
+      "end_time": 4.72
+    },
+    {
+      "text": "less",
+      "start_time": 4.72,
+      "end_time": 5.12
+    },
+    {
+      "text": "likely",
+      "start_time": 5.12,
+      "end_time": 5.68
+    },
+    {
+      "text": "than",
+      "start_time": 5.68,
+      "end_time": 6.0
+    },
+    {
+      "text": "the",
+      "start_time": 6.0,
+      "end_time": 6.08
+    },
+    {
+      "text": "original",
+      "start_time": 6.08,
+      "end_time": 6.64
+    },
+    {
+      "text": "caption",
+      "start_time": 6.64,
+      "end_time": 7.2
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

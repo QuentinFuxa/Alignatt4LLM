@@ -1,0 +1,136 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_146.wav",
+  "text": "Out of the twenty-two thousand six hundred and thirty-three articles, only one thousand six hundred and twelve are referred to as relevant to at least.",
+  "audio_duration_s": 9.847,
+  "words": [
+    {
+      "text": "Out",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "of",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "the",
+      "start_time": 0.48,
+      "end_time": 0.64
+    },
+    {
+      "text": "twentytwo",
+      "start_time": 0.8,
+      "end_time": 1.44
+    },
+    {
+      "text": "thousand",
+      "start_time": 1.44,
+      "end_time": 1.76
+    },
+    {
+      "text": "six",
+      "start_time": 1.76,
+      "end_time": 2.08
+    },
+    {
+      "text": "hundred",
+      "start_time": 2.08,
+      "end_time": 2.32
+    },
+    {
+      "text": "and",
+      "start_time": 2.32,
+      "end_time": 2.48
+    },
+    {
+      "text": "thirtythree",
+      "start_time": 2.48,
+      "end_time": 3.04
+    },
+    {
+      "text": "articles",
+      "start_time": 3.04,
+      "end_time": 3.68
+    },
+    {
+      "text": "only",
+      "start_time": 4.16,
+      "end_time": 4.48
+    },
+    {
+      "text": "one",
+      "start_time": 4.48,
+      "end_time": 4.88
+    },
+    {
+      "text": "thousand",
+      "start_time": 4.88,
+      "end_time": 5.36
+    },
+    {
+      "text": "six",
+      "start_time": 5.36,
+      "end_time": 5.68
+    },
+    {
+      "text": "hundred",
+      "start_time": 5.68,
+      "end_time": 5.92
+    },
+    {
+      "text": "and",
+      "start_time": 5.92,
+      "end_time": 6.08
+    },
+    {
+      "text": "twelve",
+      "start_time": 6.08,
+      "end_time": 6.72
+    },
+    {
+      "text": "are",
+      "start_time": 6.8,
+      "end_time": 7.12
+    },
+    {
+      "text": "referred",
+      "start_time": 7.12,
+      "end_time": 7.68
+    },
+    {
+      "text": "to",
+      "start_time": 7.76,
+      "end_time": 7.92
+    },
+    {
+      "text": "as",
+      "start_time": 7.92,
+      "end_time": 8.24
+    },
+    {
+      "text": "relevant",
+      "start_time": 8.24,
+      "end_time": 8.96
+    },
+    {
+      "text": "to",
+      "start_time": 9.36,
+      "end_time": 9.44
+    },
+    {
+      "text": "at",
+      "start_time": 9.44,
+      "end_time": 9.6
+    },
+    {
+      "text": "least",
+      "start_time": 9.6,
+      "end_time": 9.84
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

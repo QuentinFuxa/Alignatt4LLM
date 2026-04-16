@@ -1,0 +1,171 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_415.wav",
+  "text": "It's augment the train set, and it needs a target value with semantic meaning, so we can feed it into the language model and use it in the sentence per classification problem.",
+  "audio_duration_s": 13.659,
+  "words": [
+    {
+      "text": "It's",
+      "start_time": 0.0,
+      "end_time": 0.16
+    },
+    {
+      "text": "augment",
+      "start_time": 0.16,
+      "end_time": 0.48
+    },
+    {
+      "text": "the",
+      "start_time": 0.48,
+      "end_time": 0.56
+    },
+    {
+      "text": "train",
+      "start_time": 0.56,
+      "end_time": 0.88
+    },
+    {
+      "text": "set",
+      "start_time": 0.88,
+      "end_time": 1.28
+    },
+    {
+      "text": "and",
+      "start_time": 1.36,
+      "end_time": 1.52
+    },
+    {
+      "text": "it",
+      "start_time": 1.52,
+      "end_time": 1.92
+    },
+    {
+      "text": "needs",
+      "start_time": 2.08,
+      "end_time": 2.48
+    },
+    {
+      "text": "a",
+      "start_time": 2.96,
+      "end_time": 3.12
+    },
+    {
+      "text": "target",
+      "start_time": 3.2,
+      "end_time": 3.6
+    },
+    {
+      "text": "value",
+      "start_time": 3.6,
+      "end_time": 4.08
+    },
+    {
+      "text": "with",
+      "start_time": 4.08,
+      "end_time": 4.24
+    },
+    {
+      "text": "semantic",
+      "start_time": 4.24,
+      "end_time": 4.96
+    },
+    {
+      "text": "meaning",
+      "start_time": 5.04,
+      "end_time": 5.76
+    },
+    {
+      "text": "so",
+      "start_time": 5.76,
+      "end_time": 6.0
+    },
+    {
+      "text": "we",
+      "start_time": 6.0,
+      "end_time": 6.16
+    },
+    {
+      "text": "can",
+      "start_time": 6.16,
+      "end_time": 6.32
+    },
+    {
+      "text": "feed",
+      "start_time": 6.32,
+      "end_time": 6.72
+    },
+    {
+      "text": "it",
+      "start_time": 6.72,
+      "end_time": 6.88
+    },
+    {
+      "text": "into",
+      "start_time": 7.2,
+      "end_time": 7.52
+    },
+    {
+      "text": "the",
+      "start_time": 7.52,
+      "end_time": 7.92
+    },
+    {
+      "text": "language",
+      "start_time": 8.24,
+      "end_time": 8.64
+    },
+    {
+      "text": "model",
+      "start_time": 8.64,
+      "end_time": 9.12
+    },
+    {
+      "text": "and",
+      "start_time": 9.12,
+      "end_time": 9.28
+    },
+    {
+      "text": "use",
+      "start_time": 9.36,
+      "end_time": 9.6
+    },
+    {
+      "text": "it",
+      "start_time": 9.6,
+      "end_time": 9.84
+    },
+    {
+      "text": "in",
+      "start_time": 9.84,
+      "end_time": 10.16
+    },
+    {
+      "text": "the",
+      "start_time": 10.16,
+      "end_time": 10.4
+    },
+    {
+      "text": "sentence",
+      "start_time": 11.6,
+      "end_time": 12.08
+    },
+    {
+      "text": "per",
+      "start_time": 12.08,
+      "end_time": 12.24
+    },
+    {
+      "text": "classification",
+      "start_time": 12.32,
+      "end_time": 13.12
+    },
+    {
+      "text": "problem",
+      "start_time": 13.12,
+      "end_time": 13.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

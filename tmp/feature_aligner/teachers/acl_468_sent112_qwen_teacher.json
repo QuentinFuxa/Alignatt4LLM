@@ -1,0 +1,51 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_112.wav",
+  "text": "First, it deals with two types of language.",
+  "audio_duration_s": 3.042,
+  "words": [
+    {
+      "text": "First",
+      "start_time": 0.16,
+      "end_time": 0.64
+    },
+    {
+      "text": "it",
+      "start_time": 0.96,
+      "end_time": 1.2
+    },
+    {
+      "text": "deals",
+      "start_time": 1.2,
+      "end_time": 1.44
+    },
+    {
+      "text": "with",
+      "start_time": 1.44,
+      "end_time": 1.68
+    },
+    {
+      "text": "two",
+      "start_time": 1.68,
+      "end_time": 1.92
+    },
+    {
+      "text": "types",
+      "start_time": 1.92,
+      "end_time": 2.32
+    },
+    {
+      "text": "of",
+      "start_time": 2.32,
+      "end_time": 2.48
+    },
+    {
+      "text": "language",
+      "start_time": 2.48,
+      "end_time": 3.04
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

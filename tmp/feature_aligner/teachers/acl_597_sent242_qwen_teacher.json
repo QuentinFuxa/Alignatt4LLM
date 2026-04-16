@@ -1,0 +1,106 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_242.wav",
+  "text": "I'll be presenting a paper entitled \"Our Ensemble: A Large-Scale Dataset for Automatic Vison Annotation via Comet Logs Amelioration.\"",
+  "audio_duration_s": 8.433,
+  "words": [
+    {
+      "text": "I'll",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "be",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "presenting",
+      "start_time": 0.48,
+      "end_time": 1.04
+    },
+    {
+      "text": "a",
+      "start_time": 1.04,
+      "end_time": 1.12
+    },
+    {
+      "text": "paper",
+      "start_time": 1.12,
+      "end_time": 1.6
+    },
+    {
+      "text": "entitled",
+      "start_time": 1.84,
+      "end_time": 2.56
+    },
+    {
+      "text": "Our",
+      "start_time": 2.64,
+      "end_time": 2.88
+    },
+    {
+      "text": "Ensemble",
+      "start_time": 2.88,
+      "end_time": 3.44
+    },
+    {
+      "text": "A",
+      "start_time": 3.92,
+      "end_time": 4.08
+    },
+    {
+      "text": "LargeScale",
+      "start_time": 4.08,
+      "end_time": 4.48
+    },
+    {
+      "text": "Dataset",
+      "start_time": 4.48,
+      "end_time": 4.96
+    },
+    {
+      "text": "for",
+      "start_time": 4.96,
+      "end_time": 5.2
+    },
+    {
+      "text": "Automatic",
+      "start_time": 5.2,
+      "end_time": 5.76
+    },
+    {
+      "text": "Vison",
+      "start_time": 5.76,
+      "end_time": 6.08
+    },
+    {
+      "text": "Annotation",
+      "start_time": 6.08,
+      "end_time": 6.72
+    },
+    {
+      "text": "via",
+      "start_time": 6.8,
+      "end_time": 6.96
+    },
+    {
+      "text": "Comet",
+      "start_time": 7.04,
+      "end_time": 7.28
+    },
+    {
+      "text": "Logs",
+      "start_time": 7.36,
+      "end_time": 7.68
+    },
+    {
+      "text": "Amelioration",
+      "start_time": 7.68,
+      "end_time": 8.32
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

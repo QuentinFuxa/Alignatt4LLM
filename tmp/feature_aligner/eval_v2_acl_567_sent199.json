@@ -1,0 +1,164 @@
+{
+  "tag": "acl_567_sent199",
+  "split": "val",
+  "backend": "gemma_feature_aligner",
+  "text": "Foiling basically means that we take the caption of an image and produce a foil by altering the caption such that it does not describe the image anymore.",
+  "audio_duration_s": 12.52,
+  "words": [
+    {
+      "text": "Foiling",
+      "start_time": 1.5216114807128907,
+      "end_time": 2.2354710388183596
+    },
+    {
+      "text": "basically",
+      "start_time": 5.65531005859375,
+      "end_time": 5.65531005859375
+    },
+    {
+      "text": "means",
+      "start_time": 6.110736083984375,
+      "end_time": 6.110736083984375
+    },
+    {
+      "text": "that",
+      "start_time": 6.110736083984375,
+      "end_time": 6.110736083984375
+    },
+    {
+      "text": "we",
+      "start_time": 6.110736083984375,
+      "end_time": 6.110736083984375
+    },
+    {
+      "text": "take",
+      "start_time": 6.110736083984375,
+      "end_time": 6.110736083984375
+    },
+    {
+      "text": "the",
+      "start_time": 7.1615673828125,
+      "end_time": 7.1615673828125
+    },
+    {
+      "text": "caption",
+      "start_time": 7.1615673828125,
+      "end_time": 7.1615673828125
+    },
+    {
+      "text": "of",
+      "start_time": 7.1615673828125,
+      "end_time": 7.1615673828125
+    },
+    {
+      "text": "an",
+      "start_time": 7.1615673828125,
+      "end_time": 7.1615673828125
+    },
+    {
+      "text": "image",
+      "start_time": 7.1615673828125,
+      "end_time": 7.1615673828125
+    },
+    {
+      "text": "and",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "produce",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "a",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "foil",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "by",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "altering",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "the",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "caption",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "such",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "that",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "it",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "does",
+      "start_time": 7.527714233398438,
+      "end_time": 7.527714233398438
+    },
+    {
+      "text": "not",
+      "start_time": 9.386157226562501,
+      "end_time": 9.386157226562501
+    },
+    {
+      "text": "describe",
+      "start_time": 9.386157226562501,
+      "end_time": 9.386157226562501
+    },
+    {
+      "text": "the",
+      "start_time": 9.386157226562501,
+      "end_time": 9.386157226562501
+    },
+    {
+      "text": "image",
+      "start_time": 9.386157226562501,
+      "end_time": 9.386157226562501
+    },
+    {
+      "text": "anymore",
+      "start_time": 9.386157226562501,
+      "end_time": 9.386157226562501
+    }
+  ],
+  "metrics": {
+    "num_words": 28,
+    "monotone": true,
+    "mae_s": 2.4866501671927317,
+    "median_error_s": 2.5430642700195305,
+    "p90_error_s": 4.046736083984375,
+    "max_error_s": 4.37531005859375,
+    "word_count_match": true,
+    "head_inference_time_s": 0.0037391185760498047,
+    "feat_extraction_time_s": 0.09864497184753418,
+    "total_alignment_time_s": 0.10238409042358398,
+    "audio_duration_s": 12.52,
+    "tag": "acl_567_sent199",
+    "talk_id": "567"
+  }
+}

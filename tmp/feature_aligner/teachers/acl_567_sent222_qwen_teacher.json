@@ -1,0 +1,116 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_222.wav",
+  "text": "We experiment with five vision and language models on Vals, namely with Clip, AlexMert, Vilbert, Vilbert Twelve in One, and VisualBERT.",
+  "audio_duration_s": 10.11,
+  "words": [
+    {
+      "text": "We",
+      "start_time": 0.08,
+      "end_time": 0.56
+    },
+    {
+      "text": "experiment",
+      "start_time": 0.64,
+      "end_time": 1.36
+    },
+    {
+      "text": "with",
+      "start_time": 1.36,
+      "end_time": 1.6
+    },
+    {
+      "text": "five",
+      "start_time": 1.6,
+      "end_time": 2.16
+    },
+    {
+      "text": "vision",
+      "start_time": 2.16,
+      "end_time": 2.56
+    },
+    {
+      "text": "and",
+      "start_time": 2.56,
+      "end_time": 2.72
+    },
+    {
+      "text": "language",
+      "start_time": 2.72,
+      "end_time": 3.04
+    },
+    {
+      "text": "models",
+      "start_time": 3.04,
+      "end_time": 3.44
+    },
+    {
+      "text": "on",
+      "start_time": 3.44,
+      "end_time": 3.68
+    },
+    {
+      "text": "Vals",
+      "start_time": 3.68,
+      "end_time": 4.24
+    },
+    {
+      "text": "namely",
+      "start_time": 4.24,
+      "end_time": 4.88
+    },
+    {
+      "text": "with",
+      "start_time": 4.88,
+      "end_time": 5.2
+    },
+    {
+      "text": "Clip",
+      "start_time": 5.28,
+      "end_time": 5.68
+    },
+    {
+      "text": "AlexMert",
+      "start_time": 5.92,
+      "end_time": 6.8
+    },
+    {
+      "text": "Vilbert",
+      "start_time": 6.8,
+      "end_time": 7.6
+    },
+    {
+      "text": "Vilbert",
+      "start_time": 7.68,
+      "end_time": 8.16
+    },
+    {
+      "text": "Twelve",
+      "start_time": 8.16,
+      "end_time": 8.32
+    },
+    {
+      "text": "in",
+      "start_time": 8.32,
+      "end_time": 8.48
+    },
+    {
+      "text": "One",
+      "start_time": 8.48,
+      "end_time": 8.96
+    },
+    {
+      "text": "and",
+      "start_time": 8.96,
+      "end_time": 9.2
+    },
+    {
+      "text": "VisualBERT",
+      "start_time": 9.2,
+      "end_time": 10.08
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

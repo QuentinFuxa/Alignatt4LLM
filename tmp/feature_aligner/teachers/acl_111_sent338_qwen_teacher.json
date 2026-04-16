@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_338.wav",
+  "text": "Assume we have a tabular dataset and a knowledge base.",
+  "audio_duration_s": 4.083,
+  "words": [
+    {
+      "text": "Assume",
+      "start_time": 0.16,
+      "end_time": 0.64
+    },
+    {
+      "text": "we",
+      "start_time": 0.8,
+      "end_time": 0.96
+    },
+    {
+      "text": "have",
+      "start_time": 0.96,
+      "end_time": 1.12
+    },
+    {
+      "text": "a",
+      "start_time": 1.12,
+      "end_time": 1.12
+    },
+    {
+      "text": "tabular",
+      "start_time": 1.12,
+      "end_time": 1.6
+    },
+    {
+      "text": "dataset",
+      "start_time": 1.6,
+      "end_time": 2.08
+    },
+    {
+      "text": "and",
+      "start_time": 2.72,
+      "end_time": 3.04
+    },
+    {
+      "text": "a",
+      "start_time": 3.04,
+      "end_time": 3.2
+    },
+    {
+      "text": "knowledge",
+      "start_time": 3.2,
+      "end_time": 3.6
+    },
+    {
+      "text": "base",
+      "start_time": 3.6,
+      "end_time": 4.0
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

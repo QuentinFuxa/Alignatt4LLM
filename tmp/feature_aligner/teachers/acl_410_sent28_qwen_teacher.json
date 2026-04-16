@@ -1,0 +1,81 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_28.wav",
+  "text": "We can also refer back to the original questions to find the relevant contents.",
+  "audio_duration_s": 5.013,
+  "words": [
+    {
+      "text": "We",
+      "start_time": 0.0,
+      "end_time": 0.08
+    },
+    {
+      "text": "can",
+      "start_time": 0.08,
+      "end_time": 0.24
+    },
+    {
+      "text": "also",
+      "start_time": 0.24,
+      "end_time": 0.48
+    },
+    {
+      "text": "refer",
+      "start_time": 0.48,
+      "end_time": 0.88
+    },
+    {
+      "text": "back",
+      "start_time": 0.88,
+      "end_time": 1.2
+    },
+    {
+      "text": "to",
+      "start_time": 1.28,
+      "end_time": 1.28
+    },
+    {
+      "text": "the",
+      "start_time": 1.28,
+      "end_time": 1.44
+    },
+    {
+      "text": "original",
+      "start_time": 1.44,
+      "end_time": 1.84
+    },
+    {
+      "text": "questions",
+      "start_time": 1.84,
+      "end_time": 2.4
+    },
+    {
+      "text": "to",
+      "start_time": 2.8,
+      "end_time": 2.88
+    },
+    {
+      "text": "find",
+      "start_time": 2.88,
+      "end_time": 3.2
+    },
+    {
+      "text": "the",
+      "start_time": 3.2,
+      "end_time": 3.28
+    },
+    {
+      "text": "relevant",
+      "start_time": 3.28,
+      "end_time": 3.84
+    },
+    {
+      "text": "contents",
+      "start_time": 4.4,
+      "end_time": 4.88
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

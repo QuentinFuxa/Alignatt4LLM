@@ -1,0 +1,81 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_307.wav",
+  "text": "This penalty results in a lower blue value in the experiment results described next.",
+  "audio_duration_s": 6.244,
+  "words": [
+    {
+      "text": "This",
+      "start_time": 0.24,
+      "end_time": 0.56
+    },
+    {
+      "text": "penalty",
+      "start_time": 0.64,
+      "end_time": 1.36
+    },
+    {
+      "text": "results",
+      "start_time": 1.68,
+      "end_time": 2.16
+    },
+    {
+      "text": "in",
+      "start_time": 2.16,
+      "end_time": 2.24
+    },
+    {
+      "text": "a",
+      "start_time": 2.24,
+      "end_time": 2.32
+    },
+    {
+      "text": "lower",
+      "start_time": 2.32,
+      "end_time": 2.72
+    },
+    {
+      "text": "blue",
+      "start_time": 2.72,
+      "end_time": 3.04
+    },
+    {
+      "text": "value",
+      "start_time": 3.04,
+      "end_time": 3.44
+    },
+    {
+      "text": "in",
+      "start_time": 3.68,
+      "end_time": 3.84
+    },
+    {
+      "text": "the",
+      "start_time": 3.84,
+      "end_time": 3.92
+    },
+    {
+      "text": "experiment",
+      "start_time": 3.92,
+      "end_time": 4.56
+    },
+    {
+      "text": "results",
+      "start_time": 4.56,
+      "end_time": 5.12
+    },
+    {
+      "text": "described",
+      "start_time": 5.12,
+      "end_time": 5.68
+    },
+    {
+      "text": "next",
+      "start_time": 5.68,
+      "end_time": 6.24
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

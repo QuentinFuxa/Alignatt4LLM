@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_379.wav",
+  "text": "In our scenario, a tablet dataset varies in the number of classes.",
+  "audio_duration_s": 4.169,
+  "words": [
+    {
+      "text": "In",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "our",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "scenario",
+      "start_time": 0.56,
+      "end_time": 1.28
+    },
+    {
+      "text": "a",
+      "start_time": 1.44,
+      "end_time": 1.68
+    },
+    {
+      "text": "tablet",
+      "start_time": 1.68,
+      "end_time": 2.08
+    },
+    {
+      "text": "dataset",
+      "start_time": 2.08,
+      "end_time": 2.48
+    },
+    {
+      "text": "varies",
+      "start_time": 2.56,
+      "end_time": 2.88
+    },
+    {
+      "text": "in",
+      "start_time": 2.88,
+      "end_time": 3.04
+    },
+    {
+      "text": "the",
+      "start_time": 3.04,
+      "end_time": 3.04
+    },
+    {
+      "text": "number",
+      "start_time": 3.04,
+      "end_time": 3.36
+    },
+    {
+      "text": "of",
+      "start_time": 3.36,
+      "end_time": 3.52
+    },
+    {
+      "text": "classes",
+      "start_time": 3.52,
+      "end_time": 4.08
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

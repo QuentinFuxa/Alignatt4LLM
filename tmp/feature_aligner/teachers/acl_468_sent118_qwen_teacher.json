@@ -1,0 +1,66 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_118.wav",
+  "text": "Here, they are long documents that may be up to six.",
+  "audio_duration_s": 3.647,
+  "words": [
+    {
+      "text": "Here",
+      "start_time": 0.08,
+      "end_time": 0.56
+    },
+    {
+      "text": "they",
+      "start_time": 0.8,
+      "end_time": 1.04
+    },
+    {
+      "text": "are",
+      "start_time": 1.04,
+      "end_time": 1.28
+    },
+    {
+      "text": "long",
+      "start_time": 1.36,
+      "end_time": 1.76
+    },
+    {
+      "text": "documents",
+      "start_time": 1.76,
+      "end_time": 2.4
+    },
+    {
+      "text": "that",
+      "start_time": 2.4,
+      "end_time": 2.64
+    },
+    {
+      "text": "may",
+      "start_time": 2.64,
+      "end_time": 2.8
+    },
+    {
+      "text": "be",
+      "start_time": 2.8,
+      "end_time": 2.96
+    },
+    {
+      "text": "up",
+      "start_time": 2.96,
+      "end_time": 3.2
+    },
+    {
+      "text": "to",
+      "start_time": 3.2,
+      "end_time": 3.28
+    },
+    {
+      "text": "six",
+      "start_time": 3.28,
+      "end_time": 3.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

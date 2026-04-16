@@ -1,0 +1,109 @@
+{
+  "tag": "acl_567_sent216",
+  "split": "val",
+  "backend": "gemma_feature_aligner",
+  "text": "So, after filtering and human evaluation, we have as many test instances as described in this table.",
+  "audio_duration_s": 8.062,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.37187942504882815,
+      "end_time": 0.37187942504882815
+    },
+    {
+      "text": "after",
+      "start_time": 2.803665771484375,
+      "end_time": 2.803665771484375
+    },
+    {
+      "text": "filtering",
+      "start_time": 4.448887023925781,
+      "end_time": 4.448887023925781
+    },
+    {
+      "text": "and",
+      "start_time": 4.448887023925781,
+      "end_time": 4.448887023925781
+    },
+    {
+      "text": "human",
+      "start_time": 4.448887023925781,
+      "end_time": 4.448887023925781
+    },
+    {
+      "text": "evaluation",
+      "start_time": 4.448887023925781,
+      "end_time": 4.448887023925781
+    },
+    {
+      "text": "we",
+      "start_time": 4.448887023925781,
+      "end_time": 4.448887023925781
+    },
+    {
+      "text": "have",
+      "start_time": 4.448887023925781,
+      "end_time": 4.448887023925781
+    },
+    {
+      "text": "as",
+      "start_time": 4.448887023925781,
+      "end_time": 4.448887023925781
+    },
+    {
+      "text": "many",
+      "start_time": 4.879303588867187,
+      "end_time": 4.879303588867187
+    },
+    {
+      "text": "test",
+      "start_time": 4.9061126708984375,
+      "end_time": 4.9061126708984375
+    },
+    {
+      "text": "instances",
+      "start_time": 4.9061126708984375,
+      "end_time": 4.9061126708984375
+    },
+    {
+      "text": "as",
+      "start_time": 4.9061126708984375,
+      "end_time": 4.9061126708984375
+    },
+    {
+      "text": "described",
+      "start_time": 4.9061126708984375,
+      "end_time": 4.9061126708984375
+    },
+    {
+      "text": "in",
+      "start_time": 5.465244140625,
+      "end_time": 5.465244140625
+    },
+    {
+      "text": "this",
+      "start_time": 5.465244140625,
+      "end_time": 5.465244140625
+    },
+    {
+      "text": "table",
+      "start_time": 5.465244140625,
+      "end_time": 5.465244140625
+    }
+  ],
+  "metrics": {
+    "num_words": 17,
+    "monotone": true,
+    "mae_s": 1.3101832939596738,
+    "median_error_s": 1.3338873291015627,
+    "p90_error_s": 2.387234558105469,
+    "max_error_s": 2.6088870239257815,
+    "word_count_match": true,
+    "head_inference_time_s": 0.0054891109466552734,
+    "feat_extraction_time_s": 0.12215232849121094,
+    "total_alignment_time_s": 0.1276414394378662,
+    "audio_duration_s": 8.062,
+    "tag": "acl_567_sent216",
+    "talk_id": "567"
+  }
+}

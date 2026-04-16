@@ -1,10 +1,9 @@
-"""Offline multi-clip evaluation of the trained Gemma feature aligner.
+"""Full held-out evaluation of the Gemma feature aligner v3.
 
-Loads a trained checkpoint and evaluates on all available clips with
-Qwen teacher timestamps. Reports per-clip and aggregate metrics.
+Evaluates on ALL test clips (talk 111), reports per-clip and aggregate.
 
 Usage:
-    /home/fuxa/iwslt26-sst/.venv-qwen35-vllm/bin/python run_gemma_feature_aligner_eval.py
+    /home/fuxa/iwslt-2026-baselines/.venv-inference/bin/python run_gemma_feature_aligner_eval.py
 """
 
 from __future__ import annotations
@@ -24,33 +23,14 @@ from run_gemma_feature_aligner_train import (
     CHECKPOINT_DIR,
     DEVICE,
     DTYPE,
-    GEMMA_MODEL_PATH,
+    MANIFEST_PATH,
+    TEACHER_DIR,
     evaluate_alignment,
     get_text_embeddings,
     load_gemma,
     load_teacher,
     predict_alignment,
 )
-
-EVAL_CLIPS = [
-    {
-        "audio": "tmp/alignatt_smoke18.wav",
-        "teacher": "tmp/alignment_research/frontier_smoke18_qwen_teacher.json",
-        "tag": "smoke18",
-    },
-    {
-        "audio": "tmp/ccpXHNfaoy_first75.wav",
-        "teacher": "tmp/alignment_research/ccpXHNfaoy_18s_qwen_teacher.json",
-        "tag": "ccpXHNfaoy_18s",
-        "slice_seconds": (0, 18),
-    },
-    {
-        "audio": "tmp/ccpXHNfaoy_first75.wav",
-        "teacher": "tmp/alignment_research/ccpXHNfaoy_30s_48s_qwen_teacher.json",
-        "tag": "ccpXHNfaoy_30s_48s",
-        "slice_seconds": (30, 48),
-    },
-]
 
 
 def load_checkpoint(path: Path, device: str):
@@ -65,94 +45,114 @@ def load_checkpoint(path: Path, device: str):
     ).to(device)
     aligner.load_state_dict(ckpt["model_state"])
     aligner.eval()
-    return aligner
+    return aligner, ckpt
 
 
 def main():
-    ckpt_path = CHECKPOINT_DIR / "aligner_v1.pt"
+    ckpt_path = CHECKPOINT_DIR / "aligner_v3.pt"
     if not ckpt_path.exists():
         print(f"No checkpoint at {ckpt_path}. Run training first.")
         return
 
+    with open(MANIFEST_PATH) as f:
+        manifest = json.load(f)
+
     model, processor = load_gemma()
     tokenizer = processor.tokenizer
-    aligner = load_checkpoint(ckpt_path, DEVICE)
+    aligner, ckpt = load_checkpoint(ckpt_path, DEVICE)
     print(f"Loaded aligner from {ckpt_path}")
+    print(f"  Config: {ckpt['config']}")
+    print(f"  Params: {ckpt.get('param_count', '?'):,}")
+
+    test_clips = manifest["splits"]["test"]
+    print(f"\n=== FULL TEST evaluation ({len(test_clips)} clips, talk 111) ===")
 
     results = {}
-    for clip in EVAL_CLIPS:
+    for clip in test_clips:
         tag = clip["tag"]
+        teacher_path = TEACHER_DIR / f"{tag}_qwen_teacher.json"
+        if not teacher_path.exists():
+            print(f"  {tag}: SKIP (no teacher)")
+            continue
+
         audio, sr = sf.read(clip["audio"])
+        teacher = load_teacher(str(teacher_path))
 
-        if "slice_seconds" in clip:
-            s, e = clip["slice_seconds"]
-            audio = audio[int(s * sr):int(e * sr)]
+        t0 = time.time()
+        feat = extract_audio_features(
+            model, processor, audio, sample_rate=sr, device=DEVICE, dtype=DTYPE,
+        )
+        feat_time = time.time() - t0
 
-        if len(audio) / sr > 30.0:
-            print(f"  {tag}: audio too long ({len(audio)/sr:.1f}s > 30s), skipping")
-            continue
-
-        teacher = load_teacher(clip["teacher"]) if clip["teacher"] else None
-        text = teacher["text"] if teacher else None
-        if text is None:
-            continue
-
-        print(f"\nEvaluating {tag} ({len(audio)/sr:.1f}s)...")
-        feat = extract_audio_features(model, processor, audio, sample_rate=sr, device=DEVICE, dtype=DTYPE)
-        encoded = tokenizer(text, add_special_tokens=False)
+        encoded = tokenizer(teacher["text"], add_special_tokens=False)
         tids = torch.tensor(encoded["input_ids"], dtype=torch.long, device=DEVICE)
         text_emb = get_text_embeddings(model, tids).float()
 
         t0 = time.time()
-        result = predict_alignment(aligner, feat, text_emb, tids, tokenizer, text, feat.audio_duration_s)
-        inference_time = time.time() - t0
+        result = predict_alignment(
+            aligner, feat, text_emb, tids, tokenizer,
+            teacher["text"], feat.audio_duration_s,
+        )
+        head_time = time.time() - t0
 
         metrics = evaluate_alignment(result, teacher)
-        metrics["inference_time_s"] = inference_time
+        metrics["head_inference_time_s"] = head_time
+        metrics["feat_extraction_time_s"] = feat_time
+        metrics["total_alignment_time_s"] = head_time + feat_time
+        metrics["audio_duration_s"] = feat.audio_duration_s
         metrics["tag"] = tag
+        metrics["talk_id"] = clip.get("talk_id", "unknown")
         results[tag] = metrics
 
-        print(f"  MAE: {metrics.get('mae_s', 'N/A'):.4f}s" if "mae_s" in metrics else "  MAE: N/A")
-        print(f"  Median: {metrics.get('median_error_s', 'N/A'):.4f}s" if "median_error_s" in metrics else "")
-        print(f"  P90: {metrics.get('p90_error_s', 'N/A'):.4f}s" if "p90_error_s" in metrics else "")
-        print(f"  Monotone: {metrics['monotone']}")
-        print(f"  Inference: {inference_time:.4f}s")
-
-        if teacher:
-            print("  Word comparison (first 10):")
-            for i in range(min(10, len(result.words), len(teacher["words"]))):
-                pw, tw = result.words[i], teacher["words"][i]
-                print(f"    {tw['text']:15s} teacher={tw['end_time']:.2f}  pred={pw.end_time:.2f}  "
-                      f"err={abs(pw.end_time - tw['end_time']):.2f}")
+        print(f"  {tag} ({feat.audio_duration_s:.1f}s): "
+              f"MAE={metrics.get('mae_s', 0):.3f}s  "
+              f"P90={metrics.get('p90_error_s', 0):.3f}s  "
+              f"mono={metrics['monotone']}  "
+              f"total={metrics['total_alignment_time_s']:.3f}s")
 
         out = {
-            "tag": tag, "backend": "gemma_feature_aligner",
-            "text": result.text, "audio_duration_s": result.audio_duration_s,
-            "words": [asdict(w) for w in result.words], "metrics": metrics,
+            "tag": tag, "split": "test",
+            "backend": "gemma_feature_aligner_v3",
+            "text": result.text,
+            "audio_duration_s": result.audio_duration_s,
+            "words": [asdict(w) for w in result.words],
+            "metrics": metrics,
         }
-        with open(CHECKPOINT_DIR / f"eval_{tag}.json", "w") as f:
+        with open(CHECKPOINT_DIR / f"eval_v3_{tag}.json", "w") as f:
             json.dump(out, f, indent=2)
 
     if results:
         all_mae = [r["mae_s"] for r in results.values() if "mae_s" in r]
+        all_median = [r["median_error_s"] for r in results.values() if "median_error_s" in r]
         all_p90 = [r["p90_error_s"] for r in results.values() if "p90_error_s" in r]
-        all_inf = [r["inference_time_s"] for r in results.values()]
+        all_head = [r["head_inference_time_s"] for r in results.values()]
+        all_feat = [r["feat_extraction_time_s"] for r in results.values()]
+        all_total = [r["total_alignment_time_s"] for r in results.values()]
 
         agg = {
+            "version": "v3",
+            "split": "test",
             "num_clips": len(results),
             "mean_mae_s": float(np.mean(all_mae)) if all_mae else None,
+            "mean_median_error_s": float(np.mean(all_median)) if all_median else None,
             "mean_p90_s": float(np.mean(all_p90)) if all_p90 else None,
-            "mean_inference_s": float(np.mean(all_inf)),
             "all_monotone": all(r["monotone"] for r in results.values()),
+            "mean_head_time_s": float(np.mean(all_head)),
+            "mean_feat_time_s": float(np.mean(all_feat)),
+            "mean_total_time_s": float(np.mean(all_total)),
             "per_clip": results,
         }
-        with open(CHECKPOINT_DIR / "multi_clip_eval.json", "w") as f:
-            json.dump(agg, f, indent=2)
-        print(f"\n=== Aggregate ({len(results)} clips) ===")
-        print(f"  Mean MAE: {agg['mean_mae_s']:.4f}s" if agg["mean_mae_s"] else "")
-        print(f"  Mean P90: {agg['mean_p90_s']:.4f}s" if agg["mean_p90_s"] else "")
+        print(f"\n=== TEST AGGREGATE ({len(results)} clips) ===")
+        print(f"  Mean MAE:    {agg['mean_mae_s']:.4f}s" if agg["mean_mae_s"] else "")
+        print(f"  Mean median: {agg['mean_median_error_s']:.4f}s" if agg["mean_median_error_s"] else "")
+        print(f"  Mean P90:    {agg['mean_p90_s']:.4f}s" if agg["mean_p90_s"] else "")
         print(f"  All monotone: {agg['all_monotone']}")
-        print(f"  Saved -> {CHECKPOINT_DIR / 'multi_clip_eval.json'}")
+        print(f"  Mean total time: {agg['mean_total_time_s']:.3f}s")
+
+        out_path = CHECKPOINT_DIR / "heldout_eval_v3.json"
+        with open(out_path, "w") as f:
+            json.dump(agg, f, indent=2)
+        print(f"\nSaved -> {out_path}")
 
 
 if __name__ == "__main__":

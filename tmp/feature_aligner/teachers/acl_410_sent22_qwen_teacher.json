@@ -1,0 +1,91 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_22.wav",
+  "text": "So here we keep generating the operators until we reach the leaves, which are the quantities.",
+  "audio_duration_s": 4.915,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "here",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "we",
+      "start_time": 0.56,
+      "end_time": 0.72
+    },
+    {
+      "text": "keep",
+      "start_time": 0.72,
+      "end_time": 0.96
+    },
+    {
+      "text": "generating",
+      "start_time": 0.96,
+      "end_time": 1.52
+    },
+    {
+      "text": "the",
+      "start_time": 1.52,
+      "end_time": 1.6
+    },
+    {
+      "text": "operators",
+      "start_time": 1.6,
+      "end_time": 2.32
+    },
+    {
+      "text": "until",
+      "start_time": 2.56,
+      "end_time": 2.88
+    },
+    {
+      "text": "we",
+      "start_time": 2.88,
+      "end_time": 3.04
+    },
+    {
+      "text": "reach",
+      "start_time": 3.04,
+      "end_time": 3.36
+    },
+    {
+      "text": "the",
+      "start_time": 3.36,
+      "end_time": 3.44
+    },
+    {
+      "text": "leaves",
+      "start_time": 3.44,
+      "end_time": 3.84
+    },
+    {
+      "text": "which",
+      "start_time": 3.84,
+      "end_time": 4.0
+    },
+    {
+      "text": "are",
+      "start_time": 4.0,
+      "end_time": 4.16
+    },
+    {
+      "text": "the",
+      "start_time": 4.16,
+      "end_time": 4.24
+    },
+    {
+      "text": "quantities",
+      "start_time": 4.24,
+      "end_time": 4.8
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

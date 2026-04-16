@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_327.wav",
+  "text": "We have built a new dataset for automatic vision generation.",
+  "audio_duration_s": 4.086,
+  "words": [
+    {
+      "text": "We",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "have",
+      "start_time": 0.32,
+      "end_time": 0.64
+    },
+    {
+      "text": "built",
+      "start_time": 0.64,
+      "end_time": 0.88
+    },
+    {
+      "text": "a",
+      "start_time": 0.88,
+      "end_time": 1.04
+    },
+    {
+      "text": "new",
+      "start_time": 1.04,
+      "end_time": 1.28
+    },
+    {
+      "text": "dataset",
+      "start_time": 1.28,
+      "end_time": 1.76
+    },
+    {
+      "text": "for",
+      "start_time": 1.92,
+      "end_time": 2.24
+    },
+    {
+      "text": "automatic",
+      "start_time": 2.24,
+      "end_time": 2.8
+    },
+    {
+      "text": "vision",
+      "start_time": 2.88,
+      "end_time": 3.2
+    },
+    {
+      "text": "generation",
+      "start_time": 3.36,
+      "end_time": 4.0
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_232.wav",
+  "text": "From the coreference piece, we find out that tracing multiple references to the same object in an image by using pronouns is also difficult for vision and language models.",
+  "audio_duration_s": 10.718,
+  "words": [
+    {
+      "text": "From",
+      "start_time": 0.16,
+      "end_time": 0.56
+    },
+    {
+      "text": "the",
+      "start_time": 0.56,
+      "end_time": 0.64
+    },
+    {
+      "text": "coreference",
+      "start_time": 0.64,
+      "end_time": 1.28
+    },
+    {
+      "text": "piece",
+      "start_time": 1.28,
+      "end_time": 1.68
+    },
+    {
+      "text": "we",
+      "start_time": 1.68,
+      "end_time": 2.0
+    },
+    {
+      "text": "find",
+      "start_time": 2.0,
+      "end_time": 2.48
+    },
+    {
+      "text": "out",
+      "start_time": 2.48,
+      "end_time": 2.72
+    },
+    {
+      "text": "that",
+      "start_time": 2.8,
+      "end_time": 2.96
+    },
+    {
+      "text": "tracing",
+      "start_time": 2.96,
+      "end_time": 3.44
+    },
+    {
+      "text": "multiple",
+      "start_time": 3.44,
+      "end_time": 3.84
+    },
+    {
+      "text": "references",
+      "start_time": 3.84,
+      "end_time": 4.56
+    },
+    {
+      "text": "to",
+      "start_time": 4.56,
+      "end_time": 4.64
+    },
+    {
+      "text": "the",
+      "start_time": 4.64,
+      "end_time": 4.72
+    },
+    {
+      "text": "same",
+      "start_time": 4.72,
+      "end_time": 5.04
+    },
+    {
+      "text": "object",
+      "start_time": 5.04,
+      "end_time": 5.52
+    },
+    {
+      "text": "in",
+      "start_time": 5.52,
+      "end_time": 5.6
+    },
+    {
+      "text": "an",
+      "start_time": 5.6,
+      "end_time": 5.76
+    },
+    {
+      "text": "image",
+      "start_time": 5.76,
+      "end_time": 6.16
+    },
+    {
+      "text": "by",
+      "start_time": 6.4,
+      "end_time": 6.56
+    },
+    {
+      "text": "using",
+      "start_time": 6.56,
+      "end_time": 6.88
+    },
+    {
+      "text": "pronouns",
+      "start_time": 6.88,
+      "end_time": 7.76
+    },
+    {
+      "text": "is",
+      "start_time": 8.08,
+      "end_time": 8.16
+    },
+    {
+      "text": "also",
+      "start_time": 8.16,
+      "end_time": 8.64
+    },
+    {
+      "text": "difficult",
+      "start_time": 8.72,
+      "end_time": 9.2
+    },
+    {
+      "text": "for",
+      "start_time": 9.2,
+      "end_time": 9.36
+    },
+    {
+      "text": "vision",
+      "start_time": 9.36,
+      "end_time": 9.6
+    },
+    {
+      "text": "and",
+      "start_time": 9.6,
+      "end_time": 9.76
+    },
+    {
+      "text": "language",
+      "start_time": 9.76,
+      "end_time": 10.16
+    },
+    {
+      "text": "models",
+      "start_time": 10.16,
+      "end_time": 10.64
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

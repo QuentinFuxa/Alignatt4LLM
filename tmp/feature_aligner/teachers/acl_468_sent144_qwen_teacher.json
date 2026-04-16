@@ -1,0 +1,121 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_144.wav",
+  "text": "The articles are also very diverse, as they come from 32 different Belgian codes that cover a large number of legal topics.",
+  "audio_duration_s": 8.042,
+  "words": [
+    {
+      "text": "The",
+      "start_time": 0.08,
+      "end_time": 0.32
+    },
+    {
+      "text": "articles",
+      "start_time": 0.32,
+      "end_time": 0.8
+    },
+    {
+      "text": "are",
+      "start_time": 0.8,
+      "end_time": 0.96
+    },
+    {
+      "text": "also",
+      "start_time": 0.96,
+      "end_time": 1.36
+    },
+    {
+      "text": "very",
+      "start_time": 1.36,
+      "end_time": 1.6
+    },
+    {
+      "text": "diverse",
+      "start_time": 1.6,
+      "end_time": 2.16
+    },
+    {
+      "text": "as",
+      "start_time": 2.32,
+      "end_time": 2.56
+    },
+    {
+      "text": "they",
+      "start_time": 2.56,
+      "end_time": 2.64
+    },
+    {
+      "text": "come",
+      "start_time": 2.64,
+      "end_time": 2.96
+    },
+    {
+      "text": "from",
+      "start_time": 2.96,
+      "end_time": 3.28
+    },
+    {
+      "text": "32",
+      "start_time": 3.28,
+      "end_time": 4.0
+    },
+    {
+      "text": "different",
+      "start_time": 4.0,
+      "end_time": 4.48
+    },
+    {
+      "text": "Belgian",
+      "start_time": 4.48,
+      "end_time": 4.88
+    },
+    {
+      "text": "codes",
+      "start_time": 4.88,
+      "end_time": 5.36
+    },
+    {
+      "text": "that",
+      "start_time": 5.76,
+      "end_time": 6.0
+    },
+    {
+      "text": "cover",
+      "start_time": 6.0,
+      "end_time": 6.24
+    },
+    {
+      "text": "a",
+      "start_time": 6.24,
+      "end_time": 6.32
+    },
+    {
+      "text": "large",
+      "start_time": 6.32,
+      "end_time": 6.72
+    },
+    {
+      "text": "number",
+      "start_time": 6.72,
+      "end_time": 6.96
+    },
+    {
+      "text": "of",
+      "start_time": 7.04,
+      "end_time": 7.12
+    },
+    {
+      "text": "legal",
+      "start_time": 7.12,
+      "end_time": 7.44
+    },
+    {
+      "text": "topics",
+      "start_time": 7.44,
+      "end_time": 8.0
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

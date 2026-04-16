@@ -1,0 +1,51 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_392.wav",
+  "text": "And then a fast execute entity linking phase.",
+  "audio_duration_s": 3.228,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.0,
+      "end_time": 0.16
+    },
+    {
+      "text": "then",
+      "start_time": 0.16,
+      "end_time": 0.48
+    },
+    {
+      "text": "a",
+      "start_time": 0.56,
+      "end_time": 0.96
+    },
+    {
+      "text": "fast",
+      "start_time": 1.36,
+      "end_time": 1.76
+    },
+    {
+      "text": "execute",
+      "start_time": 1.76,
+      "end_time": 2.16
+    },
+    {
+      "text": "entity",
+      "start_time": 2.16,
+      "end_time": 2.56
+    },
+    {
+      "text": "linking",
+      "start_time": 2.56,
+      "end_time": 2.88
+    },
+    {
+      "text": "phase",
+      "start_time": 2.88,
+      "end_time": 3.2
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

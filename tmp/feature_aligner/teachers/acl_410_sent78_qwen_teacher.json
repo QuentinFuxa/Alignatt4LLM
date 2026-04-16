@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_78.wav",
+  "text": "And we also try to analyze the difficulty behind this.",
+  "audio_duration_s": 3.367,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.0,
+      "end_time": 0.08
+    },
+    {
+      "text": "we",
+      "start_time": 0.08,
+      "end_time": 0.16
+    },
+    {
+      "text": "also",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "try",
+      "start_time": 0.4,
+      "end_time": 0.64
+    },
+    {
+      "text": "to",
+      "start_time": 0.64,
+      "end_time": 0.72
+    },
+    {
+      "text": "analyze",
+      "start_time": 0.8,
+      "end_time": 1.28
+    },
+    {
+      "text": "the",
+      "start_time": 1.28,
+      "end_time": 1.36
+    },
+    {
+      "text": "difficulty",
+      "start_time": 1.36,
+      "end_time": 1.84
+    },
+    {
+      "text": "behind",
+      "start_time": 1.84,
+      "end_time": 2.32
+    },
+    {
+      "text": "this",
+      "start_time": 2.32,
+      "end_time": 2.48
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

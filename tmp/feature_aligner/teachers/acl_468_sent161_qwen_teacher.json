@@ -1,0 +1,96 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_161.wav",
+  "text": "On all datasets. Note that for training, we experiment with the two flavors of the Bianco architecture.",
+  "audio_duration_s": 6.657,
+  "words": [
+    {
+      "text": "On",
+      "start_time": 0.08,
+      "end_time": 0.32
+    },
+    {
+      "text": "all",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "datasets",
+      "start_time": 0.56,
+      "end_time": 1.28
+    },
+    {
+      "text": "Note",
+      "start_time": 2.16,
+      "end_time": 2.32
+    },
+    {
+      "text": "that",
+      "start_time": 2.32,
+      "end_time": 2.4
+    },
+    {
+      "text": "for",
+      "start_time": 2.4,
+      "end_time": 2.56
+    },
+    {
+      "text": "training",
+      "start_time": 2.56,
+      "end_time": 3.12
+    },
+    {
+      "text": "we",
+      "start_time": 3.12,
+      "end_time": 3.2
+    },
+    {
+      "text": "experiment",
+      "start_time": 3.2,
+      "end_time": 3.92
+    },
+    {
+      "text": "with",
+      "start_time": 3.92,
+      "end_time": 4.16
+    },
+    {
+      "text": "the",
+      "start_time": 4.16,
+      "end_time": 4.16
+    },
+    {
+      "text": "two",
+      "start_time": 4.16,
+      "end_time": 4.32
+    },
+    {
+      "text": "flavors",
+      "start_time": 4.32,
+      "end_time": 4.96
+    },
+    {
+      "text": "of",
+      "start_time": 4.96,
+      "end_time": 5.12
+    },
+    {
+      "text": "the",
+      "start_time": 5.12,
+      "end_time": 5.2
+    },
+    {
+      "text": "Bianco",
+      "start_time": 5.2,
+      "end_time": 5.76
+    },
+    {
+      "text": "architecture",
+      "start_time": 5.76,
+      "end_time": 6.48
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_249.wav",
+  "text": "I will refer to two previous researches on automatic text generation.",
+  "audio_duration_s": 5.613,
+  "words": [
+    {
+      "text": "I",
+      "start_time": 0.16,
+      "end_time": 0.24
+    },
+    {
+      "text": "will",
+      "start_time": 0.24,
+      "end_time": 0.4
+    },
+    {
+      "text": "refer",
+      "start_time": 0.4,
+      "end_time": 0.8
+    },
+    {
+      "text": "to",
+      "start_time": 0.96,
+      "end_time": 1.12
+    },
+    {
+      "text": "two",
+      "start_time": 1.44,
+      "end_time": 1.76
+    },
+    {
+      "text": "previous",
+      "start_time": 1.76,
+      "end_time": 2.24
+    },
+    {
+      "text": "researches",
+      "start_time": 2.24,
+      "end_time": 2.96
+    },
+    {
+      "text": "on",
+      "start_time": 3.2,
+      "end_time": 3.52
+    },
+    {
+      "text": "automatic",
+      "start_time": 3.84,
+      "end_time": 4.48
+    },
+    {
+      "text": "text",
+      "start_time": 4.48,
+      "end_time": 4.72
+    },
+    {
+      "text": "generation",
+      "start_time": 4.88,
+      "end_time": 5.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

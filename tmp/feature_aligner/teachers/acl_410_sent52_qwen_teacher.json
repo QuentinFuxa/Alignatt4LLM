@@ -1,0 +1,51 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_52.wav",
+  "text": "This quantity comes from the previous calculated expression.",
+  "audio_duration_s": 3.268,
+  "words": [
+    {
+      "text": "This",
+      "start_time": 0.0,
+      "end_time": 0.16
+    },
+    {
+      "text": "quantity",
+      "start_time": 0.16,
+      "end_time": 0.56
+    },
+    {
+      "text": "comes",
+      "start_time": 0.56,
+      "end_time": 0.8
+    },
+    {
+      "text": "from",
+      "start_time": 0.88,
+      "end_time": 1.04
+    },
+    {
+      "text": "the",
+      "start_time": 1.04,
+      "end_time": 1.12
+    },
+    {
+      "text": "previous",
+      "start_time": 1.12,
+      "end_time": 1.52
+    },
+    {
+      "text": "calculated",
+      "start_time": 1.52,
+      "end_time": 2.16
+    },
+    {
+      "text": "expression",
+      "start_time": 2.56,
+      "end_time": 3.2
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

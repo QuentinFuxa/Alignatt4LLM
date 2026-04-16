@@ -1,0 +1,91 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_110.wav",
+  "text": "A model is required to retrieve all relevant statutory articles from a large body of legislation.",
+  "audio_duration_s": 5.996,
+  "words": [
+    {
+      "text": "A",
+      "start_time": 0.16,
+      "end_time": 0.24
+    },
+    {
+      "text": "model",
+      "start_time": 0.24,
+      "end_time": 0.56
+    },
+    {
+      "text": "is",
+      "start_time": 0.56,
+      "end_time": 0.72
+    },
+    {
+      "text": "required",
+      "start_time": 0.72,
+      "end_time": 1.36
+    },
+    {
+      "text": "to",
+      "start_time": 1.44,
+      "end_time": 1.44
+    },
+    {
+      "text": "retrieve",
+      "start_time": 1.44,
+      "end_time": 1.92
+    },
+    {
+      "text": "all",
+      "start_time": 2.08,
+      "end_time": 2.4
+    },
+    {
+      "text": "relevant",
+      "start_time": 2.4,
+      "end_time": 2.8
+    },
+    {
+      "text": "statutory",
+      "start_time": 2.8,
+      "end_time": 3.36
+    },
+    {
+      "text": "articles",
+      "start_time": 3.44,
+      "end_time": 4.0
+    },
+    {
+      "text": "from",
+      "start_time": 4.0,
+      "end_time": 4.24
+    },
+    {
+      "text": "a",
+      "start_time": 4.24,
+      "end_time": 4.32
+    },
+    {
+      "text": "large",
+      "start_time": 4.32,
+      "end_time": 4.72
+    },
+    {
+      "text": "body",
+      "start_time": 4.72,
+      "end_time": 4.96
+    },
+    {
+      "text": "of",
+      "start_time": 4.96,
+      "end_time": 5.12
+    },
+    {
+      "text": "legislation",
+      "start_time": 5.12,
+      "end_time": 5.92
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

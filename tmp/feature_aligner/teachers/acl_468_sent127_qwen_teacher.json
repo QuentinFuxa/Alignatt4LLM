@@ -1,0 +1,106 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_127.wav",
+  "text": "We considered thirty-two publicly available Belgian codes and extracted all their articles as well as the corresponding section headings.",
+  "audio_duration_s": 8.017,
+  "words": [
+    {
+      "text": "We",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "considered",
+      "start_time": 0.32,
+      "end_time": 0.8
+    },
+    {
+      "text": "thirtytwo",
+      "start_time": 0.8,
+      "end_time": 1.52
+    },
+    {
+      "text": "publicly",
+      "start_time": 1.52,
+      "end_time": 1.92
+    },
+    {
+      "text": "available",
+      "start_time": 1.92,
+      "end_time": 2.48
+    },
+    {
+      "text": "Belgian",
+      "start_time": 2.48,
+      "end_time": 3.04
+    },
+    {
+      "text": "codes",
+      "start_time": 3.04,
+      "end_time": 3.44
+    },
+    {
+      "text": "and",
+      "start_time": 3.44,
+      "end_time": 3.6
+    },
+    {
+      "text": "extracted",
+      "start_time": 3.6,
+      "end_time": 4.32
+    },
+    {
+      "text": "all",
+      "start_time": 4.4,
+      "end_time": 4.64
+    },
+    {
+      "text": "their",
+      "start_time": 4.64,
+      "end_time": 4.8
+    },
+    {
+      "text": "articles",
+      "start_time": 4.8,
+      "end_time": 5.6
+    },
+    {
+      "text": "as",
+      "start_time": 5.68,
+      "end_time": 5.84
+    },
+    {
+      "text": "well",
+      "start_time": 5.84,
+      "end_time": 6.0
+    },
+    {
+      "text": "as",
+      "start_time": 6.0,
+      "end_time": 6.16
+    },
+    {
+      "text": "the",
+      "start_time": 6.16,
+      "end_time": 6.24
+    },
+    {
+      "text": "corresponding",
+      "start_time": 6.24,
+      "end_time": 6.88
+    },
+    {
+      "text": "section",
+      "start_time": 6.88,
+      "end_time": 7.44
+    },
+    {
+      "text": "headings",
+      "start_time": 7.44,
+      "end_time": 8.0
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

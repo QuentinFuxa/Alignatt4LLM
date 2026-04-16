@@ -1,0 +1,91 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_287.wav",
+  "text": "Also, the average number of relational tokens is 63, which is quite high for summarization task.",
+  "audio_duration_s": 6.791,
+  "words": [
+    {
+      "text": "Also",
+      "start_time": 0.16,
+      "end_time": 0.56
+    },
+    {
+      "text": "the",
+      "start_time": 0.56,
+      "end_time": 0.72
+    },
+    {
+      "text": "average",
+      "start_time": 0.72,
+      "end_time": 1.12
+    },
+    {
+      "text": "number",
+      "start_time": 1.12,
+      "end_time": 1.44
+    },
+    {
+      "text": "of",
+      "start_time": 1.44,
+      "end_time": 1.6
+    },
+    {
+      "text": "relational",
+      "start_time": 1.6,
+      "end_time": 2.24
+    },
+    {
+      "text": "tokens",
+      "start_time": 2.32,
+      "end_time": 2.72
+    },
+    {
+      "text": "is",
+      "start_time": 2.8,
+      "end_time": 3.04
+    },
+    {
+      "text": "63",
+      "start_time": 3.12,
+      "end_time": 3.84
+    },
+    {
+      "text": "which",
+      "start_time": 4.48,
+      "end_time": 4.56
+    },
+    {
+      "text": "is",
+      "start_time": 4.56,
+      "end_time": 4.72
+    },
+    {
+      "text": "quite",
+      "start_time": 4.72,
+      "end_time": 5.04
+    },
+    {
+      "text": "high",
+      "start_time": 5.2,
+      "end_time": 5.36
+    },
+    {
+      "text": "for",
+      "start_time": 5.44,
+      "end_time": 5.68
+    },
+    {
+      "text": "summarization",
+      "start_time": 5.68,
+      "end_time": 6.32
+    },
+    {
+      "text": "task",
+      "start_time": 6.32,
+      "end_time": 6.72
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

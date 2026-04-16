@@ -1,0 +1,51 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_29.wav",
+  "text": "And in these steps, we obtain the divisors.",
+  "audio_duration_s": 3.012,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "in",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "these",
+      "start_time": 0.56,
+      "end_time": 0.64
+    },
+    {
+      "text": "steps",
+      "start_time": 0.64,
+      "end_time": 1.04
+    },
+    {
+      "text": "we",
+      "start_time": 1.68,
+      "end_time": 1.76
+    },
+    {
+      "text": "obtain",
+      "start_time": 1.76,
+      "end_time": 2.16
+    },
+    {
+      "text": "the",
+      "start_time": 2.16,
+      "end_time": 2.24
+    },
+    {
+      "text": "divisors",
+      "start_time": 2.24,
+      "end_time": 2.88
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

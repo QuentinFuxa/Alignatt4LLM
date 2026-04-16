@@ -1,0 +1,84 @@
+{
+  "tag": "acl_111_sent366",
+  "split": "test",
+  "backend": "gemma_feature_aligner",
+  "text": "So, to fine-tune a language model over this dataset will be ineffective.",
+  "audio_duration_s": 7.124,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.2854763412475586,
+      "end_time": 0.2854763412475586
+    },
+    {
+      "text": "to",
+      "start_time": 3.7254266357421875,
+      "end_time": 3.7254266357421875
+    },
+    {
+      "text": "fine-tune",
+      "start_time": 3.7254266357421875,
+      "end_time": 3.7254266357421875
+    },
+    {
+      "text": "a",
+      "start_time": 4.44888427734375,
+      "end_time": 4.44888427734375
+    },
+    {
+      "text": "language",
+      "start_time": 4.44888427734375,
+      "end_time": 4.44888427734375
+    },
+    {
+      "text": "model",
+      "start_time": 4.44888427734375,
+      "end_time": 4.44888427734375
+    },
+    {
+      "text": "over",
+      "start_time": 4.44888427734375,
+      "end_time": 4.44888427734375
+    },
+    {
+      "text": "this",
+      "start_time": 4.44888427734375,
+      "end_time": 4.44888427734375
+    },
+    {
+      "text": "dataset",
+      "start_time": 4.44888427734375,
+      "end_time": 4.44888427734375
+    },
+    {
+      "text": "will",
+      "start_time": 4.44888427734375,
+      "end_time": 4.44888427734375
+    },
+    {
+      "text": "be",
+      "start_time": 4.919687194824219,
+      "end_time": 4.919687194824219
+    },
+    {
+      "text": "ineffective",
+      "start_time": 4.921515808105469,
+      "end_time": 4.921515808105469
+    }
+  ],
+  "metrics": {
+    "num_words": 12,
+    "monotone": true,
+    "mae_s": 1.3477548503875731,
+    "median_error_s": 1.2888842773437503,
+    "p90_error_s": 2.183844268798828,
+    "max_error_s": 2.7654266357421875,
+    "word_count_match": true,
+    "head_inference_time_s": 0.0033609867095947266,
+    "feat_extraction_time_s": 0.08350300788879395,
+    "total_alignment_time_s": 0.08686399459838867,
+    "audio_duration_s": 7.124,
+    "tag": "acl_111_sent366",
+    "talk_id": "111"
+  }
+}

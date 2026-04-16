@@ -1,0 +1,99 @@
+{
+  "tag": "acl_111_sent343",
+  "split": "test",
+  "backend": "gemma_feature_aligner",
+  "text": "When its when its goal is to classify universities into low-ranked universities and high-ranked universities.",
+  "audio_duration_s": 7.67,
+  "words": [
+    {
+      "text": "When",
+      "start_time": 0.3577016067504883,
+      "end_time": 0.3577016067504883
+    },
+    {
+      "text": "its",
+      "start_time": 3.54370361328125,
+      "end_time": 3.54370361328125
+    },
+    {
+      "text": "when",
+      "start_time": 3.54370361328125,
+      "end_time": 3.54370361328125
+    },
+    {
+      "text": "its",
+      "start_time": 3.54370361328125,
+      "end_time": 3.54370361328125
+    },
+    {
+      "text": "goal",
+      "start_time": 3.54370361328125,
+      "end_time": 3.54370361328125
+    },
+    {
+      "text": "is",
+      "start_time": 3.54370361328125,
+      "end_time": 3.54370361328125
+    },
+    {
+      "text": "to",
+      "start_time": 3.785379638671875,
+      "end_time": 3.785379638671875
+    },
+    {
+      "text": "classify",
+      "start_time": 4.269131774902344,
+      "end_time": 4.269131774902344
+    },
+    {
+      "text": "universities",
+      "start_time": 4.980048828125,
+      "end_time": 4.980048828125
+    },
+    {
+      "text": "into",
+      "start_time": 4.980048828125,
+      "end_time": 4.980048828125
+    },
+    {
+      "text": "low-ranked",
+      "start_time": 4.980048828125,
+      "end_time": 4.980048828125
+    },
+    {
+      "text": "universities",
+      "start_time": 5.062360229492188,
+      "end_time": 5.062360229492188
+    },
+    {
+      "text": "and",
+      "start_time": 5.062360229492188,
+      "end_time": 5.062360229492188
+    },
+    {
+      "text": "high-ranked",
+      "start_time": 5.062360229492188,
+      "end_time": 5.062360229492188
+    },
+    {
+      "text": "universities",
+      "start_time": 5.126007690429687,
+      "end_time": 5.126007690429687
+    }
+  ],
+  "metrics": {
+    "num_words": 15,
+    "monotone": true,
+    "mae_s": 1.5118526128133136,
+    "median_error_s": 1.5491317749023437,
+    "p90_error_s": 2.51970361328125,
+    "max_error_s": 3.06370361328125,
+    "word_count_match": true,
+    "head_inference_time_s": 0.0031287670135498047,
+    "feat_extraction_time_s": 0.09510421752929688,
+    "total_alignment_time_s": 0.09823298454284668,
+    "audio_duration_s": 7.67,
+    "tag": "acl_111_sent343",
+    "talk_id": "111"
+  }
+}

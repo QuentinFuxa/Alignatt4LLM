@@ -1,0 +1,111 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_106.wav",
+  "text": "Our work aims to bridge the gap between people and the law by developing effective retrieval system for statutory articles.",
+  "audio_duration_s": 8.784,
+  "words": [
+    {
+      "text": "Our",
+      "start_time": 0.96,
+      "end_time": 1.12
+    },
+    {
+      "text": "work",
+      "start_time": 1.12,
+      "end_time": 1.6
+    },
+    {
+      "text": "aims",
+      "start_time": 2.08,
+      "end_time": 2.32
+    },
+    {
+      "text": "to",
+      "start_time": 2.4,
+      "end_time": 2.4
+    },
+    {
+      "text": "bridge",
+      "start_time": 2.4,
+      "end_time": 2.88
+    },
+    {
+      "text": "the",
+      "start_time": 2.88,
+      "end_time": 2.96
+    },
+    {
+      "text": "gap",
+      "start_time": 2.96,
+      "end_time": 3.36
+    },
+    {
+      "text": "between",
+      "start_time": 3.36,
+      "end_time": 3.76
+    },
+    {
+      "text": "people",
+      "start_time": 3.76,
+      "end_time": 4.16
+    },
+    {
+      "text": "and",
+      "start_time": 4.16,
+      "end_time": 4.32
+    },
+    {
+      "text": "the",
+      "start_time": 4.32,
+      "end_time": 4.4
+    },
+    {
+      "text": "law",
+      "start_time": 4.4,
+      "end_time": 4.8
+    },
+    {
+      "text": "by",
+      "start_time": 4.8,
+      "end_time": 5.04
+    },
+    {
+      "text": "developing",
+      "start_time": 5.04,
+      "end_time": 5.6
+    },
+    {
+      "text": "effective",
+      "start_time": 5.6,
+      "end_time": 6.24
+    },
+    {
+      "text": "retrieval",
+      "start_time": 6.24,
+      "end_time": 6.72
+    },
+    {
+      "text": "system",
+      "start_time": 6.72,
+      "end_time": 7.2
+    },
+    {
+      "text": "for",
+      "start_time": 7.2,
+      "end_time": 7.36
+    },
+    {
+      "text": "statutory",
+      "start_time": 7.36,
+      "end_time": 8.0
+    },
+    {
+      "text": "articles",
+      "start_time": 8.0,
+      "end_time": 8.72
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

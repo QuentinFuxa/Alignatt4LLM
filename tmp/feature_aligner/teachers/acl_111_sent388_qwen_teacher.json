@@ -1,0 +1,91 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_388.wav",
+  "text": "So the label vector in this case is stays always, which consists always with two classes.",
+  "audio_duration_s": 12.459,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.24,
+      "end_time": 0.64
+    },
+    {
+      "text": "the",
+      "start_time": 0.64,
+      "end_time": 1.12
+    },
+    {
+      "text": "label",
+      "start_time": 1.28,
+      "end_time": 1.6
+    },
+    {
+      "text": "vector",
+      "start_time": 1.84,
+      "end_time": 2.32
+    },
+    {
+      "text": "in",
+      "start_time": 2.72,
+      "end_time": 2.88
+    },
+    {
+      "text": "this",
+      "start_time": 2.88,
+      "end_time": 3.28
+    },
+    {
+      "text": "case",
+      "start_time": 3.28,
+      "end_time": 3.76
+    },
+    {
+      "text": "is",
+      "start_time": 4.08,
+      "end_time": 4.4
+    },
+    {
+      "text": "stays",
+      "start_time": 4.4,
+      "end_time": 4.8
+    },
+    {
+      "text": "always",
+      "start_time": 5.6,
+      "end_time": 6.24
+    },
+    {
+      "text": "which",
+      "start_time": 6.24,
+      "end_time": 6.96
+    },
+    {
+      "text": "consists",
+      "start_time": 8.88,
+      "end_time": 8.9
+    },
+    {
+      "text": "always",
+      "start_time": 8.92,
+      "end_time": 8.94
+    },
+    {
+      "text": "with",
+      "start_time": 8.96,
+      "end_time": 9.76
+    },
+    {
+      "text": "two",
+      "start_time": 9.76,
+      "end_time": 9.92
+    },
+    {
+      "text": "classes",
+      "start_time": 10.0,
+      "end_time": 10.8
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

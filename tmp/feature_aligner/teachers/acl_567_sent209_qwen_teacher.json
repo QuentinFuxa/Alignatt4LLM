@@ -1,0 +1,76 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_209.wav",
+  "text": "To test this automatically, we apply natural language inference with the following rationale.",
+  "audio_duration_s": 5.635,
+  "words": [
+    {
+      "text": "To",
+      "start_time": 0.24,
+      "end_time": 0.32
+    },
+    {
+      "text": "test",
+      "start_time": 0.32,
+      "end_time": 0.64
+    },
+    {
+      "text": "this",
+      "start_time": 0.64,
+      "end_time": 0.72
+    },
+    {
+      "text": "automatically",
+      "start_time": 0.72,
+      "end_time": 1.52
+    },
+    {
+      "text": "we",
+      "start_time": 1.6,
+      "end_time": 1.76
+    },
+    {
+      "text": "apply",
+      "start_time": 1.76,
+      "end_time": 2.16
+    },
+    {
+      "text": "natural",
+      "start_time": 2.16,
+      "end_time": 2.48
+    },
+    {
+      "text": "language",
+      "start_time": 2.48,
+      "end_time": 2.8
+    },
+    {
+      "text": "inference",
+      "start_time": 2.8,
+      "end_time": 3.44
+    },
+    {
+      "text": "with",
+      "start_time": 3.44,
+      "end_time": 3.76
+    },
+    {
+      "text": "the",
+      "start_time": 3.84,
+      "end_time": 4.0
+    },
+    {
+      "text": "following",
+      "start_time": 4.0,
+      "end_time": 4.72
+    },
+    {
+      "text": "rationale",
+      "start_time": 4.72,
+      "end_time": 5.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

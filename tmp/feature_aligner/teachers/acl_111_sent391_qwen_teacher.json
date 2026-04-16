@@ -1,0 +1,31 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_391.wav",
+  "text": "Dataset fed into fast.",
+  "audio_duration_s": 4.209,
+  "words": [
+    {
+      "text": "Dataset",
+      "start_time": 0.16,
+      "end_time": 1.04
+    },
+    {
+      "text": "fed",
+      "start_time": 1.04,
+      "end_time": 1.6
+    },
+    {
+      "text": "into",
+      "start_time": 1.6,
+      "end_time": 1.84
+    },
+    {
+      "text": "fast",
+      "start_time": 1.84,
+      "end_time": 2.48
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_72.wav",
+  "text": "So, our model makes some prediction like this, which is producing negative values.",
+  "audio_duration_s": 5.677,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.08,
+      "end_time": 0.48
+    },
+    {
+      "text": "our",
+      "start_time": 0.88,
+      "end_time": 1.04
+    },
+    {
+      "text": "model",
+      "start_time": 1.04,
+      "end_time": 1.28
+    },
+    {
+      "text": "makes",
+      "start_time": 1.28,
+      "end_time": 1.52
+    },
+    {
+      "text": "some",
+      "start_time": 1.52,
+      "end_time": 1.76
+    },
+    {
+      "text": "prediction",
+      "start_time": 2.16,
+      "end_time": 2.56
+    },
+    {
+      "text": "like",
+      "start_time": 2.56,
+      "end_time": 2.8
+    },
+    {
+      "text": "this",
+      "start_time": 2.8,
+      "end_time": 3.2
+    },
+    {
+      "text": "which",
+      "start_time": 3.2,
+      "end_time": 3.36
+    },
+    {
+      "text": "is",
+      "start_time": 3.36,
+      "end_time": 3.52
+    },
+    {
+      "text": "producing",
+      "start_time": 3.92,
+      "end_time": 4.8
+    },
+    {
+      "text": "negative",
+      "start_time": 4.8,
+      "end_time": 5.12
+    },
+    {
+      "text": "values",
+      "start_time": 5.12,
+      "end_time": 5.6
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

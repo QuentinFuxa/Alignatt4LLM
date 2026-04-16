@@ -1,0 +1,104 @@
+{
+  "tag": "acl_111_sent388",
+  "split": "test",
+  "backend": "gemma_feature_aligner",
+  "text": "So the label vector in this case is stays always, which consists always with two classes.",
+  "audio_duration_s": 12.459,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.40512317657470703,
+      "end_time": 0.40512317657470703
+    },
+    {
+      "text": "the",
+      "start_time": 5.448665771484375,
+      "end_time": 5.448665771484375
+    },
+    {
+      "text": "label",
+      "start_time": 5.448665771484375,
+      "end_time": 5.448665771484375
+    },
+    {
+      "text": "vector",
+      "start_time": 5.448665771484375,
+      "end_time": 5.448665771484375
+    },
+    {
+      "text": "in",
+      "start_time": 6.215210571289063,
+      "end_time": 6.215210571289063
+    },
+    {
+      "text": "this",
+      "start_time": 7.3246789550781255,
+      "end_time": 7.3246789550781255
+    },
+    {
+      "text": "case",
+      "start_time": 7.3246789550781255,
+      "end_time": 7.3246789550781255
+    },
+    {
+      "text": "is",
+      "start_time": 7.3246789550781255,
+      "end_time": 7.3246789550781255
+    },
+    {
+      "text": "stays",
+      "start_time": 7.3246789550781255,
+      "end_time": 7.3246789550781255
+    },
+    {
+      "text": "always",
+      "start_time": 7.3246789550781255,
+      "end_time": 7.3246789550781255
+    },
+    {
+      "text": "which",
+      "start_time": 7.3246789550781255,
+      "end_time": 7.3246789550781255
+    },
+    {
+      "text": "consists",
+      "start_time": 7.4679541015625,
+      "end_time": 7.4679541015625
+    },
+    {
+      "text": "always",
+      "start_time": 7.4679541015625,
+      "end_time": 7.4679541015625
+    },
+    {
+      "text": "with",
+      "start_time": 7.4679541015625,
+      "end_time": 7.4679541015625
+    },
+    {
+      "text": "two",
+      "start_time": 7.89903076171875,
+      "end_time": 7.89903076171875
+    },
+    {
+      "text": "classes",
+      "start_time": 9.04534912109375,
+      "end_time": 9.04534912109375
+    }
+  ],
+  "metrics": {
+    "num_words": 16,
+    "monotone": true,
+    "mae_s": 2.3972447657585145,
+    "median_error_s": 2.4083624267578125,
+    "p90_error_s": 3.946672363281251,
+    "max_error_s": 4.328665771484375,
+    "word_count_match": true,
+    "head_inference_time_s": 0.0035047531127929688,
+    "feat_extraction_time_s": 0.1152958869934082,
+    "total_alignment_time_s": 0.11880064010620117,
+    "audio_duration_s": 12.459,
+    "tag": "acl_111_sent388",
+    "talk_id": "111"
+  }
+}

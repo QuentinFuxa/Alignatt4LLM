@@ -1,0 +1,131 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_82.wav",
+  "text": "For those samples without unused quantities, so the overall performance is actually higher than the the performance is actually higher than the overall performance.",
+  "audio_duration_s": 8.087,
+  "words": [
+    {
+      "text": "For",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "those",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "samples",
+      "start_time": 0.56,
+      "end_time": 1.2
+    },
+    {
+      "text": "without",
+      "start_time": 1.2,
+      "end_time": 1.6
+    },
+    {
+      "text": "unused",
+      "start_time": 1.6,
+      "end_time": 1.92
+    },
+    {
+      "text": "quantities",
+      "start_time": 1.92,
+      "end_time": 2.48
+    },
+    {
+      "text": "so",
+      "start_time": 2.8,
+      "end_time": 2.96
+    },
+    {
+      "text": "the",
+      "start_time": 2.96,
+      "end_time": 3.04
+    },
+    {
+      "text": "overall",
+      "start_time": 3.04,
+      "end_time": 3.36
+    },
+    {
+      "text": "performance",
+      "start_time": 3.36,
+      "end_time": 3.84
+    },
+    {
+      "text": "is",
+      "start_time": 3.84,
+      "end_time": 4.0
+    },
+    {
+      "text": "actually",
+      "start_time": 4.0,
+      "end_time": 4.4
+    },
+    {
+      "text": "higher",
+      "start_time": 4.4,
+      "end_time": 4.64
+    },
+    {
+      "text": "than",
+      "start_time": 4.64,
+      "end_time": 4.96
+    },
+    {
+      "text": "the",
+      "start_time": 5.04,
+      "end_time": 5.52
+    },
+    {
+      "text": "the",
+      "start_time": 5.84,
+      "end_time": 5.92
+    },
+    {
+      "text": "performance",
+      "start_time": 5.92,
+      "end_time": 6.32
+    },
+    {
+      "text": "is",
+      "start_time": 6.32,
+      "end_time": 6.56
+    },
+    {
+      "text": "actually",
+      "start_time": 6.64,
+      "end_time": 6.88
+    },
+    {
+      "text": "higher",
+      "start_time": 6.88,
+      "end_time": 7.04
+    },
+    {
+      "text": "than",
+      "start_time": 7.04,
+      "end_time": 7.28
+    },
+    {
+      "text": "the",
+      "start_time": 7.28,
+      "end_time": 7.36
+    },
+    {
+      "text": "overall",
+      "start_time": 7.36,
+      "end_time": 7.68
+    },
+    {
+      "text": "performance",
+      "start_time": 7.68,
+      "end_time": 8.08
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

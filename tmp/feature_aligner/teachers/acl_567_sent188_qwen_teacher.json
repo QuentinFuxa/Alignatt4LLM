@@ -1,0 +1,146 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_188.wav",
+  "text": "Each one of these models pushes state of the art on vision and language tasks, such as visual question answering, visual commonsense reasoning, image retrieval, phrase grounding.",
+  "audio_duration_s": 12.342,
+  "words": [
+    {
+      "text": "Each",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "one",
+      "start_time": 0.4,
+      "end_time": 0.64
+    },
+    {
+      "text": "of",
+      "start_time": 0.64,
+      "end_time": 0.8
+    },
+    {
+      "text": "these",
+      "start_time": 0.8,
+      "end_time": 1.04
+    },
+    {
+      "text": "models",
+      "start_time": 1.04,
+      "end_time": 1.68
+    },
+    {
+      "text": "pushes",
+      "start_time": 1.68,
+      "end_time": 2.4
+    },
+    {
+      "text": "state",
+      "start_time": 2.4,
+      "end_time": 2.8
+    },
+    {
+      "text": "of",
+      "start_time": 2.8,
+      "end_time": 2.88
+    },
+    {
+      "text": "the",
+      "start_time": 2.96,
+      "end_time": 3.04
+    },
+    {
+      "text": "art",
+      "start_time": 3.12,
+      "end_time": 3.52
+    },
+    {
+      "text": "on",
+      "start_time": 3.52,
+      "end_time": 3.84
+    },
+    {
+      "text": "vision",
+      "start_time": 3.84,
+      "end_time": 4.16
+    },
+    {
+      "text": "and",
+      "start_time": 4.16,
+      "end_time": 4.32
+    },
+    {
+      "text": "language",
+      "start_time": 4.32,
+      "end_time": 4.72
+    },
+    {
+      "text": "tasks",
+      "start_time": 4.72,
+      "end_time": 5.44
+    },
+    {
+      "text": "such",
+      "start_time": 5.76,
+      "end_time": 6.08
+    },
+    {
+      "text": "as",
+      "start_time": 6.08,
+      "end_time": 6.4
+    },
+    {
+      "text": "visual",
+      "start_time": 6.4,
+      "end_time": 6.8
+    },
+    {
+      "text": "question",
+      "start_time": 6.8,
+      "end_time": 7.2
+    },
+    {
+      "text": "answering",
+      "start_time": 7.2,
+      "end_time": 8.08
+    },
+    {
+      "text": "visual",
+      "start_time": 8.08,
+      "end_time": 8.4
+    },
+    {
+      "text": "commonsense",
+      "start_time": 8.4,
+      "end_time": 9.04
+    },
+    {
+      "text": "reasoning",
+      "start_time": 9.04,
+      "end_time": 9.92
+    },
+    {
+      "text": "image",
+      "start_time": 9.92,
+      "end_time": 10.32
+    },
+    {
+      "text": "retrieval",
+      "start_time": 10.32,
+      "end_time": 11.04
+    },
+    {
+      "text": "phrase",
+      "start_time": 11.04,
+      "end_time": 11.52
+    },
+    {
+      "text": "grounding",
+      "start_time": 11.52,
+      "end_time": 12.32
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

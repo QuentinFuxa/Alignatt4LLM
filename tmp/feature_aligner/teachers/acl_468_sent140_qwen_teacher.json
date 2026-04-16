@@ -1,0 +1,96 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_140.wav",
+  "text": "The article are much longer, with a median length of seventy-seven words, with one hundred and forty.",
+  "audio_duration_s": 6.422,
+  "words": [
+    {
+      "text": "The",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "article",
+      "start_time": 0.32,
+      "end_time": 0.8
+    },
+    {
+      "text": "are",
+      "start_time": 0.8,
+      "end_time": 0.96
+    },
+    {
+      "text": "much",
+      "start_time": 0.96,
+      "end_time": 1.36
+    },
+    {
+      "text": "longer",
+      "start_time": 1.36,
+      "end_time": 1.84
+    },
+    {
+      "text": "with",
+      "start_time": 1.92,
+      "end_time": 2.08
+    },
+    {
+      "text": "a",
+      "start_time": 2.08,
+      "end_time": 2.16
+    },
+    {
+      "text": "median",
+      "start_time": 2.16,
+      "end_time": 2.48
+    },
+    {
+      "text": "length",
+      "start_time": 2.48,
+      "end_time": 2.88
+    },
+    {
+      "text": "of",
+      "start_time": 2.96,
+      "end_time": 3.2
+    },
+    {
+      "text": "seventyseven",
+      "start_time": 3.2,
+      "end_time": 4.0
+    },
+    {
+      "text": "words",
+      "start_time": 4.0,
+      "end_time": 4.56
+    },
+    {
+      "text": "with",
+      "start_time": 4.96,
+      "end_time": 5.12
+    },
+    {
+      "text": "one",
+      "start_time": 5.2,
+      "end_time": 5.44
+    },
+    {
+      "text": "hundred",
+      "start_time": 5.44,
+      "end_time": 5.68
+    },
+    {
+      "text": "and",
+      "start_time": 5.68,
+      "end_time": 5.92
+    },
+    {
+      "text": "forty",
+      "start_time": 6.0,
+      "end_time": 6.4
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

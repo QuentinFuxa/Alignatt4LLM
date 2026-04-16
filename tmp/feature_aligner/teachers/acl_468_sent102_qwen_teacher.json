@@ -1,0 +1,106 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_102.wav",
+  "text": "I will be presenting my joint work with Jerry, which is about a new dataset for statutory article retrieval.",
+  "audio_duration_s": 5.509,
+  "words": [
+    {
+      "text": "I",
+      "start_time": 0.16,
+      "end_time": 0.24
+    },
+    {
+      "text": "will",
+      "start_time": 0.24,
+      "end_time": 0.4
+    },
+    {
+      "text": "be",
+      "start_time": 0.4,
+      "end_time": 0.48
+    },
+    {
+      "text": "presenting",
+      "start_time": 0.48,
+      "end_time": 1.04
+    },
+    {
+      "text": "my",
+      "start_time": 1.04,
+      "end_time": 1.2
+    },
+    {
+      "text": "joint",
+      "start_time": 1.2,
+      "end_time": 1.52
+    },
+    {
+      "text": "work",
+      "start_time": 1.52,
+      "end_time": 1.76
+    },
+    {
+      "text": "with",
+      "start_time": 1.76,
+      "end_time": 1.92
+    },
+    {
+      "text": "Jerry",
+      "start_time": 1.92,
+      "end_time": 2.4
+    },
+    {
+      "text": "which",
+      "start_time": 2.48,
+      "end_time": 2.64
+    },
+    {
+      "text": "is",
+      "start_time": 2.64,
+      "end_time": 2.72
+    },
+    {
+      "text": "about",
+      "start_time": 2.72,
+      "end_time": 3.04
+    },
+    {
+      "text": "a",
+      "start_time": 3.04,
+      "end_time": 3.04
+    },
+    {
+      "text": "new",
+      "start_time": 3.04,
+      "end_time": 3.2
+    },
+    {
+      "text": "dataset",
+      "start_time": 3.2,
+      "end_time": 3.52
+    },
+    {
+      "text": "for",
+      "start_time": 3.68,
+      "end_time": 3.92
+    },
+    {
+      "text": "statutory",
+      "start_time": 3.92,
+      "end_time": 4.4
+    },
+    {
+      "text": "article",
+      "start_time": 4.4,
+      "end_time": 4.88
+    },
+    {
+      "text": "retrieval",
+      "start_time": 4.88,
+      "end_time": 5.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

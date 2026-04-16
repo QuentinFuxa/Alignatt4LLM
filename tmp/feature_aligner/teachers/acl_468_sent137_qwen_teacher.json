@@ -1,0 +1,141 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_137.wav",
+  "text": "This extra information is not used in the present work, but might be of interest for future research on legal information retrieval or legal text classification.",
+  "audio_duration_s": 8.733,
+  "words": [
+    {
+      "text": "This",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "extra",
+      "start_time": 0.4,
+      "end_time": 0.72
+    },
+    {
+      "text": "information",
+      "start_time": 0.72,
+      "end_time": 1.28
+    },
+    {
+      "text": "is",
+      "start_time": 1.28,
+      "end_time": 1.36
+    },
+    {
+      "text": "not",
+      "start_time": 1.36,
+      "end_time": 1.68
+    },
+    {
+      "text": "used",
+      "start_time": 1.68,
+      "end_time": 1.92
+    },
+    {
+      "text": "in",
+      "start_time": 1.92,
+      "end_time": 2.08
+    },
+    {
+      "text": "the",
+      "start_time": 2.08,
+      "end_time": 2.08
+    },
+    {
+      "text": "present",
+      "start_time": 2.08,
+      "end_time": 2.48
+    },
+    {
+      "text": "work",
+      "start_time": 2.48,
+      "end_time": 2.72
+    },
+    {
+      "text": "but",
+      "start_time": 2.72,
+      "end_time": 2.88
+    },
+    {
+      "text": "might",
+      "start_time": 2.88,
+      "end_time": 3.2
+    },
+    {
+      "text": "be",
+      "start_time": 3.2,
+      "end_time": 3.28
+    },
+    {
+      "text": "of",
+      "start_time": 3.28,
+      "end_time": 3.44
+    },
+    {
+      "text": "interest",
+      "start_time": 3.44,
+      "end_time": 3.92
+    },
+    {
+      "text": "for",
+      "start_time": 3.92,
+      "end_time": 4.16
+    },
+    {
+      "text": "future",
+      "start_time": 4.16,
+      "end_time": 4.48
+    },
+    {
+      "text": "research",
+      "start_time": 4.48,
+      "end_time": 4.96
+    },
+    {
+      "text": "on",
+      "start_time": 5.28,
+      "end_time": 5.52
+    },
+    {
+      "text": "legal",
+      "start_time": 5.52,
+      "end_time": 5.76
+    },
+    {
+      "text": "information",
+      "start_time": 5.76,
+      "end_time": 6.32
+    },
+    {
+      "text": "retrieval",
+      "start_time": 6.32,
+      "end_time": 6.88
+    },
+    {
+      "text": "or",
+      "start_time": 6.88,
+      "end_time": 7.2
+    },
+    {
+      "text": "legal",
+      "start_time": 7.2,
+      "end_time": 7.52
+    },
+    {
+      "text": "text",
+      "start_time": 7.52,
+      "end_time": 7.84
+    },
+    {
+      "text": "classification",
+      "start_time": 7.84,
+      "end_time": 8.64
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

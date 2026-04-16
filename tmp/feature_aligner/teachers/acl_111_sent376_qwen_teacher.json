@@ -1,0 +1,66 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_376.wav",
+  "text": "And it samples a random batch from from the training set.",
+  "audio_duration_s": 6.505,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.08,
+      "end_time": 0.48
+    },
+    {
+      "text": "it",
+      "start_time": 1.04,
+      "end_time": 1.2
+    },
+    {
+      "text": "samples",
+      "start_time": 1.2,
+      "end_time": 1.84
+    },
+    {
+      "text": "a",
+      "start_time": 2.08,
+      "end_time": 2.56
+    },
+    {
+      "text": "random",
+      "start_time": 2.88,
+      "end_time": 3.44
+    },
+    {
+      "text": "batch",
+      "start_time": 3.44,
+      "end_time": 3.84
+    },
+    {
+      "text": "from",
+      "start_time": 3.92,
+      "end_time": 4.48
+    },
+    {
+      "text": "from",
+      "start_time": 4.8,
+      "end_time": 4.8
+    },
+    {
+      "text": "the",
+      "start_time": 4.88,
+      "end_time": 5.36
+    },
+    {
+      "text": "training",
+      "start_time": 5.36,
+      "end_time": 6.08
+    },
+    {
+      "text": "set",
+      "start_time": 6.08,
+      "end_time": 6.32
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

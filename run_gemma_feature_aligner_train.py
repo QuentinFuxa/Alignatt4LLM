@@ -1,11 +1,15 @@
-"""Train + evaluate the dedicated Gemma feature aligner.
+"""Train the Gemma feature aligner on the full ACL split.
+
+Architecture inspired by Qwen3-ForcedAligner:
+  - Discrete classification over audio positions (not regression)
+  - Label smoothing for regularization
+  - LIS-based monotonicity enforcement
 
 Supervision: Qwen teacher timestamps (training only).
 Features: frozen Gemma audio tower output + frozen Gemma text embeddings.
-Evaluation: offline forced alignment on held-out clips.
 
 Usage:
-    /home/fuxa/iwslt26-sst/.venv-qwen35-vllm/bin/python run_gemma_feature_aligner_train.py
+    /home/fuxa/iwslt-2026-baselines/.venv-inference/bin/python run_gemma_feature_aligner_train.py
 """
 
 from __future__ import annotations
@@ -23,7 +27,7 @@ from torch.optim import Adam
 
 from alignment_backend import AlignmentResult, WordAlignment
 from gemma_audio_features import GemmaAudioFeatures, extract_audio_features
-from gemma_feature_aligner import TranscriptAudioAligner
+from gemma_feature_aligner import TranscriptAudioAligner, enforce_monotone_lis
 from gemma_alignment_probe import (
     aggregate_token_timings_to_words,
     split_text_into_word_spans,
@@ -35,33 +39,15 @@ DTYPE = torch.bfloat16
 CHECKPOINT_DIR = Path("tmp/feature_aligner")
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 
-TRAIN_CLIPS = [
-    {
-        "audio": "tmp/alignatt_smoke18.wav",
-        "teacher": "tmp/alignment_research/frontier_smoke18_qwen_teacher.json",
-        "tag": "smoke18",
-    },
-    {
-        "audio": "tmp/ccpXHNfaoy_first75.wav",
-        "teacher": "tmp/alignment_research/ccpXHNfaoy_30s_48s_qwen_teacher.json",
-        "tag": "ccpXHNfaoy_30s_48s",
-        "slice_seconds": (30, 48),
-    },
-]
+MANIFEST_PATH = Path("tmp/feature_aligner/split_manifest_full.json")
+TEACHER_DIR = Path("tmp/feature_aligner/teachers")
 
-EVAL_CLIPS = [
-    {
-        "audio": "tmp/alignatt_smoke18.wav",
-        "teacher": "tmp/alignment_research/frontier_smoke18_qwen_teacher.json",
-        "tag": "smoke18",
-    },
-    {
-        "audio": "tmp/ccpXHNfaoy_first75.wav",
-        "teacher": "tmp/alignment_research/ccpXHNfaoy_30s_48s_qwen_teacher.json",
-        "tag": "ccpXHNfaoy_30s_48s",
-        "slice_seconds": (30, 48),
-    },
-]
+HIDDEN_DIM = 256
+NUM_LAYERS = 4
+NUM_HEADS = 8
+EPOCHS = 300
+LR = 3e-4
+LABEL_SMOOTHING = 0.1
 
 
 def load_gemma():
@@ -95,7 +81,6 @@ def load_gemma():
 
 
 def get_text_embeddings(model, token_ids: torch.Tensor) -> torch.Tensor:
-    """Extract frozen text embeddings from Gemma's language model."""
     base = getattr(model, "model", model)
     lm = getattr(base, "language_model", base)
     embed_layer = lm.embed_tokens
@@ -113,11 +98,7 @@ def build_token_targets(
     tokenizer,
     audio_features: GemmaAudioFeatures,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Convert word-level Qwen timestamps to per-token audio position targets.
-
-    Maps each subword token to its overlapping word's midpoint time,
-    then converts to audio-token index.
-    """
+    """Convert word-level Qwen timestamps to per-token discrete audio position targets."""
     text = teacher["text"]
     words = teacher["words"]
 
@@ -150,50 +131,39 @@ def build_token_targets(
             mid_time = 0.0
 
         target_pos = mid_time / audio_features.seconds_per_token
-        target_pos = max(0.0, min(target_pos, audio_features.num_tokens - 1))
+        target_pos = max(0, min(round(target_pos), audio_features.num_tokens - 1))
         target_positions.append(target_pos)
 
     return (
         torch.tensor(token_ids, dtype=torch.long),
-        torch.tensor(target_positions, dtype=torch.float32),
+        torch.tensor(target_positions, dtype=torch.long),
     )
-
-
-def _gaussian_target(positions: torch.Tensor, num_audio: int, sigma: float) -> torch.Tensor:
-    """Soft target: Gaussian centered at target position over audio axis."""
-    audio_idx = torch.arange(num_audio, device=positions.device, dtype=torch.float32)
-    diff = positions.unsqueeze(-1) - audio_idx.unsqueeze(0).unsqueeze(0)
-    logits = -(diff ** 2) / (2 * sigma ** 2)
-    return F.softmax(logits, dim=-1)
 
 
 def train_aligner(
     aligner: TranscriptAudioAligner,
     train_data: list[tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]],
     *,
-    epochs: int = 1000,
+    epochs: int = 300,
     lr: float = 3e-4,
+    label_smoothing: float = 0.1,
 ) -> list[float]:
-    """Train on tiny dataset. Returns per-epoch losses.
-
-    train_data items: (text_embeds, audio_features, target_positions, num_audio_tokens)
-    """
+    """Train with discrete classification + label smoothing."""
     optimizer = Adam(aligner.parameters(), lr=lr)
     losses = []
 
     for epoch in range(epochs):
         epoch_loss = 0.0
         for text_embeds, audio_feats, target_positions, num_audio in train_data:
-            te = text_embeds.unsqueeze(0)    # (1, T, E)
-            af = audio_feats.unsqueeze(0)    # (1, A, D)
-            tp = target_positions.unsqueeze(0)  # (1, T)
+            te = text_embeds.unsqueeze(0)
+            af = audio_feats.unsqueeze(0)
 
             logits = aligner(te, af)  # (1, T, A)
 
-            target_dist = _gaussian_target(tp, num_audio, sigma=5.0)
             loss = F.cross_entropy(
                 logits.view(-1, logits.shape[-1]),
-                target_dist.view(-1, target_dist.shape[-1]),
+                target_positions,
+                label_smoothing=label_smoothing,
             )
 
             optimizer.zero_grad()
@@ -202,19 +172,10 @@ def train_aligner(
             epoch_loss += loss.item()
 
         losses.append(epoch_loss / len(train_data))
-        if (epoch + 1) % 100 == 0:
+        if (epoch + 1) % 50 == 0:
             print(f"  epoch {epoch+1:4d}  loss={losses[-1]:.4f}")
 
     return losses
-
-
-def enforce_monotone(positions: list[float]) -> list[float]:
-    result = []
-    running_max = 0.0
-    for p in positions:
-        running_max = max(running_max, p)
-        result.append(running_max)
-    return result
 
 
 def predict_alignment(
@@ -226,16 +187,15 @@ def predict_alignment(
     text: str,
     audio_duration_s: float,
 ) -> AlignmentResult:
-    """Run inference and produce repo-compatible AlignmentResult."""
     aligner.eval()
     af = audio_features.features.unsqueeze(0).float()
     te = text_embeds.unsqueeze(0)
 
     with torch.no_grad():
-        expected = aligner.predict_positions(te, af)  # (1, T)
+        predicted = aligner.predict_positions(te, af)  # (1, T)
 
-    positions = expected[0].cpu().tolist()
-    positions = enforce_monotone(positions)
+    positions = predicted[0].cpu().tolist()
+    positions = enforce_monotone_lis(positions)
 
     token_end_times = [
         min((p + 1) * audio_features.seconds_per_token, audio_duration_s)
@@ -254,7 +214,7 @@ def predict_alignment(
         text=text,
         words=tuple(word_alignments),
         audio_duration_s=audio_duration_s,
-        diagnostics={"backend": "gemma_feature_aligner"},
+        diagnostics={"backend": "gemma_feature_aligner_v3"},
     )
 
 
@@ -284,151 +244,190 @@ def evaluate_alignment(predicted: AlignmentResult, teacher: dict | None) -> dict
     return result
 
 
+def load_manifest() -> dict:
+    with open(MANIFEST_PATH) as f:
+        return json.load(f)
+
+
+def load_clip_data(clip: dict, model, processor, tokenizer):
+    tag = clip["tag"]
+    audio, sr = sf.read(clip["audio"])
+
+    teacher_path = TEACHER_DIR / f"{tag}_qwen_teacher.json"
+    if not teacher_path.exists():
+        return None
+    teacher = load_teacher(str(teacher_path))
+
+    t0 = time.time()
+    feat = extract_audio_features(model, processor, audio, sample_rate=sr, device=DEVICE, dtype=DTYPE)
+    feat_time = time.time() - t0
+
+    tids, tpos = build_token_targets(teacher, tokenizer, feat)
+    tids_dev = tids.to(DEVICE)
+    tpos_dev = tpos.to(DEVICE)
+    text_emb = get_text_embeddings(model, tids_dev).float()
+    audio_feats = feat.features.float()
+
+    return {
+        "tag": tag,
+        "teacher": teacher,
+        "features": feat,
+        "token_ids": tids_dev,
+        "target_positions": tpos_dev,
+        "text_embeds": text_emb,
+        "audio_feats": audio_feats,
+        "feat_extraction_time_s": feat_time,
+    }
+
+
 def main():
+    manifest = load_manifest()
+    train_clips = manifest["splits"]["train"]
+    test_clips = manifest["splits"]["test"]
+
     model, processor = load_gemma()
     tokenizer = processor.tokenizer
 
-    # Phase 1: Extract features
-    print("\n=== Phase 1: Feature Extraction ===")
-    all_clips = {c["tag"]: c for c in TRAIN_CLIPS + EVAL_CLIPS}
-    clip_features = {}
-    for tag, clip in all_clips.items():
-        if tag in clip_features:
-            continue
-        audio, sr = sf.read(clip["audio"])
-        if "slice_seconds" in clip:
-            s, e = clip["slice_seconds"]
-            audio = audio[int(s * sr):int(e * sr)]
-        t0 = time.time()
-        feat = extract_audio_features(model, processor, audio, sample_rate=sr, device=DEVICE, dtype=DTYPE)
-        dt = time.time() - t0
-        print(f"  {tag}: ({feat.num_tokens}, {feat.feature_dim}), {feat.audio_duration_s:.1f}s, {dt:.2f}s")
-        clip_features[tag] = feat
-
-    with open(CHECKPOINT_DIR / "feature_inspection.json", "w") as f:
-        json.dump({t: {"num_tokens": ft.num_tokens, "feature_dim": ft.feature_dim,
-                       "ms_per_token": ft.ms_per_token, "audio_duration_s": ft.audio_duration_s}
-                   for t, ft in clip_features.items()}, f, indent=2)
-
-    # Get text embedding dim
     test_ids = torch.tensor([1], dtype=torch.long, device=DEVICE)
     test_emb = get_text_embeddings(model, test_ids)
     text_embed_dim = test_emb.shape[-1]
-    print(f"  Text embedding dim: {text_embed_dim}")
+    print(f"Text embedding dim: {text_embed_dim}")
 
-    # Phase 3: Build training data
-    print("\n=== Phase 3: Training Data ===")
+    # Load train data
+    print(f"\n=== Loading {len(train_clips)} train clips ===")
     train_data = []
-    for clip in TRAIN_CLIPS:
-        teacher = load_teacher(clip["teacher"])
-        feat = clip_features[clip["tag"]]
-        tids, tpos = build_token_targets(teacher, tokenizer, feat)
-        tids_dev = tids.to(DEVICE)
-        tpos_dev = tpos.to(DEVICE)
-        text_emb = get_text_embeddings(model, tids_dev).float()
-        audio_feats = feat.features.float()
-        train_data.append((text_emb, audio_feats, tpos_dev, feat.num_tokens))
-        print(f"  {clip['tag']}: {len(tids)} tokens, {len(teacher['words'])} words")
+    train_loaded = []
+    skipped = 0
+    for i, clip in enumerate(train_clips):
+        loaded = load_clip_data(clip, model, processor, tokenizer)
+        if loaded is None:
+            skipped += 1
+            continue
+        train_data.append((loaded["text_embeds"], loaded["audio_feats"],
+                          loaded["target_positions"], loaded["features"].num_tokens))
+        train_loaded.append(loaded)
+        if (i + 1) % 50 == 0:
+            print(f"  loaded {i+1}/{len(train_clips)} ({len(train_loaded)} usable)")
+    print(f"  Total: {len(train_loaded)} train clips loaded, {skipped} skipped")
 
-        # Debug: print target position range
-        print(f"    target positions: min={tpos.min():.1f}, max={tpos.max():.1f}, "
-              f"audio_tokens={feat.num_tokens}")
+    # Load a small sample of test clips for quick validation during training
+    print(f"\n=== Loading test clips for held-out check ===")
+    test_loaded = []
+    for clip in test_clips[:10]:
+        loaded = load_clip_data(clip, model, processor, tokenizer)
+        if loaded is not None:
+            test_loaded.append(loaded)
+    print(f"  {len(test_loaded)} test clips loaded for quick eval")
 
-    # Build and train aligner
-    print("\n=== Training ===")
-    audio_dim = clip_features[TRAIN_CLIPS[0]["tag"]].feature_dim
+    # Build aligner
+    audio_dim = train_loaded[0]["features"].feature_dim
     aligner = TranscriptAudioAligner(
         text_embed_dim=text_embed_dim,
         audio_dim=audio_dim,
-        hidden_dim=128,
-        num_layers=2,
-        num_heads=4,
+        hidden_dim=HIDDEN_DIM,
+        num_layers=NUM_LAYERS,
+        num_heads=NUM_HEADS,
         dropout=0.1,
     ).to(DEVICE)
 
     param_count = sum(p.numel() for p in aligner.parameters())
-    print(f"  Aligner params: {param_count:,}")
+    print(f"\n=== Training ({param_count:,} params, {HIDDEN_DIM}d, {NUM_LAYERS}L, {NUM_HEADS}H) ===")
+    print(f"  {len(train_data)} clips, {EPOCHS} epochs, lr={LR}, label_smoothing={LABEL_SMOOTHING}")
 
     t0 = time.time()
-    losses = train_aligner(aligner, train_data, epochs=2000, lr=3e-4)
+    losses = train_aligner(
+        aligner, train_data,
+        epochs=EPOCHS, lr=LR, label_smoothing=LABEL_SMOOTHING,
+    )
     train_time = time.time() - t0
-    print(f"  Training: {train_time:.1f}s, final loss: {losses[-1]:.4f}")
+    print(f"Training: {train_time:.1f}s ({train_time/60:.1f} min), final loss: {losses[-1]:.4f}")
+
+    # Quick train-fit check (sample of 10)
+    print("\n=== Train-fit check (first 10) ===")
+    train_maes = []
+    for loaded in train_loaded[:10]:
+        result = predict_alignment(
+            aligner, loaded["features"], loaded["text_embeds"],
+            loaded["token_ids"], tokenizer, loaded["teacher"]["text"],
+            loaded["features"].audio_duration_s,
+        )
+        metrics = evaluate_alignment(result, loaded["teacher"])
+        mae = metrics.get("mae_s", float("nan"))
+        train_maes.append(mae)
+        print(f"  {loaded['tag']}: MAE={mae:.3f}s, mono={metrics['monotone']}")
+    print(f"  Train sample mean MAE: {np.mean(train_maes):.3f}s")
+
+    # Held-out test check
+    print("\n=== Held-out test check ===")
+    test_maes = []
+    for loaded in test_loaded:
+        t0_inf = time.time()
+        result = predict_alignment(
+            aligner, loaded["features"], loaded["text_embeds"],
+            loaded["token_ids"], tokenizer, loaded["teacher"]["text"],
+            loaded["features"].audio_duration_s,
+        )
+        head_time = time.time() - t0_inf
+
+        metrics = evaluate_alignment(result, loaded["teacher"])
+        metrics["head_inference_time_s"] = head_time
+        metrics["feat_extraction_time_s"] = loaded["feat_extraction_time_s"]
+        metrics["total_alignment_time_s"] = head_time + loaded["feat_extraction_time_s"]
+        mae = metrics.get("mae_s", float("nan"))
+        test_maes.append(mae)
+        print(f"  {loaded['tag']}: MAE={mae:.3f}s, mono={metrics['monotone']}, "
+              f"total={metrics['total_alignment_time_s']:.3f}s")
+    print(f"  Test mean MAE: {np.mean(test_maes):.3f}s")
 
     # Save checkpoint
-    ckpt_path = CHECKPOINT_DIR / "aligner_v1.pt"
+    ckpt_path = CHECKPOINT_DIR / "aligner_v3.pt"
     torch.save({
         "model_state": aligner.state_dict(),
         "config": {
             "text_embed_dim": text_embed_dim,
             "audio_dim": audio_dim,
-            "hidden_dim": 128,
-            "num_layers": 2,
-            "num_heads": 4,
+            "hidden_dim": HIDDEN_DIM,
+            "num_layers": NUM_LAYERS,
+            "num_heads": NUM_HEADS,
         },
         "final_loss": losses[-1],
         "train_time_s": train_time,
         "param_count": param_count,
+        "train_tags": [l["tag"] for l in train_loaded],
+        "test_tags": [l["tag"] for l in test_loaded],
+        "epochs": EPOCHS,
+        "lr": LR,
+        "label_smoothing": LABEL_SMOOTHING,
     }, ckpt_path)
-    print(f"  Saved -> {ckpt_path}")
-
-    # Phase 5: Evaluation
-    print("\n=== Phase 5: Evaluation ===")
-    eval_results = {}
-    for clip in EVAL_CLIPS:
-        tag = clip["tag"]
-        feat = clip_features[tag]
-        teacher = load_teacher(clip["teacher"]) if clip["teacher"] else None
-        text = teacher["text"] if teacher else None
-        if text is None:
-            continue
-
-        encoded = tokenizer(text, add_special_tokens=False)
-        tids = torch.tensor(encoded["input_ids"], dtype=torch.long, device=DEVICE)
-        text_emb = get_text_embeddings(model, tids).float()
-
-        t0 = time.time()
-        result = predict_alignment(aligner, feat, text_emb, tids, tokenizer, text, feat.audio_duration_s)
-        inference_time = time.time() - t0
-
-        metrics = evaluate_alignment(result, teacher)
-        metrics["inference_time_s"] = inference_time
-        eval_results[tag] = metrics
-
-        print(f"\n  {tag}:")
-        for k, v in metrics.items():
-            print(f"    {k}: {v:.4f}" if isinstance(v, float) else f"    {k}: {v}")
-
-        # Show first 10 words
-        if teacher:
-            print("    Word comparison (first 10):")
-            for i in range(min(10, len(result.words), len(teacher["words"]))):
-                pw, tw = result.words[i], teacher["words"][i]
-                print(f"      {tw['text']:15s} teacher={tw['end_time']:.2f}  pred={pw.end_time:.2f}  "
-                      f"err={abs(pw.end_time - tw['end_time']):.2f}")
-
-        alignment_out = {
-            "tag": tag, "backend": "gemma_feature_aligner",
-            "text": result.text, "audio_duration_s": result.audio_duration_s,
-            "words": [asdict(w) for w in result.words], "metrics": metrics,
-        }
-        with open(CHECKPOINT_DIR / f"alignment_{tag}.json", "w") as f:
-            json.dump(alignment_out, f, indent=2)
+    print(f"\nSaved checkpoint -> {ckpt_path}")
 
     # Summary
     summary = {
-        "aligner_params": param_count,
-        "train_clips": [c["tag"] for c in TRAIN_CLIPS],
-        "epochs": 2000,
-        "final_loss": losses[-1],
-        "train_time_s": train_time,
-        "feature_source": "gemma_audio_tower_output_proj (1536-dim)",
-        "text_embeddings": f"frozen gemma embed_tokens ({text_embed_dim}-dim)",
-        "supervision": "qwen_teacher_timestamps",
-        "eval_results": eval_results,
+        "version": "v3",
+        "architecture": {
+            "hidden_dim": HIDDEN_DIM,
+            "num_layers": NUM_LAYERS,
+            "num_heads": NUM_HEADS,
+            "params": param_count,
+            "loss": "cross_entropy_discrete",
+            "label_smoothing": LABEL_SMOOTHING,
+            "monotonicity": "LIS-based (inspired by Qwen3-ForcedAligner)",
+        },
+        "training": {
+            "num_train_clips": len(train_loaded),
+            "epochs": EPOCHS,
+            "lr": LR,
+            "train_time_s": train_time,
+            "final_loss": losses[-1],
+        },
+        "train_fit_sample_mae_s": float(np.mean(train_maes)),
+        "test_sample_mae_s": float(np.mean(test_maes)),
+        "train_talks": list(set(c["talk_id"] for c in train_clips)),
+        "test_talks": list(set(c["talk_id"] for c in test_clips)),
     }
-    with open(CHECKPOINT_DIR / "training_summary.json", "w") as f:
+    with open(CHECKPOINT_DIR / "training_summary_v3.json", "w") as f:
         json.dump(summary, f, indent=2)
-    print(f"\n  Saved summary -> {CHECKPOINT_DIR / 'training_summary.json'}")
+    print(f"Saved summary -> {CHECKPOINT_DIR / 'training_summary_v3.json'}")
 
 
 if __name__ == "__main__":

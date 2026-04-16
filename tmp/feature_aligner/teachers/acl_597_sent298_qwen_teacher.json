@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_298.wav",
+  "text": "We model the crosswise obstructive surmises through approach by two different methods.",
+  "audio_duration_s": 6.265,
+  "words": [
+    {
+      "text": "We",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "model",
+      "start_time": 0.4,
+      "end_time": 0.72
+    },
+    {
+      "text": "the",
+      "start_time": 0.72,
+      "end_time": 0.88
+    },
+    {
+      "text": "crosswise",
+      "start_time": 0.88,
+      "end_time": 1.68
+    },
+    {
+      "text": "obstructive",
+      "start_time": 1.76,
+      "end_time": 2.56
+    },
+    {
+      "text": "surmises",
+      "start_time": 2.56,
+      "end_time": 3.12
+    },
+    {
+      "text": "through",
+      "start_time": 3.36,
+      "end_time": 3.6
+    },
+    {
+      "text": "approach",
+      "start_time": 3.6,
+      "end_time": 4.32
+    },
+    {
+      "text": "by",
+      "start_time": 4.72,
+      "end_time": 4.96
+    },
+    {
+      "text": "two",
+      "start_time": 4.96,
+      "end_time": 5.2
+    },
+    {
+      "text": "different",
+      "start_time": 5.2,
+      "end_time": 5.68
+    },
+    {
+      "text": "methods",
+      "start_time": 5.68,
+      "end_time": 6.16
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

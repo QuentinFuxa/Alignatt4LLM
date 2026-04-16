@@ -1,0 +1,81 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_14.wav",
+  "text": "And we only consider basic operators such as addition, subtractions, multiplication, division, and exponential.",
+  "audio_duration_s": 7.297,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "we",
+      "start_time": 0.32,
+      "end_time": 0.4
+    },
+    {
+      "text": "only",
+      "start_time": 0.48,
+      "end_time": 0.64
+    },
+    {
+      "text": "consider",
+      "start_time": 0.64,
+      "end_time": 1.2
+    },
+    {
+      "text": "basic",
+      "start_time": 1.52,
+      "end_time": 1.92
+    },
+    {
+      "text": "operators",
+      "start_time": 1.92,
+      "end_time": 2.56
+    },
+    {
+      "text": "such",
+      "start_time": 2.56,
+      "end_time": 2.72
+    },
+    {
+      "text": "as",
+      "start_time": 2.72,
+      "end_time": 2.88
+    },
+    {
+      "text": "addition",
+      "start_time": 2.96,
+      "end_time": 3.6
+    },
+    {
+      "text": "subtractions",
+      "start_time": 3.84,
+      "end_time": 4.72
+    },
+    {
+      "text": "multiplication",
+      "start_time": 4.8,
+      "end_time": 5.52
+    },
+    {
+      "text": "division",
+      "start_time": 5.52,
+      "end_time": 6.16
+    },
+    {
+      "text": "and",
+      "start_time": 6.4,
+      "end_time": 6.56
+    },
+    {
+      "text": "exponential",
+      "start_time": 6.56,
+      "end_time": 7.12
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_352.wav",
+  "text": "After the feature extraction phase, there is a feature generation phase when we use the the extracted features to generate a small number of new features.",
+  "audio_duration_s": 12.3063125,
+  "words": [
+    {
+      "text": "After",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "the",
+      "start_time": 0.56,
+      "end_time": 0.64
+    },
+    {
+      "text": "feature",
+      "start_time": 0.64,
+      "end_time": 1.04
+    },
+    {
+      "text": "extraction",
+      "start_time": 1.04,
+      "end_time": 1.84
+    },
+    {
+      "text": "phase",
+      "start_time": 1.84,
+      "end_time": 2.32
+    },
+    {
+      "text": "there",
+      "start_time": 3.36,
+      "end_time": 3.52
+    },
+    {
+      "text": "is",
+      "start_time": 3.6,
+      "end_time": 3.76
+    },
+    {
+      "text": "a",
+      "start_time": 3.76,
+      "end_time": 3.76
+    },
+    {
+      "text": "feature",
+      "start_time": 3.84,
+      "end_time": 4.16
+    },
+    {
+      "text": "generation",
+      "start_time": 4.16,
+      "end_time": 4.8
+    },
+    {
+      "text": "phase",
+      "start_time": 4.8,
+      "end_time": 5.12
+    },
+    {
+      "text": "when",
+      "start_time": 5.12,
+      "end_time": 5.28
+    },
+    {
+      "text": "we",
+      "start_time": 5.28,
+      "end_time": 5.44
+    },
+    {
+      "text": "use",
+      "start_time": 5.44,
+      "end_time": 5.76
+    },
+    {
+      "text": "the",
+      "start_time": 6.0,
+      "end_time": 6.24
+    },
+    {
+      "text": "the",
+      "start_time": 6.4,
+      "end_time": 6.64
+    },
+    {
+      "text": "extracted",
+      "start_time": 6.64,
+      "end_time": 7.2
+    },
+    {
+      "text": "features",
+      "start_time": 7.2,
+      "end_time": 7.84
+    },
+    {
+      "text": "to",
+      "start_time": 8.48,
+      "end_time": 8.56
+    },
+    {
+      "text": "generate",
+      "start_time": 8.56,
+      "end_time": 9.28
+    },
+    {
+      "text": "a",
+      "start_time": 9.44,
+      "end_time": 9.84
+    },
+    {
+      "text": "small",
+      "start_time": 9.84,
+      "end_time": 10.24
+    },
+    {
+      "text": "number",
+      "start_time": 10.24,
+      "end_time": 10.8
+    },
+    {
+      "text": "of",
+      "start_time": 10.8,
+      "end_time": 10.96
+    },
+    {
+      "text": "new",
+      "start_time": 11.12,
+      "end_time": 11.36
+    },
+    {
+      "text": "features",
+      "start_time": 11.36,
+      "end_time": 11.92
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

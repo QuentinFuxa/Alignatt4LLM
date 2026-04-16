@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_406.wav",
+  "text": "And our reformulated fine tuning achieve the best result, the best performance.",
+  "audio_duration_s": 9.515,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.0,
+      "end_time": 0.32
+    },
+    {
+      "text": "our",
+      "start_time": 0.32,
+      "end_time": 0.96
+    },
+    {
+      "text": "reformulated",
+      "start_time": 2.32,
+      "end_time": 3.36
+    },
+    {
+      "text": "fine",
+      "start_time": 3.76,
+      "end_time": 4.56
+    },
+    {
+      "text": "tuning",
+      "start_time": 5.2,
+      "end_time": 5.6
+    },
+    {
+      "text": "achieve",
+      "start_time": 5.68,
+      "end_time": 6.16
+    },
+    {
+      "text": "the",
+      "start_time": 6.16,
+      "end_time": 6.48
+    },
+    {
+      "text": "best",
+      "start_time": 7.04,
+      "end_time": 7.44
+    },
+    {
+      "text": "result",
+      "start_time": 7.44,
+      "end_time": 8.32
+    },
+    {
+      "text": "the",
+      "start_time": 8.32,
+      "end_time": 8.48
+    },
+    {
+      "text": "best",
+      "start_time": 8.48,
+      "end_time": 8.72
+    },
+    {
+      "text": "performance",
+      "start_time": 8.72,
+      "end_time": 9.44
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

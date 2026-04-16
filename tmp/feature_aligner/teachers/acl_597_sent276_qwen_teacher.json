@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_276.wav",
+  "text": "But the labors are not always consistent with each liberty.",
+  "audio_duration_s": 4.032,
+  "words": [
+    {
+      "text": "But",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "the",
+      "start_time": 0.4,
+      "end_time": 0.48
+    },
+    {
+      "text": "labors",
+      "start_time": 0.48,
+      "end_time": 0.96
+    },
+    {
+      "text": "are",
+      "start_time": 1.04,
+      "end_time": 1.2
+    },
+    {
+      "text": "not",
+      "start_time": 1.2,
+      "end_time": 1.44
+    },
+    {
+      "text": "always",
+      "start_time": 1.52,
+      "end_time": 1.92
+    },
+    {
+      "text": "consistent",
+      "start_time": 1.92,
+      "end_time": 2.72
+    },
+    {
+      "text": "with",
+      "start_time": 2.72,
+      "end_time": 3.04
+    },
+    {
+      "text": "each",
+      "start_time": 3.04,
+      "end_time": 3.36
+    },
+    {
+      "text": "liberty",
+      "start_time": 3.36,
+      "end_time": 3.92
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

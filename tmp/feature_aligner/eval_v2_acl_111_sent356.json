@@ -1,0 +1,89 @@
+{
+  "tag": "acl_111_sent356",
+  "split": "test",
+  "backend": "gemma_feature_aligner",
+  "text": "But if the data set has five classes, first generate five new features.",
+  "audio_duration_s": 6.577,
+  "words": [
+    {
+      "text": "But",
+      "start_time": 0.316881046295166,
+      "end_time": 0.316881046295166
+    },
+    {
+      "text": "if",
+      "start_time": 1.4906570434570312,
+      "end_time": 1.4906570434570312
+    },
+    {
+      "text": "the",
+      "start_time": 3.3318023681640625,
+      "end_time": 3.3318023681640625
+    },
+    {
+      "text": "data",
+      "start_time": 4.046333923339843,
+      "end_time": 4.046333923339843
+    },
+    {
+      "text": "set",
+      "start_time": 4.046333923339843,
+      "end_time": 4.046333923339843
+    },
+    {
+      "text": "has",
+      "start_time": 4.046333923339843,
+      "end_time": 4.046333923339843
+    },
+    {
+      "text": "five",
+      "start_time": 4.051240844726562,
+      "end_time": 4.051240844726562
+    },
+    {
+      "text": "classes",
+      "start_time": 4.051240844726562,
+      "end_time": 4.051240844726562
+    },
+    {
+      "text": "first",
+      "start_time": 4.051240844726562,
+      "end_time": 4.051240844726562
+    },
+    {
+      "text": "generate",
+      "start_time": 4.051240844726562,
+      "end_time": 4.051240844726562
+    },
+    {
+      "text": "five",
+      "start_time": 4.051240844726562,
+      "end_time": 4.051240844726562
+    },
+    {
+      "text": "new",
+      "start_time": 4.53696044921875,
+      "end_time": 4.53696044921875
+    },
+    {
+      "text": "features",
+      "start_time": 4.53696044921875,
+      "end_time": 4.53696044921875
+    }
+  ],
+  "metrics": {
+    "num_words": 13,
+    "monotone": true,
+    "mae_s": 1.5261091070908768,
+    "median_error_s": 1.30303955078125,
+    "p90_error_s": 2.831427612304687,
+    "max_error_s": 3.2463339233398436,
+    "word_count_match": true,
+    "head_inference_time_s": 0.002886056900024414,
+    "feat_extraction_time_s": 0.07960367202758789,
+    "total_alignment_time_s": 0.0824897289276123,
+    "audio_duration_s": 6.577,
+    "tag": "acl_111_sent356",
+    "talk_id": "111"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_56.wav",
+  "text": "So the training procedure is similar to training a sequence-to-sequence model, where we optimize the loss at each time step.",
+  "audio_duration_s": 6.181,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "the",
+      "start_time": 0.32,
+      "end_time": 0.4
+    },
+    {
+      "text": "training",
+      "start_time": 0.4,
+      "end_time": 0.72
+    },
+    {
+      "text": "procedure",
+      "start_time": 0.72,
+      "end_time": 1.12
+    },
+    {
+      "text": "is",
+      "start_time": 1.12,
+      "end_time": 1.28
+    },
+    {
+      "text": "similar",
+      "start_time": 1.28,
+      "end_time": 1.6
+    },
+    {
+      "text": "to",
+      "start_time": 1.6,
+      "end_time": 1.76
+    },
+    {
+      "text": "training",
+      "start_time": 1.76,
+      "end_time": 2.08
+    },
+    {
+      "text": "a",
+      "start_time": 2.08,
+      "end_time": 2.16
+    },
+    {
+      "text": "sequencetosequence",
+      "start_time": 2.16,
+      "end_time": 2.96
+    },
+    {
+      "text": "model",
+      "start_time": 2.96,
+      "end_time": 3.36
+    },
+    {
+      "text": "where",
+      "start_time": 3.84,
+      "end_time": 4.08
+    },
+    {
+      "text": "we",
+      "start_time": 4.08,
+      "end_time": 4.24
+    },
+    {
+      "text": "optimize",
+      "start_time": 4.24,
+      "end_time": 4.72
+    },
+    {
+      "text": "the",
+      "start_time": 4.72,
+      "end_time": 4.8
+    },
+    {
+      "text": "loss",
+      "start_time": 4.8,
+      "end_time": 5.12
+    },
+    {
+      "text": "at",
+      "start_time": 5.2,
+      "end_time": 5.28
+    },
+    {
+      "text": "each",
+      "start_time": 5.28,
+      "end_time": 5.52
+    },
+    {
+      "text": "time",
+      "start_time": 5.52,
+      "end_time": 5.76
+    },
+    {
+      "text": "step",
+      "start_time": 5.76,
+      "end_time": 6.0
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

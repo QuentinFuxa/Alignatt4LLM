@@ -1,0 +1,146 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_386.wav",
+  "text": "And we reformulate the task from classifying the text into low and high to classify the the text, the abstract, and the class into true or false.",
+  "audio_duration_s": 13.618,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.08,
+      "end_time": 0.4
+    },
+    {
+      "text": "we",
+      "start_time": 0.56,
+      "end_time": 0.8
+    },
+    {
+      "text": "reformulate",
+      "start_time": 0.8,
+      "end_time": 1.6
+    },
+    {
+      "text": "the",
+      "start_time": 1.68,
+      "end_time": 2.08
+    },
+    {
+      "text": "task",
+      "start_time": 2.88,
+      "end_time": 3.36
+    },
+    {
+      "text": "from",
+      "start_time": 3.68,
+      "end_time": 4.24
+    },
+    {
+      "text": "classifying",
+      "start_time": 4.64,
+      "end_time": 5.36
+    },
+    {
+      "text": "the",
+      "start_time": 5.36,
+      "end_time": 5.44
+    },
+    {
+      "text": "text",
+      "start_time": 5.44,
+      "end_time": 5.76
+    },
+    {
+      "text": "into",
+      "start_time": 5.76,
+      "end_time": 6.08
+    },
+    {
+      "text": "low",
+      "start_time": 6.08,
+      "end_time": 6.4
+    },
+    {
+      "text": "and",
+      "start_time": 6.4,
+      "end_time": 6.48
+    },
+    {
+      "text": "high",
+      "start_time": 6.48,
+      "end_time": 6.8
+    },
+    {
+      "text": "to",
+      "start_time": 6.88,
+      "end_time": 6.96
+    },
+    {
+      "text": "classify",
+      "start_time": 7.04,
+      "end_time": 7.68
+    },
+    {
+      "text": "the",
+      "start_time": 8.08,
+      "end_time": 8.24
+    },
+    {
+      "text": "the",
+      "start_time": 8.32,
+      "end_time": 8.96
+    },
+    {
+      "text": "text",
+      "start_time": 9.6,
+      "end_time": 10.16
+    },
+    {
+      "text": "the",
+      "start_time": 10.32,
+      "end_time": 10.48
+    },
+    {
+      "text": "abstract",
+      "start_time": 10.48,
+      "end_time": 11.12
+    },
+    {
+      "text": "and",
+      "start_time": 11.2,
+      "end_time": 11.36
+    },
+    {
+      "text": "the",
+      "start_time": 11.36,
+      "end_time": 11.44
+    },
+    {
+      "text": "class",
+      "start_time": 11.44,
+      "end_time": 11.92
+    },
+    {
+      "text": "into",
+      "start_time": 12.08,
+      "end_time": 12.56
+    },
+    {
+      "text": "true",
+      "start_time": 12.64,
+      "end_time": 12.96
+    },
+    {
+      "text": "or",
+      "start_time": 12.96,
+      "end_time": 12.96
+    },
+    {
+      "text": "false",
+      "start_time": 12.96,
+      "end_time": 13.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

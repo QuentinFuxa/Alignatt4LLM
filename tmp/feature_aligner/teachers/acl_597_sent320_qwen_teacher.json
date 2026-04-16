@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_320.wav",
+  "text": "CS methods tend to output shorter sentences than human-written sentences.",
+  "audio_duration_s": 5.654,
+  "words": [
+    {
+      "text": "CS",
+      "start_time": 0.08,
+      "end_time": 0.64
+    },
+    {
+      "text": "methods",
+      "start_time": 0.64,
+      "end_time": 1.2
+    },
+    {
+      "text": "tend",
+      "start_time": 1.36,
+      "end_time": 1.68
+    },
+    {
+      "text": "to",
+      "start_time": 1.68,
+      "end_time": 1.84
+    },
+    {
+      "text": "output",
+      "start_time": 1.92,
+      "end_time": 2.32
+    },
+    {
+      "text": "shorter",
+      "start_time": 2.4,
+      "end_time": 2.8
+    },
+    {
+      "text": "sentences",
+      "start_time": 2.88,
+      "end_time": 3.68
+    },
+    {
+      "text": "than",
+      "start_time": 3.76,
+      "end_time": 4.08
+    },
+    {
+      "text": "humanwritten",
+      "start_time": 4.08,
+      "end_time": 4.64
+    },
+    {
+      "text": "sentences",
+      "start_time": 4.88,
+      "end_time": 5.6
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

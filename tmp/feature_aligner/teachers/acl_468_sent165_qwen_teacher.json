@@ -1,0 +1,116 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_165.wav",
+  "text": "With the lexical methods above, the Siamese biancodors evaluated in a zero-shot setup in the middle, and the fine-tuned biancodors below.",
+  "audio_duration_s": 7.917,
+  "words": [
+    {
+      "text": "With",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "the",
+      "start_time": 0.32,
+      "end_time": 0.4
+    },
+    {
+      "text": "lexical",
+      "start_time": 0.4,
+      "end_time": 0.88
+    },
+    {
+      "text": "methods",
+      "start_time": 0.88,
+      "end_time": 1.2
+    },
+    {
+      "text": "above",
+      "start_time": 1.2,
+      "end_time": 1.76
+    },
+    {
+      "text": "the",
+      "start_time": 1.84,
+      "end_time": 1.92
+    },
+    {
+      "text": "Siamese",
+      "start_time": 1.92,
+      "end_time": 2.48
+    },
+    {
+      "text": "biancodors",
+      "start_time": 2.48,
+      "end_time": 3.2
+    },
+    {
+      "text": "evaluated",
+      "start_time": 3.2,
+      "end_time": 3.76
+    },
+    {
+      "text": "in",
+      "start_time": 3.76,
+      "end_time": 3.84
+    },
+    {
+      "text": "a",
+      "start_time": 3.84,
+      "end_time": 3.92
+    },
+    {
+      "text": "zeroshot",
+      "start_time": 3.92,
+      "end_time": 4.56
+    },
+    {
+      "text": "setup",
+      "start_time": 4.56,
+      "end_time": 5.04
+    },
+    {
+      "text": "in",
+      "start_time": 5.04,
+      "end_time": 5.2
+    },
+    {
+      "text": "the",
+      "start_time": 5.2,
+      "end_time": 5.28
+    },
+    {
+      "text": "middle",
+      "start_time": 5.28,
+      "end_time": 5.68
+    },
+    {
+      "text": "and",
+      "start_time": 6.08,
+      "end_time": 6.24
+    },
+    {
+      "text": "the",
+      "start_time": 6.24,
+      "end_time": 6.32
+    },
+    {
+      "text": "finetuned",
+      "start_time": 6.32,
+      "end_time": 6.8
+    },
+    {
+      "text": "biancodors",
+      "start_time": 6.8,
+      "end_time": 7.36
+    },
+    {
+      "text": "below",
+      "start_time": 7.44,
+      "end_time": 7.76
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

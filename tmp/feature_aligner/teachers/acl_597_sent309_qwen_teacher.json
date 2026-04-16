@@ -1,0 +1,111 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_309.wav",
+  "text": "A high specificity means that the model predicted outputs are empty test, in cases where the real nodes assume empty.",
+  "audio_duration_s": 8.197,
+  "words": [
+    {
+      "text": "A",
+      "start_time": 0.16,
+      "end_time": 0.24
+    },
+    {
+      "text": "high",
+      "start_time": 0.4,
+      "end_time": 0.64
+    },
+    {
+      "text": "specificity",
+      "start_time": 0.64,
+      "end_time": 1.44
+    },
+    {
+      "text": "means",
+      "start_time": 1.44,
+      "end_time": 1.92
+    },
+    {
+      "text": "that",
+      "start_time": 1.92,
+      "end_time": 2.24
+    },
+    {
+      "text": "the",
+      "start_time": 2.24,
+      "end_time": 2.32
+    },
+    {
+      "text": "model",
+      "start_time": 2.32,
+      "end_time": 2.8
+    },
+    {
+      "text": "predicted",
+      "start_time": 2.8,
+      "end_time": 3.36
+    },
+    {
+      "text": "outputs",
+      "start_time": 3.36,
+      "end_time": 3.76
+    },
+    {
+      "text": "are",
+      "start_time": 3.76,
+      "end_time": 3.92
+    },
+    {
+      "text": "empty",
+      "start_time": 4.0,
+      "end_time": 4.4
+    },
+    {
+      "text": "test",
+      "start_time": 4.4,
+      "end_time": 4.96
+    },
+    {
+      "text": "in",
+      "start_time": 5.44,
+      "end_time": 5.6
+    },
+    {
+      "text": "cases",
+      "start_time": 5.6,
+      "end_time": 6.24
+    },
+    {
+      "text": "where",
+      "start_time": 6.24,
+      "end_time": 6.4
+    },
+    {
+      "text": "the",
+      "start_time": 6.4,
+      "end_time": 6.56
+    },
+    {
+      "text": "real",
+      "start_time": 6.56,
+      "end_time": 6.72
+    },
+    {
+      "text": "nodes",
+      "start_time": 6.96,
+      "end_time": 7.2
+    },
+    {
+      "text": "assume",
+      "start_time": 7.2,
+      "end_time": 7.6
+    },
+    {
+      "text": "empty",
+      "start_time": 7.68,
+      "end_time": 8.08
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

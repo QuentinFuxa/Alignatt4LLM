@@ -1,0 +1,106 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_148.wav",
+  "text": "Meanwhile, eighteen out of thirty-two codes have less than five article mentioned as relevant to at least one question.",
+  "audio_duration_s": 8.107,
+  "words": [
+    {
+      "text": "Meanwhile",
+      "start_time": 0.16,
+      "end_time": 0.72
+    },
+    {
+      "text": "eighteen",
+      "start_time": 1.2,
+      "end_time": 1.68
+    },
+    {
+      "text": "out",
+      "start_time": 1.76,
+      "end_time": 2.0
+    },
+    {
+      "text": "of",
+      "start_time": 2.0,
+      "end_time": 2.16
+    },
+    {
+      "text": "thirtytwo",
+      "start_time": 2.16,
+      "end_time": 2.72
+    },
+    {
+      "text": "codes",
+      "start_time": 2.72,
+      "end_time": 3.2
+    },
+    {
+      "text": "have",
+      "start_time": 3.2,
+      "end_time": 3.36
+    },
+    {
+      "text": "less",
+      "start_time": 3.36,
+      "end_time": 3.68
+    },
+    {
+      "text": "than",
+      "start_time": 3.68,
+      "end_time": 3.92
+    },
+    {
+      "text": "five",
+      "start_time": 3.92,
+      "end_time": 4.4
+    },
+    {
+      "text": "article",
+      "start_time": 4.48,
+      "end_time": 4.96
+    },
+    {
+      "text": "mentioned",
+      "start_time": 4.96,
+      "end_time": 5.44
+    },
+    {
+      "text": "as",
+      "start_time": 5.44,
+      "end_time": 5.76
+    },
+    {
+      "text": "relevant",
+      "start_time": 5.76,
+      "end_time": 6.24
+    },
+    {
+      "text": "to",
+      "start_time": 6.24,
+      "end_time": 6.4
+    },
+    {
+      "text": "at",
+      "start_time": 6.4,
+      "end_time": 6.72
+    },
+    {
+      "text": "least",
+      "start_time": 6.72,
+      "end_time": 7.12
+    },
+    {
+      "text": "one",
+      "start_time": 7.12,
+      "end_time": 7.36
+    },
+    {
+      "text": "question",
+      "start_time": 7.36,
+      "end_time": 8.0
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

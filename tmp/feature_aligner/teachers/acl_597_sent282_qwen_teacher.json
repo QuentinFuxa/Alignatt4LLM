@@ -1,0 +1,106 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_282.wav",
+  "text": "As shown in the image below, if the current risk is between 2.5 to 19, we need to identify.",
+  "audio_duration_s": 7.485,
+  "words": [
+    {
+      "text": "As",
+      "start_time": 0.08,
+      "end_time": 0.32
+    },
+    {
+      "text": "shown",
+      "start_time": 0.32,
+      "end_time": 0.64
+    },
+    {
+      "text": "in",
+      "start_time": 0.64,
+      "end_time": 0.8
+    },
+    {
+      "text": "the",
+      "start_time": 0.8,
+      "end_time": 0.96
+    },
+    {
+      "text": "image",
+      "start_time": 1.04,
+      "end_time": 1.28
+    },
+    {
+      "text": "below",
+      "start_time": 1.28,
+      "end_time": 1.68
+    },
+    {
+      "text": "if",
+      "start_time": 2.16,
+      "end_time": 2.32
+    },
+    {
+      "text": "the",
+      "start_time": 2.32,
+      "end_time": 2.4
+    },
+    {
+      "text": "current",
+      "start_time": 2.4,
+      "end_time": 2.88
+    },
+    {
+      "text": "risk",
+      "start_time": 2.88,
+      "end_time": 3.28
+    },
+    {
+      "text": "is",
+      "start_time": 3.28,
+      "end_time": 3.68
+    },
+    {
+      "text": "between",
+      "start_time": 3.84,
+      "end_time": 4.24
+    },
+    {
+      "text": "25",
+      "start_time": 4.24,
+      "end_time": 4.24
+    },
+    {
+      "text": "to",
+      "start_time": 4.4,
+      "end_time": 4.48
+    },
+    {
+      "text": "19",
+      "start_time": 4.56,
+      "end_time": 4.88
+    },
+    {
+      "text": "we",
+      "start_time": 4.96,
+      "end_time": 6.64
+    },
+    {
+      "text": "need",
+      "start_time": 6.64,
+      "end_time": 6.8
+    },
+    {
+      "text": "to",
+      "start_time": 6.88,
+      "end_time": 6.96
+    },
+    {
+      "text": "identify",
+      "start_time": 6.96,
+      "end_time": 7.2
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

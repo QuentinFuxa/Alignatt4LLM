@@ -1,0 +1,81 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_248.wav",
+  "text": "Therefore, it would be very useful to be able to automatically generate high-quality disnotes.",
+  "audio_duration_s": 6.052,
+  "words": [
+    {
+      "text": "Therefore",
+      "start_time": 0.16,
+      "end_time": 0.72
+    },
+    {
+      "text": "it",
+      "start_time": 1.04,
+      "end_time": 1.12
+    },
+    {
+      "text": "would",
+      "start_time": 1.12,
+      "end_time": 1.28
+    },
+    {
+      "text": "be",
+      "start_time": 1.28,
+      "end_time": 1.36
+    },
+    {
+      "text": "very",
+      "start_time": 1.36,
+      "end_time": 1.6
+    },
+    {
+      "text": "useful",
+      "start_time": 1.6,
+      "end_time": 2.32
+    },
+    {
+      "text": "to",
+      "start_time": 2.32,
+      "end_time": 2.48
+    },
+    {
+      "text": "be",
+      "start_time": 2.48,
+      "end_time": 2.56
+    },
+    {
+      "text": "able",
+      "start_time": 2.64,
+      "end_time": 2.88
+    },
+    {
+      "text": "to",
+      "start_time": 3.04,
+      "end_time": 3.2
+    },
+    {
+      "text": "automatically",
+      "start_time": 3.2,
+      "end_time": 4.0
+    },
+    {
+      "text": "generate",
+      "start_time": 4.0,
+      "end_time": 4.4
+    },
+    {
+      "text": "highquality",
+      "start_time": 4.48,
+      "end_time": 5.12
+    },
+    {
+      "text": "disnotes",
+      "start_time": 5.12,
+      "end_time": 6.0
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

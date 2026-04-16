@@ -1,0 +1,91 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_48.wav",
+  "text": "So here, all the possible expression uh is equals to three times the number of operators.",
+  "audio_duration_s": 6.535,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.16,
+      "end_time": 0.48
+    },
+    {
+      "text": "here",
+      "start_time": 0.64,
+      "end_time": 0.96
+    },
+    {
+      "text": "all",
+      "start_time": 0.96,
+      "end_time": 1.2
+    },
+    {
+      "text": "the",
+      "start_time": 1.2,
+      "end_time": 1.28
+    },
+    {
+      "text": "possible",
+      "start_time": 1.28,
+      "end_time": 1.76
+    },
+    {
+      "text": "expression",
+      "start_time": 1.76,
+      "end_time": 2.48
+    },
+    {
+      "text": "uh",
+      "start_time": 2.64,
+      "end_time": 2.96
+    },
+    {
+      "text": "is",
+      "start_time": 3.76,
+      "end_time": 3.92
+    },
+    {
+      "text": "equals",
+      "start_time": 3.92,
+      "end_time": 4.32
+    },
+    {
+      "text": "to",
+      "start_time": 4.32,
+      "end_time": 4.48
+    },
+    {
+      "text": "three",
+      "start_time": 4.48,
+      "end_time": 4.8
+    },
+    {
+      "text": "times",
+      "start_time": 4.8,
+      "end_time": 5.2
+    },
+    {
+      "text": "the",
+      "start_time": 5.2,
+      "end_time": 5.28
+    },
+    {
+      "text": "number",
+      "start_time": 5.28,
+      "end_time": 5.6
+    },
+    {
+      "text": "of",
+      "start_time": 5.6,
+      "end_time": 5.76
+    },
+    {
+      "text": "operators",
+      "start_time": 5.76,
+      "end_time": 6.48
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

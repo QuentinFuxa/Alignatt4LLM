@@ -1,0 +1,66 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_194.wav",
+  "text": "Or do they focus on biases, as shown by previous work?",
+  "audio_duration_s": 4.21,
+  "words": [
+    {
+      "text": "Or",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "do",
+      "start_time": 0.32,
+      "end_time": 0.4
+    },
+    {
+      "text": "they",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "focus",
+      "start_time": 0.56,
+      "end_time": 1.28
+    },
+    {
+      "text": "on",
+      "start_time": 1.28,
+      "end_time": 1.6
+    },
+    {
+      "text": "biases",
+      "start_time": 1.6,
+      "end_time": 2.4
+    },
+    {
+      "text": "as",
+      "start_time": 2.4,
+      "end_time": 2.56
+    },
+    {
+      "text": "shown",
+      "start_time": 2.56,
+      "end_time": 2.88
+    },
+    {
+      "text": "by",
+      "start_time": 2.88,
+      "end_time": 3.12
+    },
+    {
+      "text": "previous",
+      "start_time": 3.12,
+      "end_time": 3.76
+    },
+    {
+      "text": "work",
+      "start_time": 3.76,
+      "end_time": 4.16
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

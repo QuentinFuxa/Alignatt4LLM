@@ -1,0 +1,41 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_344.wav",
+  "text": "As knowledge base, we use Wikipedia.",
+  "audio_duration_s": 3.026,
+  "words": [
+    {
+      "text": "As",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "knowledge",
+      "start_time": 0.32,
+      "end_time": 0.72
+    },
+    {
+      "text": "base",
+      "start_time": 0.72,
+      "end_time": 1.12
+    },
+    {
+      "text": "we",
+      "start_time": 1.36,
+      "end_time": 1.52
+    },
+    {
+      "text": "use",
+      "start_time": 1.52,
+      "end_time": 1.76
+    },
+    {
+      "text": "Wikipedia",
+      "start_time": 2.08,
+      "end_time": 2.8
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

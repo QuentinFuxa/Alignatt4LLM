@@ -1,0 +1,126 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_231.wav",
+  "text": "They also have trouble distinguishing actions and identifying their participants, even if supported by plausibility biases, as we see in the actions piece.",
+  "audio_duration_s": 10.281,
+  "words": [
+    {
+      "text": "They",
+      "start_time": 0.24,
+      "end_time": 0.32
+    },
+    {
+      "text": "also",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "have",
+      "start_time": 0.56,
+      "end_time": 0.8
+    },
+    {
+      "text": "trouble",
+      "start_time": 0.8,
+      "end_time": 1.28
+    },
+    {
+      "text": "distinguishing",
+      "start_time": 1.52,
+      "end_time": 2.4
+    },
+    {
+      "text": "actions",
+      "start_time": 2.4,
+      "end_time": 2.96
+    },
+    {
+      "text": "and",
+      "start_time": 2.96,
+      "end_time": 3.2
+    },
+    {
+      "text": "identifying",
+      "start_time": 3.2,
+      "end_time": 4.08
+    },
+    {
+      "text": "their",
+      "start_time": 4.08,
+      "end_time": 4.16
+    },
+    {
+      "text": "participants",
+      "start_time": 4.16,
+      "end_time": 5.04
+    },
+    {
+      "text": "even",
+      "start_time": 5.12,
+      "end_time": 5.44
+    },
+    {
+      "text": "if",
+      "start_time": 5.44,
+      "end_time": 5.76
+    },
+    {
+      "text": "supported",
+      "start_time": 5.76,
+      "end_time": 6.48
+    },
+    {
+      "text": "by",
+      "start_time": 6.48,
+      "end_time": 6.8
+    },
+    {
+      "text": "plausibility",
+      "start_time": 7.12,
+      "end_time": 7.76
+    },
+    {
+      "text": "biases",
+      "start_time": 7.76,
+      "end_time": 8.32
+    },
+    {
+      "text": "as",
+      "start_time": 8.32,
+      "end_time": 8.48
+    },
+    {
+      "text": "we",
+      "start_time": 8.48,
+      "end_time": 8.64
+    },
+    {
+      "text": "see",
+      "start_time": 8.64,
+      "end_time": 8.96
+    },
+    {
+      "text": "in",
+      "start_time": 8.96,
+      "end_time": 9.12
+    },
+    {
+      "text": "the",
+      "start_time": 9.12,
+      "end_time": 9.28
+    },
+    {
+      "text": "actions",
+      "start_time": 9.28,
+      "end_time": 9.76
+    },
+    {
+      "text": "piece",
+      "start_time": 9.76,
+      "end_time": 10.24
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_362.wav",
+  "text": "In this example, to to fine tune the language model, to classify, to classify text into classes, abstract into classes, low or high.",
+  "audio_duration_s": 11.304,
+  "words": [
+    {
+      "text": "In",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "this",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "example",
+      "start_time": 0.48,
+      "end_time": 1.04
+    },
+    {
+      "text": "to",
+      "start_time": 1.04,
+      "end_time": 1.2
+    },
+    {
+      "text": "to",
+      "start_time": 1.44,
+      "end_time": 1.6
+    },
+    {
+      "text": "fine",
+      "start_time": 1.6,
+      "end_time": 2.0
+    },
+    {
+      "text": "tune",
+      "start_time": 2.0,
+      "end_time": 2.24
+    },
+    {
+      "text": "the",
+      "start_time": 2.24,
+      "end_time": 2.32
+    },
+    {
+      "text": "language",
+      "start_time": 2.32,
+      "end_time": 2.72
+    },
+    {
+      "text": "model",
+      "start_time": 2.72,
+      "end_time": 3.2
+    },
+    {
+      "text": "to",
+      "start_time": 3.92,
+      "end_time": 3.92
+    },
+    {
+      "text": "classify",
+      "start_time": 4.48,
+      "end_time": 5.28
+    },
+    {
+      "text": "to",
+      "start_time": 5.28,
+      "end_time": 5.28
+    },
+    {
+      "text": "classify",
+      "start_time": 5.76,
+      "end_time": 6.48
+    },
+    {
+      "text": "text",
+      "start_time": 6.56,
+      "end_time": 7.04
+    },
+    {
+      "text": "into",
+      "start_time": 7.36,
+      "end_time": 7.68
+    },
+    {
+      "text": "classes",
+      "start_time": 7.68,
+      "end_time": 8.24
+    },
+    {
+      "text": "abstract",
+      "start_time": 8.64,
+      "end_time": 9.28
+    },
+    {
+      "text": "into",
+      "start_time": 9.28,
+      "end_time": 9.6
+    },
+    {
+      "text": "classes",
+      "start_time": 9.6,
+      "end_time": 10.24
+    },
+    {
+      "text": "low",
+      "start_time": 10.4,
+      "end_time": 10.72
+    },
+    {
+      "text": "or",
+      "start_time": 10.72,
+      "end_time": 10.8
+    },
+    {
+      "text": "high",
+      "start_time": 10.8,
+      "end_time": 11.12
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

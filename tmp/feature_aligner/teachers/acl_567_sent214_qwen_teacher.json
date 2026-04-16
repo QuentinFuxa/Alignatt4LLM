@@ -1,0 +1,81 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_214.wav",
+  "text": "But this procedure is not perfect. It is just an indicator for valid foils.",
+  "audio_duration_s": 5.204,
+  "words": [
+    {
+      "text": "But",
+      "start_time": 0.16,
+      "end_time": 0.48
+    },
+    {
+      "text": "this",
+      "start_time": 0.48,
+      "end_time": 0.72
+    },
+    {
+      "text": "procedure",
+      "start_time": 0.72,
+      "end_time": 1.28
+    },
+    {
+      "text": "is",
+      "start_time": 1.28,
+      "end_time": 1.52
+    },
+    {
+      "text": "not",
+      "start_time": 1.52,
+      "end_time": 1.76
+    },
+    {
+      "text": "perfect",
+      "start_time": 1.76,
+      "end_time": 2.48
+    },
+    {
+      "text": "It",
+      "start_time": 2.56,
+      "end_time": 2.64
+    },
+    {
+      "text": "is",
+      "start_time": 2.64,
+      "end_time": 2.8
+    },
+    {
+      "text": "just",
+      "start_time": 2.8,
+      "end_time": 3.04
+    },
+    {
+      "text": "an",
+      "start_time": 3.04,
+      "end_time": 3.2
+    },
+    {
+      "text": "indicator",
+      "start_time": 3.2,
+      "end_time": 4.16
+    },
+    {
+      "text": "for",
+      "start_time": 4.16,
+      "end_time": 4.4
+    },
+    {
+      "text": "valid",
+      "start_time": 4.4,
+      "end_time": 4.72
+    },
+    {
+      "text": "foils",
+      "start_time": 4.72,
+      "end_time": 5.2
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

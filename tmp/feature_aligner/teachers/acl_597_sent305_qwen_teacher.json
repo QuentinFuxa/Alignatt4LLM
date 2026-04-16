@@ -1,0 +1,126 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_305.wav",
+  "text": "Since it is difficult to calculate the number of sentences as zero, they are combined with spaces and treated as one long sentence.",
+  "audio_duration_s": 8.959,
+  "words": [
+    {
+      "text": "Since",
+      "start_time": 0.16,
+      "end_time": 0.56
+    },
+    {
+      "text": "it",
+      "start_time": 0.56,
+      "end_time": 0.72
+    },
+    {
+      "text": "is",
+      "start_time": 0.72,
+      "end_time": 0.88
+    },
+    {
+      "text": "difficult",
+      "start_time": 0.88,
+      "end_time": 1.44
+    },
+    {
+      "text": "to",
+      "start_time": 1.52,
+      "end_time": 1.6
+    },
+    {
+      "text": "calculate",
+      "start_time": 1.6,
+      "end_time": 2.08
+    },
+    {
+      "text": "the",
+      "start_time": 2.16,
+      "end_time": 2.24
+    },
+    {
+      "text": "number",
+      "start_time": 2.24,
+      "end_time": 2.48
+    },
+    {
+      "text": "of",
+      "start_time": 2.48,
+      "end_time": 2.72
+    },
+    {
+      "text": "sentences",
+      "start_time": 2.72,
+      "end_time": 3.44
+    },
+    {
+      "text": "as",
+      "start_time": 3.52,
+      "end_time": 3.76
+    },
+    {
+      "text": "zero",
+      "start_time": 3.76,
+      "end_time": 4.24
+    },
+    {
+      "text": "they",
+      "start_time": 4.72,
+      "end_time": 4.88
+    },
+    {
+      "text": "are",
+      "start_time": 4.88,
+      "end_time": 5.04
+    },
+    {
+      "text": "combined",
+      "start_time": 5.04,
+      "end_time": 5.6
+    },
+    {
+      "text": "with",
+      "start_time": 5.6,
+      "end_time": 5.92
+    },
+    {
+      "text": "spaces",
+      "start_time": 5.92,
+      "end_time": 6.32
+    },
+    {
+      "text": "and",
+      "start_time": 6.4,
+      "end_time": 6.8
+    },
+    {
+      "text": "treated",
+      "start_time": 6.8,
+      "end_time": 7.2
+    },
+    {
+      "text": "as",
+      "start_time": 7.2,
+      "end_time": 7.28
+    },
+    {
+      "text": "one",
+      "start_time": 7.52,
+      "end_time": 8.0
+    },
+    {
+      "text": "long",
+      "start_time": 8.0,
+      "end_time": 8.24
+    },
+    {
+      "text": "sentence",
+      "start_time": 8.24,
+      "end_time": 8.88
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

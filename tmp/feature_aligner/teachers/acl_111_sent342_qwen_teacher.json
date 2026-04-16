@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_342.wav",
+  "text": "In this example, the data set is university data set.",
+  "audio_duration_s": 3.69,
+  "words": [
+    {
+      "text": "In",
+      "start_time": 0.16,
+      "end_time": 0.24
+    },
+    {
+      "text": "this",
+      "start_time": 0.24,
+      "end_time": 0.48
+    },
+    {
+      "text": "example",
+      "start_time": 0.48,
+      "end_time": 0.96
+    },
+    {
+      "text": "the",
+      "start_time": 0.96,
+      "end_time": 1.04
+    },
+    {
+      "text": "data",
+      "start_time": 1.04,
+      "end_time": 1.36
+    },
+    {
+      "text": "set",
+      "start_time": 1.36,
+      "end_time": 1.76
+    },
+    {
+      "text": "is",
+      "start_time": 1.84,
+      "end_time": 2.16
+    },
+    {
+      "text": "university",
+      "start_time": 2.4,
+      "end_time": 3.04
+    },
+    {
+      "text": "data",
+      "start_time": 3.04,
+      "end_time": 3.36
+    },
+    {
+      "text": "set",
+      "start_time": 3.36,
+      "end_time": 3.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_315.wav",
+  "text": "CAs got a better Rouge score than CAs, suggesting that combining a classifier and a generator is effective in training the classifier using pseudo labels.",
+  "audio_duration_s": 11.756,
+  "words": [
+    {
+      "text": "CAs",
+      "start_time": 0.24,
+      "end_time": 0.8
+    },
+    {
+      "text": "got",
+      "start_time": 0.8,
+      "end_time": 1.12
+    },
+    {
+      "text": "a",
+      "start_time": 1.12,
+      "end_time": 1.28
+    },
+    {
+      "text": "better",
+      "start_time": 1.28,
+      "end_time": 1.84
+    },
+    {
+      "text": "Rouge",
+      "start_time": 1.84,
+      "end_time": 2.16
+    },
+    {
+      "text": "score",
+      "start_time": 2.16,
+      "end_time": 2.72
+    },
+    {
+      "text": "than",
+      "start_time": 2.72,
+      "end_time": 3.04
+    },
+    {
+      "text": "CAs",
+      "start_time": 3.36,
+      "end_time": 3.76
+    },
+    {
+      "text": "suggesting",
+      "start_time": 4.32,
+      "end_time": 4.88
+    },
+    {
+      "text": "that",
+      "start_time": 4.88,
+      "end_time": 5.2
+    },
+    {
+      "text": "combining",
+      "start_time": 5.28,
+      "end_time": 5.92
+    },
+    {
+      "text": "a",
+      "start_time": 5.92,
+      "end_time": 6.08
+    },
+    {
+      "text": "classifier",
+      "start_time": 6.08,
+      "end_time": 6.8
+    },
+    {
+      "text": "and",
+      "start_time": 6.8,
+      "end_time": 7.04
+    },
+    {
+      "text": "a",
+      "start_time": 7.04,
+      "end_time": 7.2
+    },
+    {
+      "text": "generator",
+      "start_time": 7.2,
+      "end_time": 7.84
+    },
+    {
+      "text": "is",
+      "start_time": 8.16,
+      "end_time": 8.32
+    },
+    {
+      "text": "effective",
+      "start_time": 8.32,
+      "end_time": 8.96
+    },
+    {
+      "text": "in",
+      "start_time": 8.96,
+      "end_time": 8.96
+    },
+    {
+      "text": "training",
+      "start_time": 9.2,
+      "end_time": 9.68
+    },
+    {
+      "text": "the",
+      "start_time": 9.68,
+      "end_time": 9.76
+    },
+    {
+      "text": "classifier",
+      "start_time": 9.76,
+      "end_time": 10.24
+    },
+    {
+      "text": "using",
+      "start_time": 10.24,
+      "end_time": 10.88
+    },
+    {
+      "text": "pseudo",
+      "start_time": 10.88,
+      "end_time": 11.28
+    },
+    {
+      "text": "labels",
+      "start_time": 11.28,
+      "end_time": 11.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

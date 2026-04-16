@@ -1,0 +1,111 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_178.wav",
+  "text": "Might not have a detailed answer within statutory law that quantifies a specific noise threshold at which eviction is allowed.",
+  "audio_duration_s": 7.832,
+  "words": [
+    {
+      "text": "Might",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "not",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "have",
+      "start_time": 0.48,
+      "end_time": 0.64
+    },
+    {
+      "text": "a",
+      "start_time": 0.64,
+      "end_time": 0.72
+    },
+    {
+      "text": "detailed",
+      "start_time": 0.72,
+      "end_time": 1.28
+    },
+    {
+      "text": "answer",
+      "start_time": 1.28,
+      "end_time": 1.76
+    },
+    {
+      "text": "within",
+      "start_time": 1.76,
+      "end_time": 2.0
+    },
+    {
+      "text": "statutory",
+      "start_time": 2.0,
+      "end_time": 2.64
+    },
+    {
+      "text": "law",
+      "start_time": 2.64,
+      "end_time": 3.12
+    },
+    {
+      "text": "that",
+      "start_time": 3.44,
+      "end_time": 3.68
+    },
+    {
+      "text": "quantifies",
+      "start_time": 3.68,
+      "end_time": 4.4
+    },
+    {
+      "text": "a",
+      "start_time": 4.4,
+      "end_time": 4.48
+    },
+    {
+      "text": "specific",
+      "start_time": 4.48,
+      "end_time": 5.2
+    },
+    {
+      "text": "noise",
+      "start_time": 5.2,
+      "end_time": 5.6
+    },
+    {
+      "text": "threshold",
+      "start_time": 5.6,
+      "end_time": 6.32
+    },
+    {
+      "text": "at",
+      "start_time": 6.32,
+      "end_time": 6.48
+    },
+    {
+      "text": "which",
+      "start_time": 6.48,
+      "end_time": 6.72
+    },
+    {
+      "text": "eviction",
+      "start_time": 6.72,
+      "end_time": 7.2
+    },
+    {
+      "text": "is",
+      "start_time": 7.2,
+      "end_time": 7.28
+    },
+    {
+      "text": "allowed",
+      "start_time": 7.28,
+      "end_time": 7.76
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

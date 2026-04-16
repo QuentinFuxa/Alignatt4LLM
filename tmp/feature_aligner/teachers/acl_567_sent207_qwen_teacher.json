@@ -1,0 +1,66 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_207.wav",
+  "text": "First, we make use of strong language models to propose foils.",
+  "audio_duration_s": 4.463,
+  "words": [
+    {
+      "text": "First",
+      "start_time": 0.0,
+      "end_time": 0.72
+    },
+    {
+      "text": "we",
+      "start_time": 0.72,
+      "end_time": 0.96
+    },
+    {
+      "text": "make",
+      "start_time": 0.96,
+      "end_time": 1.28
+    },
+    {
+      "text": "use",
+      "start_time": 1.28,
+      "end_time": 1.52
+    },
+    {
+      "text": "of",
+      "start_time": 1.52,
+      "end_time": 1.68
+    },
+    {
+      "text": "strong",
+      "start_time": 1.68,
+      "end_time": 2.24
+    },
+    {
+      "text": "language",
+      "start_time": 2.24,
+      "end_time": 2.64
+    },
+    {
+      "text": "models",
+      "start_time": 2.64,
+      "end_time": 3.04
+    },
+    {
+      "text": "to",
+      "start_time": 3.12,
+      "end_time": 3.2
+    },
+    {
+      "text": "propose",
+      "start_time": 3.2,
+      "end_time": 3.76
+    },
+    {
+      "text": "foils",
+      "start_time": 3.76,
+      "end_time": 4.4
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

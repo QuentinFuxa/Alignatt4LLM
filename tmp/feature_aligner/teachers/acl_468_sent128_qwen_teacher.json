@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_128.wav",
+  "text": "Then we gathered legal questions with references to relevant statutes.",
+  "audio_duration_s": 4.872,
+  "words": [
+    {
+      "text": "Then",
+      "start_time": 0.08,
+      "end_time": 0.56
+    },
+    {
+      "text": "we",
+      "start_time": 0.8,
+      "end_time": 0.96
+    },
+    {
+      "text": "gathered",
+      "start_time": 0.96,
+      "end_time": 1.44
+    },
+    {
+      "text": "legal",
+      "start_time": 1.44,
+      "end_time": 1.84
+    },
+    {
+      "text": "questions",
+      "start_time": 1.84,
+      "end_time": 2.56
+    },
+    {
+      "text": "with",
+      "start_time": 2.56,
+      "end_time": 2.8
+    },
+    {
+      "text": "references",
+      "start_time": 2.8,
+      "end_time": 3.52
+    },
+    {
+      "text": "to",
+      "start_time": 3.6,
+      "end_time": 3.68
+    },
+    {
+      "text": "relevant",
+      "start_time": 3.68,
+      "end_time": 4.08
+    },
+    {
+      "text": "statutes",
+      "start_time": 4.08,
+      "end_time": 4.8
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

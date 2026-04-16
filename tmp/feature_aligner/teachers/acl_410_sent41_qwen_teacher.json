@@ -1,0 +1,106 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_41.wav",
+  "text": "So this slice actually visualizes the evolution of the states, where we keep adding expression to the current states.",
+  "audio_duration_s": 7.44,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.08,
+      "end_time": 0.4
+    },
+    {
+      "text": "this",
+      "start_time": 0.4,
+      "end_time": 0.72
+    },
+    {
+      "text": "slice",
+      "start_time": 0.72,
+      "end_time": 1.04
+    },
+    {
+      "text": "actually",
+      "start_time": 1.04,
+      "end_time": 1.68
+    },
+    {
+      "text": "visualizes",
+      "start_time": 1.84,
+      "end_time": 2.32
+    },
+    {
+      "text": "the",
+      "start_time": 2.32,
+      "end_time": 2.56
+    },
+    {
+      "text": "evolution",
+      "start_time": 2.56,
+      "end_time": 3.12
+    },
+    {
+      "text": "of",
+      "start_time": 3.12,
+      "end_time": 3.28
+    },
+    {
+      "text": "the",
+      "start_time": 3.36,
+      "end_time": 3.52
+    },
+    {
+      "text": "states",
+      "start_time": 3.6,
+      "end_time": 4.08
+    },
+    {
+      "text": "where",
+      "start_time": 4.48,
+      "end_time": 4.8
+    },
+    {
+      "text": "we",
+      "start_time": 4.8,
+      "end_time": 4.96
+    },
+    {
+      "text": "keep",
+      "start_time": 4.96,
+      "end_time": 5.2
+    },
+    {
+      "text": "adding",
+      "start_time": 5.2,
+      "end_time": 5.6
+    },
+    {
+      "text": "expression",
+      "start_time": 5.92,
+      "end_time": 6.48
+    },
+    {
+      "text": "to",
+      "start_time": 6.48,
+      "end_time": 6.56
+    },
+    {
+      "text": "the",
+      "start_time": 6.56,
+      "end_time": 6.64
+    },
+    {
+      "text": "current",
+      "start_time": 6.64,
+      "end_time": 6.96
+    },
+    {
+      "text": "states",
+      "start_time": 6.96,
+      "end_time": 7.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

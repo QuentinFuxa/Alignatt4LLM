@@ -1,0 +1,91 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_182.wav",
+  "text": "We hope that all work sparks interest in developing practical and reliable statutory article retrieval models.",
+  "audio_duration_s": 7.429,
+  "words": [
+    {
+      "text": "We",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "hope",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "that",
+      "start_time": 0.56,
+      "end_time": 0.8
+    },
+    {
+      "text": "all",
+      "start_time": 0.88,
+      "end_time": 1.2
+    },
+    {
+      "text": "work",
+      "start_time": 1.2,
+      "end_time": 1.44
+    },
+    {
+      "text": "sparks",
+      "start_time": 1.44,
+      "end_time": 1.92
+    },
+    {
+      "text": "interest",
+      "start_time": 2.08,
+      "end_time": 2.56
+    },
+    {
+      "text": "in",
+      "start_time": 2.56,
+      "end_time": 2.72
+    },
+    {
+      "text": "developing",
+      "start_time": 2.72,
+      "end_time": 3.28
+    },
+    {
+      "text": "practical",
+      "start_time": 3.28,
+      "end_time": 4.08
+    },
+    {
+      "text": "and",
+      "start_time": 4.08,
+      "end_time": 4.4
+    },
+    {
+      "text": "reliable",
+      "start_time": 4.4,
+      "end_time": 5.2
+    },
+    {
+      "text": "statutory",
+      "start_time": 5.2,
+      "end_time": 5.76
+    },
+    {
+      "text": "article",
+      "start_time": 5.76,
+      "end_time": 6.24
+    },
+    {
+      "text": "retrieval",
+      "start_time": 6.24,
+      "end_time": 6.72
+    },
+    {
+      "text": "models",
+      "start_time": 6.72,
+      "end_time": 7.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

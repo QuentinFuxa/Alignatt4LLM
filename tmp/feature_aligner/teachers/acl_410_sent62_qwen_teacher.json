@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_62.wav",
+  "text": "So our best performing variant is, uh, Roberta deductive reasoner.",
+  "audio_duration_s": 3.766,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "our",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "best",
+      "start_time": 0.48,
+      "end_time": 0.8
+    },
+    {
+      "text": "performing",
+      "start_time": 0.8,
+      "end_time": 1.28
+    },
+    {
+      "text": "variant",
+      "start_time": 1.28,
+      "end_time": 1.76
+    },
+    {
+      "text": "is",
+      "start_time": 1.76,
+      "end_time": 1.76
+    },
+    {
+      "text": "uh",
+      "start_time": 2.0,
+      "end_time": 2.24
+    },
+    {
+      "text": "Roberta",
+      "start_time": 2.32,
+      "end_time": 2.8
+    },
+    {
+      "text": "deductive",
+      "start_time": 2.8,
+      "end_time": 3.28
+    },
+    {
+      "text": "reasoner",
+      "start_time": 3.28,
+      "end_time": 3.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_277.wav",
+  "text": "For example, the improvements level includes improvements, enhancements, optimizations, and so on.",
+  "audio_duration_s": 6.711,
+  "words": [
+    {
+      "text": "For",
+      "start_time": 0.24,
+      "end_time": 0.32
+    },
+    {
+      "text": "example",
+      "start_time": 0.32,
+      "end_time": 0.88
+    },
+    {
+      "text": "the",
+      "start_time": 1.28,
+      "end_time": 1.52
+    },
+    {
+      "text": "improvements",
+      "start_time": 1.52,
+      "end_time": 1.92
+    },
+    {
+      "text": "level",
+      "start_time": 1.92,
+      "end_time": 2.48
+    },
+    {
+      "text": "includes",
+      "start_time": 2.56,
+      "end_time": 3.04
+    },
+    {
+      "text": "improvements",
+      "start_time": 3.04,
+      "end_time": 3.84
+    },
+    {
+      "text": "enhancements",
+      "start_time": 3.92,
+      "end_time": 4.88
+    },
+    {
+      "text": "optimizations",
+      "start_time": 5.92,
+      "end_time": 5.92
+    },
+    {
+      "text": "and",
+      "start_time": 5.92,
+      "end_time": 6.08
+    },
+    {
+      "text": "so",
+      "start_time": 6.08,
+      "end_time": 6.56
+    },
+    {
+      "text": "on",
+      "start_time": 6.56,
+      "end_time": 6.64
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

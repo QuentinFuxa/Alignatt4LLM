@@ -1,0 +1,126 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_218.wav",
+  "text": "Since it is a zero-shot testing benchmark only, it is designed to leverage the existing capabilities of vision and language models after pre-training.",
+  "audio_duration_s": 11.184,
+  "words": [
+    {
+      "text": "Since",
+      "start_time": 0.08,
+      "end_time": 0.56
+    },
+    {
+      "text": "it",
+      "start_time": 0.56,
+      "end_time": 0.72
+    },
+    {
+      "text": "is",
+      "start_time": 0.72,
+      "end_time": 0.88
+    },
+    {
+      "text": "a",
+      "start_time": 0.88,
+      "end_time": 1.12
+    },
+    {
+      "text": "zeroshot",
+      "start_time": 1.12,
+      "end_time": 2.24
+    },
+    {
+      "text": "testing",
+      "start_time": 2.24,
+      "end_time": 2.72
+    },
+    {
+      "text": "benchmark",
+      "start_time": 2.72,
+      "end_time": 3.36
+    },
+    {
+      "text": "only",
+      "start_time": 3.36,
+      "end_time": 3.84
+    },
+    {
+      "text": "it",
+      "start_time": 4.32,
+      "end_time": 4.48
+    },
+    {
+      "text": "is",
+      "start_time": 4.48,
+      "end_time": 4.72
+    },
+    {
+      "text": "designed",
+      "start_time": 4.72,
+      "end_time": 5.28
+    },
+    {
+      "text": "to",
+      "start_time": 5.28,
+      "end_time": 5.36
+    },
+    {
+      "text": "leverage",
+      "start_time": 5.36,
+      "end_time": 5.84
+    },
+    {
+      "text": "the",
+      "start_time": 5.84,
+      "end_time": 6.08
+    },
+    {
+      "text": "existing",
+      "start_time": 6.24,
+      "end_time": 7.04
+    },
+    {
+      "text": "capabilities",
+      "start_time": 7.12,
+      "end_time": 8.0
+    },
+    {
+      "text": "of",
+      "start_time": 8.0,
+      "end_time": 8.16
+    },
+    {
+      "text": "vision",
+      "start_time": 8.24,
+      "end_time": 8.48
+    },
+    {
+      "text": "and",
+      "start_time": 8.48,
+      "end_time": 8.64
+    },
+    {
+      "text": "language",
+      "start_time": 8.64,
+      "end_time": 9.04
+    },
+    {
+      "text": "models",
+      "start_time": 9.04,
+      "end_time": 9.44
+    },
+    {
+      "text": "after",
+      "start_time": 9.6,
+      "end_time": 10.24
+    },
+    {
+      "text": "pretraining",
+      "start_time": 10.24,
+      "end_time": 11.12
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

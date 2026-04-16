@@ -1,0 +1,126 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_191.wav",
+  "text": "What is it that a vision and language transformer understood when assigning a high score for this image and this sentence to match?",
+  "audio_duration_s": 9.733,
+  "words": [
+    {
+      "text": "What",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "is",
+      "start_time": 0.48,
+      "end_time": 0.64
+    },
+    {
+      "text": "it",
+      "start_time": 0.64,
+      "end_time": 1.04
+    },
+    {
+      "text": "that",
+      "start_time": 1.04,
+      "end_time": 1.28
+    },
+    {
+      "text": "a",
+      "start_time": 1.36,
+      "end_time": 1.44
+    },
+    {
+      "text": "vision",
+      "start_time": 1.44,
+      "end_time": 1.76
+    },
+    {
+      "text": "and",
+      "start_time": 1.76,
+      "end_time": 1.92
+    },
+    {
+      "text": "language",
+      "start_time": 1.92,
+      "end_time": 2.32
+    },
+    {
+      "text": "transformer",
+      "start_time": 2.32,
+      "end_time": 3.12
+    },
+    {
+      "text": "understood",
+      "start_time": 3.12,
+      "end_time": 4.08
+    },
+    {
+      "text": "when",
+      "start_time": 4.32,
+      "end_time": 4.56
+    },
+    {
+      "text": "assigning",
+      "start_time": 4.56,
+      "end_time": 5.44
+    },
+    {
+      "text": "a",
+      "start_time": 5.44,
+      "end_time": 5.6
+    },
+    {
+      "text": "high",
+      "start_time": 5.6,
+      "end_time": 6.08
+    },
+    {
+      "text": "score",
+      "start_time": 6.08,
+      "end_time": 6.64
+    },
+    {
+      "text": "for",
+      "start_time": 6.64,
+      "end_time": 6.8
+    },
+    {
+      "text": "this",
+      "start_time": 6.8,
+      "end_time": 7.04
+    },
+    {
+      "text": "image",
+      "start_time": 7.04,
+      "end_time": 7.44
+    },
+    {
+      "text": "and",
+      "start_time": 7.52,
+      "end_time": 7.84
+    },
+    {
+      "text": "this",
+      "start_time": 7.84,
+      "end_time": 8.24
+    },
+    {
+      "text": "sentence",
+      "start_time": 8.24,
+      "end_time": 8.88
+    },
+    {
+      "text": "to",
+      "start_time": 8.96,
+      "end_time": 9.04
+    },
+    {
+      "text": "match",
+      "start_time": 9.04,
+      "end_time": 9.6
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

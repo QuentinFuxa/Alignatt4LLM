@@ -1,0 +1,86 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_289.wav",
+  "text": "Due to the large number of unique class and method names found in the repository.",
+  "audio_duration_s": 4.65,
+  "words": [
+    {
+      "text": "Due",
+      "start_time": 0.0,
+      "end_time": 0.16
+    },
+    {
+      "text": "to",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "the",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "large",
+      "start_time": 0.48,
+      "end_time": 0.72
+    },
+    {
+      "text": "number",
+      "start_time": 0.8,
+      "end_time": 1.04
+    },
+    {
+      "text": "of",
+      "start_time": 1.04,
+      "end_time": 1.28
+    },
+    {
+      "text": "unique",
+      "start_time": 1.28,
+      "end_time": 1.6
+    },
+    {
+      "text": "class",
+      "start_time": 1.76,
+      "end_time": 2.16
+    },
+    {
+      "text": "and",
+      "start_time": 2.24,
+      "end_time": 2.56
+    },
+    {
+      "text": "method",
+      "start_time": 2.56,
+      "end_time": 2.88
+    },
+    {
+      "text": "names",
+      "start_time": 2.88,
+      "end_time": 3.28
+    },
+    {
+      "text": "found",
+      "start_time": 3.36,
+      "end_time": 3.6
+    },
+    {
+      "text": "in",
+      "start_time": 3.6,
+      "end_time": 3.76
+    },
+    {
+      "text": "the",
+      "start_time": 3.84,
+      "end_time": 3.92
+    },
+    {
+      "text": "repository",
+      "start_time": 3.92,
+      "end_time": 4.4
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

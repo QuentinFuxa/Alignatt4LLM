@@ -1,0 +1,96 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_247.wav",
+  "text": "These notes play an important role in open source development, but they are time-consuming to prepare manually.",
+  "audio_duration_s": 9.803,
+  "words": [
+    {
+      "text": "These",
+      "start_time": 0.0,
+      "end_time": 0.32
+    },
+    {
+      "text": "notes",
+      "start_time": 0.48,
+      "end_time": 2.64
+    },
+    {
+      "text": "play",
+      "start_time": 2.72,
+      "end_time": 3.12
+    },
+    {
+      "text": "an",
+      "start_time": 3.2,
+      "end_time": 3.36
+    },
+    {
+      "text": "important",
+      "start_time": 3.36,
+      "end_time": 3.92
+    },
+    {
+      "text": "role",
+      "start_time": 3.92,
+      "end_time": 4.32
+    },
+    {
+      "text": "in",
+      "start_time": 4.96,
+      "end_time": 5.12
+    },
+    {
+      "text": "open",
+      "start_time": 5.12,
+      "end_time": 5.44
+    },
+    {
+      "text": "source",
+      "start_time": 5.44,
+      "end_time": 5.68
+    },
+    {
+      "text": "development",
+      "start_time": 5.68,
+      "end_time": 6.4
+    },
+    {
+      "text": "but",
+      "start_time": 6.96,
+      "end_time": 7.28
+    },
+    {
+      "text": "they",
+      "start_time": 7.28,
+      "end_time": 7.36
+    },
+    {
+      "text": "are",
+      "start_time": 7.36,
+      "end_time": 7.52
+    },
+    {
+      "text": "timeconsuming",
+      "start_time": 7.52,
+      "end_time": 8.64
+    },
+    {
+      "text": "to",
+      "start_time": 8.64,
+      "end_time": 8.8
+    },
+    {
+      "text": "prepare",
+      "start_time": 8.8,
+      "end_time": 9.12
+    },
+    {
+      "text": "manually",
+      "start_time": 9.12,
+      "end_time": 9.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_36.wav",
+  "text": "Where we perform operator from QI to QJ, and such expression is actually directed.",
+  "audio_duration_s": 6.054,
+  "words": [
+    {
+      "text": "Where",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "we",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "perform",
+      "start_time": 0.56,
+      "end_time": 0.96
+    },
+    {
+      "text": "operator",
+      "start_time": 0.96,
+      "end_time": 1.44
+    },
+    {
+      "text": "from",
+      "start_time": 1.44,
+      "end_time": 1.76
+    },
+    {
+      "text": "QI",
+      "start_time": 2.32,
+      "end_time": 3.04
+    },
+    {
+      "text": "to",
+      "start_time": 3.04,
+      "end_time": 3.12
+    },
+    {
+      "text": "QJ",
+      "start_time": 3.12,
+      "end_time": 3.6
+    },
+    {
+      "text": "and",
+      "start_time": 3.92,
+      "end_time": 4.0
+    },
+    {
+      "text": "such",
+      "start_time": 4.0,
+      "end_time": 4.32
+    },
+    {
+      "text": "expression",
+      "start_time": 4.32,
+      "end_time": 4.8
+    },
+    {
+      "text": "is",
+      "start_time": 4.8,
+      "end_time": 5.04
+    },
+    {
+      "text": "actually",
+      "start_time": 5.04,
+      "end_time": 5.36
+    },
+    {
+      "text": "directed",
+      "start_time": 5.36,
+      "end_time": 5.92
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

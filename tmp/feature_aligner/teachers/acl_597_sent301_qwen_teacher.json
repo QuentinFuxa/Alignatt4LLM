@@ -1,0 +1,146 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_301.wav",
+  "text": "The second method, method which we call CS March, consists of four different two sec networks, each of which corresponds to one of the least node classes.",
+  "audio_duration_s": 13.443,
+  "words": [
+    {
+      "text": "The",
+      "start_time": 0.24,
+      "end_time": 0.32
+    },
+    {
+      "text": "second",
+      "start_time": 0.32,
+      "end_time": 0.72
+    },
+    {
+      "text": "method",
+      "start_time": 0.72,
+      "end_time": 1.2
+    },
+    {
+      "text": "method",
+      "start_time": 2.16,
+      "end_time": 2.56
+    },
+    {
+      "text": "which",
+      "start_time": 2.56,
+      "end_time": 2.8
+    },
+    {
+      "text": "we",
+      "start_time": 2.8,
+      "end_time": 3.2
+    },
+    {
+      "text": "call",
+      "start_time": 3.52,
+      "end_time": 3.84
+    },
+    {
+      "text": "CS",
+      "start_time": 4.24,
+      "end_time": 4.8
+    },
+    {
+      "text": "March",
+      "start_time": 4.8,
+      "end_time": 5.2
+    },
+    {
+      "text": "consists",
+      "start_time": 5.68,
+      "end_time": 6.24
+    },
+    {
+      "text": "of",
+      "start_time": 6.24,
+      "end_time": 6.56
+    },
+    {
+      "text": "four",
+      "start_time": 6.72,
+      "end_time": 7.04
+    },
+    {
+      "text": "different",
+      "start_time": 7.04,
+      "end_time": 7.6
+    },
+    {
+      "text": "two",
+      "start_time": 7.92,
+      "end_time": 8.16
+    },
+    {
+      "text": "sec",
+      "start_time": 8.16,
+      "end_time": 8.56
+    },
+    {
+      "text": "networks",
+      "start_time": 8.8,
+      "end_time": 9.52
+    },
+    {
+      "text": "each",
+      "start_time": 10.0,
+      "end_time": 10.24
+    },
+    {
+      "text": "of",
+      "start_time": 10.24,
+      "end_time": 10.48
+    },
+    {
+      "text": "which",
+      "start_time": 10.56,
+      "end_time": 10.96
+    },
+    {
+      "text": "corresponds",
+      "start_time": 11.04,
+      "end_time": 11.6
+    },
+    {
+      "text": "to",
+      "start_time": 11.6,
+      "end_time": 11.68
+    },
+    {
+      "text": "one",
+      "start_time": 11.68,
+      "end_time": 12.08
+    },
+    {
+      "text": "of",
+      "start_time": 12.08,
+      "end_time": 12.16
+    },
+    {
+      "text": "the",
+      "start_time": 12.16,
+      "end_time": 12.24
+    },
+    {
+      "text": "least",
+      "start_time": 12.24,
+      "end_time": 12.56
+    },
+    {
+      "text": "node",
+      "start_time": 12.56,
+      "end_time": 12.8
+    },
+    {
+      "text": "classes",
+      "start_time": 12.8,
+      "end_time": 13.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

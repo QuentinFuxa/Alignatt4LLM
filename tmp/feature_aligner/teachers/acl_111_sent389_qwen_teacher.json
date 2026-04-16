@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_389.wav",
+  "text": "And this is the algorithm for our reformulated fine-tuning approach.",
+  "audio_duration_s": 6.112,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "this",
+      "start_time": 0.32,
+      "end_time": 0.64
+    },
+    {
+      "text": "is",
+      "start_time": 0.64,
+      "end_time": 0.8
+    },
+    {
+      "text": "the",
+      "start_time": 0.8,
+      "end_time": 1.2
+    },
+    {
+      "text": "algorithm",
+      "start_time": 1.76,
+      "end_time": 2.56
+    },
+    {
+      "text": "for",
+      "start_time": 2.64,
+      "end_time": 2.8
+    },
+    {
+      "text": "our",
+      "start_time": 2.8,
+      "end_time": 3.28
+    },
+    {
+      "text": "reformulated",
+      "start_time": 3.44,
+      "end_time": 5.04
+    },
+    {
+      "text": "finetuning",
+      "start_time": 5.04,
+      "end_time": 5.6
+    },
+    {
+      "text": "approach",
+      "start_time": 5.6,
+      "end_time": 5.6
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

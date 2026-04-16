@@ -1,0 +1,191 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_283.wav",
+  "text": "Follows the previous duties value 2.5 to 18, and gets it deep. This is a bit tedious, and it is not enough to just get a list of duties and look at the before and after.",
+  "audio_duration_s": 13.849,
+  "words": [
+    {
+      "text": "Follows",
+      "start_time": 0.0,
+      "end_time": 0.0
+    },
+    {
+      "text": "the",
+      "start_time": 0.24,
+      "end_time": 0.4
+    },
+    {
+      "text": "previous",
+      "start_time": 0.4,
+      "end_time": 0.88
+    },
+    {
+      "text": "duties",
+      "start_time": 0.88,
+      "end_time": 1.36
+    },
+    {
+      "text": "value",
+      "start_time": 1.44,
+      "end_time": 1.76
+    },
+    {
+      "text": "25",
+      "start_time": 2.16,
+      "end_time": 2.56
+    },
+    {
+      "text": "to",
+      "start_time": 2.56,
+      "end_time": 2.72
+    },
+    {
+      "text": "18",
+      "start_time": 2.72,
+      "end_time": 4.0
+    },
+    {
+      "text": "and",
+      "start_time": 4.0,
+      "end_time": 4.24
+    },
+    {
+      "text": "gets",
+      "start_time": 4.32,
+      "end_time": 4.56
+    },
+    {
+      "text": "it",
+      "start_time": 4.56,
+      "end_time": 4.72
+    },
+    {
+      "text": "deep",
+      "start_time": 4.8,
+      "end_time": 4.96
+    },
+    {
+      "text": "This",
+      "start_time": 5.84,
+      "end_time": 6.0
+    },
+    {
+      "text": "is",
+      "start_time": 6.0,
+      "end_time": 6.16
+    },
+    {
+      "text": "a",
+      "start_time": 6.16,
+      "end_time": 6.24
+    },
+    {
+      "text": "bit",
+      "start_time": 6.24,
+      "end_time": 6.56
+    },
+    {
+      "text": "tedious",
+      "start_time": 7.12,
+      "end_time": 7.52
+    },
+    {
+      "text": "and",
+      "start_time": 7.6,
+      "end_time": 7.84
+    },
+    {
+      "text": "it",
+      "start_time": 7.84,
+      "end_time": 8.08
+    },
+    {
+      "text": "is",
+      "start_time": 8.08,
+      "end_time": 8.24
+    },
+    {
+      "text": "not",
+      "start_time": 8.24,
+      "end_time": 8.56
+    },
+    {
+      "text": "enough",
+      "start_time": 8.56,
+      "end_time": 8.96
+    },
+    {
+      "text": "to",
+      "start_time": 9.04,
+      "end_time": 9.2
+    },
+    {
+      "text": "just",
+      "start_time": 9.2,
+      "end_time": 9.52
+    },
+    {
+      "text": "get",
+      "start_time": 9.52,
+      "end_time": 9.68
+    },
+    {
+      "text": "a",
+      "start_time": 9.68,
+      "end_time": 9.76
+    },
+    {
+      "text": "list",
+      "start_time": 9.76,
+      "end_time": 10.08
+    },
+    {
+      "text": "of",
+      "start_time": 10.08,
+      "end_time": 10.32
+    },
+    {
+      "text": "duties",
+      "start_time": 10.32,
+      "end_time": 10.8
+    },
+    {
+      "text": "and",
+      "start_time": 11.44,
+      "end_time": 11.84
+    },
+    {
+      "text": "look",
+      "start_time": 12.08,
+      "end_time": 12.32
+    },
+    {
+      "text": "at",
+      "start_time": 12.32,
+      "end_time": 12.48
+    },
+    {
+      "text": "the",
+      "start_time": 12.48,
+      "end_time": 12.56
+    },
+    {
+      "text": "before",
+      "start_time": 12.56,
+      "end_time": 12.96
+    },
+    {
+      "text": "and",
+      "start_time": 13.04,
+      "end_time": 13.28
+    },
+    {
+      "text": "after",
+      "start_time": 13.28,
+      "end_time": 13.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_251.wav",
+  "text": "It takes a rule-based approach. For example, using the change extractor to extract code differences, library changes, or document changes from the differences between releases, and finally combining them.",
+  "audio_duration_s": 14.975,
+  "words": [
+    {
+      "text": "It",
+      "start_time": 0.0,
+      "end_time": 0.16
+    },
+    {
+      "text": "takes",
+      "start_time": 0.16,
+      "end_time": 0.48
+    },
+    {
+      "text": "a",
+      "start_time": 0.48,
+      "end_time": 0.56
+    },
+    {
+      "text": "rulebased",
+      "start_time": 0.56,
+      "end_time": 1.2
+    },
+    {
+      "text": "approach",
+      "start_time": 1.2,
+      "end_time": 1.84
+    },
+    {
+      "text": "For",
+      "start_time": 2.32,
+      "end_time": 2.48
+    },
+    {
+      "text": "example",
+      "start_time": 2.48,
+      "end_time": 2.96
+    },
+    {
+      "text": "using",
+      "start_time": 3.36,
+      "end_time": 3.68
+    },
+    {
+      "text": "the",
+      "start_time": 3.68,
+      "end_time": 3.84
+    },
+    {
+      "text": "change",
+      "start_time": 3.84,
+      "end_time": 4.32
+    },
+    {
+      "text": "extractor",
+      "start_time": 4.4,
+      "end_time": 4.4
+    },
+    {
+      "text": "to",
+      "start_time": 4.96,
+      "end_time": 5.12
+    },
+    {
+      "text": "extract",
+      "start_time": 5.52,
+      "end_time": 6.08
+    },
+    {
+      "text": "code",
+      "start_time": 6.16,
+      "end_time": 6.48
+    },
+    {
+      "text": "differences",
+      "start_time": 6.48,
+      "end_time": 7.2
+    },
+    {
+      "text": "library",
+      "start_time": 7.52,
+      "end_time": 8.08
+    },
+    {
+      "text": "changes",
+      "start_time": 8.08,
+      "end_time": 8.64
+    },
+    {
+      "text": "or",
+      "start_time": 8.72,
+      "end_time": 8.88
+    },
+    {
+      "text": "document",
+      "start_time": 8.88,
+      "end_time": 9.44
+    },
+    {
+      "text": "changes",
+      "start_time": 9.52,
+      "end_time": 10.08
+    },
+    {
+      "text": "from",
+      "start_time": 10.24,
+      "end_time": 10.4
+    },
+    {
+      "text": "the",
+      "start_time": 10.4,
+      "end_time": 10.56
+    },
+    {
+      "text": "differences",
+      "start_time": 10.56,
+      "end_time": 11.44
+    },
+    {
+      "text": "between",
+      "start_time": 11.44,
+      "end_time": 11.92
+    },
+    {
+      "text": "releases",
+      "start_time": 11.92,
+      "end_time": 12.64
+    },
+    {
+      "text": "and",
+      "start_time": 13.28,
+      "end_time": 13.44
+    },
+    {
+      "text": "finally",
+      "start_time": 13.44,
+      "end_time": 14.0
+    },
+    {
+      "text": "combining",
+      "start_time": 14.0,
+      "end_time": 14.56
+    },
+    {
+      "text": "them",
+      "start_time": 14.64,
+      "end_time": 14.88
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_5.wav",
+  "text": "This figure is taken from the Pound paper, where they perform prompting to solve the math problem problem in a few-shot learning scenario.",
+  "audio_duration_s": 7.838,
+  "words": [
+    {
+      "text": "This",
+      "start_time": 0.0,
+      "end_time": 0.16
+    },
+    {
+      "text": "figure",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "is",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "taken",
+      "start_time": 0.56,
+      "end_time": 0.88
+    },
+    {
+      "text": "from",
+      "start_time": 0.88,
+      "end_time": 1.2
+    },
+    {
+      "text": "the",
+      "start_time": 1.2,
+      "end_time": 1.36
+    },
+    {
+      "text": "Pound",
+      "start_time": 1.44,
+      "end_time": 1.76
+    },
+    {
+      "text": "paper",
+      "start_time": 1.76,
+      "end_time": 2.08
+    },
+    {
+      "text": "where",
+      "start_time": 2.48,
+      "end_time": 2.72
+    },
+    {
+      "text": "they",
+      "start_time": 2.72,
+      "end_time": 2.88
+    },
+    {
+      "text": "perform",
+      "start_time": 2.88,
+      "end_time": 3.36
+    },
+    {
+      "text": "prompting",
+      "start_time": 3.36,
+      "end_time": 3.84
+    },
+    {
+      "text": "to",
+      "start_time": 3.92,
+      "end_time": 4.0
+    },
+    {
+      "text": "solve",
+      "start_time": 4.0,
+      "end_time": 4.32
+    },
+    {
+      "text": "the",
+      "start_time": 4.4,
+      "end_time": 4.64
+    },
+    {
+      "text": "math",
+      "start_time": 4.64,
+      "end_time": 4.96
+    },
+    {
+      "text": "problem",
+      "start_time": 4.96,
+      "end_time": 5.52
+    },
+    {
+      "text": "problem",
+      "start_time": 5.84,
+      "end_time": 6.24
+    },
+    {
+      "text": "in",
+      "start_time": 6.24,
+      "end_time": 6.4
+    },
+    {
+      "text": "a",
+      "start_time": 6.4,
+      "end_time": 6.48
+    },
+    {
+      "text": "fewshot",
+      "start_time": 6.48,
+      "end_time": 6.88
+    },
+    {
+      "text": "learning",
+      "start_time": 6.88,
+      "end_time": 7.2
+    },
+    {
+      "text": "scenario",
+      "start_time": 7.2,
+      "end_time": 7.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

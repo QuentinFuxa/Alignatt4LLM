@@ -1,0 +1,86 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_176.wav",
+  "text": "Second, we should note that not all legal question can be answered with statutes alone.",
+  "audio_duration_s": 5.525,
+  "words": [
+    {
+      "text": "Second",
+      "start_time": 0.16,
+      "end_time": 0.64
+    },
+    {
+      "text": "we",
+      "start_time": 1.2,
+      "end_time": 1.36
+    },
+    {
+      "text": "should",
+      "start_time": 1.36,
+      "end_time": 1.6
+    },
+    {
+      "text": "note",
+      "start_time": 1.6,
+      "end_time": 1.84
+    },
+    {
+      "text": "that",
+      "start_time": 1.84,
+      "end_time": 2.08
+    },
+    {
+      "text": "not",
+      "start_time": 2.08,
+      "end_time": 2.32
+    },
+    {
+      "text": "all",
+      "start_time": 2.48,
+      "end_time": 2.72
+    },
+    {
+      "text": "legal",
+      "start_time": 2.72,
+      "end_time": 2.96
+    },
+    {
+      "text": "question",
+      "start_time": 2.96,
+      "end_time": 3.44
+    },
+    {
+      "text": "can",
+      "start_time": 3.44,
+      "end_time": 3.68
+    },
+    {
+      "text": "be",
+      "start_time": 3.68,
+      "end_time": 3.76
+    },
+    {
+      "text": "answered",
+      "start_time": 3.84,
+      "end_time": 4.32
+    },
+    {
+      "text": "with",
+      "start_time": 4.32,
+      "end_time": 4.4
+    },
+    {
+      "text": "statutes",
+      "start_time": 4.4,
+      "end_time": 4.96
+    },
+    {
+      "text": "alone",
+      "start_time": 4.96,
+      "end_time": 5.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

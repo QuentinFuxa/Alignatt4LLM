@@ -1,0 +1,221 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_23.wav",
+  "text": "So here, the good thing is that it actually gives us this binary tree structure, and it is um, but but but actually, it is quite counterintuitive because we generate the operator first, and then at the end we generate the quantities.",
+  "audio_duration_s": 15.3,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "here",
+      "start_time": 0.4,
+      "end_time": 0.64
+    },
+    {
+      "text": "the",
+      "start_time": 0.64,
+      "end_time": 0.8
+    },
+    {
+      "text": "good",
+      "start_time": 0.8,
+      "end_time": 1.04
+    },
+    {
+      "text": "thing",
+      "start_time": 1.2,
+      "end_time": 1.44
+    },
+    {
+      "text": "is",
+      "start_time": 1.44,
+      "end_time": 1.6
+    },
+    {
+      "text": "that",
+      "start_time": 1.6,
+      "end_time": 1.84
+    },
+    {
+      "text": "it",
+      "start_time": 2.08,
+      "end_time": 2.32
+    },
+    {
+      "text": "actually",
+      "start_time": 2.56,
+      "end_time": 2.8
+    },
+    {
+      "text": "gives",
+      "start_time": 2.8,
+      "end_time": 3.12
+    },
+    {
+      "text": "us",
+      "start_time": 3.12,
+      "end_time": 3.28
+    },
+    {
+      "text": "this",
+      "start_time": 3.28,
+      "end_time": 3.6
+    },
+    {
+      "text": "binary",
+      "start_time": 3.68,
+      "end_time": 4.16
+    },
+    {
+      "text": "tree",
+      "start_time": 4.16,
+      "end_time": 4.48
+    },
+    {
+      "text": "structure",
+      "start_time": 4.48,
+      "end_time": 4.96
+    },
+    {
+      "text": "and",
+      "start_time": 5.44,
+      "end_time": 5.6
+    },
+    {
+      "text": "it",
+      "start_time": 5.6,
+      "end_time": 5.76
+    },
+    {
+      "text": "is",
+      "start_time": 5.76,
+      "end_time": 6.08
+    },
+    {
+      "text": "um",
+      "start_time": 6.16,
+      "end_time": 6.56
+    },
+    {
+      "text": "but",
+      "start_time": 6.96,
+      "end_time": 7.12
+    },
+    {
+      "text": "but",
+      "start_time": 7.12,
+      "end_time": 7.36
+    },
+    {
+      "text": "but",
+      "start_time": 7.36,
+      "end_time": 7.44
+    },
+    {
+      "text": "actually",
+      "start_time": 7.44,
+      "end_time": 7.84
+    },
+    {
+      "text": "it",
+      "start_time": 7.84,
+      "end_time": 7.84
+    },
+    {
+      "text": "is",
+      "start_time": 7.84,
+      "end_time": 8.0
+    },
+    {
+      "text": "quite",
+      "start_time": 8.08,
+      "end_time": 8.4
+    },
+    {
+      "text": "counterintuitive",
+      "start_time": 8.4,
+      "end_time": 8.96
+    },
+    {
+      "text": "because",
+      "start_time": 9.2,
+      "end_time": 9.92
+    },
+    {
+      "text": "we",
+      "start_time": 10.48,
+      "end_time": 10.64
+    },
+    {
+      "text": "generate",
+      "start_time": 10.64,
+      "end_time": 11.2
+    },
+    {
+      "text": "the",
+      "start_time": 11.2,
+      "end_time": 11.2
+    },
+    {
+      "text": "operator",
+      "start_time": 11.2,
+      "end_time": 11.76
+    },
+    {
+      "text": "first",
+      "start_time": 11.76,
+      "end_time": 12.24
+    },
+    {
+      "text": "and",
+      "start_time": 12.32,
+      "end_time": 12.72
+    },
+    {
+      "text": "then",
+      "start_time": 12.72,
+      "end_time": 12.88
+    },
+    {
+      "text": "at",
+      "start_time": 12.88,
+      "end_time": 13.04
+    },
+    {
+      "text": "the",
+      "start_time": 13.04,
+      "end_time": 13.12
+    },
+    {
+      "text": "end",
+      "start_time": 13.12,
+      "end_time": 13.28
+    },
+    {
+      "text": "we",
+      "start_time": 13.28,
+      "end_time": 13.36
+    },
+    {
+      "text": "generate",
+      "start_time": 13.36,
+      "end_time": 13.76
+    },
+    {
+      "text": "the",
+      "start_time": 13.76,
+      "end_time": 13.92
+    },
+    {
+      "text": "quantities",
+      "start_time": 14.64,
+      "end_time": 15.28
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

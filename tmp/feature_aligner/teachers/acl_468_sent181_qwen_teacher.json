@@ -1,0 +1,141 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_181.wav",
+  "text": "Hence, some questions are better suited than others to the statutory article retrieval task, and the domain of the less suitable ones remains to be determined.",
+  "audio_duration_s": 9.178,
+  "words": [
+    {
+      "text": "Hence",
+      "start_time": 0.16,
+      "end_time": 0.48
+    },
+    {
+      "text": "some",
+      "start_time": 0.8,
+      "end_time": 1.04
+    },
+    {
+      "text": "questions",
+      "start_time": 1.04,
+      "end_time": 1.52
+    },
+    {
+      "text": "are",
+      "start_time": 1.52,
+      "end_time": 1.76
+    },
+    {
+      "text": "better",
+      "start_time": 1.76,
+      "end_time": 2.08
+    },
+    {
+      "text": "suited",
+      "start_time": 2.08,
+      "end_time": 2.56
+    },
+    {
+      "text": "than",
+      "start_time": 2.56,
+      "end_time": 2.8
+    },
+    {
+      "text": "others",
+      "start_time": 2.8,
+      "end_time": 3.2
+    },
+    {
+      "text": "to",
+      "start_time": 3.2,
+      "end_time": 3.36
+    },
+    {
+      "text": "the",
+      "start_time": 3.36,
+      "end_time": 3.44
+    },
+    {
+      "text": "statutory",
+      "start_time": 3.44,
+      "end_time": 3.92
+    },
+    {
+      "text": "article",
+      "start_time": 3.92,
+      "end_time": 4.48
+    },
+    {
+      "text": "retrieval",
+      "start_time": 4.48,
+      "end_time": 4.8
+    },
+    {
+      "text": "task",
+      "start_time": 4.8,
+      "end_time": 5.28
+    },
+    {
+      "text": "and",
+      "start_time": 5.6,
+      "end_time": 5.76
+    },
+    {
+      "text": "the",
+      "start_time": 5.76,
+      "end_time": 5.84
+    },
+    {
+      "text": "domain",
+      "start_time": 5.84,
+      "end_time": 6.24
+    },
+    {
+      "text": "of",
+      "start_time": 6.24,
+      "end_time": 6.4
+    },
+    {
+      "text": "the",
+      "start_time": 6.4,
+      "end_time": 6.48
+    },
+    {
+      "text": "less",
+      "start_time": 6.48,
+      "end_time": 6.72
+    },
+    {
+      "text": "suitable",
+      "start_time": 6.72,
+      "end_time": 7.2
+    },
+    {
+      "text": "ones",
+      "start_time": 7.2,
+      "end_time": 7.52
+    },
+    {
+      "text": "remains",
+      "start_time": 7.52,
+      "end_time": 8.16
+    },
+    {
+      "text": "to",
+      "start_time": 8.24,
+      "end_time": 8.24
+    },
+    {
+      "text": "be",
+      "start_time": 8.32,
+      "end_time": 8.48
+    },
+    {
+      "text": "determined",
+      "start_time": 8.48,
+      "end_time": 9.04
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

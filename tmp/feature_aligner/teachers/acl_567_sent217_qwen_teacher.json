@@ -1,0 +1,76 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_217.wav",
+  "text": "Note that Vals does not deliver any training data, but only test data.",
+  "audio_duration_s": 4.848,
+  "words": [
+    {
+      "text": "Note",
+      "start_time": 0.16,
+      "end_time": 0.4
+    },
+    {
+      "text": "that",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "Vals",
+      "start_time": 0.64,
+      "end_time": 0.88
+    },
+    {
+      "text": "does",
+      "start_time": 0.88,
+      "end_time": 1.12
+    },
+    {
+      "text": "not",
+      "start_time": 1.12,
+      "end_time": 1.28
+    },
+    {
+      "text": "deliver",
+      "start_time": 1.28,
+      "end_time": 1.6
+    },
+    {
+      "text": "any",
+      "start_time": 1.6,
+      "end_time": 1.84
+    },
+    {
+      "text": "training",
+      "start_time": 1.84,
+      "end_time": 2.24
+    },
+    {
+      "text": "data",
+      "start_time": 2.24,
+      "end_time": 2.56
+    },
+    {
+      "text": "but",
+      "start_time": 2.56,
+      "end_time": 2.8
+    },
+    {
+      "text": "only",
+      "start_time": 2.88,
+      "end_time": 3.44
+    },
+    {
+      "text": "test",
+      "start_time": 3.68,
+      "end_time": 4.08
+    },
+    {
+      "text": "data",
+      "start_time": 4.16,
+      "end_time": 4.72
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_131.wav",
+  "text": "We collected thousands of questions, annotated with categories, subcategories, and legal references to relevant statutes.",
+  "audio_duration_s": 7.776,
+  "words": [
+    {
+      "text": "We",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "collected",
+      "start_time": 0.32,
+      "end_time": 0.8
+    },
+    {
+      "text": "thousands",
+      "start_time": 0.88,
+      "end_time": 1.44
+    },
+    {
+      "text": "of",
+      "start_time": 1.44,
+      "end_time": 1.6
+    },
+    {
+      "text": "questions",
+      "start_time": 1.6,
+      "end_time": 2.16
+    },
+    {
+      "text": "annotated",
+      "start_time": 2.24,
+      "end_time": 2.8
+    },
+    {
+      "text": "with",
+      "start_time": 2.8,
+      "end_time": 3.04
+    },
+    {
+      "text": "categories",
+      "start_time": 3.04,
+      "end_time": 3.76
+    },
+    {
+      "text": "subcategories",
+      "start_time": 4.08,
+      "end_time": 5.04
+    },
+    {
+      "text": "and",
+      "start_time": 5.36,
+      "end_time": 5.6
+    },
+    {
+      "text": "legal",
+      "start_time": 5.6,
+      "end_time": 5.84
+    },
+    {
+      "text": "references",
+      "start_time": 5.84,
+      "end_time": 6.48
+    },
+    {
+      "text": "to",
+      "start_time": 6.56,
+      "end_time": 6.64
+    },
+    {
+      "text": "relevant",
+      "start_time": 6.64,
+      "end_time": 6.96
+    },
+    {
+      "text": "statutes",
+      "start_time": 6.96,
+      "end_time": 7.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

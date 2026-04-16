@@ -1,0 +1,71 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_411.wav",
+  "text": "For summing, fast enables few-shot enrichment from 35 samples in our experiment.",
+  "audio_duration_s": 7.452,
+  "words": [
+    {
+      "text": "For",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "summing",
+      "start_time": 0.32,
+      "end_time": 0.96
+    },
+    {
+      "text": "fast",
+      "start_time": 1.52,
+      "end_time": 1.84
+    },
+    {
+      "text": "enables",
+      "start_time": 1.84,
+      "end_time": 2.4
+    },
+    {
+      "text": "fewshot",
+      "start_time": 2.4,
+      "end_time": 2.96
+    },
+    {
+      "text": "enrichment",
+      "start_time": 3.2,
+      "end_time": 3.92
+    },
+    {
+      "text": "from",
+      "start_time": 4.96,
+      "end_time": 5.28
+    },
+    {
+      "text": "35",
+      "start_time": 5.28,
+      "end_time": 6.4
+    },
+    {
+      "text": "samples",
+      "start_time": 6.4,
+      "end_time": 6.4
+    },
+    {
+      "text": "in",
+      "start_time": 6.4,
+      "end_time": 6.48
+    },
+    {
+      "text": "our",
+      "start_time": 6.48,
+      "end_time": 6.72
+    },
+    {
+      "text": "experiment",
+      "start_time": 6.72,
+      "end_time": 7.28
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

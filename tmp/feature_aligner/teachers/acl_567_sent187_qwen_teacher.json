@@ -1,0 +1,126 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_187.wav",
+  "text": "Well, during the last years, we have seen an explosion of transformer-based vision and language models, pre-trained on large amounts of image-text pairs.",
+  "audio_duration_s": 11.552,
+  "words": [
+    {
+      "text": "Well",
+      "start_time": 0.16,
+      "end_time": 0.56
+    },
+    {
+      "text": "during",
+      "start_time": 0.64,
+      "end_time": 1.2
+    },
+    {
+      "text": "the",
+      "start_time": 1.2,
+      "end_time": 1.28
+    },
+    {
+      "text": "last",
+      "start_time": 1.28,
+      "end_time": 1.68
+    },
+    {
+      "text": "years",
+      "start_time": 1.76,
+      "end_time": 2.48
+    },
+    {
+      "text": "we",
+      "start_time": 2.48,
+      "end_time": 2.72
+    },
+    {
+      "text": "have",
+      "start_time": 2.72,
+      "end_time": 2.88
+    },
+    {
+      "text": "seen",
+      "start_time": 2.88,
+      "end_time": 3.28
+    },
+    {
+      "text": "an",
+      "start_time": 3.28,
+      "end_time": 3.52
+    },
+    {
+      "text": "explosion",
+      "start_time": 3.52,
+      "end_time": 4.64
+    },
+    {
+      "text": "of",
+      "start_time": 4.64,
+      "end_time": 4.88
+    },
+    {
+      "text": "transformerbased",
+      "start_time": 4.88,
+      "end_time": 6.08
+    },
+    {
+      "text": "vision",
+      "start_time": 6.08,
+      "end_time": 6.56
+    },
+    {
+      "text": "and",
+      "start_time": 6.56,
+      "end_time": 6.72
+    },
+    {
+      "text": "language",
+      "start_time": 6.72,
+      "end_time": 7.2
+    },
+    {
+      "text": "models",
+      "start_time": 7.2,
+      "end_time": 7.68
+    },
+    {
+      "text": "pretrained",
+      "start_time": 8.08,
+      "end_time": 8.8
+    },
+    {
+      "text": "on",
+      "start_time": 8.8,
+      "end_time": 9.12
+    },
+    {
+      "text": "large",
+      "start_time": 9.12,
+      "end_time": 9.44
+    },
+    {
+      "text": "amounts",
+      "start_time": 9.44,
+      "end_time": 9.84
+    },
+    {
+      "text": "of",
+      "start_time": 9.84,
+      "end_time": 10.0
+    },
+    {
+      "text": "imagetext",
+      "start_time": 10.0,
+      "end_time": 11.52
+    },
+    {
+      "text": "pairs",
+      "start_time": 11.52,
+      "end_time": 11.52
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

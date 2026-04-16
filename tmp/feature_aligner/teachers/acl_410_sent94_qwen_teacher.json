@@ -1,0 +1,56 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_94.wav",
+  "text": "And we are able to provide interpretable solving procedure.",
+  "audio_duration_s": 4.795,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "we",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "are",
+      "start_time": 0.48,
+      "end_time": 0.56
+    },
+    {
+      "text": "able",
+      "start_time": 0.56,
+      "end_time": 0.8
+    },
+    {
+      "text": "to",
+      "start_time": 0.96,
+      "end_time": 1.2
+    },
+    {
+      "text": "provide",
+      "start_time": 1.68,
+      "end_time": 2.08
+    },
+    {
+      "text": "interpretable",
+      "start_time": 2.08,
+      "end_time": 2.72
+    },
+    {
+      "text": "solving",
+      "start_time": 3.52,
+      "end_time": 3.92
+    },
+    {
+      "text": "procedure",
+      "start_time": 4.16,
+      "end_time": 4.64
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

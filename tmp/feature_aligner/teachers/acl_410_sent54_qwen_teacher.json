@@ -1,0 +1,116 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_54.wav",
+  "text": "Times Q four, and we can also see the number of all the possible expression is different from the previous step.",
+  "audio_duration_s": 7.537,
+  "words": [
+    {
+      "text": "Times",
+      "start_time": 0.08,
+      "end_time": 0.32
+    },
+    {
+      "text": "Q",
+      "start_time": 0.4,
+      "end_time": 0.56
+    },
+    {
+      "text": "four",
+      "start_time": 0.56,
+      "end_time": 0.96
+    },
+    {
+      "text": "and",
+      "start_time": 1.84,
+      "end_time": 2.16
+    },
+    {
+      "text": "we",
+      "start_time": 2.4,
+      "end_time": 2.48
+    },
+    {
+      "text": "can",
+      "start_time": 2.48,
+      "end_time": 2.64
+    },
+    {
+      "text": "also",
+      "start_time": 2.64,
+      "end_time": 2.88
+    },
+    {
+      "text": "see",
+      "start_time": 2.88,
+      "end_time": 3.28
+    },
+    {
+      "text": "the",
+      "start_time": 3.28,
+      "end_time": 3.52
+    },
+    {
+      "text": "number",
+      "start_time": 3.52,
+      "end_time": 3.76
+    },
+    {
+      "text": "of",
+      "start_time": 3.76,
+      "end_time": 3.92
+    },
+    {
+      "text": "all",
+      "start_time": 4.0,
+      "end_time": 4.16
+    },
+    {
+      "text": "the",
+      "start_time": 4.16,
+      "end_time": 4.16
+    },
+    {
+      "text": "possible",
+      "start_time": 4.16,
+      "end_time": 4.64
+    },
+    {
+      "text": "expression",
+      "start_time": 4.64,
+      "end_time": 5.92
+    },
+    {
+      "text": "is",
+      "start_time": 5.92,
+      "end_time": 6.16
+    },
+    {
+      "text": "different",
+      "start_time": 6.16,
+      "end_time": 6.48
+    },
+    {
+      "text": "from",
+      "start_time": 6.56,
+      "end_time": 6.72
+    },
+    {
+      "text": "the",
+      "start_time": 6.72,
+      "end_time": 6.8
+    },
+    {
+      "text": "previous",
+      "start_time": 6.8,
+      "end_time": 7.2
+    },
+    {
+      "text": "step",
+      "start_time": 7.2,
+      "end_time": 7.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_219.wav",
+  "text": "Fine tuning would only enable models to exploit artifacts or statistical biases in the data.",
+  "audio_duration_s": 6.357,
+  "words": [
+    {
+      "text": "Fine",
+      "start_time": 0.16,
+      "end_time": 0.72
+    },
+    {
+      "text": "tuning",
+      "start_time": 0.72,
+      "end_time": 1.2
+    },
+    {
+      "text": "would",
+      "start_time": 1.2,
+      "end_time": 1.36
+    },
+    {
+      "text": "only",
+      "start_time": 1.36,
+      "end_time": 1.84
+    },
+    {
+      "text": "enable",
+      "start_time": 1.92,
+      "end_time": 2.24
+    },
+    {
+      "text": "models",
+      "start_time": 2.24,
+      "end_time": 2.72
+    },
+    {
+      "text": "to",
+      "start_time": 2.72,
+      "end_time": 2.8
+    },
+    {
+      "text": "exploit",
+      "start_time": 2.8,
+      "end_time": 3.44
+    },
+    {
+      "text": "artifacts",
+      "start_time": 3.52,
+      "end_time": 4.24
+    },
+    {
+      "text": "or",
+      "start_time": 4.24,
+      "end_time": 4.32
+    },
+    {
+      "text": "statistical",
+      "start_time": 4.32,
+      "end_time": 4.96
+    },
+    {
+      "text": "biases",
+      "start_time": 4.96,
+      "end_time": 5.52
+    },
+    {
+      "text": "in",
+      "start_time": 5.52,
+      "end_time": 5.6
+    },
+    {
+      "text": "the",
+      "start_time": 5.6,
+      "end_time": 5.76
+    },
+    {
+      "text": "data",
+      "start_time": 5.76,
+      "end_time": 6.24
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

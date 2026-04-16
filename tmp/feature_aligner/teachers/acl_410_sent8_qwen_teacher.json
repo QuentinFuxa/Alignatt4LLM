@@ -1,0 +1,66 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_8.wav",
+  "text": "So it is good to have interpretable multi-step reasoning as output.",
+  "audio_duration_s": 3.828,
+  "words": [
+    {
+      "text": "So",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "it",
+      "start_time": 0.32,
+      "end_time": 0.48
+    },
+    {
+      "text": "is",
+      "start_time": 0.48,
+      "end_time": 0.64
+    },
+    {
+      "text": "good",
+      "start_time": 0.64,
+      "end_time": 0.88
+    },
+    {
+      "text": "to",
+      "start_time": 0.96,
+      "end_time": 1.04
+    },
+    {
+      "text": "have",
+      "start_time": 1.04,
+      "end_time": 1.28
+    },
+    {
+      "text": "interpretable",
+      "start_time": 1.28,
+      "end_time": 1.84
+    },
+    {
+      "text": "multistep",
+      "start_time": 1.84,
+      "end_time": 2.48
+    },
+    {
+      "text": "reasoning",
+      "start_time": 2.64,
+      "end_time": 3.04
+    },
+    {
+      "text": "as",
+      "start_time": 3.04,
+      "end_time": 3.2
+    },
+    {
+      "text": "output",
+      "start_time": 3.28,
+      "end_time": 3.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

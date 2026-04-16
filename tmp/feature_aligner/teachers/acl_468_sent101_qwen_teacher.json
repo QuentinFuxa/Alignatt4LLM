@@ -1,0 +1,61 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_101.wav",
+  "text": "Hi, my name is Antoine, and I'm from Maastricht University.",
+  "audio_duration_s": 3.449,
+  "words": [
+    {
+      "text": "Hi",
+      "start_time": 0.16,
+      "end_time": 0.48
+    },
+    {
+      "text": "my",
+      "start_time": 1.04,
+      "end_time": 1.12
+    },
+    {
+      "text": "name",
+      "start_time": 1.12,
+      "end_time": 1.28
+    },
+    {
+      "text": "is",
+      "start_time": 1.28,
+      "end_time": 1.36
+    },
+    {
+      "text": "Antoine",
+      "start_time": 1.36,
+      "end_time": 1.76
+    },
+    {
+      "text": "and",
+      "start_time": 1.76,
+      "end_time": 1.84
+    },
+    {
+      "text": "I'm",
+      "start_time": 1.92,
+      "end_time": 2.0
+    },
+    {
+      "text": "from",
+      "start_time": 2.0,
+      "end_time": 2.24
+    },
+    {
+      "text": "Maastricht",
+      "start_time": 2.24,
+      "end_time": 2.72
+    },
+    {
+      "text": "University",
+      "start_time": 2.72,
+      "end_time": 3.36
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

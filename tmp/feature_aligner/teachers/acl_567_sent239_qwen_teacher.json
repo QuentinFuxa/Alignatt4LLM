@@ -1,0 +1,211 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_239.wav",
+  "text": "And even more, vals could be used as an indirect assessment of datasets, as models could be evaluated before and after training or fine-tuning to see whether a dataset helps models improve on any of the aspects tested by vals.",
+  "audio_duration_s": 15.768,
+  "words": [
+    {
+      "text": "And",
+      "start_time": 0.16,
+      "end_time": 0.32
+    },
+    {
+      "text": "even",
+      "start_time": 0.32,
+      "end_time": 0.56
+    },
+    {
+      "text": "more",
+      "start_time": 0.56,
+      "end_time": 0.96
+    },
+    {
+      "text": "vals",
+      "start_time": 0.96,
+      "end_time": 1.44
+    },
+    {
+      "text": "could",
+      "start_time": 1.44,
+      "end_time": 1.6
+    },
+    {
+      "text": "be",
+      "start_time": 1.6,
+      "end_time": 1.68
+    },
+    {
+      "text": "used",
+      "start_time": 1.68,
+      "end_time": 2.16
+    },
+    {
+      "text": "as",
+      "start_time": 2.16,
+      "end_time": 2.32
+    },
+    {
+      "text": "an",
+      "start_time": 2.32,
+      "end_time": 2.48
+    },
+    {
+      "text": "indirect",
+      "start_time": 2.48,
+      "end_time": 2.96
+    },
+    {
+      "text": "assessment",
+      "start_time": 2.96,
+      "end_time": 3.6
+    },
+    {
+      "text": "of",
+      "start_time": 3.6,
+      "end_time": 3.76
+    },
+    {
+      "text": "datasets",
+      "start_time": 3.76,
+      "end_time": 4.48
+    },
+    {
+      "text": "as",
+      "start_time": 4.8,
+      "end_time": 4.96
+    },
+    {
+      "text": "models",
+      "start_time": 4.96,
+      "end_time": 5.36
+    },
+    {
+      "text": "could",
+      "start_time": 5.36,
+      "end_time": 5.6
+    },
+    {
+      "text": "be",
+      "start_time": 5.6,
+      "end_time": 5.84
+    },
+    {
+      "text": "evaluated",
+      "start_time": 5.84,
+      "end_time": 6.56
+    },
+    {
+      "text": "before",
+      "start_time": 6.56,
+      "end_time": 7.04
+    },
+    {
+      "text": "and",
+      "start_time": 7.04,
+      "end_time": 7.2
+    },
+    {
+      "text": "after",
+      "start_time": 7.28,
+      "end_time": 7.84
+    },
+    {
+      "text": "training",
+      "start_time": 7.84,
+      "end_time": 8.4
+    },
+    {
+      "text": "or",
+      "start_time": 8.4,
+      "end_time": 8.48
+    },
+    {
+      "text": "finetuning",
+      "start_time": 8.48,
+      "end_time": 9.28
+    },
+    {
+      "text": "to",
+      "start_time": 9.28,
+      "end_time": 9.36
+    },
+    {
+      "text": "see",
+      "start_time": 9.36,
+      "end_time": 9.76
+    },
+    {
+      "text": "whether",
+      "start_time": 9.76,
+      "end_time": 10.08
+    },
+    {
+      "text": "a",
+      "start_time": 10.08,
+      "end_time": 10.16
+    },
+    {
+      "text": "dataset",
+      "start_time": 10.16,
+      "end_time": 10.88
+    },
+    {
+      "text": "helps",
+      "start_time": 11.2,
+      "end_time": 11.68
+    },
+    {
+      "text": "models",
+      "start_time": 11.68,
+      "end_time": 12.24
+    },
+    {
+      "text": "improve",
+      "start_time": 12.24,
+      "end_time": 12.72
+    },
+    {
+      "text": "on",
+      "start_time": 12.72,
+      "end_time": 12.88
+    },
+    {
+      "text": "any",
+      "start_time": 12.88,
+      "end_time": 13.28
+    },
+    {
+      "text": "of",
+      "start_time": 13.52,
+      "end_time": 13.76
+    },
+    {
+      "text": "the",
+      "start_time": 13.76,
+      "end_time": 13.84
+    },
+    {
+      "text": "aspects",
+      "start_time": 13.84,
+      "end_time": 14.48
+    },
+    {
+      "text": "tested",
+      "start_time": 14.48,
+      "end_time": 14.96
+    },
+    {
+      "text": "by",
+      "start_time": 14.96,
+      "end_time": 15.2
+    },
+    {
+      "text": "vals",
+      "start_time": 15.2,
+      "end_time": 15.68
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

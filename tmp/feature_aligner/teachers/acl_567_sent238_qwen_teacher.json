@@ -1,0 +1,121 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_238.wav",
+  "text": "We would really like to encourage the community to use vals for measuring progress towards language grounding with vision and language models.",
+  "audio_duration_s": 8.613,
+  "words": [
+    {
+      "text": "We",
+      "start_time": 0.08,
+      "end_time": 0.4
+    },
+    {
+      "text": "would",
+      "start_time": 0.4,
+      "end_time": 0.64
+    },
+    {
+      "text": "really",
+      "start_time": 0.64,
+      "end_time": 0.88
+    },
+    {
+      "text": "like",
+      "start_time": 0.88,
+      "end_time": 1.12
+    },
+    {
+      "text": "to",
+      "start_time": 1.12,
+      "end_time": 1.2
+    },
+    {
+      "text": "encourage",
+      "start_time": 1.2,
+      "end_time": 1.76
+    },
+    {
+      "text": "the",
+      "start_time": 1.76,
+      "end_time": 1.76
+    },
+    {
+      "text": "community",
+      "start_time": 1.76,
+      "end_time": 2.4
+    },
+    {
+      "text": "to",
+      "start_time": 2.48,
+      "end_time": 2.56
+    },
+    {
+      "text": "use",
+      "start_time": 2.56,
+      "end_time": 2.96
+    },
+    {
+      "text": "vals",
+      "start_time": 2.96,
+      "end_time": 3.36
+    },
+    {
+      "text": "for",
+      "start_time": 3.36,
+      "end_time": 3.52
+    },
+    {
+      "text": "measuring",
+      "start_time": 3.52,
+      "end_time": 4.08
+    },
+    {
+      "text": "progress",
+      "start_time": 4.08,
+      "end_time": 4.72
+    },
+    {
+      "text": "towards",
+      "start_time": 4.72,
+      "end_time": 5.28
+    },
+    {
+      "text": "language",
+      "start_time": 5.28,
+      "end_time": 5.84
+    },
+    {
+      "text": "grounding",
+      "start_time": 5.84,
+      "end_time": 6.56
+    },
+    {
+      "text": "with",
+      "start_time": 6.88,
+      "end_time": 7.12
+    },
+    {
+      "text": "vision",
+      "start_time": 7.12,
+      "end_time": 7.52
+    },
+    {
+      "text": "and",
+      "start_time": 7.52,
+      "end_time": 7.6
+    },
+    {
+      "text": "language",
+      "start_time": 7.6,
+      "end_time": 8.0
+    },
+    {
+      "text": "models",
+      "start_time": 8.0,
+      "end_time": 8.56
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "tag": "qwen_baseline",
+  "source_wav": "acl-speech/segmented_wavs/gold/sent_208.wav",
+  "text": "Second, we use natural language inference, or short NLI, to filter out foils that could be still describing the image. Since when constructing foils, we need to ensure that they fail to describe the image.",
+  "audio_duration_s": 14.176,
+  "words": [
+    {
+      "text": "Second",
+      "start_time": 0.08,
+      "end_time": 0.8
+    },
+    {
+      "text": "we",
+      "start_time": 0.88,
+      "end_time": 1.04
+    },
+    {
+      "text": "use",
+      "start_time": 1.04,
+      "end_time": 1.44
+    },
+    {
+      "text": "natural",
+      "start_time": 1.68,
+      "end_time": 2.16
+    },
+    {
+      "text": "language",
+      "start_time": 2.16,
+      "end_time": 2.48
+    },
+    {
+      "text": "inference",
+      "start_time": 2.48,
+      "end_time": 3.2
+    },
+    {
+      "text": "or",
+      "start_time": 3.2,
+      "end_time": 3.52
+    },
+    {
+      "text": "short",
+      "start_time": 3.52,
+      "end_time": 3.92
+    },
+    {
+      "text": "NLI",
+      "start_time": 3.92,
+      "end_time": 4.32
+    },
+    {
+      "text": "to",
+      "start_time": 4.32,
+      "end_time": 5.52
+    },
+    {
+      "text": "filter",
+      "start_time": 5.52,
+      "end_time": 5.92
+    },
+    {
+      "text": "out",
+      "start_time": 5.92,
+      "end_time": 6.16
+    },
+    {
+      "text": "foils",
+      "start_time": 6.16,
+      "end_time": 6.8
+    },
+    {
+      "text": "that",
+      "start_time": 6.8,
+      "end_time": 7.04
+    },
+    {
+      "text": "could",
+      "start_time": 7.04,
+      "end_time": 7.2
+    },
+    {
+      "text": "be",
+      "start_time": 7.2,
+      "end_time": 7.36
+    },
+    {
+      "text": "still",
+      "start_time": 7.36,
+      "end_time": 7.76
+    },
+    {
+      "text": "describing",
+      "start_time": 7.76,
+      "end_time": 8.48
+    },
+    {
+      "text": "the",
+      "start_time": 8.48,
+      "end_time": 8.64
+    },
+    {
+      "text": "image",
+      "start_time": 8.64,
+      "end_time": 9.12
+    },
+    {
+      "text": "Since",
+      "start_time": 9.12,
+      "end_time": 9.52
+    },
+    {
+      "text": "when",
+      "start_time": 9.52,
+      "end_time": 9.68
+    },
+    {
+      "text": "constructing",
+      "start_time": 9.68,
+      "end_time": 10.24
+    },
+    {
+      "text": "foils",
+      "start_time": 10.24,
+      "end_time": 10.8
+    },
+    {
+      "text": "we",
+      "start_time": 10.8,
+      "end_time": 11.12
+    },
+    {
+      "text": "need",
+      "start_time": 11.12,
+      "end_time": 11.52
+    },
+    {
+      "text": "to",
+      "start_time": 11.52,
+      "end_time": 11.68
+    },
+    {
+      "text": "ensure",
+      "start_time": 11.76,
+      "end_time": 12.4
+    },
+    {
+      "text": "that",
+      "start_time": 12.4,
+      "end_time": 12.56
+    },
+    {
+      "text": "they",
+      "start_time": 12.56,
+      "end_time": 12.72
+    },
+    {
+      "text": "fail",
+      "start_time": 12.72,
+      "end_time": 12.96
+    },
+    {
+      "text": "to",
+      "start_time": 12.96,
+      "end_time": 13.04
+    },
+    {
+      "text": "describe",
+      "start_time": 13.12,
+      "end_time": 13.6
+    },
+    {
+      "text": "the",
+      "start_time": 13.6,
+      "end_time": 13.68
+    },
+    {
+      "text": "image",
+      "start_time": 13.68,
+      "end_time": 14.16
+    }
+  ],
+  "diagnostics": {
+    "backend": "qwen_asr_qwen_aligner"
+  }
+}
