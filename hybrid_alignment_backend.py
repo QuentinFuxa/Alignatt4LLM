@@ -134,5 +134,10 @@ class HybridQwenAsrGemmaAlignerBackend(AlignmentBackend):
                 "gemma_monotonicity": gemma_result.diagnostics.get("monotonicity"),
                 "gemma_offset_s": gemma_result.diagnostics.get("word_end_offset_s"),
                 "gemma_audio_span_length": gemma_result.diagnostics.get("audio_span_length"),
+                "gemma_probe_backend": gemma_result.diagnostics.get("probe_backend"),
+                "gemma_alignment_attention": gemma_result.diagnostics.get("alignment_attention"),
+                "gemma_qk_fast_reconstruction_succeeded": gemma_result.diagnostics.get(
+                    "qk_fast_reconstruction_succeeded"
+                ),
             },
         )

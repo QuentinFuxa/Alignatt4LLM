@@ -48,10 +48,10 @@ The current result should be treated as a tiny-fit artifact.
 
 ## Files created/updated
 
-- `build_split_manifest.py` — split manifest builder
-- `run_generate_split_teachers.py` — Qwen teacher generation for split
-- `run_gemma_feature_aligner_train.py` — updated to use manifest, train-only
-- `run_gemma_feature_aligner_eval.py` — updated for held-out evaluation
+- `dedicated_audio_gemma_aligner/build_split_manifest.py` — split manifest builder
+- `dedicated_audio_gemma_aligner/run_generate_split_teachers.py` — Qwen teacher generation for split
+- `dedicated_audio_gemma_aligner/run_gemma_feature_aligner_train.py` — updated to use manifest, train-only
+- `dedicated_audio_gemma_aligner/run_gemma_feature_aligner_eval.py` — updated for held-out evaluation
 - `tmp/feature_aligner/split_manifest.json` — the split
 - `tmp/feature_aligner/teachers/*.json` — 24 teacher artifacts
 - `tmp/feature_aligner/aligner_v2.pt` — trained checkpoint

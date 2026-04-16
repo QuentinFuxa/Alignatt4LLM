@@ -21,6 +21,13 @@ unchanged.
 
 No lexical heuristics, no content-aware adjustments, no punctuation
 tricks: every knob is a generic attention or tokenization artifact.
+
+The teacher-forced alignment path supports two explicit probe backends:
+
+- ``"eager"`` materializes self-attention weights directly
+- ``"qk_fast"`` reconstructs transcript-token rows into the audio span
+  from captured layer inputs plus KV snapshots under ``sdpa``-style
+  attention, mirroring the MT AlignAtt fast path
 """
 
 from __future__ import annotations
@@ -29,19 +36,22 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Sequence
+from typing import Any, Sequence
 import json
 import math
 import string
 
 import numpy as np
 import torch
+from transformers.cache_utils import DynamicCache
 
 from alignment_backend import AlignmentBackend, AlignmentResult, WordAlignment
 from cascade_mt_backend import (
     AlignAttHead,
     SelectedAttentionRecorder,
+    SelectedLayerInputRecorder,
     compute_alignatt_source_argmaxes,
+    extract_source_attention_rows_per_token_from_fast_path,
     extract_source_attention_rows_per_token,
 )
 
@@ -58,6 +68,12 @@ GEMMA_AUDIO_MAX_SECONDS_DEFAULT = 30.0
 
 class GemmaAudioTooLongError(ValueError):
     """Raised when an audio chunk exceeds the Gemma audio-encoder cap."""
+
+
+class GemmaAudioQKFastError(RuntimeError):
+    """Raised when the audio ``qk_fast`` probe cannot reconstruct rows."""
+
+
 PUNCTUATION_STRIP = string.punctuation + "”’)]}"
 PUNCTUATION_LEADING = "\"'`“”‘’([{"
 
@@ -79,6 +95,13 @@ class TokenTiming:
     token_str: str
     aligned_audio_position: int | None
     end_time: float | None
+
+
+@dataclass(frozen=True)
+class AudioAttentionProbeResult:
+    source_attention_rows_per_token: tuple[torch.Tensor, ...]
+    probe_backend: str
+    diagnostics: dict[str, Any]
 
 
 def detect_audio_span(
@@ -329,6 +352,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         audio_token_id: int = GEMMA_AUDIO_TOKEN_ID_DEFAULT,
         audio_ms_per_token: float = GEMMA_AUDIO_MS_PER_TOKEN_DEFAULT,
         max_audio_seconds: float = GEMMA_AUDIO_MAX_SECONDS_DEFAULT,
+        audio_align_probe_mode: str | None = None,
     ):
         self.model_name = model_name
         self.runtime_config = runtime_config
@@ -341,16 +365,25 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         self.max_audio_seconds = float(max_audio_seconds)
         self.device = str(getattr(runtime_config, "gemma_transformers_device", "cuda:0"))
         self.dtype = getattr(torch, str(getattr(runtime_config, "gemma_transformers_dtype", "bfloat16")))
+        self.fast_attention_implementation = str(
+            getattr(runtime_config, "gemma_transformers_fast_attention", "sdpa")
+        )
+        self.audio_align_probe_mode = str(
+            audio_align_probe_mode
+            or getattr(runtime_config, "gemma_audio_align_probe_mode", "eager")
+        )
 
         self.model = None
         self.processor = None
         self.tokenizer = None
         self.alignatt_heads: list[AlignAttHead] = []
         self.alignatt_recorder: SelectedAttentionRecorder | None = None
+        self.alignatt_layer_input_recorder: SelectedLayerInputRecorder | None = None
         # Subtracted from every predicted word-end time. Calibrated once per
         # (language, model) alongside the heads file. Defaults to 0 so
         # uncalibrated runs still work.
         self.word_end_offset_s: float = 0.0
+        self.qk_fast_probe_supported: bool | None = None
 
     def load(self) -> None:
         from transformers import (
@@ -402,8 +435,18 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                     self.audio_heads_path,
                     top_k=self.audio_heads_top_k,
                 )
-        if self.alignatt_recorder is None and self.alignatt_heads:
+        self._ensure_probe_recorders()
+
+    def _ensure_probe_recorders(self) -> None:
+        if self.model is None or not self.alignatt_heads:
+            return
+        if self.alignatt_recorder is None:
             self.alignatt_recorder = SelectedAttentionRecorder(
+                model=self.model,
+                alignatt_heads=self.alignatt_heads,
+            )
+        if self.alignatt_layer_input_recorder is None:
+            self.alignatt_layer_input_recorder = SelectedLayerInputRecorder(
                 model=self.model,
                 alignatt_heads=self.alignatt_heads,
             )
@@ -456,14 +499,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         ]
 
     @contextmanager
-    def _default_attention_implementation(self):
-        """Force default (non-eager) attention for free-run ASR quality.
-
-        The ablation in run_gemma_asr_fairness.py showed that eager attention
-        destroys free-run ASR (WER 0.81+) while default attention produces
-        correct transcripts (WER 0.03-0.26). This context manager ensures
-        default attention regardless of how the model was loaded.
-        """
+    def _temporary_attention_implementation(self, attn_implementation: str):
         if self.model is None:
             raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
 
@@ -483,7 +519,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         original_impls = [getattr(c, "_attn_implementation", None) for c in configs]
         for config in configs:
             if hasattr(config, "_attn_implementation"):
-                config._attn_implementation = "sdpa"
+                config._attn_implementation = attn_implementation
         try:
             yield
         finally:
@@ -492,38 +528,26 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                     config._attn_implementation = original
 
     @contextmanager
+    def _default_attention_implementation(self):
+        """Force default (non-eager) attention for free-run ASR quality.
+
+        The ablation in run_gemma_asr_fairness.py showed that eager attention
+        destroys free-run ASR (WER 0.81+) while default attention produces
+        correct transcripts (WER 0.03-0.26). This context manager ensures
+        default attention regardless of how the model was loaded.
+        """
+        with self._temporary_attention_implementation("sdpa"):
+            yield
+
+    @contextmanager
     def _eager_attention_implementation(self):
         """Force eager attention so attention weights are materialized.
 
         ``SelectedAttentionRecorder`` reads the hook output's second tuple
         element, which only exists when the model runs with eager attention.
         """
-        if self.model is None:
-            raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
-
-        configs: list[object] = []
-        candidates = (
-            self.model,
-            getattr(self.model, "model", None),
-            getattr(getattr(self.model, "model", None), "language_model", None),
-        )
-        seen_ids: set[int] = set()
-        for candidate in candidates:
-            config = getattr(candidate, "config", None)
-            if config is None or id(config) in seen_ids:
-                continue
-            seen_ids.add(id(config))
-            configs.append(config)
-        original_impls = [getattr(c, "_attn_implementation", None) for c in configs]
-        for config in configs:
-            if hasattr(config, "_attn_implementation"):
-                config._attn_implementation = "eager"
-        try:
+        with self._temporary_attention_implementation("eager"):
             yield
-        finally:
-            for config, original in zip(configs, original_impls):
-                if original is not None and hasattr(config, "_attn_implementation"):
-                    config._attn_implementation = original
 
     def _prepare_inputs(self, audio: np.ndarray, *, language: str) -> tuple[dict, list[int]]:
         messages = self._render_asr_messages(audio, language=language)
@@ -719,12 +743,15 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         """Teacher-forced alignment: ``audio + known transcript`` -> word timestamps.
 
         This is the direct replacement for Qwen3-ForcedAligner-0.6B: given
-        the audio and the text, we run a single forward pass with the
-        transcript prefilled as the assistant message and extract per
-        transcript-token attention to the audio span. It decouples the
-        novel part of this research (attention-based alignment) from the
-        quality of Gemma's own ASR head, and is the right experiment to
-        run first when the model's free-running transcription is noisy.
+        the audio and the text, we prefill the transcript in the assistant
+        turn and extract per-transcript-token alignment rows into the audio
+        span. Depending on ``gemma_audio_align_probe_mode`` that extraction
+        either reads materialized attentions directly (``eager``) or
+        reconstructs the rows from layer inputs plus KV snapshots
+        (``qk_fast``). This decouples the novel part of this research
+        (attention-based alignment) from the quality of Gemma's own ASR
+        head, and is the right experiment to run first when the model's
+        free-running transcription is noisy.
         """
         if self.model is None or self.tokenizer is None:
             raise RuntimeError("Gemma alignment backend is not loaded.")
@@ -748,11 +775,6 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         if transcript_span is None or transcript_span[1] <= transcript_span[0]:
             return None
 
-        # One forward pass with all-layer capture.
-        per_token_captures = self._run_forward_capture_transcript_attention(
-            inputs=inputs,
-            transcript_span=transcript_span,
-        )
         transcript_token_ids = input_ids[transcript_span[0] : transcript_span[1]]
 
         if not self.alignatt_heads:
@@ -768,9 +790,14 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 },
             )
 
-        token_audio_positions = self._aggregate_audio_positions(
-            per_token_captures=per_token_captures,
+        probe_result = self._extract_transcript_audio_rows(
+            inputs=inputs,
+            input_ids=input_ids,
+            transcript_span=transcript_span,
             audio_span=audio_span,
+        )
+        token_audio_positions = self._aggregate_audio_positions_from_rows(
+            probe_result.source_attention_rows_per_token,
         )
         token_end_times_s = [
             audio_position_to_end_seconds(
@@ -807,6 +834,8 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
                 "aligned_audio_positions": token_audio_positions,
                 "transcript_token_count": len(transcript_token_ids),
                 "word_end_offset_s": self.word_end_offset_s,
+                "probe_backend": probe_result.probe_backend,
+                **probe_result.diagnostics,
             },
         )
 
@@ -933,6 +962,276 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
             per_token_captures.append(row)
         return per_token_captures
 
+    @staticmethod
+    def _snapshot_kv(past_kv, length: int):
+        if past_kv is None:
+            return None
+        if hasattr(past_kv, "layers"):
+            snapshot = []
+            for layer_idx, layer in enumerate(past_kv.layers):
+                keys = getattr(layer, "keys", None)
+                values = getattr(layer, "values", None)
+                if keys is None or values is None or getattr(keys, "numel", lambda: 0)() == 0:
+                    continue
+                seq_length = int(layer.get_seq_length()) if hasattr(layer, "get_seq_length") else int(length)
+                snapshot.append(
+                    (
+                        layer_idx,
+                        keys[:, :, :length, :].detach().clone(),
+                        values[:, :, :length, :].detach().clone(),
+                        seq_length,
+                    )
+                )
+            return snapshot
+        if hasattr(past_kv, "key_cache"):
+            return [
+                (
+                    layer_idx,
+                    key[:, :, :length, :].detach().clone(),
+                    value[:, :, :length, :].detach().clone(),
+                    int(length),
+                )
+                for layer_idx, (key, value) in enumerate(
+                    zip(past_kv.key_cache, past_kv.value_cache)
+                )
+            ]
+        if isinstance(past_kv, (list, tuple)):
+            return [
+                (
+                    layer_idx,
+                    key[:, :, :length, :].detach().clone(),
+                    value[:, :, :length, :].detach().clone(),
+                    int(length),
+                )
+                for layer_idx, (key, value) in enumerate(past_kv)
+            ]
+        return None
+
+    def _restore_kv(self, snapshot, length: int):
+        if self.model is None:
+            raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
+        past_kv = DynamicCache(config=self.model.config)
+        for layer_idx, key, value, _seq_length in snapshot:
+            past_kv.update(
+                key[:, :, :length, :],
+                value[:, :, :length, :],
+                layer_idx=layer_idx,
+            )
+            layer = past_kv.layers[layer_idx]
+            if hasattr(layer, "cumulative_length"):
+                layer.cumulative_length = int(length)
+        return past_kv
+
+    @staticmethod
+    def _slice_inputs_to_prefix(inputs: dict, prefix_length: int) -> dict:
+        input_ids = inputs.get("input_ids")
+        if input_ids is None or not torch.is_tensor(input_ids):
+            raise RuntimeError("Forced-alignment replay requires tensor input_ids.")
+        full_length = int(input_ids.shape[-1])
+        sliced: dict[str, Any] = {}
+        for key, value in inputs.items():
+            if not torch.is_tensor(value):
+                sliced[key] = value
+                continue
+            if value.ndim >= 1 and int(value.shape[-1]) == full_length:
+                sliced[key] = value[..., :prefix_length].contiguous()
+            else:
+                sliced[key] = value
+        return sliced
+
+    def _run_suffix_forward(
+        self,
+        *,
+        token_ids: Sequence[int],
+        past_key_values,
+        attention_implementation: str,
+        capture_recorder=None,
+    ):
+        if self.model is None:
+            raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
+        step_kwargs: dict[str, Any] = {
+            "input_ids": torch.tensor([list(token_ids)], device=self.model.device),
+            "past_key_values": past_key_values,
+            "use_cache": True,
+            "return_dict": True,
+        }
+        with self._temporary_attention_implementation(attention_implementation):
+            if capture_recorder is not None:
+                with capture_recorder.capture() as captured:
+                    with torch.no_grad():
+                        outputs = self.model(**step_kwargs)
+                return outputs, captured
+            with torch.no_grad():
+                outputs = self.model(**step_kwargs)
+            return outputs, None
+
+    def _extract_audio_rows_from_eager_captures(
+        self,
+        *,
+        per_token_captures: Sequence[dict[int, torch.Tensor]],
+        audio_span: AudioSpan,
+    ) -> list[torch.Tensor]:
+        audio_positions = list(range(audio_span.prompt_start, audio_span.prompt_end))
+        per_token_rows: list[torch.Tensor] = []
+        for captured in per_token_captures:
+            rows_per_token = extract_source_attention_rows_per_token(
+                layer_attentions_by_layer=captured,
+                alignatt_heads=self.alignatt_heads,
+                source_positions=audio_positions,
+            )
+            if not rows_per_token:
+                per_token_rows.append(
+                    torch.zeros(len(self.alignatt_heads), len(audio_positions))
+                )
+                continue
+            per_token_rows.append(rows_per_token[-1])
+        return per_token_rows
+
+    def _aggregate_audio_positions_from_rows(
+        self,
+        source_attention_rows_per_token: Sequence[torch.Tensor],
+    ) -> list[int | None]:
+        argmaxes = compute_alignatt_source_argmaxes(
+            source_attention_rows_per_token,
+            filter_width=self.filter_width,
+        )
+        return [int(pos) if pos is not None else None for pos in argmaxes]
+
+    def _extract_transcript_audio_rows_eager(
+        self,
+        *,
+        inputs: dict,
+        transcript_span: tuple[int, int],
+        audio_span: AudioSpan,
+    ) -> AudioAttentionProbeResult:
+        per_token_captures = self._run_forward_capture_transcript_attention(
+            inputs=inputs,
+            transcript_span=transcript_span,
+        )
+        rows = tuple(
+            self._extract_audio_rows_from_eager_captures(
+                per_token_captures=per_token_captures,
+                audio_span=audio_span,
+            )
+        )
+        return AudioAttentionProbeResult(
+            source_attention_rows_per_token=rows,
+            probe_backend="eager",
+            diagnostics={
+                "alignment_attention": "eager",
+                "fast_attention_implementation": None,
+                "qk_fast_reconstruction_succeeded": False,
+            },
+        )
+
+    def _extract_transcript_audio_rows_qk_fast(
+        self,
+        *,
+        inputs: dict,
+        input_ids: Sequence[int],
+        transcript_span: tuple[int, int],
+        audio_span: AudioSpan,
+    ) -> AudioAttentionProbeResult:
+        self.qk_fast_probe_supported = False
+        self._ensure_probe_recorders()
+        if self.alignatt_layer_input_recorder is None:
+            raise GemmaAudioQKFastError(
+                "Audio qk_fast probe requires calibrated alignment heads and an initialized "
+                "layer-input recorder."
+            )
+
+        transcript_start, transcript_end = transcript_span
+        transcript_token_ids = list(input_ids[transcript_start:transcript_end])
+        if not transcript_token_ids:
+            raise GemmaAudioQKFastError("Transcript span is empty; nothing to replay.")
+        if transcript_start <= 0:
+            raise GemmaAudioQKFastError(
+                "Transcript replay prefix is empty; expected a multimodal prompt prefix "
+                "before the assistant transcript span."
+            )
+        if audio_span.prompt_end > transcript_start:
+            raise GemmaAudioQKFastError(
+                "Audio span extends into the transcript replay suffix; qk_fast assumes the "
+                "audio placeholders live entirely in the prompt prefix."
+            )
+
+        prefix_inputs = self._slice_inputs_to_prefix(inputs, transcript_start)
+        with self._temporary_attention_implementation(self.fast_attention_implementation), torch.no_grad():
+            prefix_outputs = self.model(
+                **prefix_inputs,
+                use_cache=True,
+                return_dict=True,
+            )
+        prompt_kv_snapshot = self._snapshot_kv(prefix_outputs.past_key_values, transcript_start)
+        if prompt_kv_snapshot is None:
+            self.qk_fast_probe_supported = False
+            raise GemmaAudioQKFastError(
+                "Audio qk_fast probe could not snapshot prompt KV states from the prefix run."
+            )
+
+        prompt_past_key_values = self._restore_kv(prompt_kv_snapshot, transcript_start)
+        outputs, captured_layer_inputs = self._run_suffix_forward(
+            token_ids=transcript_token_ids,
+            past_key_values=prompt_past_key_values,
+            attention_implementation=self.fast_attention_implementation,
+            capture_recorder=self.alignatt_layer_input_recorder,
+        )
+        self.qk_fast_probe_supported = bool(captured_layer_inputs)
+        if not captured_layer_inputs:
+            raise GemmaAudioQKFastError(
+                "Audio qk_fast probe did not capture any layer inputs under "
+                f"{self.fast_attention_implementation!r}."
+            )
+
+        audio_positions = list(range(audio_span.prompt_start, audio_span.prompt_end))
+        rows, _provenance = extract_source_attention_rows_per_token_from_fast_path(
+            layer_inputs_by_layer=captured_layer_inputs,
+            prompt_kv_snapshot=prompt_kv_snapshot,
+            runtime_past_key_values=outputs.past_key_values,
+            alignatt_heads=self.alignatt_heads,
+            source_positions=audio_positions,
+        )
+        if not rows:
+            raise GemmaAudioQKFastError(
+                "Audio qk_fast probe captured layer inputs but could not reconstruct any "
+                "audio attention rows."
+            )
+        return AudioAttentionProbeResult(
+            source_attention_rows_per_token=tuple(rows),
+            probe_backend="qk_fast",
+            diagnostics={
+                "alignment_attention": "qk_fast",
+                "fast_attention_implementation": self.fast_attention_implementation,
+                "qk_fast_reconstruction_succeeded": True,
+                "qk_fast_prompt_token_count": int(transcript_start),
+                "qk_fast_transcript_token_count": int(len(transcript_token_ids)),
+            },
+        )
+
+    def _extract_transcript_audio_rows(
+        self,
+        *,
+        inputs: dict,
+        input_ids: Sequence[int],
+        transcript_span: tuple[int, int],
+        audio_span: AudioSpan,
+    ) -> AudioAttentionProbeResult:
+        probe_mode = str(self.audio_align_probe_mode)
+        if probe_mode == "eager":
+            return self._extract_transcript_audio_rows_eager(
+                inputs=inputs,
+                transcript_span=transcript_span,
+                audio_span=audio_span,
+            )
+        if probe_mode == "qk_fast":
+            return self._extract_transcript_audio_rows_qk_fast(
+                inputs=inputs,
+                input_ids=input_ids,
+                transcript_span=transcript_span,
+                audio_span=audio_span,
+            )
+        raise ValueError(f"Unknown gemma_audio_align_probe_mode: {probe_mode!r}")
+
     # -------------------- alignment backend API --------------------------
 
     def transcribe_and_align(
@@ -957,6 +1256,7 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
         if audio_span is None or audio_span.length <= 0:
             return None
 
+        self._ensure_probe_recorders()
         if not self.alignatt_heads or self.alignatt_recorder is None:
             capture = self._generate_with_attention(
                 inputs,
@@ -1035,25 +1335,11 @@ class GemmaAttentionAlignmentBackend(AlignmentBackend):
     ) -> list[int | None]:
         if not per_token_captures:
             return []
-        audio_positions = list(range(audio_span.prompt_start, audio_span.prompt_end))
-        per_token_rows: list[torch.Tensor] = []
-        for captured in per_token_captures:
-            rows_per_token = extract_source_attention_rows_per_token(
-                layer_attentions_by_layer=captured,
-                alignatt_heads=self.alignatt_heads,
-                source_positions=audio_positions,
-            )
-            if not rows_per_token:
-                per_token_rows.append(
-                    torch.zeros(len(self.alignatt_heads), len(audio_positions))
-                )
-                continue
-            per_token_rows.append(rows_per_token[-1])
-
-        argmaxes = compute_alignatt_source_argmaxes(
-            per_token_rows, filter_width=self.filter_width
+        per_token_rows = self._extract_audio_rows_from_eager_captures(
+            per_token_captures=per_token_captures,
+            audio_span=audio_span,
         )
-        return [int(pos) if pos is not None else None for pos in argmaxes]
+        return self._aggregate_audio_positions_from_rows(per_token_rows)
 
     # -------------------- forced-alignment calibration --------------------
 

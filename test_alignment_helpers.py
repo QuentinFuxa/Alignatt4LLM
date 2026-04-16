@@ -132,6 +132,24 @@ def test_audio_too_long_raises_with_explicit_error():
     assert abs(backend._enforce_audio_cap(short, sample_rate=16000) - 5.0) < 1e-6
 
 
+def test_qk_fast_prefix_slicing_preserves_audio_features():
+    import torch
+    from gemma_alignment_probe import GemmaAttentionAlignmentBackend
+
+    inputs = {
+        "input_ids": torch.tensor([[11, 12, 13, 14]]),
+        "attention_mask": torch.tensor([[1, 1, 1, 1]]),
+        "audio_features": torch.randn(1, 80, 16),
+        "non_tensor": "keep",
+    }
+    sliced = GemmaAttentionAlignmentBackend._slice_inputs_to_prefix(inputs, 2)
+
+    assert sliced["input_ids"].tolist() == [[11, 12]]
+    assert sliced["attention_mask"].tolist() == [[1, 1]]
+    assert tuple(sliced["audio_features"].shape) == (1, 80, 16)
+    assert sliced["non_tensor"] == "keep"
+
+
 def test_hybrid_fallback_diagnostics_distinguish_gemma_vs_qwen():
     """Hybrid backend must mark each tick as gemma-aligned or fallback."""
     from alignment_backend import AlignmentResult, WordAlignment
@@ -163,7 +181,13 @@ def test_hybrid_fallback_diagnostics_distinguish_gemma_vs_qwen():
                     text="hello world",
                     words=asr_words,
                     audio_duration_s=1.0,
-                    diagnostics={"monotonicity": 0.9, "word_end_offset_s": 0.48},
+                    diagnostics={
+                        "monotonicity": 0.9,
+                        "word_end_offset_s": 0.48,
+                        "probe_backend": "qk_fast",
+                        "alignment_attention": "qk_fast",
+                        "qk_fast_reconstruction_succeeded": True,
+                    },
                 )
             if self.mode == "none":
                 return None
@@ -186,6 +210,9 @@ def test_hybrid_fallback_diagnostics_distinguish_gemma_vs_qwen():
     assert ok["gemma_alignment_used"] is True
     assert ok["fallback_reason"] is None
     assert ok["gemma_error"] is None
+    assert ok["gemma_probe_backend"] == "qk_fast"
+    assert ok["gemma_alignment_attention"] == "qk_fast"
+    assert ok["gemma_qk_fast_reconstruction_succeeded"] is True
 
     none_diag = run("none").diagnostics
     assert none_diag["gemma_alignment_used"] is False
