@@ -1326,6 +1326,34 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         if self.worker_mode == "custom_tensor":
             self._configure_tensor_observer()
 
+    def warmup(self, duration_seconds: float = 18.0, *, sample_rate: int = 16000) -> None:
+        """Trigger cudagraph capture on synthetic noise.
+
+        The cold-run vs hot-run text gap observed under prefix caching + cudagraph=full
+        appears to originate from the first decode's cudagraph capture pass producing
+        slightly different numerics than subsequent replays. Calling this once after
+        load() pays the capture cost on a throwaway request (synthetic noise, distinct
+        token IDs from real audio so it does not pollute the prefix cache).
+        """
+        if self.llm is None:
+            raise RuntimeError("warmup() requires the backend to be loaded.")
+        samples = max(1, int(float(duration_seconds) * float(sample_rate)))
+        rng = np.random.default_rng(seed=0)
+        noise = rng.standard_normal(samples).astype(np.float32) * 0.01
+        try:
+            self.transcribe_and_align(
+                noise,
+                sample_rate=sample_rate,
+                language="English",
+            )
+        except RuntimeError as exc:
+            # Silence/noise may not produce any generated tokens; that's fine
+            # for a warmup whose only purpose is to capture cudagraphs. Other
+            # runtime errors should still surface.
+            if "no valid" in str(exc) or "did not recover any generated-token" in str(exc):
+                return
+            raise
+
     def _enforce_audio_cap(self, audio: np.ndarray, *, sample_rate: int) -> float:
         duration_s = float(len(audio)) / float(sample_rate)
         if duration_s > self.max_audio_seconds + 1e-3:
@@ -1337,9 +1365,16 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         return duration_s
 
     @staticmethod
-    def _render_asr_instruction() -> str:
+    def _render_asr_instruction(language: str) -> str:
+        # Prompt structure taken verbatim from Google's official Gemma audio
+        # guidance ("Transcribe ... in {LANGUAGE} into {LANGUAGE} text"). The
+        # earlier vague "in its original language" phrasing was letting the
+        # model drift into re-emitting the instruction under streaming
+        # prefix-prefill.
+        lang_label = language or "the original language"
         return (
-            "Transcribe the following speech segment in its original language. "
+            f"Transcribe the following speech segment in {lang_label} into "
+            f"{lang_label} text.\n\n"
             "Follow these specific instructions for formatting the answer:\n"
             "* Only output the transcription, with no newlines.\n"
             "* When transcribing numbers, write the digits, i.e. write 1.7 "
@@ -1353,13 +1388,12 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         language: str,
         assistant_prefix: str = "",
     ) -> list[dict[str, Any]]:
-        del language
         messages: list[dict[str, Any]] = [
             {
                 "role": "user",
                 "content": [
                     {"type": "audio", "audio": np.asarray(audio, dtype=np.float32)},
-                    {"type": "text", "text": self._render_asr_instruction()},
+                    {"type": "text", "text": self._render_asr_instruction(language)},
                 ],
             }
         ]
@@ -1379,13 +1413,12 @@ class GemmaVLLMAttentionAlignmentBackend(AlignmentBackend):
         language: str,
         assistant_prefix: str = "",
     ) -> list[dict[str, Any]]:
-        del language
         messages: list[dict[str, Any]] = [
             {
                 "role": "user",
                 "content": [
                     {"type": "audio_url", "audio_url": {"url": audio_file_url}},
-                    {"type": "text", "text": self._render_asr_instruction()},
+                    {"type": "text", "text": self._render_asr_instruction(language)},
                 ],
             }
         ]

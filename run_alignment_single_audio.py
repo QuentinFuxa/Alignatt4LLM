@@ -274,6 +274,11 @@ def cmd_gemma_vllm_inspect(args: argparse.Namespace) -> None:
         compile_cache_dir=args.vllm_compile_cache_dir,
         disable_compile_cache=args.vllm_disable_compile_cache,
     )
+    warmup_seconds = float(getattr(args, "warmup_seconds", 0.0) or 0.0)
+    if warmup_seconds > 0:
+        print(f"[warmup] running {warmup_seconds:.1f}s noise pass to pre-capture cudagraphs")
+        backend.warmup(duration_seconds=warmup_seconds)
+        print("[warmup] done")
     repeat = int(getattr(args, "repeat", 1) or 1)
     output_base = Path(args.output)
     results: list[AlignmentResult] = []
@@ -763,6 +768,16 @@ def build_cli() -> argparse.ArgumentParser:
         help=(
             "Run the same request N times on the same engine. Writes per-run "
             "bundles and a stability summary for decode-drift investigation."
+        ),
+    )
+    vllm_inspect.add_argument(
+        "--warmup-seconds",
+        type=float,
+        default=0.0,
+        help=(
+            "If > 0, run one throwaway transcribe_and_align on synthetic noise of "
+            "this duration before the first --repeat run. Used to test whether the "
+            "cold-run text degradation under cudagraph is a first-capture artifact."
         ),
     )
     vllm_inspect.add_argument("--output", required=True)
