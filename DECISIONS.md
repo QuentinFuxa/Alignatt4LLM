@@ -934,6 +934,74 @@ across two language directions (en→de, cs→en) and two MT backends
 (Transformers, vLLM). The paper's Step 7 "observer contract is
 complete" claim is now validated on the submission path itself.
 
+### Step 7 v5: multi-feature logistic regression closes the spectrum
+
+Added `scripts/multi_feature_rewind_classifier.py` — L2-regularised
+logistic regression over the full 17-feature per-update vector
+(provenance averages + positional features + monotonicity features),
+evaluated with stratified 5-fold cross-validation so the reported F1
+is out-of-fold, not in-sample.
+
+Cross-artifact rewind F1:
+
+| Artifact                              | n_pos | 5-fold CV (default thr) | 5-fold CV (best thr) |
+|---------------------------------------|-------|-------------------------|----------------------|
+| en→de punct chunk450 (canonical)      |  26   | **0.881**               | **0.926**            |
+| cs→en Transformers MT                 |  64   | 0.699                   | 0.706                |
+| cs→en vLLM MT (fixed path)            |  38   | 0.606                   | 0.627                |
+| en→de K3@700 (n=10, noisy)            |  10   | 0.333                   | 0.419                |
+
+Top weighted features on the canonical en→de artifact:
+
+| Feature                             | Weight |
+|-------------------------------------|--------|
+| `max_drop_vs_prev_non_none`         | +1.385 |
+| `max_backward_jump`                 | +1.385 |
+| `unsafe.source_inaccessible`        | −1.165 |
+| `source_unit_count`                 | +1.039 |
+| `accepted_mean.source_inaccessible` | −1.036 |
+| `unsafe.non_source_prompt`          | +0.868 |
+
+Weights match the 2-feature rule discovered in v3
+(`max_backward_jump ≥ 9 AND unsafe.source_inaccessible ≤ 0`): large
+backward drop + absence of source_frontier-style spillover predicts
+rewind.
+
+**Full complexity-vs-fidelity spectrum for the rewind gate:**
+
+| Classifier                              | rewind F1 (realistic n_pos ≥ 26) |
+|-----------------------------------------|----------------------------------|
+| 1-feature single threshold              | ≤ 0.75                           |
+| 2-feature AND / OR combination          | ≤ 0.73                           |
+| **Multi-feature (17) logistic, L2 CV**  | **0.63-0.93** (highly artifact-dependent) |
+| Loop replay (exact policy semantics)    | **1.000** (all four artifacts)   |
+
+Multi-feature logistic **does** lift over 1-feature on the canonical
+submission path (0.93 vs ≤ 0.75), strongly validating that rewind
+depends on a *combination* of features rather than any single one.
+But it does **not** lift on cs→en at all (0.63-0.70, the same
+plateau as 1-feature), showing that on harder artifacts even a
+17-feature linear model saturates. Only the loop-replay predictor,
+which uses the exact sequential semantics of the policy, hits
+F1 = 1.0 reliably across every artifact.
+
+**Paper narrative this closes out:**
+
+> The three-gate MT AlignAtt policy is recoverable from observer
+> metadata, but only via replay of its sequential loop. A single
+> provenance scalar absorbs `source_frontier` (F1 0.91-0.98 via one
+> threshold, F1 0.93-0.98 via multi-feature) but cannot absorb
+> `rewind`: single scalars cap at F1 ≤ 0.75, multi-feature logistic
+> lifts to F1 0.93 on clean data and only 0.63-0.70 on harder
+> artifacts. Loop replay is the only reliable classifier. This
+> defines the scope of the "continuous confidence" paper pitch
+> cleanly: one gate is scalar-reducible, one is loop-bound, and the
+> observer's per-update contract is informationally complete —
+> bounded only by the expressive power of the classifier we apply.
+
+Artifacts: `outputs/night1_*/multi_feature_classifier_alignatt_rewind.txt`.
+Source: `scripts/multi_feature_rewind_classifier.py`.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +

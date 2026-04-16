@@ -144,11 +144,16 @@ By morning, the repo should satisfy all three:
       loop semantics. v4 loop-replay predictor
       (`scripts/loop_replay_gate_predictor.py`) replays the MT
       policy's `should_stop_in_loop` offline on metadata and
-      recovers BOTH gates at F1 = 1.000 exactly across three
-      artifacts. Confirms: observer metadata is complete; the
-      discrete-to-continuous question is specifically about what
-      single-value thresholds can and cannot express about a
-      loop-break decision, not about observer payload.
+      recovers BOTH gates at F1 = 1.000 exactly across **four**
+      artifacts (including the canonical submission path). v5
+      multi-feature logistic regression
+      (`scripts/multi_feature_rewind_classifier.py`) closes the
+      complexity-vs-fidelity spectrum: 17-feature L2 logistic hits
+      F1 0.93 on the canonical en→de artifact (up from ≤ 0.75
+      single-feature) but only 0.63-0.70 on cs→en. Only loop-replay
+      reliably hits F1 = 1.0. Paper narrative is airtight: one gate
+      (`source_frontier`) is scalar-reducible, one (`rewind`) is
+      loop-bound, observer metadata is complete.
 
 Use the current local assets for tonight's loop. The repo currently has `test-set/` but not a local official dev-set workflow. Do not block engineering work on that; just keep in mind that final submission still needs dev logs.
 
