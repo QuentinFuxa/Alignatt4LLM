@@ -112,6 +112,13 @@ By morning, the repo should satisfy all three:
       substantially higher than the 0.91 / 0.75 caps seen on
       mechanism-branch artifacts, because punctuation_lcp commits
       produce a more homogeneous set of policy-loop states.
+      Multi-clip check on `OiqEWDVtWk.wav` (second canonical-path
+      run, instrumented): source_frontier F1 = 0.968 (stable
+      across clips), rewind F1 = 0.792 (clip-dependent but above
+      mechanism-branch cap). Loop-replay F1 = 1.000 on both clips.
+      Paper qualifier: scalar rewind approximation has per-clip
+      variance; scalar source_frontier is stable; loop replay is
+      invariant across clips.
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.

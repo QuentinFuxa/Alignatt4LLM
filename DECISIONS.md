@@ -1030,6 +1030,47 @@ ambiguous token orderings).
 
 Artifact: `outputs/night1_ende_punct_chunk450_instrumented/per_gate_separability_v2.txt`.
 
+### Multi-clip replication of the canonical-path finding
+
+Ran the same canonical config on a second test-set clip
+(`OiqEWDVtWk.wav`, en→de, `punctuation_lcp`, chunk_ms=450,
+Transformers MT) to check whether the rewind F1 0.91 / source_frontier
+F1 0.99 finding is clip-specific.
+
+| Clip                           | source_frontier F1 | rewind F1 | loop-replay F1 (both) |
+|--------------------------------|--------------------|-----------|-----------------------|
+| `ccpXHNfaoy.wav` (clip 1)      | **0.988**          | 0.912     | 1.000                 |
+| `OiqEWDVtWk.wav` (clip 2, new) | **0.968**          | 0.792     | 1.000                 |
+
+- **`source_frontier` 1-feature scalar is robust across clips**
+  (F1 0.96-0.99). The scalar approximation is a submission-grade
+  drop-in candidate for this gate.
+- **`rewind` 1-feature scalar is clip-dependent** (F1 0.79 vs 0.91);
+  both values still above the 0.67-0.75 mechanism-branch cap, but
+  with visible variance.
+- **Loop replay remains exactly 1.000 on both clips for both gates.**
+
+The paper-level conclusion survives the second-clip check with a
+small qualifier: scalar approximation quality for `rewind` varies
+clip-to-clip even on a single config, while `source_frontier`
+scalar quality is stable. Loop replay is the only invariant-across-
+clips method.
+
+Quality numbers on clip 2:
+
+| Metric           | Value    |
+|------------------|----------|
+| BLEU             | 27.60    |
+| chrF             | 63.98    |
+| COMET            | 0.832    |
+| LongYAAL CU      | 1948 ms  |
+| LongYAAL CA      | 2599 ms  |
+| RTF              | 0.993    |
+
+Close to clip 1 on BLEU/chrF (within ~0.6). COMET 0.03 lower
+(different speaker, topic). Artifact:
+`outputs/night1_ende_punct_chunk450_OiqEWDVtWk_instrumented/`.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +
