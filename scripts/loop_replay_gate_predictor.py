@@ -46,21 +46,52 @@ def replay_gate(
     aligned: list,
     accessible_end_exclusive: int,
     rewind_threshold: int,
+    provenance: list | None = None,
+    min_source_mass: float = 0.0,
 ) -> str:
-    """Mirror cascade_mt_backend.py's should_stop_in_loop."""
+    """Mirror cascade_mt_backend.py's should_stop_in_loop.
+
+    With min_source_mass > 0, the provenance_weak gate fires on the
+    first token whose provenance[i].source_accessible falls below the
+    threshold, iterated in the same order as rewind / source_frontier.
+    """
     last_aligned = None
-    for current in aligned:
+    for i, current in enumerate(aligned):
         if current is not None and last_aligned is not None:
             if last_aligned - current > rewind_threshold:
                 return "alignatt:rewind"
         if current is not None and current >= max(0, int(accessible_end_exclusive)):
             return "alignatt:source_frontier"
+        if (
+            min_source_mass > 0.0
+            and provenance is not None
+            and i < len(provenance)
+        ):
+            pv = provenance[i] or {}
+            src_acc = float(pv.get("source_accessible") or 0.0)
+            if src_acc < min_source_mass:
+                return "alignatt:provenance_weak"
         if current is not None:
             last_aligned = current
     return "stop"
 
 
+def _read_min_source_mass(input_path: Path) -> float:
+    """Read translation_alignatt_min_source_mass from the artifact's
+    manifest.json if present; default 0.0."""
+    manifest_path = input_path.parent / "manifest.json"
+    if not manifest_path.exists():
+        return 0.0
+    try:
+        m = json.loads(manifest_path.read_text())
+    except json.JSONDecodeError:
+        return 0.0
+    rc = m.get("runtime_config") or {}
+    return float(rc.get("translation_alignatt_min_source_mass") or 0.0)
+
+
 def score(input_path: Path, rewind_threshold: int) -> str:
+    min_source_mass = _read_min_source_mass(input_path)
     predicted_counts: Counter = Counter()
     actual_counts: Counter = Counter()
     confusion: dict = defaultdict(lambda: Counter())
@@ -79,8 +110,12 @@ def score(input_path: Path, rewind_threshold: int) -> str:
             accessible = md.get("accessible_source_local_end_exclusive")
             if accessible is None:
                 continue
+            provenance = md.get("provenance_per_draft_token") or []
             actual = md.get("stop_reason") or "unknown"
-            predicted = replay_gate(aligned, int(accessible), rewind_threshold)
+            predicted = replay_gate(
+                aligned, int(accessible), rewind_threshold,
+                provenance=provenance, min_source_mass=min_source_mass,
+            )
             total += 1
             actual_counts[actual] += 1
             predicted_counts[predicted] += 1
@@ -104,11 +139,13 @@ def score(input_path: Path, rewind_threshold: int) -> str:
     lines = []
     lines.append(f"# Loop-replay gate prediction on {input_path}")
     lines.append(f"# rewind_threshold = {rewind_threshold}")
+    lines.append(f"# min_source_mass (from manifest) = {min_source_mass}")
     lines.append(f"# total updates = {total}")
     lines.append(f"# actual_counts = {dict(actual_counts)}")
     lines.append(f"# predicted_counts = {dict(predicted_counts)}")
     lines.append("")
-    for gate in ("alignatt:rewind", "alignatt:source_frontier", "stop"):
+    for gate in ("alignatt:rewind", "alignatt:source_frontier",
+                 "alignatt:provenance_weak", "stop"):
         if actual_counts.get(gate, 0) == 0:
             continue
         prec, rec, f1 = f1_binary(actual_counts, confusion[gate], gate)

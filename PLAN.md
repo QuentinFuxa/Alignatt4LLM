@@ -134,7 +134,15 @@ By morning, the repo should satisfy all three:
       delta drops to within ±3% of exact. A drift-calibrated scalar
       substitution is close enough to be a defensible approximate
       mechanism in the paper; loop replay remains the only F1 = 1.0
-      method.
+      method. Step 7 v8: third gate (`alignatt:provenance_weak`)
+      now covered. Ran min_source_mass=0.2 on canonical clip to
+      trigger real provenance_weak firings (52 updates), extended
+      loop-replay to handle the third gate. Result on
+      `night1_ende_punct_ms020_chunk450_instrumented`:
+      rewind F1 = source_frontier F1 = provenance_weak F1 = 1.000.
+      All three discrete MT gates deterministically recoverable
+      from per-update metadata — "observer contract is complete"
+      claim now covers the full three-gate policy.
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.

@@ -1161,6 +1161,55 @@ by drift minimisation rather than by per-gate F1.
 Artifacts: `outputs/night1_*/scalar_threshold_sweep.txt`.
 Source: `scripts/scalar_threshold_sweep.py`.
 
+### Third-gate coverage: `alignatt:provenance_weak` joins loop-replay F1 = 1.000
+
+The three discrete MT gates are `alignatt:source_frontier`,
+`alignatt:rewind`, and `alignatt:provenance_weak`. All night1
+artifacts so far use `translation_alignatt_min_source_mass = 0.0`,
+which disables the `provenance_weak` gate entirely — so every
+previously-measured F1 and drift number pertained only to
+source_frontier and rewind.
+
+Ran the canonical baseline with `min_source_mass = 0.2`
+(Transformers MT, chunk_ms=450, ccpXHNfaoy.wav) to produce an
+artifact with real provenance_weak firings. Extended
+`scripts/loop_replay_gate_predictor.py` to replay the third gate:
+
+```python
+if min_source_mass > 0.0 and provenance[i].source_accessible < min_source_mass:
+    return "alignatt:provenance_weak"
+```
+
+Loop-replay result on `night1_ende_punct_ms020_chunk450_instrumented`:
+
+| Gate                       | n  | precision | recall | F1      |
+|----------------------------|----|-----------|--------|---------|
+| `alignatt:rewind`          | 24 | 1.000     | 1.000  | **1.000** |
+| `alignatt:source_frontier` | 28 | 1.000     | 1.000  | **1.000** |
+| `alignatt:provenance_weak` | 52 | 1.000     | 1.000  | **1.000** |
+
+**Zero cross-class errors on all three gates.** Paper's "observer
+contract is complete" claim now covers the full three-gate discrete
+policy — every MT AlignAtt firing across the entire night1 instrumented
+corpus is recoverable from per-update observer metadata via
+deterministic loop replay.
+
+Quality on this clip (min_source_mass=0.2):
+
+| Metric           | Value    |
+|------------------|----------|
+| BLEU             | 29.58    |
+| chrF             | 64.00    |
+| COMET            | 0.865    |
+| LongYAAL CU      | 1990 ms  |
+| LongYAAL CA      | 2837 ms  |
+| RTF              | 1.107    |
+
+BLEU +1.4 vs canonical (ccpXHNfaoy instrumented at ms=0.0:
+BLEU 28.22), COMET +0.003 — reproduces the phase5 finding that
+min_source_mass=0.2 buys ~+1-2 BLEU for +1.4s CA. Artifact and
+analysis under `outputs/night1_ende_punct_ms020_chunk450_instrumented/`.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +
