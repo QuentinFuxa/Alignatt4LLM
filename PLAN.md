@@ -105,7 +105,13 @@ By morning, the repo should satisfy all three:
       persisted over four tries). BLEU 28.22 / COMET 0.862 / CU
       1747 ms match the pre-instrumented reanchor within ±0.7 BLEU.
       Loop-replay on this submission-path artifact: F1 = 1.000 for
-      both `alignatt:rewind` and `alignatt:source_frontier`.
+      both `alignatt:rewind` and `alignatt:source_frontier`. Single-
+      feature thresholds are surprisingly strong on this path:
+      `source_frontier` F1 = 0.988 via `unsafe.source_inaccessible`,
+      `rewind` F1 = 0.912 via `max_drop_vs_prev_non_none` — both
+      substantially higher than the 0.91 / 0.75 caps seen on
+      mechanism-branch artifacts, because punctuation_lcp commits
+      produce a more homogeneous set of policy-loop states.
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.

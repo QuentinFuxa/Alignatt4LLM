@@ -1002,6 +1002,34 @@ F1 = 1.0 reliably across every artifact.
 Artifacts: `outputs/night1_*/multi_feature_classifier_alignatt_rewind.txt`.
 Source: `scripts/multi_feature_rewind_classifier.py`.
 
+### Canonical submission-path per-gate numbers
+
+Ran the v2 per-gate-separability analysis on the freshly-instrumented
+canonical artifact (`night1_ende_punct_chunk450_instrumented`) to
+close out the paper numbers on the actual submission path:
+
+| Gate                       | Top 1-feature threshold                       | F1      | loop-replay F1 |
+|----------------------------|-----------------------------------------------|---------|----------------|
+| `alignatt:source_frontier` | `unsafe.source_inaccessible ≥ 0.002`          | **0.988** | 1.000          |
+| `alignatt:rewind`          | `max_drop_vs_prev_non_none ≥ 9`               | **0.912** | 1.000          |
+
+**Surprise: on the canonical submission path, single-feature rewind
+F1 jumps to 0.91** (vs 0.67-0.75 on the K=3 mechanism-branch
+artifacts and cs→en artifacts). The likely reason: `punctuation_lcp`
+commits at sentence boundaries, so the updates that reach the MT
+loop are more homogeneous — rewind and source_frontier sit on
+clearly distinct sides of the same feature axis.
+
+That sharpens the paper conclusion further: on the primary
+submission path the scalar approximation is surprisingly close —
+F1 0.99 / 0.91 across the two unsafe gates, with loop replay as the
+exact reference. The gap between scalar and exact is smaller on
+cleaner policy states (pure-punctuation commits) than on mechanism
+ablation states (frontier-family commits, which admit more
+ambiguous token orderings).
+
+Artifact: `outputs/night1_ende_punct_chunk450_instrumented/per_gate_separability_v2.txt`.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +
