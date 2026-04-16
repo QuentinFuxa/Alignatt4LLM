@@ -6,20 +6,43 @@ import json
 from pathlib import Path
 from typing import Any
 
+from cascade_text_surface import (
+    is_char_level_target_lang,
+    split_target_emission_units,
+)
+
 
 ARTIFACT_SCHEMA_VERSION = "cascade_v1"
 DEFAULT_WAV_PATH = "test-set/audio/ccpXHNfaoy.wav"
 DEFAULT_OUTPUT_DIR = "outputs/cascade_v1"
 DEFAULT_SEGMENTATION_PATH = "test-set/audio-segments.yaml"
-DEFAULT_SOURCE_REF_PATH = "test-set/ref/en.txt"
-DEFAULT_TARGET_REF_PATH = "test-set/ref/de.txt"
+DEFAULT_SOURCE_LANG_CODE = "en"
+DEFAULT_TARGET_LANG_CODE = "de"
+DEFAULT_SOURCE_REF_PATH = f"test-set/ref/{DEFAULT_SOURCE_LANG_CODE}.txt"
+DEFAULT_TARGET_REF_PATH = f"test-set/ref/{DEFAULT_TARGET_LANG_CODE}.txt"
 DEFAULT_COMET_MODEL = "Unbabel/XCOMET-XL"
 
 MANIFEST_FILENAME = "manifest.json"
 HYPOTHESIS_FILENAME = "hypothesis.jsonl"
 STREAM_UPDATES_FILENAME = "stream_updates.jsonl"
-FINAL_ASR_FILENAME = "transcript.en.txt"
-FINAL_TRANSLATION_FILENAME = "translation.de.txt"
+
+
+def final_asr_filename(source_lang_code: str = DEFAULT_SOURCE_LANG_CODE) -> str:
+    return f"transcript.{source_lang_code}.txt"
+
+
+def final_translation_filename(target_lang_code: str = DEFAULT_TARGET_LANG_CODE) -> str:
+    return f"translation.{target_lang_code}.txt"
+
+
+def reference_path_for(lang_code: str) -> str:
+    return f"test-set/ref/{lang_code}.txt"
+
+
+# Legacy default-language aliases preserved for callers that have not yet been
+# parameterised by target language. Prefer ``final_*_filename`` helpers above.
+FINAL_ASR_FILENAME = final_asr_filename()
+FINAL_TRANSLATION_FILENAME = final_translation_filename()
 RESEGMENTED_INSTANCES_FILENAME = "instances.resegmented.jsonl"
 EVALUATION_JSON_FILENAME = "evaluation.json"
 EVALUATION_REPORT_FILENAME = "evaluation.report.txt"
@@ -89,21 +112,38 @@ class InferenceArtifacts:
     updates: list[StreamUpdate]
     runtime_config: dict[str, Any]
     run_provenance: dict[str, Any] = field(default_factory=dict)
+    source_language_code: str = DEFAULT_SOURCE_LANG_CODE
+    target_language_code: str = DEFAULT_TARGET_LANG_CODE
 
     def hypothesis_record(self) -> dict[str, Any]:
         normalized_elapsed_ms = normalize_computation_aware_timestamps(
             self.translation_word_delays_ms,
             self.translation_word_elapsed_ms,
         )
+        units = split_target_emission_units(
+            self.final_translation_text,
+            target_lang_code=self.target_language_code,
+        )
+        prediction = (
+            "".join(units)
+            if is_char_level_target_lang(self.target_language_code)
+            else " ".join(units)
+        )
         return {
             "source": [Path(self.wav_path).name],
             "source_length": self.audio_duration_ms,
-            "prediction": self.final_translation_text,
+            "prediction": prediction,
             "delays": self.translation_word_delays_ms,
             "elapsed": normalized_elapsed_ms,
             "elapsed_wallclock_ms": self.translation_word_elapsed_ms,
             "elapsed_semantics": HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
         }
+
+    def final_asr_filename(self) -> str:
+        return final_asr_filename(self.source_language_code)
+
+    def final_translation_filename(self) -> str:
+        return final_translation_filename(self.target_language_code)
 
     def manifest_record(self) -> dict[str, Any]:
         runtime_config = dict(self.runtime_config)
@@ -124,13 +164,15 @@ class InferenceArtifacts:
             "translation_variant": self.translation_variant,
             "source_language": self.source_language,
             "target_language": self.target_language,
+            "source_language_code": self.source_language_code,
+            "target_language_code": self.target_language_code,
             "latency_unit": self.latency_unit,
             "audio_duration_ms": self.audio_duration_ms,
             "files": {
                 "hypothesis_jsonl": HYPOTHESIS_FILENAME,
                 "stream_updates_jsonl": STREAM_UPDATES_FILENAME,
-                "transcript_en_txt": FINAL_ASR_FILENAME,
-                "translation_de_txt": FINAL_TRANSLATION_FILENAME,
+                "transcript_txt": self.final_asr_filename(),
+                "translation_txt": self.final_translation_filename(),
             },
             "runtime_config": runtime_config,
             "run_provenance": dict(self.run_provenance),
@@ -164,21 +206,24 @@ def ensure_output_dir(output_dir: str | Path) -> Path:
 def write_inference_artifacts(artifacts: InferenceArtifacts, output_dir: str | Path) -> dict[str, str]:
     output_path = ensure_output_dir(output_dir)
 
+    asr_path = output_path / artifacts.final_asr_filename()
+    translation_path = output_path / artifacts.final_translation_filename()
+
     write_json(output_path / MANIFEST_FILENAME, artifacts.manifest_record())
     write_jsonl(output_path / HYPOTHESIS_FILENAME, [artifacts.hypothesis_record()])
     write_jsonl(
         output_path / STREAM_UPDATES_FILENAME,
         [asdict(update) for update in artifacts.updates],
     )
-    write_text(output_path / FINAL_ASR_FILENAME, artifacts.final_asr_text)
-    write_text(output_path / FINAL_TRANSLATION_FILENAME, artifacts.final_translation_text)
+    write_text(asr_path, artifacts.final_asr_text)
+    write_text(translation_path, artifacts.final_translation_text)
 
     return {
         "manifest": str(output_path / MANIFEST_FILENAME),
         "hypothesis": str(output_path / HYPOTHESIS_FILENAME),
         "stream_updates": str(output_path / STREAM_UPDATES_FILENAME),
-        "transcript": str(output_path / FINAL_ASR_FILENAME),
-        "translation": str(output_path / FINAL_TRANSLATION_FILENAME),
+        "transcript": str(asr_path),
+        "translation": str(translation_path),
     }
 
 

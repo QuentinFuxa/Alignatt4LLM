@@ -487,7 +487,44 @@ class AlignAttDecoderPolicy:
         return int(getattr(self.runtime_config, "translation_alignatt_filter_width", 7))
 
     @staticmethod
-    def token_starts_new_word(token: str) -> bool:
+    def _token_visible_chars(token: str) -> str:
+        if not token:
+            return ""
+        if token.startswith(("▁", "Ġ")):
+            return token[1:]
+        return token
+
+    @staticmethod
+    def _is_non_spacing_script_char(ch: str) -> bool:
+        if not ch:
+            return False
+        cp = ord(ch)
+        # CJK Unified Ideographs and common extensions, plus Japanese kana.
+        # These scripts do not delimit words with whitespace, so each such
+        # character acts as its own target stability unit.
+        return (
+            0x3040 <= cp <= 0x30FF  # Hiragana / Katakana
+            or 0x3400 <= cp <= 0x4DBF  # CJK Extension A
+            or 0x4E00 <= cp <= 0x9FFF  # CJK Unified Ideographs
+            or 0xF900 <= cp <= 0xFAFF  # CJK Compatibility Ideographs
+            or 0x20000 <= cp <= 0x2A6DF  # CJK Extension B
+            or 0x2A700 <= cp <= 0x2B73F  # CJK Extension C
+            or 0x2B740 <= cp <= 0x2B81F  # CJK Extension D
+            or 0x2B820 <= cp <= 0x2CEAF  # CJK Extension E
+        )
+
+    @classmethod
+    def token_starts_stability_unit(cls, token: str) -> bool:
+        """Return True when a token opens a new target stability unit.
+
+        A stability unit is the minimal prefix of generated text that cannot be
+        retroactively altered by future decoding steps. For whitespace-segmented
+        languages (en->de, en->it, ...) that unit is a full word, signalled by a
+        leading SentencePiece ``▁`` / byte-pair ``Ġ`` / raw whitespace prefix.
+        For non-spacing scripts (en->zh, en->ja) each CJK/kana character is its
+        own unit, so any token whose first visible character lives in those
+        ranges also starts a new unit.
+        """
         if not token:
             return False
         if token.startswith(("▁", "Ġ")):
@@ -496,18 +533,33 @@ class AlignAttDecoderPolicy:
             return True
         if token.startswith("<0x0A>"):
             return True
+        visible = cls._token_visible_chars(token)
+        if visible and cls._is_non_spacing_script_char(visible[0]):
+            return True
         return False
 
-    def trim_to_last_complete_word(self, generated_ids: Sequence[int]) -> list[int]:
+    # Back-compat alias for callers that still refer to the legacy name.
+    @classmethod
+    def token_starts_new_word(cls, token: str) -> bool:
+        return cls.token_starts_stability_unit(token)
+
+    def trim_to_last_stability_unit(self, generated_ids: Sequence[int]) -> list[int]:
+        """Drop the trailing, possibly-incomplete target stability unit."""
         if not generated_ids:
             return []
         token_strings = self.tokenizer.convert_ids_to_tokens(list(generated_ids))
-        word_start_indices = [
-            idx for idx, token in enumerate(token_strings) if self.token_starts_new_word(str(token))
+        unit_start_indices = [
+            idx
+            for idx, token in enumerate(token_strings)
+            if self.token_starts_stability_unit(str(token))
         ]
-        if len(word_start_indices) <= 1:
+        if len(unit_start_indices) <= 1:
             return []
-        return list(generated_ids[: word_start_indices[-1]])
+        return list(generated_ids[: unit_start_indices[-1]])
+
+    # Back-compat alias. New code should call ``trim_to_last_stability_unit``.
+    def trim_to_last_complete_word(self, generated_ids: Sequence[int]) -> list[int]:
+        return self.trim_to_last_stability_unit(generated_ids)
 
     def should_stop_in_loop(
         self,
@@ -552,7 +604,7 @@ class AlignAttDecoderPolicy:
         stop_reason: str | int | None,
         probe_backend: str | None,
     ) -> AlignAttAcceptance:
-        trimmed_generated_ids = self.trim_to_last_complete_word(accepted_candidate_ids)
+        trimmed_generated_ids = self.trim_to_last_stability_unit(accepted_candidate_ids)
         word_boundary_trimmed = list(trimmed_generated_ids) != list(accepted_candidate_ids)
         alignatt_metadata = {
             "source_token_count": 0 if source_map is None else len(source_map.source_token_positions),
@@ -1204,6 +1256,110 @@ def load_alignatt_heads(path: str, *, top_k: int) -> list[AlignAttHead]:
         )
         for head in payload.get("token_alignment_heads", [])[:top_k]
     ]
+
+
+def load_alignatt_heads_by_direction(
+    paths_by_direction: Mapping[str, str],
+    *,
+    top_k: int,
+) -> dict[str, list[AlignAttHead]]:
+    """Load per-direction head lists, e.g. ``{'en-de': [...], 'en-zh': [...]}``."""
+    return {
+        direction: load_alignatt_heads(path, top_k=top_k)
+        for direction, path in paths_by_direction.items()
+    }
+
+
+def shared_kernel_alignatt_heads(
+    head_sets_by_direction: Mapping[str, Sequence[AlignAttHead]],
+) -> list[AlignAttHead]:
+    """Return heads that appear in every direction, ranked by mean ``ts``.
+
+    The comparison is by ``(layer, head)`` identity; translation scores are
+    averaged across directions so downstream code can still rank heads and cap
+    to a budget.
+    """
+    if not head_sets_by_direction:
+        return []
+    direction_id_sets = []
+    score_sums: dict[tuple[int, int], float] = {}
+    score_counts: dict[tuple[int, int], int] = {}
+    for heads in head_sets_by_direction.values():
+        ids = set()
+        for h in heads:
+            key = (int(h.layer), int(h.head))
+            ids.add(key)
+            score_sums[key] = score_sums.get(key, 0.0) + float(h.ts)
+            score_counts[key] = score_counts.get(key, 0) + 1
+        direction_id_sets.append(ids)
+
+    shared = set.intersection(*direction_id_sets)
+    result = [
+        AlignAttHead(layer=layer, head=head, ts=score_sums[(layer, head)] / score_counts[(layer, head)])
+        for (layer, head) in shared
+    ]
+    result.sort(key=lambda h: h.ts, reverse=True)
+    return result
+
+
+def write_alignatt_heads_file(
+    heads: Sequence[AlignAttHead],
+    path: str | Path,
+    *,
+    direction: str | None = None,
+    extra_metadata: Mapping[str, Any] | None = None,
+) -> Path:
+    """Serialise a head list in the same JSON shape as ``load_alignatt_heads``.
+
+    This lets Phase 4 head-set experiments write the constructed regime
+    (shared kernel, multilingual union, ...) to a temp file and point
+    ``translation_alignatt_heads_path`` at it, without teaching the runtime a
+    separate code path for each regime.
+    """
+    payload: dict[str, Any] = {
+        "token_alignment_heads": [
+            {"layer": int(h.layer), "head": int(h.head), "ts": float(h.ts)}
+            for h in heads
+        ],
+    }
+    if direction is not None:
+        payload["direction"] = direction
+    if extra_metadata:
+        for key, value in extra_metadata.items():
+            payload.setdefault(key, value)
+    out_path = Path(path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return out_path
+
+
+def multilingual_union_alignatt_heads(
+    head_sets_by_direction: Mapping[str, Sequence[AlignAttHead]],
+    *,
+    max_heads: int | None = None,
+) -> list[AlignAttHead]:
+    """Return the ``(layer, head)`` union across directions, ranked by mean ``ts``.
+
+    When ``max_heads`` is provided, the list is truncated to the strongest
+    heads, which is useful when comparing a concentrated multilingual head set
+    against the per-direction top-k baseline in a head-set sweep.
+    """
+    score_sums: dict[tuple[int, int], float] = {}
+    score_counts: dict[tuple[int, int], int] = {}
+    for heads in head_sets_by_direction.values():
+        for h in heads:
+            key = (int(h.layer), int(h.head))
+            score_sums[key] = score_sums.get(key, 0.0) + float(h.ts)
+            score_counts[key] = score_counts.get(key, 0) + 1
+
+    result = [
+        AlignAttHead(layer=layer, head=head, ts=score_sums[(layer, head)] / score_counts[(layer, head)])
+        for (layer, head) in score_sums
+    ]
+    result.sort(key=lambda h: h.ts, reverse=True)
+    if max_heads is not None:
+        result = result[: int(max_heads)]
+    return result
 
 
 def project_char_span_to_token_indices(

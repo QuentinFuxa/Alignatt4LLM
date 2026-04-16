@@ -1370,10 +1370,14 @@ with the recommended defaults
 `translation_alignatt_rewind_threshold = 8`,
 `translation_alignatt_inaccessible_ms = 0`) gave bit-exact scores:
 
-| run | BLEU | chrF | `LongYAAL CU` | `LongYAAL CA` |
-| --- | ---: | ---: | ---: | ---: |
-| `outputs/revalidate_phaseA_v2` | 28.22 | 63.53 | **1747.19** | 2186.21 |
-| `outputs/revalidate_phaseA_v2_rerun` | 28.22 | 63.53 | **1747.19** | 2195.95 |
+| run | BLEU | chrF | XCOMETXL | `LongYAAL CU` | `LongYAAL CA` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `outputs/revalidate_phaseA_v2` | 28.22 | 63.53 | 0.8622 | **1747.19** | 2186.21 |
+| `outputs/revalidate_phaseA_v2_rerun` | 28.22 | 63.53 | 0.8622 | **1747.19** | 2195.95 |
+
+XCOMETXL was run on CPU (`CUDA_VISIBLE_DEVICES=""`) because the warm
+inference kernel holds the A100 for ASR + Gemma; eviction would have cost
+a ~5 min reload for no scientific gain on this comparison.
 
 Both runs landed comfortably below the `2000 ms` `LongYAAL CU` target,
 with identical translation text and identical CU. The only number that
