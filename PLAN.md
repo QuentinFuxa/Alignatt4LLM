@@ -1,332 +1,509 @@
-# Current Plan: Audited Hybrid Gemma-Aligner Path
+# PLAN.md
+# Next Agent Brief: Rebuild and Reassess Gemma ASR with the Exact Multimodal Path
 
-## Mission
+## 1. Mission
 
-Take the project from:
+Your job is to resolve a serious methodological problem in our current Gemma ASR story.
 
-- "interesting alignment result with some experimental ambiguity"
+We previously concluded that Gemma free-run ASR was extremely poor on our conference clips.
+A new standalone test, using the exact official multimodal inference path, produced much better results on the same local audio.
 
-to:
+That means our previous negative conclusion is no longer defensible.
 
-- "audited, defensible hybrid front-end with clear failure accounting"
+Your task is to:
 
-The current evidence no longer supports spending primary effort on
-Gemma-only free-run ASR. The current evidence does support continuing on
-the **hybrid** path:
+1. explain the discrepancy rigorously
+2. rebuild the Gemma ASR evaluation around the exact working path
+3. reassess what architectural claims are actually justified
+4. update the repo so future work uses the correct path by default
 
-- Qwen3-ASR for transcript text
-- Gemma attention for source timings
-
-The next work should make that hybrid result honest, robust enough to
-judge, and useful for the full cascade.
-
-
-## Current Status
-
-These points should now be treated as established unless new evidence
-contradicts them.
-
-### Established
-
-1. The runtime integrity issues were addressed.
-   - default head bundle now points to the forced-calibrated file
-   - missing calibrated bundle now fails loudly
-   - hybrid fallback is now exposed in diagnostics
-   - streaming harness now records fallback usage
-   - long-audio silent truncation is now guarded
-
-2. The fair Gemma ASR check was done on `smoke18`.
-   - `generate()` and the manual greedy loop agree under matched settings
-   - prompt-order and wording changes were tested
-   - the bad free-run Gemma ASR result on that clip does **not** appear to be a simple implementation bug
-
-3. The strongest aligner result remains the teacher-forced, text-first path.
-   - the forced-calibrated text-first bundle is the correct runtime bundle for the current aligner
-   - the audio-first forced-alignment ablation is materially worse
-
-4. The most defensible current architecture is hybrid.
-   - Gemma-only ASR is not the right next objective
-   - audited hybrid is the right next objective
+This is not a prompt-tuning task.
+This is a research-integrity and systems-redesign task.
 
 
-## Read First
+## 2. What Is Already Known
 
-Before doing more work, read:
+These points should be treated as current working facts unless you disprove them carefully.
+
+### 2.1 Previous fairness conclusion is suspect
+
+Earlier repo-level fairness runs suggested Gemma ASR was catastrophically bad, including on:
+
+1. `tmp/alignatt_smoke18.wav`
+2. `tmp/rxrToXvRyM_first18.wav`
+
+That conclusion was used to justify a strong preference for hybrid over full Gemma ASR.
+
+### 2.2 New standalone multimodal test gives much better results
+
+A new script now exists:
+
+- [standalone_gemma_asr_test.py](/home/fuxa/cascade_simultaneous/standalone_gemma_asr_test.py)
+
+It uses the official-style Gemma multimodal pattern:
+
+1. `AutoProcessor`
+2. `AutoModelForMultimodalLM`
+3. audio before text in the prompt
+4. `processor.apply_chat_template(..., add_generation_prompt=True)`
+5. `model.generate(...)`
+6. `processor.decode(...)`
+7. `processor.parse_response(...)`
+8. standardized sampling:
+   - `temperature=1.0`
+   - `top_p=0.95`
+   - `top_k=64`
+   - `do_sample=True`
+
+### 2.3 Observed standalone results
+
+From:
+
+- [standalone_gemma_asr_results.json](/home/fuxa/cascade_simultaneous/tmp/standalone_gemma_asr_results.json)
+
+Observed outcomes:
+
+1. Official sample audio transcribes correctly.
+2. `tmp/alignatt_smoke18.wav` is much better than previously reported.
+   - observed quick score: `WER ~= 0.0857`
+   - observed quick score: `CER ~= 0.0462`
+3. `tmp/rxrToXvRyM_first18.wav` is imperfect but not catastrophically wrong.
+   - observed quick score: `WER ~= 0.2593`
+   - observed quick score: `CER ~= 0.1618`
+
+### 2.4 What this means
+
+At minimum, one of the following is true:
+
+1. the old fairness harness used Gemma incorrectly
+2. the old harness and new standalone test are not actually evaluating the same thing
+3. some implementation difference materially changes Gemma ASR quality
+
+Until that is resolved, we must not make strong architectural claims from the old fairness results.
+
+
+## 3. Why This Matters
+
+The repo is trying to make a defensible research argument around:
+
+1. Qwen ASR
+2. Gemma attention-based alignment
+3. hybrid and possibly full-Gemma cascade variants
+
+If Gemma ASR was judged using the wrong runtime path, then:
+
+1. the current hybrid-vs-full-Gemma recommendation may be biased
+2. the current negative result may be invalid
+3. the write-up risks making a claim we could not defend in a paper
+
+Your work should make the Gemma ASR story clean enough that we can honestly say one of these:
+
+1. Gemma ASR is viable on our target audio with the correct path
+2. Gemma ASR is mixed but usable in some regimes
+3. Gemma ASR is still not good enough, but now that conclusion is based on the correct evaluation path
+
+
+## 4. Hard Constraints
+
+You must follow these constraints.
+
+### 4.1 Research integrity
+
+1. Do not add lexical repairs.
+2. Do not add content-aware substitutions.
+3. Do not patch outputs with dataset-specific hacks.
+4. Do not rescue a result with prompt tinkering that we could not defend in a paper.
+5. Do not continue repeating the old negative conclusion unless it survives the corrected benchmark.
+
+### 4.2 Cost discipline
+
+1. Treat model loading and long streaming runs as expensive.
+2. Do not restart hot models unless necessary.
+3. Validate the mechanism on one or two clips before scaling.
+4. Do not launch broad sweeps early.
+
+### 4.3 Scope discipline
+
+This iteration is about the Gemma ASR discrepancy first.
+
+Not first priority:
+
+1. new alignment-head discovery
+2. new hybrid ablations
+3. full cascade benchmarking
+4. broad robustness studies
+
+You may touch those only after the ASR-path discrepancy is resolved.
+
+
+## 5. Files You Must Read First
+
+Read these before making architecture claims or code changes.
+
+### 5.1 Repo instructions and context
 
 1. [AGENTS.md](/home/fuxa/cascade_simultaneous/AGENTS.md)
 2. [CLAUDE.md](/home/fuxa/cascade_simultaneous/CLAUDE.md)
-3. [PLAN_RESULT_IMPLEMENTATION.md](/home/fuxa/cascade_simultaneous/PLAN_RESULT_IMPLEMENTATION.md)
-4. [PLAN_AUDIT_NOTE.md](/home/fuxa/cascade_simultaneous/PLAN_AUDIT_NOTE.md)
-5. [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py)
-6. [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py)
-7. [hybrid_alignment_backend.py](/home/fuxa/cascade_simultaneous/hybrid_alignment_backend.py)
-8. [run_streaming_stability.py](/home/fuxa/cascade_simultaneous/run_streaming_stability.py)
-9. [run_gemma_asr_fairness.py](/home/fuxa/cascade_simultaneous/run_gemma_asr_fairness.py)
 
+### 5.2 Recent result narratives
 
-## Non-Goals
+1. [PLAN_RESULT_IMPLEMENTATION.md](/home/fuxa/cascade_simultaneous/PLAN_RESULT_IMPLEMENTATION.md)
+2. [PLAN_AUDIT_NOTE.md](/home/fuxa/cascade_simultaneous/PLAN_AUDIT_NOTE.md)
+3. [ITERATION_RESULT.md](/home/fuxa/cascade_simultaneous/ITERATION_RESULT.md)
 
-Do not spend time on:
+### 5.3 Code paths to inspect closely
 
-1. further prompt tinkering for `gemma-4-E4B-it` free-run ASR on the current clip set
-2. heuristic text repair for Gemma ASR
-3. broad benchmark sweeps before the hybrid runtime pass is clean
-4. pretending the project is Gemma-only when the evidence currently points to hybrid
+1. [standalone_gemma_asr_test.py](/home/fuxa/cascade_simultaneous/standalone_gemma_asr_test.py)
+2. [run_gemma_asr_fairness.py](/home/fuxa/cascade_simultaneous/run_gemma_asr_fairness.py)
+3. [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py)
+4. [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py)
+5. [hybrid_alignment_backend.py](/home/fuxa/cascade_simultaneous/hybrid_alignment_backend.py)
 
+### 5.4 Result artifacts to compare directly
 
-## Remaining Open Questions
+1. [standalone_gemma_asr_results.json](/home/fuxa/cascade_simultaneous/tmp/standalone_gemma_asr_results.json)
+2. [gemma_asr_fairness_smoke18.json](/home/fuxa/cascade_simultaneous/tmp/alignment_research/gemma_asr_fairness_smoke18.json)
+3. [gemma_asr_fairness_rxrToXvRyM_first18.json](/home/fuxa/cascade_simultaneous/tmp/alignment_research/gemma_asr_fairness_rxrToXvRyM_first18.json)
+4. [smoke18_reference.txt](/home/fuxa/cascade_simultaneous/tmp/alignment_research/smoke18_reference.txt)
+5. [rxrToXvRyM_first18_reference.txt](/home/fuxa/cascade_simultaneous/tmp/rxrToXvRyM_first18_reference.txt)
 
-These are now the real unresolved issues.
 
-### 1. What is the actual fallback rate of the hybrid path?
+## 6. Working Hypotheses to Test
 
-We now have the instrumentation, but we do not yet have the decisive
-runtime answer on a real talk:
+You are expected to test these in a controlled way.
 
-- how many ticks use Gemma timings?
-- how many fall back to Qwen timings?
-- why?
+### H1. Audio input representation matters
 
-This is the most important next measurement.
+Possible mismatch:
 
-### 2. Does the aligner generalize beyond the current very narrow evidence?
+1. local file reference
+2. remote URL reference
+3. raw waveform array
+4. preloaded audio tensors
 
-The current evidence is still too local:
+It is plausible that the old fairness harness bypassed the path Gemma expects most naturally.
 
-- one main clip
-- one same-talk continuation
-- same language
+### H2. Decoding policy matters
 
-We need a tiny but deliberately diverse robustness set.
+Possible mismatch:
 
-### 3. What is the real downstream impact on the full cascade?
+1. standard sampled generation
+2. greedy generation
+3. manual token-by-token argmax loop
 
-Front-end alignment metrics are promising, but the actual question is:
+If the old harness used a custom decode path, that may explain extreme quality loss.
 
-- what happens to the translation cascade?
+### H3. Processor/model stack matters
 
-We still need one honest end-to-end comparison:
+Possible mismatch:
 
-- `qwen` baseline
-- vs `hybrid_qwen_asr_gemma_aligner`
+1. `AutoModelForMultimodalLM` vs other model classes
+2. full processor stack available vs partially broken multimodal stack
+3. missing dependency effects such as `torchvision`
+4. dtype/device differences that alter behavior
 
-### 4. Do we want stricter failure behavior in evaluation mode?
+### H4. Prompt and chat template path matter
 
-The hybrid backend currently catches Gemma exceptions and falls back.
-That is good for robustness, but can hide implementation bugs during
-research evaluation.
+Possible mismatch:
 
-We likely need a strict mode for evaluation.
+1. audio-first vs text-first ordering
+2. `apply_chat_template` differences
+3. generation prompt handling
+4. parsing the returned assistant response correctly
 
-### 5. Should the audio cap be derived from model/processor config?
+### H5. Scoring path may have been wrong
 
-The explicit cap is much better than silent truncation, but it is still
-effectively a fixed E4B assumption. That should ideally be derived from
-the active model configuration.
+Possible mismatch:
 
+1. raw decoded output was scored incorrectly
+2. special tokens or formatting noise were left in
+3. reference mismatch or preprocessing mismatch inflated WER/CER
 
-## Success Criteria For The Next Iteration
 
-The next iteration is successful only if all of the following are true:
+## 7. Primary Goal
 
-1. We know the hybrid fallback rate on one real talk.
-2. We know whether fallback is rare, common, or dominant.
-3. We have a small robustness table across 3–5 clips.
-4. We have one cascade-level comparison against the Qwen baseline.
-5. We can state clearly whether the hybrid path is worth adopting as the research baseline.
+Build one canonical Gemma ASR evaluation path that is:
 
+1. official-style
+2. reproducible
+3. auditable
+4. the default trustworthy benchmark in this repo
 
-## Work Plan
+That path should replace or obsolete the misleading one.
 
-## Phase 1: Tighten Evaluation Hygiene
 
-Objective:
+## 8. Secondary Goal
 
-- make the runtime evaluation path maximally trustworthy before running expensive experiments
+After the corrected benchmark exists, decide which of these claims is justified:
 
-Tasks:
+1. full Gemma cascade should be reopened on current conference audio
+2. hybrid remains the main path, but on corrected evidence
+3. Gemma-only ASR should be limited to a cleaner-audio regime
 
-1. Add or verify a strict evaluation mode for the hybrid backend.
-   - expected runtime failures may still be handled explicitly
-   - unexpected implementation bugs should be able to surface loudly
-2. Improve diagnostics where needed so every hybrid tick can be audited.
-3. If practical, derive the Gemma audio cap from model/processor config rather than a fixed constant.
+This decision must come after the benchmark correction, not before.
 
-Exit criterion:
 
-- evaluation mode cannot silently hide important Gemma-side failures
+## 9. Step-by-Step Work Plan
 
+## Phase 1: Reproduce the discrepancy cleanly
 
-## Phase 2: Run The Hybrid Fallback Audit
+### Objective
 
-Objective:
+Show, with saved artifacts, that the old and new paths really disagree on the same clips.
 
-- answer whether the hybrid path is truly using Gemma alignment often enough to matter
+### Tasks
 
-Tasks:
+1. Run the standalone multimodal script on:
+   - official sample audio
+   - `tmp/alignatt_smoke18.wav`
+   - `tmp/rxrToXvRyM_first18.wav`
+2. Run the old fairness harness on the same local clips.
+3. Save outputs side by side.
+4. Record:
+   - prompt used
+   - audio representation used
+   - decoding config
+   - raw response
+   - parsed response
+   - normalized transcript used for scoring
+   - WER/CER
 
-1. Run the streaming stability harness on one real talk using the hybrid backend.
-2. Collect:
-   - `fallback_aware_ticks`
-   - `gemma_used_ticks`
-   - `fallback_ticks`
-   - `fallback_rate`
-   - `fallback_reasons`
-3. Save the artifact bundle and summarize the result.
+### Exit criterion
 
-Key decision rule:
+We have an artifact bundle that proves the mismatch directly and reproducibly.
 
-- If fallback is frequent enough that the hybrid result is mostly Qwen timings, we should not overclaim Gemma’s contribution.
 
-Exit criterion:
+## Phase 2: Root-cause the mismatch by controlled ablation
 
-- we have one auditable fallback report on a real talk
+### Objective
 
+Identify which implementation differences materially caused the earlier pessimistic result.
 
-## Phase 3: Small Robustness Check
+### Required ablation axes
 
-Objective:
+#### A. Audio representation
 
-- determine whether the forced-calibrated Gemma aligner is local or real
+Compare at least:
 
-Use a small set only:
+1. local file path string
+2. remote URL if stable and available
+3. raw waveform array
 
-1. `smoke18`
-2. one different segment from the same talk
-3. one or two different speakers/accents if available
-4. optionally one cleaner and one harder clip
+#### B. Decoding policy
 
-Tasks:
+Compare at least:
 
-1. Reuse the current forced-calibrated runtime path.
-2. Measure:
-   - word-end MAE
-   - median
-   - P90
-   - monotonicity
-   - streaming drift if practical
-3. Record whether the same head bundle remains acceptable without retuning.
+1. official sampled generation
+2. greedy generation
+3. any custom manual loop used in the earlier path
 
-Important:
+#### C. Model/processor path
 
-- do not recalibrate per clip just to make the numbers look nice
-- the point is to judge transfer, not to optimize every example
+Compare at least:
 
-Exit criterion:
+1. `AutoModelForMultimodalLM`
+2. any old model-loading path still in the repo
+3. exact processor setup and dependency assumptions
 
-- we know whether the current aligner setup is robust enough to keep
+#### D. Response extraction and scoring
 
+Compare at least:
 
-## Phase 4: One Cascade-Level Comparison
+1. raw decoded response
+2. parsed assistant text
+3. normalized transcript used for scoring
 
-Objective:
+### Deliverable for this phase
 
-- determine the actual downstream value of the hybrid front-end
+Write a concise discrepancy report that states:
 
-Tasks:
+1. which factors matter
+2. which factors do not matter
+3. the most likely root cause of the old bad result
+4. what the canonical path must be going forward
 
-1. Run one talk with:
-   - `alignment_backend_name = "qwen"`
-   - `alignment_backend_name = "hybrid_qwen_asr_gemma_aligner"`
-2. Compare downstream translation behavior using the metrics already used in this project.
-3. Inspect whether any delta is explained by:
-   - better timing
-   - worse timing
-   - fallback behavior
-   - instability
+### Exit criterion
 
-Exit criterion:
+You can explain, with evidence, why the old fairness harness looked too bad.
 
-- we have one honest end-to-end comparison instead of only front-end proxy metrics
 
+## Phase 3: Rebuild the repo fairness harness
 
-## Phase 5: Architecture Decision
+### Objective
 
-Objective:
+Update the repo so future Gemma ASR evaluation uses the correct canonical path.
 
-- decide what should become the working research baseline
+### Tasks
 
-Choose one of the following.
+1. Update or replace [run_gemma_asr_fairness.py](/home/fuxa/cascade_simultaneous/run_gemma_asr_fairness.py).
+2. Make the default code path match the working standalone method.
+3. Preserve optional switches for controlled ablations, but keep the default path canonical.
+4. Ensure outputs store enough metadata to audit every run.
 
-### Option A: Adopt hybrid as the baseline
+### Canonical-path requirements
 
-Choose this if:
+The corrected harness should, by default:
 
-- fallback rate is acceptable
-- robustness is decent
-- the cascade-level result is competitive enough
+1. use `AutoProcessor`
+2. use `AutoModelForMultimodalLM`
+3. place audio before text
+4. use `apply_chat_template(..., add_generation_prompt=True)`
+5. use the standardized sampling config
+6. store both raw response and parsed response
+7. record transcript normalization used for scoring
+8. record model id or snapshot path
+9. record device/dtype information when available
 
-### Option B: Keep hybrid as exploratory only
+### Exit criterion
 
-Choose this if:
+There is one clear Gemma ASR benchmark path in the repo, and the old misleading path is removed or explicitly marked obsolete.
 
-- the aligner is interesting but too brittle
-- fallback is too frequent
-- or downstream benefit is too small
 
-### Option C: Re-open Gemma-only work later
+## Phase 4: Re-evaluate Gemma ASR on the current clip set
 
-Only choose this if new evidence emerges.
+### Objective
 
-Do not treat Gemma-only ASR as the main line of work right now.
+Produce the corrected Gemma ASR story on the clips we already care about.
 
-Exit criterion:
+### Tasks
 
-- a short recommendation note exists with confidence and tradeoffs
+1. Re-run `tmp/alignatt_smoke18.wav`.
+2. Re-run `tmp/rxrToXvRyM_first18.wav`.
+3. If cost is reasonable, run one or two additional short conference clips.
+4. Produce a table containing:
+   - clip id
+   - transcript output
+   - WER
+   - CER
+   - notable error type
 
+### Important analysis requirement
 
-## Concrete Commands To Run Next
+Separate these failure modes explicitly:
 
-These are the natural next expensive runs.
+1. mostly correct transcript with some entity/name noise
+2. fluent but semantically wrong hallucination
+3. general acoustic failure
 
-### 1. Hybrid fallback audit on one talk
+That distinction matters for the architecture decision.
 
-Use the streaming harness with the forced-calibrated bundle and save the report.
+### Exit criterion
 
-Goal:
+We have a corrected, credible Gemma ASR assessment on the clips already under discussion.
 
-- quantify real Gemma-vs-fallback usage
 
-### 2. Tiny robustness set
+## Phase 5: Reassess the architecture story
 
-Run the current forced-calibrated aligner on 3–5 clips.
+### Objective
 
-Goal:
+Update the repo’s recommendation based on the corrected ASR evidence.
 
-- find out whether the current result is robust or local
+### Questions to answer
 
-### 3. One full cascade comparison
+1. Is full Gemma ASR now viable enough to deserve renewed work on these conference clips?
+2. Is hybrid still the best practical path?
+3. Should the story be split by domain, for example:
+   - hard conference audio -> Qwen ASR or hybrid
+   - cleaner audio -> possible full Gemma path
+4. Does the standalone Gemma aligner remain the core contribution regardless of ASR outcome?
 
-Run one talk through:
+### Required output
 
-- Qwen baseline
-- audited hybrid
+Produce a short written recommendation that says clearly which of these is now the most defensible claim:
 
-Goal:
+1. reopen full Gemma cascade on current audio
+2. keep hybrid as baseline but revise the write-up
+3. restrict full Gemma cascade exploration to a cleaner regime
 
-- decide whether the hybrid path matters downstream
+### Exit criterion
 
+The repo has one updated architecture recommendation that reflects corrected Gemma ASR evidence.
 
-## Expected Deliverables
 
-At the end of the next iteration, produce:
+## 10. Non-Goals for This Iteration
 
-1. one fallback audit note
-2. one small robustness table
-3. one cascade comparison note
-4. one final recommendation:
-   - adopt hybrid as the baseline
-   - or keep it exploratory
+Unless the ASR discrepancy is already resolved, do not spend significant time on:
 
+1. discovering new Gemma alignment heads
+2. retuning hybrid fallback policy
+3. full streaming evaluation campaigns
+4. broad multi-audio benchmark sweeps
+5. writing paper prose beyond concise result notes
 
-## Final Guidance
 
-The project has crossed an important threshold:
+## 11. Expected Deliverables
 
-- the main uncertainty is no longer "did we accidentally misuse Gemma ASR?"
+By the end of this iteration, produce all of the following.
 
-The main uncertainty is now:
+### Code deliverables
 
-- "is the hybrid front-end materially useful, robust enough, and honest enough to become the baseline?"
+1. corrected or replaced [run_gemma_asr_fairness.py](/home/fuxa/cascade_simultaneous/run_gemma_asr_fairness.py)
+2. any supporting helper changes needed to make the canonical path clean and reusable
 
-That is the next question to answer.
+### Artifact deliverables
+
+1. side-by-side discrepancy artifacts
+2. corrected fairness outputs on the current clip set
+3. a concise discrepancy report
+4. a concise architecture recommendation update
+
+### Documentation deliverables
+
+Update whichever note is most appropriate among:
+
+1. [PLAN_RESULT_IMPLEMENTATION.md](/home/fuxa/cascade_simultaneous/PLAN_RESULT_IMPLEMENTATION.md)
+2. [PLAN_AUDIT_NOTE.md](/home/fuxa/cascade_simultaneous/PLAN_AUDIT_NOTE.md)
+3. [ITERATION_RESULT.md](/home/fuxa/cascade_simultaneous/ITERATION_RESULT.md)
+
+If none of them is appropriate, create one short new result note rather than scattering conclusions across many files.
+
+
+## 12. Decision Rules
+
+Use these rules when deciding whether the repo story should change.
+
+### Rule A
+
+If corrected Gemma ASR is clearly good on the main conference clips, do not keep the old negative conclusion.
+Reopen the full Gemma cascade path honestly.
+
+### Rule B
+
+If corrected Gemma ASR is mixed but meaningfully better than previously reported, rewrite the recommendation to reflect that nuance.
+Do not overstate hybrid necessity.
+
+### Rule C
+
+If corrected Gemma ASR is still weak, but now weak under the correct path, then the negative result is valid again.
+At that point hybrid remains the main path on defensible grounds.
+
+### Rule D
+
+If the answer varies sharply by audio type, say so explicitly.
+A domain-split recommendation is acceptable if it is supported by evidence.
+
+
+## 13. Suggested Execution Order
+
+If you want a minimal and disciplined path, do this in order:
+
+1. inspect old fairness code against the standalone script
+2. reproduce the mismatch on `smoke18`
+3. isolate the dominant cause on `smoke18`
+4. patch or replace the fairness harness
+5. rerun `rxrToXvRyM_first18`
+6. write the corrected architecture recommendation
+
+Do not fan out early.
+
+
+## 14. Final Standard
+
+At the end of this iteration, another researcher should be able to look at the repo and understand:
+
+1. why the earlier Gemma ASR result was misleading
+2. what the correct Gemma ASR evaluation path is
+3. what Gemma ASR can actually do on our current audio
+4. whether hybrid vs full-Gemma claims are still justified
+
+That is the bar.

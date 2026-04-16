@@ -1,0 +1,129 @@
+{
+  "wav_path": "tmp/alignatt_smoke18.wav",
+  "reference": "Hi, I'm Siyu Yuan from Fudan University. I'm here to introduce our work: distilling script knowledge from large language models for constrained language planning. In everyday life, humans often plan their actions by following step-by-step",
+  "model": "/home/fuxa/.cache/huggingface/hub/models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c",
+  "max_new_tokens": 256,
+  "seed": 0,
+  "variants": [
+    {
+      "variant": {
+        "attn_impl": "default",
+        "audio_format": "filepath",
+        "decode_policy": "greedy"
+      },
+      "raw_response": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, \"Distilling Script Knowledge from Large Language Models for Constrained Language Planning.\" In everyday life, humans often plan their actions by following step-by-step<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, \"Distilling Script Knowledge from Large Language Models for Constrained Language Planning.\" In everyday life, humans often plan their actions by following step-by-step"
+      },
+      "transcript": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, \"Distilling Script Knowledge from Large Language Models for Constrained Language Planning.\" In everyday life, humans often plan their actions by following step-by-step",
+      "wer": 0.02857142857142857,
+      "cer": 0.010256410256410256
+    },
+    {
+      "variant": {
+        "attn_impl": "default",
+        "audio_format": "filepath",
+        "decode_policy": "sampled"
+      },
+      "raw_response": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, Distinct Script Knowledge from Language Models for Constraint Language Planning. In everyday life, humans often plan their actions by following step-by-step<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, Distinct Script Knowledge from Language Models for Constraint Language Planning. In everyday life, humans often plan their actions by following step-by-step"
+      },
+      "transcript": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, Distinct Script Knowledge from Language Models for Constraint Language Planning. In everyday life, humans often plan their actions by following step-by-step",
+      "wer": 0.11428571428571428,
+      "cer": 0.07179487179487179
+    },
+    {
+      "variant": {
+        "attn_impl": "default",
+        "audio_format": "numpy",
+        "decode_policy": "greedy"
+      },
+      "raw_response": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, \"Distilling Script Knowledge from Large Language Models for Constrained Language Planning.\" In everyday life, humans often plan their actions by following step-by-step<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, \"Distilling Script Knowledge from Large Language Models for Constrained Language Planning.\" In everyday life, humans often plan their actions by following step-by-step"
+      },
+      "transcript": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, \"Distilling Script Knowledge from Large Language Models for Constrained Language Planning.\" In everyday life, humans often plan their actions by following step-by-step",
+      "wer": 0.02857142857142857,
+      "cer": 0.010256410256410256
+    },
+    {
+      "variant": {
+        "attn_impl": "default",
+        "audio_format": "numpy",
+        "decode_policy": "sampled"
+      },
+      "raw_response": "Hi I'm Xi Yuan from Fudan University I'm here to introduce our work Distincting Scripted Knowledge from Large Language Models for Constraint Language Planning In everyday life humans often plan their actions by following stepbystep<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Hi I'm Xi Yuan from Fudan University I'm here to introduce our work Distincting Scripted Knowledge from Large Language Models for Constraint Language Planning In everyday life humans often plan their actions by following stepbystep"
+      },
+      "transcript": "Hi I'm Xi Yuan from Fudan University I'm here to introduce our work Distincting Scripted Knowledge from Large Language Models for Constraint Language Planning In everyday life humans often plan their actions by following stepbystep",
+      "wer": 0.11428571428571428,
+      "cer": 0.05128205128205128
+    },
+    {
+      "variant": {
+        "attn_impl": "eager",
+        "audio_format": "filepath",
+        "decode_policy": "greedy"
+      },
+      "raw_response": "Hi, I'm a student from University of Nottingham and I'm interning at Global Logistics for Sustainable Planning. I'm really interested in how AI can optimize supply chain logistics.<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Hi, I'm a student from University of Nottingham and I'm interning at Global Logistics for Sustainable Planning. I'm really interested in how AI can optimize supply chain logistics."
+      },
+      "transcript": "Hi, I'm a student from University of Nottingham and I'm interning at Global Logistics for Sustainable Planning. I'm really interested in how AI can optimize supply chain logistics.",
+      "wer": 0.8285714285714286,
+      "cer": 0.6717948717948717
+    },
+    {
+      "variant": {
+        "attn_impl": "eager",
+        "audio_format": "filepath",
+        "decode_policy": "sampled"
+      },
+      "raw_response": "Hi, I'm a student from University of Nottingham and I'm interning at Novo Nordisk in the UK. I'm really excited about this experience because it's a chance to learn about sustainable practices in the pharmaceutical industry.<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Hi, I'm a student from University of Nottingham and I'm interning at Novo Nordisk in the UK. I'm really excited about this experience because it's a chance to learn about sustainable practices in the pharmaceutical industry."
+      },
+      "transcript": "Hi, I'm a student from University of Nottingham and I'm interning at Novo Nordisk in the UK. I'm really excited about this experience because it's a chance to learn about sustainable practices in the pharmaceutical industry.",
+      "wer": 0.9428571428571428,
+      "cer": 0.764102564102564
+    },
+    {
+      "variant": {
+        "attn_impl": "eager",
+        "audio_format": "numpy",
+        "decode_policy": "greedy"
+      },
+      "raw_response": "Hi, I'm a student from University of Nottingham and I'm interning at Global Logistics for Sustainable Planning. I'm really interested in how AI can optimize supply chain logistics.<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Hi, I'm a student from University of Nottingham and I'm interning at Global Logistics for Sustainable Planning. I'm really interested in how AI can optimize supply chain logistics."
+      },
+      "transcript": "Hi, I'm a student from University of Nottingham and I'm interning at Global Logistics for Sustainable Planning. I'm really interested in how AI can optimize supply chain logistics.",
+      "wer": 0.8285714285714286,
+      "cer": 0.6717948717948717
+    },
+    {
+      "variant": {
+        "attn_impl": "eager",
+        "audio_format": "numpy",
+        "decode_policy": "sampled"
+      },
+      "raw_response": "Hi, I'm a student from Oxford University, and I'm interviewing you about the distinction between formal and informal language in Indian English.<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Hi, I'm a student from Oxford University, and I'm interviewing you about the distinction between formal and informal language in Indian English."
+      },
+      "transcript": "Hi, I'm a student from Oxford University, and I'm interviewing you about the distinction between formal and informal language in Indian English.",
+      "wer": 0.8285714285714286,
+      "cer": 0.6717948717948717
+    }
+  ]
+}

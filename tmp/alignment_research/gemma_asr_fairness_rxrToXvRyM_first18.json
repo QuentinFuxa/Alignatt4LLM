@@ -1,0 +1,64 @@
+{
+  "wav_path": "tmp/rxrToXvRyM_first18.wav",
+  "audio_duration_s": 18.0,
+  "reference": "Hi, I'm Myra and today I'll be talking about our paper \"Marked Personas: Using Natural Language Prompts to Measure Stereotypes in Language Models.\" This work is done in collaboration with Esin Durmus and Dan Jurafsky. In recent years, many have documented the prevalence of social bias and stereotypes in large language models, or LLMs.",
+  "model": "/home/fuxa/.cache/huggingface/hub/models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c",
+  "max_new_tokens": 256,
+  "variants": [
+    {
+      "variant": {
+        "decode_path": "generate",
+        "prompt_order": "audio_first",
+        "prompt_wording": "cookbook_original_language",
+        "input_cast": "to_device"
+      },
+      "transcript": "Hi, I'm interested in talking about hyper-personalized marketing approaches for small businesses in English-speaking markets. Is there any documentation or principles of social science or history that could inform this?",
+      "wer": 0.8518518518518519,
+      "cer": 0.6691176470588235
+    },
+    {
+      "variant": {
+        "decode_path": "manual_greedy",
+        "prompt_order": "audio_first",
+        "prompt_wording": "cookbook_original_language",
+        "input_cast": "to_device"
+      },
+      "transcript": "Hi, I'm interested in talking about hyper-personalized marketing approaches for small businesses in English-speaking markets. Is there any documentation or principles of social science or history that could inform this?",
+      "wer": 0.8518518518518519,
+      "cer": 0.6691176470588235
+    },
+    {
+      "variant": {
+        "decode_path": "generate",
+        "prompt_order": "text_first",
+        "prompt_wording": "cookbook_original_language",
+        "input_cast": "to_device"
+      },
+      "transcript": "Hi I I wanted to talk about our market personas using natural language processing procedures in different languages this is going to be a liberation in enriching our research",
+      "wer": 0.7962962962962963,
+      "cer": 0.6360294117647058
+    },
+    {
+      "variant": {
+        "decode_path": "generate",
+        "prompt_order": "audio_first",
+        "prompt_wording": "explicit_english",
+        "input_cast": "to_device"
+      },
+      "transcript": "Hi, I'm interested in talking about hyper-personalized marketing approaches for small businesses in the English language. Specifically, I'm interested in the implications of social biases and stereotypes.",
+      "wer": 0.7962962962962963,
+      "cer": 0.6580882352941176
+    },
+    {
+      "variant": {
+        "decode_path": "generate",
+        "prompt_order": "audio_first",
+        "prompt_wording": "cookbook_original_language",
+        "input_cast": "to_device_and_dtype"
+      },
+      "transcript": "Hi, I'm interested in talking about hyper-personalized marketing approaches for small businesses in English-speaking markets. Is there any documentation or principles of social science or history that could inform this?",
+      "wer": 0.8518518518518519,
+      "cer": 0.6691176470588235
+    }
+  ]
+}

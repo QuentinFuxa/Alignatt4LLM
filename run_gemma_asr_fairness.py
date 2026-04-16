@@ -1,168 +1,196 @@
 #!/usr/bin/env python
-"""Fair Gemma free-run ASR benchmark — Phase 2 of PLAN.md.
+"""Gemma ASR fairness benchmark — controlled ablation of the discrepancy.
 
-Answers exactly: "was the previous Gemma ASR evaluation fair?"
+Root-causes the gap between the old fairness harness (WER ~0.83, hallucinated)
+and the standalone multimodal test (WER ~0.09–0.26, mostly correct).
 
-Runs a controlled matrix on one short clip and saves every variant's
-exact output + WER/CER vs a trusted reference. Variables under control:
+Candidate root causes under test:
 
-1. decode path            : ``model.generate()`` vs the cascade's manual
-                            greedy decode (the path the alignment probe
-                            uses). These should agree token-for-token at
-                            ``temperature=0``; any divergence is a bug
-                            and must be reported, not papered over.
-2. prompt ordering        : audio-block-before-text vs text-before-audio.
-3. prompt wording         : the cookbook ``"in its original language"``
-                            phrasing vs the more explicit English
-                            transcription wording previously used.
-4. input cast policy      : single ``.to(device)`` (cookbook) vs an
-                            additional explicit cast of float tensors to
-                            ``model.dtype`` (the older path that ran a
-                            bf16 quantization pass over mel features).
+1. attn_implementation  : "eager" (old path via backend) vs default
+2. audio_input_format   : numpy array (old path) vs file path string (standalone)
+3. decode_policy        : greedy (old path) vs sampled (standalone)
 
-This script does not call the alignment probe — no attention extraction,
-no head ranking. It reports transcripts only, so the verdict on
-free-run ASR is independent of the alignment story. Produces a JSON
-file with every variant's metadata + transcript + WER/CER.
+The model is loaded ONCE. ``attn_implementation`` is toggled at runtime via
+the config attribute (the same mechanism GemmaAttentionAlignmentBackend uses).
 """
 
 from __future__ import annotations
 
 import argparse
-import itertools
 import json
-from dataclasses import dataclass, asdict
+import string
+import wave
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Sequence
 
 import numpy as np
 import torch
+from transformers import AutoModelForMultimodalLM, AutoProcessor
 
-from run_alignment_single_audio import load_wav
 
-
-PROMPT_WORDINGS: dict[str, str] = {
-    "cookbook_original_language": (
-        "Transcribe the following speech segment in its original language. "
-        "Follow these specific instructions for formatting the answer:\n"
-        "* Only output the transcription, with no newlines.\n"
-        "* When transcribing numbers, write the digits, i.e. write 1.7 "
-        "and not one point seven, and write 3 instead of three."
-    ),
-    "explicit_english": (
-        "Transcribe the following English speech segment into English text. "
-        "Output only the transcription, no newlines, no commentary."
-    ),
-}
+PROMPT = (
+    "Transcribe the following speech segment in its original language. "
+    "Follow these specific instructions for formatting the answer:\n"
+    "* Only output the transcription, with no newlines.\n"
+    "* When transcribing numbers, write the digits, i.e. write 1.7 "
+    "and not one point seven, and write 3 instead of three."
+)
 
 
 @dataclass
-class FairnessVariant:
-    decode_path: str        # "generate" | "manual_greedy"
-    prompt_order: str       # "audio_first" | "text_first"
-    prompt_wording: str     # key into PROMPT_WORDINGS
-    input_cast: str         # "to_device" | "to_device_and_dtype"
+class Variant:
+    attn_impl: str        # "eager" | "default"
+    audio_format: str     # "filepath" | "numpy"
+    decode_policy: str    # "greedy" | "sampled"
 
 
-def _build_messages(
-    *, audio: np.ndarray, prompt_order: str, prompt_wording: str
-) -> list[dict]:
-    text_block = {"type": "text", "text": PROMPT_WORDINGS[prompt_wording]}
-    audio_block = {"type": "audio", "audio": np.asarray(audio, dtype=np.float32)}
-    if prompt_order == "audio_first":
-        content = [audio_block, text_block]
-    elif prompt_order == "text_first":
-        content = [text_block, audio_block]
+def _resolve_model() -> str:
+    candidates = [
+        "/home/.cache/huggingface/hub/models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c",
+        str(
+            Path.home()
+            / ".cache/huggingface/hub/models--google--gemma-4-E4B-it"
+            / "snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c"
+        ),
+    ]
+    for c in candidates:
+        if Path(c).exists():
+            return c
+    return "google/gemma-4-E4B-it"
+
+
+def _load_wav_numpy(path: str) -> np.ndarray:
+    with wave.open(path, "rb") as wav:
+        sr = wav.getframerate()
+        width = wav.getsampwidth()
+        ch = wav.getnchannels()
+        raw = wav.readframes(wav.getnframes())
+    if width != 2:
+        raise ValueError("Only 16-bit PCM WAV supported.")
+    audio = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+    if ch > 1:
+        audio = audio.reshape(-1, ch).mean(axis=1)
+    if sr != 16000:
+        duration = len(audio) / sr
+        new_length = int(duration * 16000)
+        old_times = np.linspace(0.0, duration, num=len(audio), endpoint=False)
+        new_times = np.linspace(0.0, duration, num=new_length, endpoint=False)
+        audio = np.interp(new_times, old_times, audio).astype(np.float32)
+    return audio
+
+
+def _build_messages(wav_path: str, *, audio_format: str) -> list[dict]:
+    if audio_format == "filepath":
+        audio_ref = str(Path(wav_path).resolve())
+    elif audio_format == "numpy":
+        audio_ref = _load_wav_numpy(wav_path)
     else:
-        raise ValueError(f"Unknown prompt_order: {prompt_order!r}")
-    return [{"role": "user", "content": content}]
+        raise ValueError(f"Unknown audio_format: {audio_format!r}")
+    return [
+        {
+            "role": "user",
+            "content": [
+                {"type": "audio", "audio": audio_ref},
+                {"type": "text", "text": PROMPT},
+            ],
+        }
+    ]
 
 
-def _cast_inputs(inputs, *, model, policy: str):
-    inputs = inputs.to(model.device)
-    if policy == "to_device":
-        return inputs
-    if policy == "to_device_and_dtype":
-        # Older path: explicitly cast every float tensor to ``model.dtype``.
-        # Reported (in the implementation notes) to introduce a bf16
-        # quantization pass over mel features before the audio tower.
-        target_dtype = model.dtype
-        for key in list(inputs.keys()):
-            value = inputs[key]
-            if isinstance(value, torch.Tensor) and value.is_floating_point():
-                inputs[key] = value.to(target_dtype)
-        return inputs
-    raise ValueError(f"Unknown input_cast policy: {policy!r}")
+def _set_attn_impl(model, impl: str) -> list[tuple[object, str | None]]:
+    """Toggle attn_implementation on all config objects, return originals."""
+    saved = []
+    seen = set()
+    for obj in (
+        model,
+        getattr(model, "model", None),
+        getattr(getattr(model, "model", None), "language_model", None),
+    ):
+        config = getattr(obj, "config", None)
+        if config is None or id(config) in seen:
+            continue
+        seen.add(id(config))
+        original = getattr(config, "_attn_implementation", None)
+        saved.append((config, original))
+        if impl == "eager":
+            config._attn_implementation = "eager"
+        else:
+            if original is not None:
+                config._attn_implementation = original
+    return saved
 
 
-def _resolve_stop_token_ids(*, tokenizer, model) -> tuple[int, ...]:
-    stops: set[int] = set()
-    eos = getattr(tokenizer, "eos_token_id", None)
-    if eos is not None:
-        stops.add(int(eos))
-    config_eos = getattr(model.config, "eos_token_id", None)
-    if isinstance(config_eos, (list, tuple)):
-        stops.update(int(t) for t in config_eos)
-    elif isinstance(config_eos, int):
-        stops.add(int(config_eos))
-    end_of_turn = tokenizer.convert_tokens_to_ids("<end_of_turn>")
-    if isinstance(end_of_turn, int) and end_of_turn >= 0:
-        stops.add(end_of_turn)
-    return tuple(sorted(stops))
+def _restore_attn_impl(saved: list[tuple[object, str | None]]) -> None:
+    for config, original in saved:
+        if original is not None:
+            config._attn_implementation = original
 
 
-def _decode_generate(
-    *, model, processor, tokenizer, inputs: dict, max_new_tokens: int
-) -> str:
-    with torch.no_grad():
-        out = model.generate(
-            **inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=False,
-        )
-    prompt_len = int(inputs["input_ids"].shape[1])
-    new_ids = out[0, prompt_len:].tolist()
-    return tokenizer.decode(new_ids, skip_special_tokens=True).strip()
+def _run_variant(
+    *,
+    model,
+    processor,
+    wav_path: str,
+    variant: Variant,
+    max_new_tokens: int,
+) -> dict:
+    messages = _build_messages(wav_path, audio_format=variant.audio_format)
+    inputs = processor.apply_chat_template(
+        messages,
+        tokenize=True,
+        return_dict=True,
+        return_tensors="pt",
+        add_generation_prompt=True,
+    ).to(model.device)
+    input_len = int(inputs["input_ids"].shape[-1])
 
-
-def _decode_manual_greedy(
-    *, model, tokenizer, inputs: dict, max_new_tokens: int
-) -> str:
-    """Reproduces the cascade probe's per-step argmax decode at T=0.
-
-    Should agree token-for-token with ``model.generate(do_sample=False)``;
-    any divergence is a bug worth reporting, not a quality metric.
-    """
-    eos_token_ids = set(_resolve_stop_token_ids(tokenizer=tokenizer, model=model))
-    generated_ids: list[int] = []
-
-    model_kwargs = {k: v for k, v in inputs.items()}
-    with torch.no_grad():
-        outputs = model(**model_kwargs, use_cache=True, return_dict=True)
-        past_key_values = outputs.past_key_values
-        for _ in range(max_new_tokens):
-            logits = outputs.logits[0, -1, :].float()
-            next_token_id = int(logits.argmax().item())
-            if next_token_id in eos_token_ids:
-                break
-            generated_ids.append(next_token_id)
-            step_input_ids = torch.tensor(
-                [[next_token_id]], device=model.device
+    saved = _set_attn_impl(model, variant.attn_impl)
+    try:
+        if variant.decode_policy == "greedy":
+            outputs = model.generate(
+                **inputs, max_new_tokens=max_new_tokens, do_sample=False
             )
-            outputs = model(
-                input_ids=step_input_ids,
-                past_key_values=past_key_values,
-                use_cache=True,
-                return_dict=True,
+        elif variant.decode_policy == "sampled":
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=True,
+                temperature=1.0,
+                top_p=0.95,
+                top_k=64,
             )
-            past_key_values = outputs.past_key_values
-    return tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+        else:
+            raise ValueError(f"Unknown decode_policy: {variant.decode_policy!r}")
+    finally:
+        _restore_attn_impl(saved)
+
+    response = processor.decode(outputs[0][input_len:], skip_special_tokens=False)
+    parsed = None
+    try:
+        parsed = processor.parse_response(response)
+    except Exception:
+        pass
+
+    transcript = parsed["content"] if isinstance(parsed, dict) and "content" in parsed else response
+    # strip trailing turn marker
+    for marker in ("<turn|>", "<end_of_turn>"):
+        transcript = transcript.replace(marker, "")
+    transcript = transcript.strip()
+
+    return {
+        "variant": asdict(variant),
+        "raw_response": response,
+        "parsed_response": parsed,
+        "transcript": transcript,
+    }
 
 
-def _normalize_for_metric(text: str) -> list[str]:
-    import string
+# ── scoring ──────────────────────────────────────────────────────────
 
-    table = str.maketrans("", "", string.punctuation + "“”‘’")
+
+def _normalize(text: str) -> list[str]:
+    table = str.maketrans("", "", string.punctuation + "\u201c\u201d\u2018\u2019")
     return text.lower().translate(table).split()
 
 
@@ -182,198 +210,97 @@ def _levenshtein(ref: Sequence, hyp: Sequence) -> int:
 
 
 def _wer(reference: str, hypothesis: str) -> float:
-    ref_tokens = _normalize_for_metric(reference)
-    hyp_tokens = _normalize_for_metric(hypothesis)
-    if not ref_tokens:
-        return float("nan")
-    return _levenshtein(ref_tokens, hyp_tokens) / len(ref_tokens)
+    ref = _normalize(reference)
+    hyp = _normalize(hypothesis)
+    return _levenshtein(ref, hyp) / max(1, len(ref))
 
 
 def _cer(reference: str, hypothesis: str) -> float:
-    ref_chars = list("".join(_normalize_for_metric(reference)))
-    hyp_chars = list("".join(_normalize_for_metric(hypothesis)))
-    if not ref_chars:
-        return float("nan")
-    return _levenshtein(ref_chars, hyp_chars) / len(ref_chars)
+    ref = list("".join(_normalize(reference)))
+    hyp = list("".join(_normalize(hypothesis)))
+    return _levenshtein(ref, hyp) / max(1, len(ref))
 
 
-def run_variant(
-    variant: FairnessVariant,
-    *,
-    audio: np.ndarray,
-    model,
-    processor,
-    tokenizer,
-    max_new_tokens: int,
-) -> dict:
-    messages = _build_messages(
-        audio=audio,
-        prompt_order=variant.prompt_order,
-        prompt_wording=variant.prompt_wording,
+# ── main ─────────────────────────────────────────────────────────────
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--wav", required=True)
+    parser.add_argument("--reference", required=True)
+    parser.add_argument("--output", default="tmp/alignment_research/gemma_asr_fairness_ablation.json")
+    parser.add_argument("--max-new-tokens", type=int, default=256)
+    parser.add_argument("--seed", type=int, default=0)
+    args = parser.parse_args()
+
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+
+    model_path = _resolve_model()
+    reference = Path(args.reference).read_text(encoding="utf-8").strip()
+
+    print(f"[info] loading model from: {model_path}")
+    processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+    model = AutoModelForMultimodalLM.from_pretrained(
+        model_path, dtype="auto", device_map="auto", trust_remote_code=True
     )
-    inputs = processor.apply_chat_template(
-        messages,
-        add_generation_prompt=True,
-        tokenize=True,
-        return_dict=True,
-        return_tensors="pt",
-    )
-    inputs = _cast_inputs(inputs, model=model, policy=variant.input_cast)
-    inputs_dict = dict(inputs)
 
-    if variant.decode_path == "generate":
-        text = _decode_generate(
-            model=model,
-            processor=processor,
-            tokenizer=tokenizer,
-            inputs=inputs_dict,
-            max_new_tokens=max_new_tokens,
-        )
-    elif variant.decode_path == "manual_greedy":
-        text = _decode_manual_greedy(
-            model=model,
-            tokenizer=tokenizer,
-            inputs=inputs_dict,
-            max_new_tokens=max_new_tokens,
-        )
-    else:
-        raise ValueError(f"Unknown decode_path: {variant.decode_path!r}")
+    # Ablation matrix: 2 attn × 2 audio × 2 decode = 8 variants
+    variants = [
+        Variant(attn_impl=a, audio_format=f, decode_policy=d)
+        for a in ("default", "eager")
+        for f in ("filepath", "numpy")
+        for d in ("greedy", "sampled")
+    ]
 
-    return {"variant": asdict(variant), "transcript": text}
-
-
-def cmd_run(args: argparse.Namespace) -> None:
-    audio, sr = load_wav(args.wav)
-    if sr != 16000:
-        raise RuntimeError("expected 16 kHz audio after load_wav")
-    duration_s = len(audio) / sr
-    print(f"[info] {args.wav}: duration={duration_s:.2f}s")
-
-    reference_text = Path(args.reference).read_text(encoding="utf-8").strip()
-    print(f"[info] reference ({len(reference_text)} chars): {reference_text[:120]}...")
-
-    # Load Gemma once; reuse for every variant.
-    from gemma_alignment_probe import GemmaAttentionAlignmentBackend
-    from qwen3asr_gemma_cascade_core import config, gemma_model_name
-
-    backend = GemmaAttentionAlignmentBackend(
-        model_name=gemma_model_name,
-        runtime_config=config,
-        audio_heads_path=None,  # ASR fairness — no alignment heads needed
-        audio_heads_top_k=0,
-    )
-    backend.load()
-    model = backend.model
-    processor = backend.processor
-    tokenizer = backend.tokenizer
-
-    variants: list[FairnessVariant] = []
-    if args.full_matrix:
-        for decode_path, prompt_order, wording, cast in itertools.product(
-            ["generate", "manual_greedy"],
-            ["audio_first", "text_first"],
-            list(PROMPT_WORDINGS.keys()),
-            ["to_device", "to_device_and_dtype"],
-        ):
-            variants.append(
-                FairnessVariant(
-                    decode_path=decode_path,
-                    prompt_order=prompt_order,
-                    prompt_wording=wording,
-                    input_cast=cast,
-                )
-            )
-    else:
-        # Minimum useful set: decode-path equivalence on the cookbook
-        # configuration, plus the two single-axis ablations from the
-        # implementation notes (prompt order, prompt wording).
-        cookbook = ("audio_first", "cookbook_original_language", "to_device")
-        variants = [
-            FairnessVariant("generate", *cookbook),
-            FairnessVariant("manual_greedy", *cookbook),
-            FairnessVariant("generate", "text_first", "cookbook_original_language", "to_device"),
-            FairnessVariant("generate", "audio_first", "explicit_english", "to_device"),
-            FairnessVariant("generate", "audio_first", "cookbook_original_language", "to_device_and_dtype"),
-        ]
-
-    rows: list[dict] = []
-    for variant in variants:
-        print(f"\n[run] {variant}")
+    rows = []
+    for v in variants:
+        print(f"\n[run] {v}")
         try:
-            row = run_variant(
-                variant,
-                audio=audio,
+            row = _run_variant(
                 model=model,
                 processor=processor,
-                tokenizer=tokenizer,
-                max_new_tokens=int(args.max_new_tokens),
+                wav_path=args.wav,
+                variant=v,
+                max_new_tokens=args.max_new_tokens,
             )
-        except Exception as exc:  # noqa: BLE001 — capture per-variant
-            row = {"variant": asdict(variant), "error": f"{type(exc).__name__}: {exc}"}
+        except Exception as exc:
+            row = {"variant": asdict(v), "error": f"{type(exc).__name__}: {exc}"}
             print(f"  ! error: {row['error']}")
             rows.append(row)
             continue
-        row["wer"] = _wer(reference_text, row["transcript"])
-        row["cer"] = _cer(reference_text, row["transcript"])
+        row["wer"] = _wer(reference, row["transcript"])
+        row["cer"] = _cer(reference, row["transcript"])
         print(f"  WER={row['wer']:.3f}  CER={row['cer']:.3f}")
-        print(f"  text: {row['transcript'][:140]}...")
+        print(f"  text: {row['transcript'][:160]}...")
         rows.append(row)
 
     payload = {
         "wav_path": str(args.wav),
-        "audio_duration_s": float(duration_s),
-        "reference": reference_text,
-        "model": gemma_model_name,
-        "max_new_tokens": int(args.max_new_tokens),
+        "reference": reference,
+        "model": model_path,
+        "device": str(model.device),
+        "dtype": str(model.dtype),
+        "max_new_tokens": args.max_new_tokens,
+        "seed": args.seed,
+        "normalization": "lowercase, strip punctuation (incl curly quotes), split on whitespace",
         "variants": rows,
     }
-    out_path = Path(args.output)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    print(f"\n[saved] {out_path}")
+    out = Path(args.output)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"\n[saved] {out}")
 
-    # Decode-path equivalence check: at T=0, generate() and manual greedy
-    # should agree token-for-token under matched prompt/cast settings.
-    print("\n[decode-path equivalence under matched prompt+cast]")
-    by_key: dict[tuple[str, str, str], dict[str, str]] = {}
+    # Summary table
+    print("\n=== ABLATION SUMMARY ===")
+    print(f"{'attn':>8s} {'audio':>10s} {'decode':>8s}  {'WER':>6s}  {'CER':>6s}  transcript[:80]")
     for row in rows:
-        if "transcript" not in row:
-            continue
         v = row["variant"]
-        key = (v["prompt_order"], v["prompt_wording"], v["input_cast"])
-        by_key.setdefault(key, {})[v["decode_path"]] = row["transcript"]
-    for key, mapping in by_key.items():
-        if len(mapping) < 2:
-            continue
-        agree = mapping["generate"].strip() == mapping["manual_greedy"].strip()
-        print(f"  order={key[0]:11s} wording={key[1]:32s} cast={key[2]:22s}  agree={agree}")
-
-
-def build_cli() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--wav", required=True)
-    parser.add_argument(
-        "--reference",
-        required=True,
-        help="Path to a .txt file containing the trusted reference transcript.",
-    )
-    parser.add_argument(
-        "--output",
-        default="tmp/alignment_research/gemma_asr_fairness.json",
-    )
-    parser.add_argument("--max-new-tokens", type=int, default=256)
-    parser.add_argument(
-        "--full-matrix",
-        action="store_true",
-        help="Run all 2x2x2x2 = 16 variants instead of the 5-variant minimum.",
-    )
-    parser.set_defaults(func=cmd_run)
-    return parser
-
-
-def main(argv=None) -> None:
-    args = build_cli().parse_args(argv)
-    args.func(args)
+        wer = row.get("wer", float("nan"))
+        cer = row.get("cer", float("nan"))
+        text = row.get("transcript", row.get("error", ""))[:80]
+        print(f"{v['attn_impl']:>8s} {v['audio_format']:>10s} {v['decode_policy']:>8s}  {wer:6.3f}  {cer:6.3f}  {text}")
 
 
 if __name__ == "__main__":

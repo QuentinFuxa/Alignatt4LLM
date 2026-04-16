@@ -1,0 +1,1 @@
+Hi, I'm Myra and today I'll be talking about our paper "Marked Personas: Using Natural Language Prompts to Measure Stereotypes in Language Models." This work is done in collaboration with Esin Durmus and Dan Jurafsky. In recent years, many have documented the prevalence of social bias and stereotypes in large language models, or LLMs.
