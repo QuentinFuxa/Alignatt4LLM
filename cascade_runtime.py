@@ -57,6 +57,7 @@ os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 
 LANGUAGE_NAME_TO_CODE = {
+    "Czech": "cs",
     "English": "en",
     "German": "de",
     "Italian": "it",
@@ -102,14 +103,6 @@ gemma_model_name = _resolve_hf_snapshot(
     "models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c"
 )
 
-LANGUAGE_NAME_TO_CODE = {
-    "Czech": "cs",
-    "English": "en",
-    "German": "de",
-    "Italian": "it",
-    "Chinese": "zh",
-}
-
 
 def alignatt_heads_path_for(source_lang: str, target_lang: str) -> str:
     source_code = LANGUAGE_NAME_TO_CODE.get(source_lang, source_lang.lower())
@@ -151,6 +144,18 @@ class CascadeRuntimeConfig:
     translation_generation_margin: int = 8
     translation_emit_policy: str = RAW_PASSTHROUGH
     translation_max_tail_rewrite_words: int = 14
+    # Scalar-vs-discrete substitution for the alignatt:source_frontier
+    # gate. Default "discrete" matches shipped behaviour: the gate fires
+    # when ``current_source_local_position >= accessible_source_token_count``.
+    # "scalar" replaces that with a threshold on the per-token provenance
+    # mass ``unsafe.source_inaccessible >= threshold``. The scalar path
+    # approximates the discrete gate at a single threshold, trading ~10%
+    # of per-update commit decisions against a smaller online code
+    # surface. See `scripts/scalar_substitution_drift.py` and
+    # `scripts/scalar_threshold_sweep.py` for the offline drift curves
+    # that informed the default threshold 0.015.
+    translation_source_frontier_mode: str = "discrete"
+    translation_source_frontier_scalar_threshold: float = 0.015
     temperature: float = 0.0
     repetition_penalty: float = 1.05
     asr_gpu_memory_utilization: float = 0.2
@@ -215,6 +220,13 @@ class CascadeRuntimeConfig:
     #   for models like Gemma-4 ASR that don't emit sentence-terminal
     #   punctuation on the test clips (`utt_timestamps` never advances
     #   otherwise and the prompt overflows `max_model_len`).
+    # - ``stable_and_accessible`` commits a contiguous word prefix that is
+    #   both accessible (behind the audio frontier by
+    #   ``asr_alignatt_frontier_margin_ms``) AND stable (identical in the
+    #   last ``asr_stability_k`` consecutive ASR hypotheses). K-stability
+    #   (K ≥ 3) is strictly more conservative than the 2-hypothesis LCP
+    #   used by ``alignatt_frontier`` and is designed to close the quality
+    #   cliff of the frontier rule without reverting to punctuation gating.
     # Empirically on en→de with Qwen3-ASR + Gemma vLLM MT on ccpXHNfaoy.wav
     # (360 s): punctuation_lcp → BLEU 27.51 / COMET 0.861 / LongYAAL CU 1766
     # vs alignatt_frontier → BLEU 15.78 / COMET 0.558 / CU 1328. The latency
@@ -222,8 +234,15 @@ class CascadeRuntimeConfig:
     asr_commit_mode: str = "punctuation_lcp"
     # Safety margin between a word's aligned end_time and the current audio
     # frontier, in milliseconds. A word with end_time <= frontier - margin is
-    # considered committable. Only used when asr_commit_mode="alignatt_frontier".
+    # considered committable. Used by both ``alignatt_frontier`` and
+    # ``stable_and_accessible``.
     asr_alignatt_frontier_margin_ms: float = 500.0
+    # Number of consecutive ASR hypotheses that must agree on a word prefix
+    # before ``stable_and_accessible`` considers it committable. K=2 recovers
+    # the behaviour of ``alignatt_frontier``; K≥3 requires stronger
+    # cross-hypothesis agreement at the cost of +(K-2) chunks of initial
+    # buffering per utterance segment. Ignored by other commit modes.
+    asr_stability_k: int = 3
 
     # Extra-context injection (IWSLT 2026 Speech-to-Text with Extra Context
     # sub-track). Default off so every non-context path keeps current
@@ -270,10 +289,25 @@ class CascadeRuntimeConfig:
                 "alignment_backend_name='gemma_vllm_qk_fast' "
                 f"(got {self.alignment_backend_name!r})."
             )
-        if self.asr_commit_mode not in ("alignatt_frontier", "punctuation_lcp"):
+        valid_commit_modes = (
+            "alignatt_frontier",
+            "punctuation_lcp",
+            "stable_and_accessible",
+        )
+        if self.asr_commit_mode not in valid_commit_modes:
             raise ValueError(
-                "asr_commit_mode must be one of {'alignatt_frontier', 'punctuation_lcp'}, "
+                f"asr_commit_mode must be one of {set(valid_commit_modes)}, "
                 f"got {self.asr_commit_mode!r}."
+            )
+        if int(self.asr_stability_k) < 2:
+            raise ValueError(
+                "asr_stability_k must be >= 2 (LCP of two hypotheses is the "
+                f"weakest possible stability signal); got {self.asr_stability_k!r}."
+            )
+        if self.translation_source_frontier_mode not in ("discrete", "scalar"):
+            raise ValueError(
+                "translation_source_frontier_mode must be 'discrete' or "
+                f"'scalar'; got {self.translation_source_frontier_mode!r}."
             )
         if self.paper_context_mode not in VALID_CONTEXT_MODES:
             raise ValueError(
@@ -295,11 +329,66 @@ class CascadeRuntimeConfig:
             if not hasattr(self, key):
                 raise AttributeError(f"Unknown runtime config override: {key}")
             setattr(self, key, value)
-        if "target_lang" in overrides and "translation_alignatt_heads_path" not in overrides:
+        lang_changed = "source_lang" in overrides or "target_lang" in overrides
+        if lang_changed and "translation_alignatt_heads_path" not in overrides:
             self.translation_alignatt_heads_path = alignatt_heads_path_for(
                 self.source_lang, self.target_lang
             )
         self._validate()
+
+    def alignment_backend_fingerprint(self) -> tuple:
+        """Identity under which a loaded ASR backend is safe to reuse.
+
+        Contains engine-construction knobs only. Live policy knobs
+        (commit mode, thresholds, heads path) must not participate —
+        they're read per-session, not baked into the engine.
+        """
+        name = self.alignment_backend_name
+        if name == "qwen_forced":
+            return (name, float(self.asr_gpu_memory_utilization))
+        if name == "gemma_onepass_qk_fast":
+            return (
+                name,
+                self.gemma_transformers_device,
+                self.gemma_transformers_dtype,
+                self.gemma_transformers_fast_attention,
+            )
+        if name == "gemma_vllm_qk_fast":
+            return (
+                name,
+                bool(self.gemma_vllm_enforce_eager),
+                bool(self.gemma_vllm_enable_prefix_caching),
+                self.gemma_vllm_cudagraph_mode,
+                float(self.asr_gpu_memory_utilization),
+                int(self.gemma_max_model_len),
+                bool(self.asr_streaming_prefix_enabled),
+            )
+        return (name,)
+
+    def mt_backend_fingerprint(self) -> tuple:
+        """Identity under which a loaded MT backend is safe to reuse.
+
+        See alignment_backend_fingerprint for the engine-vs-policy split.
+        """
+        name = self.mt_backend_name
+        if name == "gemma_transformers_alignatt":
+            return (
+                name,
+                self.gemma_transformers_device,
+                self.gemma_transformers_dtype,
+                self.gemma_transformers_fast_attention,
+                bool(self.gemma_transformers_prompt_kv_reuse),
+            )
+        if name == "gemma_vllm_alignatt":
+            return (
+                name,
+                bool(self.mt_vllm_enforce_eager),
+                bool(self.mt_vllm_enable_prefix_caching),
+                self.mt_vllm_cudagraph_mode,
+                float(self.mt_vllm_gpu_memory_utilization),
+                int(self.gemma_max_model_len),
+            )
+        return (name,)
 
 
 @dataclass
@@ -605,16 +694,17 @@ class LoadedModelBundle:
         self.gemma_path = gemma_model_name
         self.alignment_backend: AlignmentBackend | None = None
         self.mt_backend = None
-        self._alignment_backend_id: str | None = None
-        self._mt_backend_id: str | None = None
+        self._alignment_backend_fp: tuple | None = None
+        self._mt_backend_fp: tuple | None = None
         self._mt_heads_path: str | None = None
         self._paper_context_selector: PaperContextSelector | None = None
         self._paper_context_path: str | None = None
 
     def ensure_alignment_backend(self) -> AlignmentBackend:
+        current_fp = self.config.alignment_backend_fingerprint()
         if (
             self.alignment_backend is None
-            or self._alignment_backend_id != self.config.alignment_backend_name
+            or self._alignment_backend_fp != current_fp
         ):
             self.alignment_backend = build_alignment_backend(
                 self.config,
@@ -623,7 +713,7 @@ class LoadedModelBundle:
                 gemma_path=self.gemma_path,
             )
             self.alignment_backend.load()
-            self._alignment_backend_id = self.config.alignment_backend_name
+            self._alignment_backend_fp = current_fp
         else:
             runtime_config = getattr(self.alignment_backend, "runtime_config", None)
             if runtime_config is not None:
@@ -631,15 +721,15 @@ class LoadedModelBundle:
         return self.alignment_backend
 
     def ensure_mt_backend(self):
-        current_backend_id = getattr(self.config, "mt_backend_name", "gemma_transformers_alignatt")
-        if self.mt_backend is None or self._mt_backend_id != current_backend_id:
+        current_fp = self.config.mt_backend_fingerprint()
+        if self.mt_backend is None or self._mt_backend_fp != current_fp:
             self.mt_backend = build_mt_backend(
                 model_name=self.gemma_path,
                 runtime_config=self.config,
             )
             self.mt_backend.load()
             self._mt_heads_path = self.config.translation_alignatt_heads_path
-            self._mt_backend_id = current_backend_id
+            self._mt_backend_fp = current_fp
         else:
             self.mt_backend.runtime_config = self.config
             current_heads_path = self.config.translation_alignatt_heads_path
@@ -1146,6 +1236,13 @@ class CascadeSession:
                 audio=audio,
                 is_final_chunk=is_final_chunk,
             )
+        elif self.config.asr_commit_mode == "stable_and_accessible":
+            committed = self._try_commit_stable_and_accessible(
+                asr_hypo=asr_hypo,
+                result=result,
+                audio=audio,
+                is_final_chunk=is_final_chunk,
+            )
         else:
             committed = self._try_commit_punctuation_lcp(
                 asr_hypo=asr_hypo,
@@ -1245,6 +1342,83 @@ class CascadeSession:
                     break
                 k_commit += 1
                 last_end_time_s = float(word.end_time)
+        if k_commit <= 0:
+            return None
+
+        committed_text, remainder_text = split_text_at_word_boundary(asr_hypo, k_commit)
+        self._apply_commit(
+            committed_text=committed_text.strip(),
+            remainder_text=remainder_text.strip(),
+            end_time_s=last_end_time_s,
+        )
+        return None
+
+    def _try_commit_stable_and_accessible(
+        self,
+        *,
+        asr_hypo: str,
+        result: "AlignmentResult",
+        audio: np.ndarray,
+        is_final_chunk: bool = False,
+    ) -> "object":
+        """Commit the word prefix that is both K-stable and accessible.
+
+        A word prefix is K-stable if the same character prefix appears at
+        the head of the last K consecutive ASR hypotheses for the current
+        utterance segment. It is accessible if every word in the prefix
+        has aligned end_time at least ``asr_alignatt_frontier_margin_ms``
+        behind the current audio frontier. The committed prefix is the
+        shorter of the two.
+
+        This generalises ``alignatt_frontier`` (which is the K=2 special
+        case via pairwise LCP) to arbitrary K. Higher K trades a little
+        latency (K-1 extra chunks before the first commit in an utterance
+        segment) for stronger cross-hypothesis agreement, which is the
+        dominant failure mode of K=2 on ASR models with clean punctuation
+        (Qwen3-ASR on en→de: K=2 costs ≈11 BLEU vs punctuation_lcp).
+        """
+        words = result.words
+        if not words:
+            return None
+        if len(words) != len(remove_punctuation(asr_hypo).split()):
+            return None
+
+        if is_final_chunk:
+            k_commit = len(words)
+            last_end_time_s = float(words[-1].end_time)
+        else:
+            k_stable = max(2, int(self.config.asr_stability_k))
+            # CascadeState seeds asr_hypotheses with a single empty-string
+            # sentinel (and _apply_commit resets to [remainder_text], which
+            # may itself be empty). Those empty slots are not "real" ASR
+            # observations — they would poison the K-LCP to the empty
+            # string. Consider only non-empty hypotheses for the K-stability
+            # window.
+            non_empty_hypotheses = [h for h in self.state.asr_hypotheses if h]
+            if len(non_empty_hypotheses) < k_stable:
+                return None
+            window = non_empty_hypotheses[-k_stable:]
+            stable_prefix = window[0]
+            for hypo in window[1:]:
+                stable_prefix = longest_common_prefix(stable_prefix, hypo)
+                if not stable_prefix:
+                    break
+            n_stable_words = len(remove_punctuation(stable_prefix).strip().split())
+            if n_stable_words <= 0:
+                return None
+
+            audio_frontier_s = float(len(audio)) / float(SAMPLE_RATE)
+            margin_s = max(0.0, float(self.config.asr_alignatt_frontier_margin_ms) / 1000.0)
+            safe_end_time_s = audio_frontier_s - margin_s
+
+            k_commit = 0
+            last_end_time_s = 0.0
+            for word in words[:n_stable_words]:
+                if word.end_time > safe_end_time_s:
+                    break
+                k_commit += 1
+                last_end_time_s = float(word.end_time)
+
         if k_commit <= 0:
             return None
 
@@ -1632,7 +1806,8 @@ def temporary_runtime_config(
         original_values[key] = getattr(config, key)
         setattr(config, key, value)
 
-    if "target_lang" in overrides and "translation_alignatt_heads_path" not in overrides:
+    lang_changed = "source_lang" in overrides or "target_lang" in overrides
+    if lang_changed and "translation_alignatt_heads_path" not in overrides:
         original_values.setdefault(
             "translation_alignatt_heads_path",
             getattr(config, "translation_alignatt_heads_path"),

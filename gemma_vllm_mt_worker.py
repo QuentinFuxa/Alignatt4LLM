@@ -28,6 +28,7 @@ from gemma_vllm_mt_observer import (
     _prepare_mt_qk_observer_on_model,
     _resolve_mt_observer_bindings,
     install_global_gemma4_attention_mt_patch,
+    install_stub_observers_on_model,
 )
 
 logger = init_logger(__name__)
@@ -45,6 +46,22 @@ class GemmaMTAlignAttWorker(VLLMGPUWorker):
     def load_model(self, *, load_dummy_weights: bool = False) -> None:
         install_global_gemma4_attention_mt_patch()
         super().load_model(load_dummy_weights=load_dummy_weights)
+        # Seed every attention layer with a None observer stub so the
+        # AOT-compiled forward's __dict__ lookup succeeds even before
+        # configure_mt_observer arms real observers. Fixes a KeyError
+        # that surfaced when vLLM's memory-profiling dummy_run replayed
+        # a cached compiled graph on a fresh input shape (e.g. cs->en
+        # as the first inference-time direction of the process).
+        stubbed = install_stub_observers_on_model(self.get_model())
+        # Print (not logger) so the install shows up in stdout for the
+        # batch runners even when the vLLM logger is quieted — it's the
+        # only way to verify the stub count from outside the worker
+        # process.
+        print(
+            f"[gemma_vllm_mt_worker] Installed None-observer stubs "
+            f"on {stubbed} Gemma4Attention layers.",
+            flush=True,
+        )
         bootstrap = _decode_mt_observer_bootstrap_from_env()
         if bootstrap is not None:
             self.configure_mt_observer(

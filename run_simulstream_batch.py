@@ -119,6 +119,7 @@ def run_single_audio(
                 audio_processed_ms, word_delays_ms,
                 target_lang_code=target_lang_code,
             )
+            partial = processor.session.state.partial_translation
             stream_updates.append({
                 "update_idx": len(stream_updates),
                 "wav_name": Path(wav_path).name,
@@ -126,6 +127,15 @@ def run_single_audio(
                 "wallclock_elapsed_ms": wallclock_elapsed_ms,
                 "translation_text": current_translation,
                 "new_words": new_words,
+                # Observer / MT-state fields for offline replay
+                # (continuous-confidence branch, emit-policy replay, etc.).
+                # Optional — absent on older artifacts; consumers must tolerate.
+                "asr_text": processor.session.render_public_asr_text(),
+                "partial_accepted_target": partial.accepted_target,
+                "partial_draft_target": partial.draft_target,
+                "alignatt_metadata": partial.last_alignatt_metadata,
+                "translation_prompt_num_tokens": partial.last_prompt_num_tokens,
+                "translation_prompt_num_cached_tokens": partial.last_num_cached_tokens,
             })
             last_translation = current_translation
             last_raw_translation = current_translation
@@ -145,6 +155,7 @@ def run_single_audio(
             audio_duration_ms, word_delays_ms,
             target_lang_code=target_lang_code,
         )
+        partial = processor.session.state.partial_translation
         stream_updates.append({
             "update_idx": len(stream_updates),
             "wav_name": Path(wav_path).name,
@@ -153,6 +164,12 @@ def run_single_audio(
             "translation_text": final_translation,
             "new_words": eos_new_words,
             "is_eos": True,
+            "asr_text": processor.session.render_public_asr_text(),
+            "partial_accepted_target": partial.accepted_target,
+            "partial_draft_target": partial.draft_target,
+            "alignatt_metadata": partial.last_alignatt_metadata,
+            "translation_prompt_num_tokens": partial.last_prompt_num_tokens,
+            "translation_prompt_num_cached_tokens": partial.last_num_cached_tokens,
         })
 
     final_asr = processor.session.render_public_asr_text()
@@ -231,22 +248,37 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--asr-commit-mode",
-        choices=("alignatt_frontier", "punctuation_lcp"),
+        choices=("alignatt_frontier", "punctuation_lcp", "stable_and_accessible"),
         default="punctuation_lcp",
         help=(
             "ASR-side commit rule. 'punctuation_lcp' (default) commits when the "
             "LCP of two consecutive ASR hypotheses contains a sentence-terminal "
-            "punctuation mark; works well with Qwen3-ASR. 'alignatt_frontier' is "
-            "the model-agnostic fallback for ASR backends that do not emit "
-            "punctuation (e.g. Gemma-4 ASR). See docs/RESULTS.md for the BLEU/CA "
-            "tradeoff measured on en→de."
+            "punctuation mark; works well with Qwen3-ASR. 'alignatt_frontier' "
+            "is the model-agnostic fallback for ASR backends that do not emit "
+            "punctuation. 'stable_and_accessible' requires both frontier "
+            "accessibility and K-hypothesis stability (K = --asr-stability-k); "
+            "K=2 is equivalent to 'alignatt_frontier', K>=3 is strictly more "
+            "conservative. See docs/RESULTS.md for the BLEU/CA tradeoff."
         ),
     )
     parser.add_argument(
         "--asr-alignatt-frontier-margin-ms",
         type=float,
         default=500.0,
-        help="Safety margin (ms) for alignatt_frontier commit rule. Default 500.",
+        help=(
+            "Safety margin (ms) for alignatt_frontier and "
+            "stable_and_accessible commit rules. Default 500."
+        ),
+    )
+    parser.add_argument(
+        "--asr-stability-k",
+        type=int,
+        default=3,
+        help=(
+            "K for 'stable_and_accessible' commit rule. Word prefix must be "
+            "identical across the last K ASR hypotheses before it is eligible "
+            "for commit. K=2 collapses to 'alignatt_frontier'. Default 3."
+        ),
     )
     parser.add_argument(
         "--paper-context-path",
@@ -306,6 +338,7 @@ def main() -> None:
         gemma_vllm_force_generate_api=args.gemma_vllm_force_generate_api,
         asr_commit_mode=args.asr_commit_mode,
         asr_alignatt_frontier_margin_ms=args.asr_alignatt_frontier_margin_ms,
+        asr_stability_k=args.asr_stability_k,
         paper_context_path=args.paper_context_path,
         paper_context_mode=args.paper_context_mode,
         paper_context_top_k=args.paper_context_top_k,
@@ -375,6 +408,7 @@ def main() -> None:
         "asr_streaming_unfixed_chunks",
         "gemma_vllm_force_generate_api",
         "asr_commit_mode", "asr_alignatt_frontier_margin_ms",
+        "asr_stability_k",
         "paper_context_path", "paper_context_mode", "paper_context_top_k",
         "paper_context_max_chars", "paper_context_history_window_words",
     ]:
