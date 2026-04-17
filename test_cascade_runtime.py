@@ -333,6 +333,7 @@ def test_processor_runtime_config_propagates_backend_and_audio_probe_settings():
             gemma_audio_alignment_top_k_heads=8,
             gemma_audio_alignment_filter_width=7,
             gemma_audio_alignment_max_new_tokens=256,
+            mt_vllm_gpu_memory_utilization=0.6,
         )
     )
 
@@ -343,3 +344,4 @@ def test_processor_runtime_config_propagates_backend_and_audio_probe_settings():
     assert runtime_config.gemma_audio_align_probe_mode == "qk_fast"
     assert runtime_config.translation_alignatt_probe_mode == "qk_fast"
     assert runtime_config.translation_alignatt_min_source_mass == 0.2
+    assert runtime_config.mt_vllm_gpu_memory_utilization == 0.6

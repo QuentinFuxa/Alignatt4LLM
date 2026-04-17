@@ -18,7 +18,7 @@ Full runtime matrix and rationale: [`docs/RUNTIME_ARCHITECTURE.md`](docs/RUNTIME
 .venv-inference/bin/python run_simulstream_batch.py \
     --alignment-backend-name qwen_forced \
     --mt-backend-name gemma_vllm_alignatt \
-    --wavs test-set/audio/ccpXHNfaoy.wav \
+    --inputs test-set/audio/ccpXHNfaoy.wav \
     --output-dir outputs/my_run
 
 # evaluation (BLEU / chrF / XCOMET-XL / LongYAAL CU / LongYAAL CA)
@@ -37,6 +37,7 @@ Reference numbers (`test-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, chunk_ms=450
 - [`docs/RESULTS.md`](docs/RESULTS.md) — consolidated quality/latency numbers + calibration curve
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — GPU / vLLM / allocator gotchas
 - [`docs/CONTEXT_INJECTION.md`](docs/CONTEXT_INJECTION.md) — ACL-paper extra-context mechanism (IWSLT 2026 sub-track)
+- [`submission/README.md`](submission/README.md) — Docker/log submission entry points and frozen presets
 - [`docs/archive/`](docs/archive/) — historical design docs preserved for context
 - [`docs/reference/`](docs/reference/) — upstream model cards and reference papers/implementations
 - [`AGENTS.md`](AGENTS.md), [`CLAUDE.md`](CLAUDE.md) — operational guidance for agents
@@ -45,8 +46,9 @@ Reference numbers (`test-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, chunk_ms=450
 
 | Script | Purpose |
 |---|---|
-| `run_simulstream_batch.py` | **Canonical runner.** Streaming evaluation on one or many WAVs. |
+| `run_simulstream_batch.py` | **Canonical runner.** Streaming evaluation on one or many media files (`.wav`, `.mp4`, ...). |
 | `run_simulstream_compare.py` | A/B two alignment backends on one clip. |
+| `run_iwslt_submission.py` | Frozen IWSLT submission presets for offline logs or websocket serving. |
 | `run_alignment_single_audio.py` | ASR-side diagnostic harness. |
 | `run_mt_backend_parity.py` | MT backend parity harness (Transformers vs vLLM, subprocess-isolated). |
 | `run_context_ablation.py` | Three-condition MT paper-context ablation on one clip (hot bundle). |

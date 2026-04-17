@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
 """Batch evaluation runner for the SimulStream CascadeAlignAttProcessor.
 
-Runs multiple WAV files through the processor in a single process, keeping
+Runs multiple media files through the processor in a single process, keeping
 models hot across audios to avoid repeated 5-minute load costs.
 
 Usage (from .venv-inference):
     # Sanity set (3 audios):
     python run_simulstream_batch.py \\
-        --wavs test-set/audio/myfXyntFYL.wav test-set/audio/DyXpuURBMP.wav test-set/audio/ccpXHNfaoy.wav \\
+        --inputs test-set/audio/myfXyntFYL.wav test-set/audio/DyXpuURBMP.wav test-set/audio/ccpXHNfaoy.wav \\
         --output-dir outputs/simulstream_batch_ende_2s \\
         --chunk-ms 450 --target de
 
-    # Full set (all audios in directory):
+    # Full set (all supported media files in directory):
     python run_simulstream_batch.py \\
-        --wav-dir test-set/audio/ \\
+        --input-dir test-set/audio/ \\
         --output-dir outputs/simulstream_fullset_ende_2s \\
         --chunk-ms 450 --target de
 """
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 from pathlib import Path
 from time import perf_counter
@@ -29,6 +28,7 @@ from typing import Any
 
 import numpy as np
 
+from cascade_audio import discover_input_media_paths, load_audio_mono_16khz
 from cascade_simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
 from cascade_artifacts import (
     ARTIFACT_SCHEMA_VERSION,
@@ -38,38 +38,14 @@ from cascade_artifacts import (
     STREAM_UPDATE_ELAPSED_SEMANTICS_WALLCLOCK,
     STREAM_UPDATES_FILENAME,
     ensure_output_dir,
-    final_asr_filename,
-    final_translation_filename,
     normalize_computation_aware_timestamps,
     utc_now_isoformat,
     write_json,
     write_jsonl,
-    write_text,
 )
 from cascade_text_surface import is_char_level_target_lang, split_target_emission_units
 from cascade_emission import register_translation_timestamps, register_translation_words
 from simulstream.server.speech_processors import SAMPLE_RATE
-
-
-def load_wav_raw(path: str) -> np.ndarray:
-    import wave as _wave
-    with _wave.open(path, "rb") as wav_file:
-        sample_rate = wav_file.getframerate()
-        sample_width = wav_file.getsampwidth()
-        num_channels = wav_file.getnchannels()
-        raw = wav_file.readframes(wav_file.getnframes())
-    if sample_width != 2:
-        raise ValueError("Only 16-bit PCM WAV supported.")
-    audio = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
-    if num_channels > 1:
-        audio = audio.reshape(-1, num_channels).mean(axis=1)
-    if sample_rate != SAMPLE_RATE:
-        duration = len(audio) / sample_rate
-        old_times = np.linspace(0.0, duration, num=len(audio), endpoint=False)
-        new_length = int(duration * SAMPLE_RATE)
-        new_times = np.linspace(0.0, duration, num=new_length, endpoint=False)
-        audio = np.interp(new_times, old_times, audio).astype(np.float32)
-    return audio
 
 
 def git_sha() -> str | None:
@@ -83,16 +59,16 @@ def git_sha() -> str | None:
 
 def run_single_audio(
     processor: CascadeAlignAttProcessor,
-    wav_path: str,
+    input_path: str,
     chunk_ms: int,
     target_lang_code: str,
-    source_lang_code: str,
 ) -> dict[str, Any]:
     """Run one audio through the processor and return all artifacts data."""
     processor.clear()
-    audio = load_wav_raw(wav_path)
+    audio = load_audio_mono_16khz(input_path)
     chunk_size = int(SAMPLE_RATE * chunk_ms / 1000)
     audio_duration_ms = len(audio) * 1000.0 / SAMPLE_RATE
+    input_name = Path(input_path).name
 
     word_delays_ms: list[float] = []
     word_elapsed_ms: list[float] = []
@@ -122,7 +98,8 @@ def run_single_audio(
             partial = processor.session.state.partial_translation
             stream_updates.append({
                 "update_idx": len(stream_updates),
-                "wav_name": Path(wav_path).name,
+                "input_name": input_name,
+                "wav_name": input_name,
                 "audio_processed_ms": audio_processed_ms,
                 "wallclock_elapsed_ms": wallclock_elapsed_ms,
                 "translation_text": current_translation,
@@ -158,7 +135,8 @@ def run_single_audio(
         partial = processor.session.state.partial_translation
         stream_updates.append({
             "update_idx": len(stream_updates),
-            "wav_name": Path(wav_path).name,
+            "input_name": input_name,
+            "wav_name": input_name,
             "audio_processed_ms": audio_duration_ms,
             "wallclock_elapsed_ms": final_elapsed_ms,
             "translation_text": final_translation,
@@ -181,8 +159,10 @@ def run_single_audio(
     prediction = "".join(units) if is_char_level_target_lang(target_lang_code) else " ".join(units)
 
     return {
-        "wav_path": wav_path,
-        "wav_name": Path(wav_path).name,
+        "input_path": input_path,
+        "input_name": input_name,
+        "wav_path": input_path,
+        "wav_name": input_name,
         "audio_duration_ms": audio_duration_ms,
         "total_wallclock_s": total_wallclock_s,
         "rtf": rtf,
@@ -190,7 +170,7 @@ def run_single_audio(
         "final_translation": final_translation,
         "num_updates": len(stream_updates),
         "hypothesis_record": {
-            "source": [Path(wav_path).name],
+            "source": [input_name],
             "source_length": audio_duration_ms,
             "prediction": prediction,
             "delays": word_delays_ms,
@@ -202,11 +182,207 @@ def run_single_audio(
     }
 
 
+def resolve_input_paths(
+    *,
+    inputs: list[str] | None,
+    input_dir: str | None,
+) -> list[str]:
+    if input_dir is not None:
+        discovered = discover_input_media_paths(input_dir)
+        filtered = [
+            path for path in discovered
+            if not Path(path).name.endswith("_short60s.wav")
+        ]
+        return filtered or discovered
+    if not inputs:
+        raise ValueError("Either explicit inputs or an input directory must be provided.")
+    return [str(Path(path)) for path in inputs]
+
+
+def resolve_paper_context_path_for_input(
+    input_path: str,
+    *,
+    explicit_paper_context_path: str | None = None,
+    paper_context_dir: str | None = None,
+) -> str | None:
+    if explicit_paper_context_path is not None and paper_context_dir is not None:
+        raise ValueError("paper_context_path and paper_context_dir are mutually exclusive.")
+    if explicit_paper_context_path is not None:
+        return explicit_paper_context_path
+    if paper_context_dir is None:
+        return None
+    candidate = Path(paper_context_dir) / f"{Path(input_path).stem}.json"
+    if not candidate.exists():
+        raise FileNotFoundError(
+            f"Missing paper artifact for {Path(input_path).name}: expected {candidate}"
+        )
+    return str(candidate)
+
+
+def run_batch_inference(
+    *,
+    processor_config: SimpleNamespace,
+    input_paths: list[str],
+    output_dir: str,
+    source_lang_code: str,
+    target_lang_code: str,
+    explicit_paper_context_path: str | None = None,
+    paper_context_dir: str | None = None,
+) -> dict[str, Any]:
+    print(f"Will process {len(input_paths)} media files for {source_lang_code}->{target_lang_code}")
+
+    print("Loading models ...")
+    load_start = perf_counter()
+    CascadeAlignAttProcessor.load_model(processor_config)
+    load_ms = (perf_counter() - load_start) * 1000.0
+    print(f"Models loaded in {load_ms:.0f} ms")
+
+    processor = CascadeAlignAttProcessor(processor_config)
+    processor.set_source_language(source_lang_code)
+    processor.set_target_language(target_lang_code)
+
+    all_hypothesis_records: list[dict[str, Any]] = []
+    all_stream_updates: list[dict[str, Any]] = []
+    per_input_results: list[dict[str, Any]] = []
+    batch_start = perf_counter()
+
+    for idx, input_path in enumerate(input_paths):
+        context_path = resolve_paper_context_path_for_input(
+            input_path,
+            explicit_paper_context_path=explicit_paper_context_path,
+            paper_context_dir=paper_context_dir,
+        )
+        if hasattr(processor, "set_paper_context_path"):
+            processor.set_paper_context_path(context_path)
+
+        print(f"\n[{idx+1}/{len(input_paths)}] {Path(input_path).name} ...", flush=True)
+        result = run_single_audio(
+            processor,
+            input_path,
+            int(getattr(processor_config, "chunk_ms", 450)),
+            target_lang_code,
+        )
+        all_hypothesis_records.append(result["hypothesis_record"])
+        all_stream_updates.extend(result["stream_updates"])
+        per_input_results.append({
+            "input": result["input_name"],
+            "audio_s": round(result["audio_duration_ms"] / 1000, 1),
+            "rtf": round(result["rtf"], 4),
+            "updates": result["num_updates"],
+            "paper_context_path": context_path,
+        })
+        print(
+            f"  RTF={result['rtf']:.3f}  updates={result['num_updates']}  "
+            f"wallclock={result['total_wallclock_s']:.1f}s"
+        )
+
+    batch_wallclock_s = perf_counter() - batch_start
+    total_audio_s = sum(entry["audio_s"] for entry in per_input_results)
+    batch_rtf = batch_wallclock_s / total_audio_s if total_audio_s > 0 else 0.0
+
+    output_path = ensure_output_dir(output_dir)
+    runtime_config: dict[str, Any] = {
+        "chunk_ms": getattr(processor_config, "chunk_ms"),
+        "alignment_backend_name": getattr(processor_config, "alignment_backend_name"),
+        "mt_backend_name": getattr(processor_config, "mt_backend_name"),
+        "min_start_seconds": getattr(processor_config, "min_start_seconds"),
+        "max_history_utterances": getattr(processor_config, "max_history_utterances"),
+        "partial_max_new_tokens": getattr(processor_config, "partial_max_new_tokens"),
+        "partial_followup_max_new_tokens": getattr(processor_config, "partial_followup_max_new_tokens"),
+        "translation_alignatt_min_source_mass": getattr(
+            processor_config, "translation_alignatt_min_source_mass"
+        ),
+        "translation_alignatt_rewind_threshold": getattr(
+            processor_config, "translation_alignatt_rewind_threshold"
+        ),
+        "translation_alignatt_inaccessible_ms": getattr(
+            processor_config, "translation_alignatt_inaccessible_ms"
+        ),
+        "hypothesis_elapsed_semantics": HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
+        "stream_update_elapsed_semantics": STREAM_UPDATE_ELAPSED_SEMANTICS_WALLCLOCK,
+    }
+    for key in [
+        "translation_alignatt_heads_path", "translation_alignatt_top_k_heads",
+        "translation_alignatt_filter_width", "translation_alignatt_probe_mode",
+        "gemma_audio_alignment_heads_path", "gemma_audio_align_probe_mode",
+        "translation_emit_policy", "translation_max_tail_rewrite_words",
+        "temperature", "repetition_penalty",
+        "asr_streaming_prefix_enabled", "asr_streaming_rollback_words",
+        "asr_streaming_unfixed_chunks",
+        "gemma_vllm_force_generate_api",
+        "asr_commit_mode", "asr_alignatt_frontier_margin_ms",
+        "asr_stability_k",
+        "paper_context_path", "paper_context_mode", "paper_context_top_k",
+        "paper_context_max_chars", "paper_context_history_window_words",
+        "mt_vllm_enforce_eager", "mt_vllm_cudagraph_mode",
+        "mt_vllm_enable_prefix_caching", "mt_vllm_gpu_memory_utilization",
+    ]:
+        runtime_config[key] = getattr(processor.session.config, key, None)
+
+    manifest = {
+        "schema_version": ARTIFACT_SCHEMA_VERSION,
+        "generated_at_utc": utc_now_isoformat(),
+        "kind": "inference_batch",
+        "num_inputs": len(input_paths),
+        "input_paths": input_paths,
+        # Legacy aliases preserved for existing tooling.
+        "num_audios": len(input_paths),
+        "wav_paths": input_paths,
+        "source_language": LANGUAGE_CODE_TO_NAME.get(source_lang_code, source_lang_code),
+        "target_language": LANGUAGE_CODE_TO_NAME.get(target_lang_code, target_lang_code),
+        "source_language_code": source_lang_code,
+        "target_language_code": target_lang_code,
+        "runtime_config": runtime_config,
+        "run_provenance": {
+            "git_sha": git_sha(),
+            "framework_mode": "simulstream_processor",
+            "script": "run_simulstream_batch.py",
+        },
+        "speed": {
+            "batch_wallclock_s": round(batch_wallclock_s, 2),
+            "batch_rtf": round(batch_rtf, 4),
+            "total_audio_s": round(total_audio_s, 1),
+            "per_input": per_input_results,
+            "per_audio": per_input_results,
+        },
+    }
+
+    write_json(output_path / MANIFEST_FILENAME, manifest)
+    write_jsonl(output_path / HYPOTHESIS_FILENAME, all_hypothesis_records)
+    write_jsonl(output_path / STREAM_UPDATES_FILENAME, all_stream_updates)
+
+    print(f"\n{'='*60}")
+    print(f"Batch complete: {len(input_paths)} inputs, {total_audio_s:.0f}s total audio")
+    print(f"Batch wallclock: {batch_wallclock_s:.1f}s  RTF: {batch_rtf:.4f}")
+    print(f"Artifacts: {output_dir}")
+    print(f"Evaluate: python evaluate_cascade_outputs.py --output-dir {output_dir} --skip-comet")
+    print(f"{'='*60}")
+
+    return {
+        "manifest": manifest,
+        "hypothesis_records": all_hypothesis_records,
+        "stream_updates": all_stream_updates,
+        "output_dir": output_dir,
+        "model_load_ms": load_ms,
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Batch SimulStream evaluation runner.")
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--wavs", nargs="+", help="List of WAV file paths.")
-    group.add_argument("--wav-dir", help="Directory of WAV files (all .wav files used).")
+    group.add_argument(
+        "--inputs",
+        "--wavs",
+        nargs="+",
+        dest="inputs",
+        help="List of input media paths (.wav, .mp4, ...).",
+    )
+    group.add_argument(
+        "--input-dir",
+        "--wav-dir",
+        dest="input_dir",
+        help="Directory of input media files (all supported files used).",
+    )
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--chunk-ms", default=450, type=int)
     parser.add_argument("--source", default="en")
@@ -304,19 +480,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--paper-context-top-k", type=int, default=3)
     parser.add_argument("--paper-context-max-chars", type=int, default=1200)
     parser.add_argument("--paper-context-history-window-words", type=int, default=60)
+    parser.add_argument(
+        "--paper-context-dir",
+        default=None,
+        help=(
+            "Directory containing one PaperArtifact JSON per input, matched by "
+            "input stem (e.g. talk.mp4 -> talk.json). Useful for multi-talk "
+            "extra-context runs."
+        ),
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-
-    if args.wav_dir:
-        wav_paths = sorted(str(p) for p in Path(args.wav_dir).glob("*.wav")
-                           if not p.name.endswith("_short60s.wav"))
-    else:
-        wav_paths = args.wavs
-
-    print(f"Will process {len(wav_paths)} audio files for {args.source}->{args.target}")
+    input_paths = resolve_input_paths(inputs=args.inputs, input_dir=args.input_dir)
+    if args.paper_context_path is not None and args.paper_context_dir is not None:
+        raise ValueError("Use either --paper-context-path or --paper-context-dir, not both.")
 
     processor_config = SimpleNamespace(
         source_lang_code=args.source,
@@ -345,109 +525,15 @@ def main() -> None:
         paper_context_max_chars=args.paper_context_max_chars,
         paper_context_history_window_words=args.paper_context_history_window_words,
     )
-
-    print("Loading models ...")
-    load_start = perf_counter()
-    CascadeAlignAttProcessor.load_model(processor_config)
-    load_ms = (perf_counter() - load_start) * 1000.0
-    print(f"Models loaded in {load_ms:.0f} ms")
-
-    processor = CascadeAlignAttProcessor(processor_config)
-    processor.set_source_language(args.source)
-    processor.set_target_language(args.target)
-
-    all_hypothesis_records: list[dict] = []
-    all_stream_updates: list[dict] = []
-    per_audio_results: list[dict] = []
-    batch_start = perf_counter()
-
-    for idx, wav_path in enumerate(wav_paths):
-        print(f"\n[{idx+1}/{len(wav_paths)}] {Path(wav_path).name} ...", flush=True)
-        result = run_single_audio(
-            processor, wav_path, args.chunk_ms,
-            args.target, args.source,
-        )
-        all_hypothesis_records.append(result["hypothesis_record"])
-        all_stream_updates.extend(result["stream_updates"])
-        per_audio_results.append({
-            "wav": result["wav_name"],
-            "audio_s": round(result["audio_duration_ms"] / 1000, 1),
-            "rtf": round(result["rtf"], 4),
-            "updates": result["num_updates"],
-        })
-        print(f"  RTF={result['rtf']:.3f}  updates={result['num_updates']}  "
-              f"wallclock={result['total_wallclock_s']:.1f}s")
-
-    batch_wallclock_s = perf_counter() - batch_start
-    total_audio_s = sum(r["audio_s"] for r in per_audio_results)
-    batch_rtf = batch_wallclock_s / total_audio_s if total_audio_s > 0 else 0.0
-
-    # Write artifacts
-    output_path = ensure_output_dir(args.output_dir)
-    runtime_config: dict[str, Any] = {
-        "chunk_ms": args.chunk_ms,
-        "alignment_backend_name": args.alignment_backend_name,
-        "mt_backend_name": args.mt_backend_name,
-        "min_start_seconds": args.min_start_seconds,
-        "max_history_utterances": args.max_history_utterances,
-        "partial_max_new_tokens": args.partial_max_new_tokens,
-        "partial_followup_max_new_tokens": args.partial_followup_max_new_tokens,
-        "translation_alignatt_min_source_mass": args.translation_alignatt_min_source_mass,
-        "translation_alignatt_rewind_threshold": args.translation_alignatt_rewind_threshold,
-        "translation_alignatt_inaccessible_ms": args.translation_alignatt_inaccessible_ms,
-        "hypothesis_elapsed_semantics": HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
-        "stream_update_elapsed_semantics": STREAM_UPDATE_ELAPSED_SEMANTICS_WALLCLOCK,
-    }
-    for key in [
-        "translation_alignatt_heads_path", "translation_alignatt_top_k_heads",
-        "translation_alignatt_filter_width", "translation_alignatt_probe_mode",
-        "gemma_audio_alignment_heads_path", "gemma_audio_align_probe_mode",
-        "translation_emit_policy", "translation_max_tail_rewrite_words",
-        "temperature", "repetition_penalty",
-        "asr_streaming_prefix_enabled", "asr_streaming_rollback_words",
-        "asr_streaming_unfixed_chunks",
-        "gemma_vllm_force_generate_api",
-        "asr_commit_mode", "asr_alignatt_frontier_margin_ms",
-        "asr_stability_k",
-        "paper_context_path", "paper_context_mode", "paper_context_top_k",
-        "paper_context_max_chars", "paper_context_history_window_words",
-    ]:
-        runtime_config[key] = getattr(processor.session.config, key, None)
-
-    manifest = {
-        "schema_version": ARTIFACT_SCHEMA_VERSION,
-        "generated_at_utc": utc_now_isoformat(),
-        "kind": "inference_batch",
-        "num_audios": len(wav_paths),
-        "wav_paths": wav_paths,
-        "source_language": LANGUAGE_CODE_TO_NAME.get(args.source, args.source),
-        "target_language": LANGUAGE_CODE_TO_NAME.get(args.target, args.target),
-        "source_language_code": args.source,
-        "target_language_code": args.target,
-        "runtime_config": runtime_config,
-        "run_provenance": {
-            "git_sha": git_sha(),
-            "framework_mode": "simulstream_processor",
-            "script": "run_simulstream_batch.py",
-        },
-        "speed": {
-            "batch_wallclock_s": round(batch_wallclock_s, 2),
-            "batch_rtf": round(batch_rtf, 4),
-            "total_audio_s": round(total_audio_s, 1),
-            "per_audio": per_audio_results,
-        },
-    }
-
-    write_json(output_path / MANIFEST_FILENAME, manifest)
-    write_jsonl(output_path / HYPOTHESIS_FILENAME, all_hypothesis_records)
-    write_jsonl(output_path / STREAM_UPDATES_FILENAME, all_stream_updates)
-
-    print(f"\n{'='*60}")
-    print(f"Batch complete: {len(wav_paths)} audios, {total_audio_s:.0f}s total audio")
-    print(f"Batch wallclock: {batch_wallclock_s:.1f}s  RTF: {batch_rtf:.4f}")
-    print(f"Artifacts: {args.output_dir}")
-    print(f"Evaluate: python evaluate_cascade_outputs.py --output-dir {args.output_dir} --skip-comet")
-    print(f"{'='*60}")
+    run_batch_inference(
+        processor_config=processor_config,
+        input_paths=input_paths,
+        output_dir=args.output_dir,
+        source_lang_code=args.source,
+        target_lang_code=args.target,
+        explicit_paper_context_path=args.paper_context_path,
+        paper_context_dir=args.paper_context_dir,
+    )
 
 
 if __name__ == "__main__":

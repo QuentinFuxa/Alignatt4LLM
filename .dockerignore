@@ -1,0 +1,10 @@
+.git
+.pytest_cache
+.venv-inference
+.venv-evaluation
+__pycache__
+outputs
+tmp
+test-set
+docs/archive
+dedicated_audio_gemma_aligner

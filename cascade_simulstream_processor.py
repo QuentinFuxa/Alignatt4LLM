@@ -26,6 +26,7 @@ class CascadeAlignAttProcessor(SpeechProcessor):
     def __init__(self, config: SimpleNamespace):
         super().__init__(config)
         self._runtime_config = self._build_runtime_config(config)
+        self._default_paper_context_path = self._runtime_config.paper_context_path
         self._chunk_ms = int(getattr(config, "chunk_ms", 450))
         self._target_lang_code = getattr(config, "target_lang_code", "de")
         self._source_lang_code = getattr(config, "source_lang_code", "en")
@@ -84,6 +85,7 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "mt_vllm_enforce_eager",
             "mt_vllm_cudagraph_mode",
             "mt_vllm_enable_prefix_caching",
+            "mt_vllm_gpu_memory_utilization",
             "paper_context_path",
             "paper_context_mode",
             "paper_context_top_k",
@@ -195,6 +197,9 @@ class CascadeAlignAttProcessor(SpeechProcessor):
         )
         self._session.bundle.ensure_mt_backend()
 
+    def set_paper_context_path(self, path: str | None) -> None:
+        self._runtime_config.paper_context_path = path
+
     def tokens_to_string(self, tokens: List[str]) -> str:
         if not tokens:
             return ""
@@ -205,6 +210,7 @@ class CascadeAlignAttProcessor(SpeechProcessor):
         return " ".join(tokens)
 
     def clear(self) -> None:
+        self._runtime_config.paper_context_path = self._default_paper_context_path
         self._session.clear()
         self._emitted_units = []
         self._last_asr = ""

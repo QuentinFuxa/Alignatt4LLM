@@ -82,11 +82,23 @@ STABLE_MT_BACKEND_NAMES = ("gemma_transformers_alignatt",)
 _COMMIT_ABORT = object()
 
 
-def _resolve_hf_snapshot(repo_subpath: str) -> str:
-    candidates = [
-        os.path.join("/home/.cache/huggingface/hub", repo_subpath),
-        os.path.join(os.path.expanduser("~/.cache/huggingface/hub"), repo_subpath),
-    ]
+def _resolve_hf_snapshot(repo_subpath: str, env_var: str | None = None) -> str:
+    if env_var:
+        override = os.environ.get(env_var)
+        if override:
+            return override
+
+    hub_roots: list[str] = []
+    for candidate in (
+        os.environ.get("HF_HUB_CACHE"),
+        os.path.join(os.environ.get("HF_HOME", ""), "hub") if os.environ.get("HF_HOME") else None,
+        "/home/.cache/huggingface/hub",
+        os.path.join(os.path.expanduser("~/.cache/huggingface/hub")),
+    ):
+        if candidate and candidate not in hub_roots:
+            hub_roots.append(candidate)
+
+    candidates = [os.path.join(root, repo_subpath) for root in hub_roots]
     for candidate in candidates:
         if os.path.exists(candidate):
             return candidate
@@ -94,13 +106,16 @@ def _resolve_hf_snapshot(repo_subpath: str) -> str:
 
 
 asr_model_name = _resolve_hf_snapshot(
-    "models--Qwen--Qwen3-ASR-1.7B/snapshots/7278e1e70fe206f11671096ffdd38061171dd6e5"
+    "models--Qwen--Qwen3-ASR-1.7B/snapshots/7278e1e70fe206f11671096ffdd38061171dd6e5",
+    env_var="CASCADE_QWEN_ASR_SNAPSHOT",
 )
 forced_aligner_model_name = _resolve_hf_snapshot(
-    "models--Qwen--Qwen3-ForcedAligner-0.6B/snapshots/c7cbfc2048c462b0d63a45797104fc9db3ad62b7"
+    "models--Qwen--Qwen3-ForcedAligner-0.6B/snapshots/c7cbfc2048c462b0d63a45797104fc9db3ad62b7",
+    env_var="CASCADE_QWEN_ALIGNER_SNAPSHOT",
 )
 gemma_model_name = _resolve_hf_snapshot(
-    "models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c"
+    "models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c",
+    env_var="CASCADE_GEMMA_SNAPSHOT",
 )
 
 
