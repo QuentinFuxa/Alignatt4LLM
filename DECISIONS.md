@@ -3001,3 +3001,49 @@ methodology rather than simultaneous ST).
   abstract (not after), or in a differently-labelled block
 
 Artifacts: `outputs/night2_context_clip3_{off,title_abstract,retrieved_chunks,title_and_chunks}/`.
+
+### Retrieval budget sweep rescues `retrieved_chunks` on clip 2
+
+Budget sweep on clip 2 (AlignAtt paper) retrieved_chunks mode with
+max_chars ∈ {400, 600, 1200 (default), 2400}:
+
+| mode          | BLEU  | chrF  | COMET | CA   | upd |
+|---------------|-------|-------|-------|------|-----|
+| off           | 27.19 | 63.43 | 0.831 | 1638 | 322 |
+| title_abstract@1200 | **28.09** | 65.13 | **0.865** | 1624 | 324 |
+| rc @ 400      | 20.82 | 61.39 | 0.748 | 1651 | 342 |
+| rc @ 600      | 23.39 | 62.80 | 0.773 | 1470 | 337 |
+| rc @ 1200     | 23.91 | 62.90 | 0.785 | 1524 | 332 |
+| **rc @ 2400** | **27.41** | **65.25** | **0.852** | 1605 | 329 |
+
+**The `retrieved_chunks` failure at 1200 was a budget-starvation
+artifact, not an intrinsic mechanism flaw.** At 2400:
+
+- rc vs off: **+0.22 BLEU, +1.82 chrF, +0.021 COMET** (net positive)
+- rc @ 2400 vs title_abstract @ 1200: **−0.68 BLEU, +0.12 chrF,
+  −0.013 COMET** (slightly worse on BLEU, BEATS on chrF)
+- Monotonic quality improvement with budget: 400→600→1200→2400
+  adds 2.6 → 0.5 → 3.5 BLEU. Latency cost is negligible
+  (CA 1651→1470→1524→1605 — oscillates ~150ms).
+
+**Revised paper story:**
+
+1. **Both static and retrieval help, given budget.** Static
+   (title_abstract) needs ~1100 chars; retrieval needs ~2400
+   chars to land 3 meaningful chunks.
+2. **Smaller budgets starve retrieval** — the top-k chunks get
+   truncated below usable length (~400-800 chars each) and the
+   MT sees random paragraph fragments.
+3. **Combining static + retrieval** in `title_and_chunks` at 1200
+   is budget-cannibalised: title+abstract consume all 1200 chars
+   so retrieval chunks get dropped. Would need max_chars ≥ 2400+
+   for the richest mode to actually contain both.
+4. The paper narrative extends cleanly: context injection is a
+   knob family, not a single setting. Budget × mode is the
+   design surface.
+
+**Next:** sweep title_and_chunks at max_chars=2400 and 3600 to
+see if the richest mode beats either static-alone or retrieval-
+alone once both can actually fit.
+
+Artifacts: `outputs/night2_context_clip2_rc_budget_{400,600,2400}/`.
