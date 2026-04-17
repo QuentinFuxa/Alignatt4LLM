@@ -3101,3 +3101,77 @@ is a zero-infrastructure win of ~+1 BLEU / +3% COMET on a talk
 that self-references the paper."*
 
 Artifacts: `outputs/night2_context_clip2_tc_budget_{2400,3600}/`.
+
+### Clip 1 (Script Knowledge / LLM paper): context HURTS
+
+Third PDF-backed clip, run on quest A40 after fresh AOT cache.
+Completely inverts the clip 2 story.
+
+| mode              | BLEU  | chrF  | COMET | CA   | upd | src+rw |
+|-------------------|-------|-------|-------|------|-----|--------|
+| off               | **27.46** | **63.64** | **0.855** | 1793 | 435 | 49     |
+| title_abstract    | 22.33 | 62.46 | 0.812 | 1505 | 434 | 65     |
+| retrieved_chunks  | 25.07 | 63.49 | 0.812 | 1733 | 448 | 60     |
+| title_and_chunks  | 22.33 | 62.46 | 0.812 | 1480 | 435 | 66     |
+
+**Context injection is catastrophic on clip 1:**
+- `title_abstract`: **−5.13 BLEU, −0.043 COMET**
+- `retrieved_chunks`: −2.39 BLEU, −0.043 COMET
+- `title_and_chunks`: −5.13 BLEU (bit-identical to ta — budget-
+   squeezed at 1200; clip 1 abstract is 1292 chars so title+abstract
+   just barely fits)
+
+**3-clip cross-clip summary (all at max_chars=1200):**
+
+| Mode | clip1 ΔBLEU | clip2 ΔBLEU | clip3 ΔBLEU | 3-clip mean |
+|------|-------------|-------------|-------------|-------------|
+| title_abstract    | **−5.13** | **+0.90** | +0.67 | **−1.19** |
+| retrieved_chunks  | −2.39 | −3.28 | −0.14 | −1.94 |
+| title_and_chunks  | −5.13 | +0.90 | −2.62 | −2.28 |
+
+| Mode | 3-clip mean ΔCOMET |
+|------|---------------------|
+| title_abstract    | −0.006 |
+| retrieved_chunks  | −0.038 |
+| title_and_chunks  | −0.036 |
+
+**Revised conclusion:**
+
+- **No mode tested is a net win across the 3 clips.** ta is
+  barely negative on mean BLEU (−1.19) with a COMET penalty
+  so small (−0.006) it's within noise.
+- Previous "ta is a win" claim was from clip 2 alone. Clip 2
+  happens to be a talk *about the paper itself* (AlignAtt paper
+  by Papi/Negri/Turchi, speaker introduces themselves saying
+  "I'm Sarah Papi ... I'll present Attention as a Guide"). That
+  is an edge case, not a general pattern.
+- Clips 1 and 3 are more typical (talk cites paper but doesn't
+  read it aloud). On these, context hurts or is neutral.
+
+**Why does clip 2 win and clip 1 lose?**
+Hypothesis: clip 2's context is high-value because the talk
+content is the paper content. Clip 1 (Script Knowledge for LLMs)
+is a talk that may drift from the paper's abstract, so the
+abstract mis-primes the MT with terminology/phrasing that
+doesn't match the talk's actual wording.
+
+**Paper story revision (honest):**
+
+Context injection as implemented:
+- is NOT a net-positive mechanism in generic simultaneous
+  speech-translation
+- can help dramatically when the talk narrates the paper (+0.90
+  BLEU, +0.034 COMET on clip 2)
+- can hurt dramatically when the talk diverges from the paper
+  (−5.13 BLEU, −0.043 COMET on clip 1)
+
+For an IWSLT submission, the current mechanism is **not safe
+to enable by default**. It would need either:
+1. A gating heuristic (inject only when retrieval confidence
+   is high?)
+2. A calibration step (prompt training? prompt tuning?)
+3. Stricter budget policy (smaller abstract truncation?)
+4. Sentence-level retrieval instead of document-level context
+
+Artifacts (on quest→local sync):
+- `outputs/night2_context_clip1_{off,title_abstract,retrieved_chunks,title_and_chunks}/`
