@@ -2135,6 +2135,50 @@ observed 35% drop in src_fr firings.
 
 Artifact: `outputs/night1_ende_scalar_vllm_eager_REAL/`.
 
+### Observer works under cudagraph=full: FULLY UNBLOCKED (2026-04-17)
+
+With the observer-body shape fix in place (d153be2), retried the
+sentinel-return approach that had previously failed due to
+shape-broadcast mismatch during `determine_available_memory`:
+
+- Custom op registered with `mutates_args="unknown"` + returns
+  `torch.zeros((), dtype=q.dtype, device=q.device)`.
+- Patched forward does `attn_output = attn_output +
+  observer_sentinel`, creating a data dependency inductor can't
+  DCE under cudagraph=full.
+
+**Result: observer captures correctly under cudagraph=full.**
+
+| Config                      | BLEU  | COMET | CA   | upd | src_fr | rewind | fwd_cnt | RTF  |
+|-----------------------------|-------|-------|------|-----|--------|--------|---------|------|
+| disc TransMT                | 28.22 | 0.862 | 2240 | 430 | 40     | 26     | n/a     | 1.02 |
+| disc vLLM eager (fixed)     | 27.60 | 0.859 | 1808 | 430 | 37     | 22     | 90      | 0.74 |
+| **disc vLLM cg=full (fixed)**| 27.55 | 0.861 | 1565 | 436 | 35     | 27     | **54**  | **0.40** |
+
+**Production performance win:**
+- 2.5× faster than Transformers MT (RTF 0.40 vs 1.02)
+- 1.9× faster than vLLM MT eager (RTF 0.40 vs 0.74)
+- Quality essentially identical to eager (char-sim 0.9987)
+- 62 real AlignAtt gate firings — same policy pattern as
+  Transformers MT
+- COMET 0.861 (within 0.001 of discrete TransMT)
+
+**The vLLM MT observer blocker is now fully resolved.** The paper
+can quote vLLM MT cudagraph=full as the observer-validated
+submission path. No more "eager as workaround" caveat.
+
+**Fix stack (all three required):**
+1. Config routing (`54e8b94`): override_keys now includes
+   `mt_vllm_enforce_eager`, `translation_source_frontier_mode`, etc.
+2. Observer body shape (`d153be2`): write_mask built via
+   `scatter_reduce_` into buffer-shaped scratch (max_prompt /
+   max_decode), not num_positions-shaped. Bool dtype → int32 for
+   CUDA scatter_reduce_ support.
+3. Sentinel threading (`50ad207`): `mutates_args="unknown"` +
+   zero-scalar return + `attn_output += observer_sentinel`.
+
+Artifact: `outputs/night1_ende_discrete_vllm_mt_customop_FIXED2/`.
+
 ### Loop-replay F1 drops on scalar-mode artifacts (2026-04-17)
 
 Ran the discrete-gate loop-replay predictor
