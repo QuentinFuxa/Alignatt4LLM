@@ -1308,6 +1308,45 @@ clip, offline-drift regime, threshold value):
 
 Artifact: `outputs/night1_ende_scalar_thr0p05_instrumented/`.
 
+### Attempted: scalar substitution on vLLM MT (BLOCKED by compile-cache fragility)
+
+Tried running the scalar-substitution A/B with the canonical
+`gemma_vllm_alignatt` MT backend (instead of the Transformers MT
+fallback) on ccpXHNfaoy.wav. Would have been the final piece of
+evidence — showing scalar substitution works on the actual
+submission backend.
+
+Two attempts, both hit the compile-cache fragility first documented
+in commit `4ebfee0`:
+
+- Attempt 1: with whatever caches were left from prior runs. Stub
+  install fired correctly (42 layers). ValueError: too many values
+  to unpack (expected 20) at `determine_available_memory` during
+  inductor cache reload.
+- Attempt 2: after wiping both `vllm/torch_compile_cache/torch_aot_compile/f5ee.../`
+  and `/tmp/torchinductor_root/`. Fresh compile triggered. Stub
+  install fired (42 layers). Same ValueError at same line.
+
+The failure is reproducible and independent of cache freshness,
+which contradicts my earlier hypothesis that wiping caches would
+fix it. Something about the interaction between vLLM's AOT graph
+compilation + torchinductor's cached code generation + my observer
+patch results in a 20-vs-N argument mismatch on the v2 re-compile.
+
+**Accepted as tonight's hard blocker on this specific experiment.**
+The scalar-substitution bit-identical finding is already validated
+under the Transformers MT path across four axes (two language
+pairs, three clips, two thresholds, full offline-drift regime).
+Exercising it under vLLM MT would be incremental evidence, not
+paper-critical. The fix path (make compiled Gemma4 forward
+tolerate missing observer attr via try/except; or make vLLM and
+torchinductor cache invalidation consistent) is a bigger engineering
+piece than tonight's remaining budget admits.
+
+Runtime-level scalar substitution stays behind Transformers MT for
+the paper's published numbers; vLLM MT production use would need
+the compile-cache-fragility fix first.
+
 ### Third-gate coverage: `alignatt:provenance_weak` joins loop-replay F1 = 1.000
 
 The three discrete MT gates are `alignatt:source_frontier`,
