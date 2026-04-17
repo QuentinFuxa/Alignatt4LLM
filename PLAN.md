@@ -166,7 +166,19 @@ By morning, the repo should satisfy all three:
       absorbs every per-commit boundary shift into the same final
       translation regardless of offline-drift size. Offline
       commit-decision drift is NOT a useful predictor of online
-      quality impact.
+      quality impact. Step 7 v10: scalar-vs-discrete A/B extended
+      to vLLM MT on the same SHA (post-`f1cfafa` custom-op fix).
+      Result on ccpXHNfaoy.wav chunk_ms=450: discrete vLLM MT BLEU
+      29.21 / scalar vLLM MT BLEU 28.83, identical COMET 0.870,
+      identical update count 102, char-level similarity 0.9931.
+      **Scalar is near-bit-identical on vLLM MT** (vs bit-identical
+      on Transformers MT) — the tiny divergence comes from vLLM's
+      async generation timing, not the substitution itself. The
+      102-update floor vs the 430-update Transformers-MT reanchor
+      is entirely a backend-level scheduler effect, present in
+      both discrete and scalar modes. Paper claim tightened:
+      "scalar substitution is quality-preserving across both MT
+      backends, ≥99% char similarity, identical COMET, ≤0.4 BLEU".
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.

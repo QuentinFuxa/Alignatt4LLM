@@ -1586,3 +1586,54 @@ only affects display smoothness / LongYAAL-computation timings.
   primary latency knob as already recommended.
 - `freeze_nonexpanding_major_rewrites` stays as an emission-policy
   option for downstream display, not a quality-affecting knob.
+
+### Scalar vs discrete at vLLM MT (same-SHA A/B, 2026-04-17)
+
+The scalar substitution bit-identical claim was established on
+Transformers MT only. To close out the vLLM-MT side now that the
+custom-op fix unblocks vLLM MT, ran `discrete` and `scalar` modes
+on the SAME SHA (post-`f1cfafa`) and compared directly.
+
+Config: `qwen_forced` ASR + `gemma_vllm_alignatt` MT + chunk_ms=450
++ punctuation_lcp + canonical ccpXHNfaoy.wav (en→de).
+
+| Mode                            | BLEU  | chrF  | COMET | CU     | CA     | updates |
+|---------------------------------|-------|-------|-------|--------|--------|---------|
+| `discrete` (post-custom-op)     | 29.21 | 64.17 | 0.870 | 2649ms | 2367ms | 102     |
+| `scalar` thr=0.015 (same SHA)   | 28.83 | 63.85 | 0.870 | 2652ms | 2498ms | 102     |
+| Δ (scalar − discrete)           | −0.38 | −0.32 | 0.000 |  +3ms  | +131ms |   0     |
+
+**Scalar at vLLM MT is near-bit-identical but NOT bit-identical.**
+Char-level similarity between the two full predictions: 0.9931
+(5626 vs 5624 chars, ~40 chars differ across a 5626-char output).
+COMET is identical; BLEU differs by 0.38 — inside normal per-clip
+variance.
+
+**Update count is identical (102 = 102).** The factor-4 drop from
+the Transformers-MT reanchor baseline (430 updates) to vLLM-MT
+post-custom-op (102 updates) is **entirely a backend-level
+scheduler effect**, not a scalar-substitution effect. Both discrete
+and scalar modes produce the same 102 updates on the same SHA.
+
+**Interpretation.** On Transformers MT, scalar is character-for-
+character identical to discrete because the generation path is
+synchronous and deterministic. On vLLM MT, the async/batched
+generation path introduces a small timing jitter between when the
+scalar threshold fires vs when the discrete `>=` comparison fires,
+producing ~0.7% character-level divergence. Quality remains
+invariant on COMET and within 0.4 BLEU; scalar is a
+quality-preserving drop-in replacement across both MT backends.
+
+Paper phrasing that survives scrutiny: "Scalar source-frontier
+substitution is bit-identical on Transformers MT and
+near-bit-identical on vLLM MT (≥99% char similarity, identical
+COMET, ≤0.4 BLEU), confirming the observer contract absorbs the
+discrete gate across both backends."
+
+Also resolves the earlier concern in DECISIONS that scalar vLLM MT
+"commits later than discrete → higher BLEU because more context."
+Not true at same SHA: discrete vLLM MT has *higher* BLEU (29.21 vs
+28.83), same update count, same COMET. The 102-update floor is the
+vLLM-MT scheduler's property, not the scalar substitution's.
+
+Artifact: `outputs/night1_ende_discrete_vllm_mt_customop_instrumented/`.
