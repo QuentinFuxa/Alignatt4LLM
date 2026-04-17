@@ -161,6 +161,38 @@ def _make_sample_artifact() -> PaperArtifact:
     )
 
 
+def _make_budget_artifact() -> PaperArtifact:
+    return PaperArtifact(
+        paper_id="budget",
+        title=(
+            "A Very Long Paper Title That Should Be Truncated Cleanly When "
+            "The Budget Is Tight"
+        ),
+        authors="A. Author",
+        abstract=(
+            "This abstract is intentionally verbose so the renderer has to "
+            "truncate it on a word boundary while keeping the ellipsis inside "
+            "the configured character budget."
+        ),
+        chunks=(
+            PaperChunk(
+                chunk_id="c0000",
+                text=(
+                    "The retrieved chunk is also intentionally long so the "
+                    "renderer has to truncate the first selected chunk while "
+                    "keeping the ellipsis counted inside the budget."
+                ),
+                section="Method",
+            ),
+            PaperChunk(
+                chunk_id="c0001",
+                text="A short backup chunk that should usually be dropped.",
+                section="Results",
+            ),
+        ),
+    )
+
+
 def test_bm25_retrieval_is_deterministic_and_relevant():
     artifact = _make_sample_artifact()
     selector = PaperContextSelector.from_artifact(artifact)
@@ -201,18 +233,96 @@ def test_context_mode_off_returns_empty_block():
     assert block.text == ""
 
 
-def test_title_abstract_mode_truncates_on_budget():
-    artifact = _make_sample_artifact()
+def test_title_abstract_mode_truncates_title_when_budget_is_tiny():
+    artifact = _make_budget_artifact()
     selector = PaperContextSelector.from_artifact(artifact)
     block = selector.select(
         mode=CONTEXT_MODE_TITLE_ABSTRACT,
         query="",
         top_k=0,
-        max_chars=120,
+        max_chars=28,
     )
-    assert "Title:" in block.text
-    # Budget must not be exceeded (header + body).
-    assert len(block.text) <= 120 + len(PAPER_CONTEXT_HEADER) + 2
+    body = block.text.split("\n", 1)[1]
+    assert len(body) <= 28
+    assert "Title:" in body
+    assert body.endswith("...")
+    assert "Abstract:" not in body
+
+
+def test_title_abstract_mode_truncates_abstract_within_budget():
+    artifact = _make_budget_artifact()
+    selector = PaperContextSelector.from_artifact(artifact)
+    block = selector.select(
+        mode=CONTEXT_MODE_TITLE_ABSTRACT,
+        query="",
+        top_k=0,
+        max_chars=96,
+    )
+    body = block.text.split("\n", 1)[1]
+    assert len(body) <= 96
+    assert body.count("\n") == 1
+    assert body.split("\n", 1)[1].endswith("...")
+
+
+def test_title_and_chunks_mode_counts_separators_in_budget():
+    artifact = PaperArtifact(
+        paper_id="combo-budget",
+        title="Short title",
+        authors="A. Author",
+        abstract="A medium abstract that still leaves enough room for one chunk.",
+        chunks=(
+            PaperChunk(
+                chunk_id="c0000",
+                text=(
+                    "This retrieved chunk is intentionally long so the combined "
+                    "mode has to budget title, abstract, separator, and chunk "
+                    "text together."
+                ),
+                section="Method",
+            ),
+        ),
+    )
+    selector = PaperContextSelector.from_artifact(artifact)
+    block = selector.select(
+        mode=CONTEXT_MODE_TITLE_AND_CHUNKS,
+        query="combined budget chunk",
+        top_k=2,
+        max_chars=180,
+    )
+    body = block.text.split("\n", 1)[1]
+    assert len(body) <= 180
+    assert body.count("\n\n") == 1
+
+
+def test_retrieved_chunks_mode_truncates_first_chunk_with_ellipsis_in_budget():
+    artifact = PaperArtifact(
+        paper_id="chunk-budget",
+        title="Short title",
+        authors="A. Author",
+        abstract="",
+        chunks=(
+            PaperChunk(
+                chunk_id="c0000",
+                text=(
+                    "This retrieved chunk is intentionally long so the first "
+                    "selected chunk must be truncated with an ellipsis that "
+                    "still fits inside the budget."
+                ),
+                section="Method",
+            ),
+        ),
+    )
+    selector = PaperContextSelector.from_artifact(artifact)
+    block = selector.select(
+        mode=CONTEXT_MODE_RETRIEVED_CHUNKS,
+        query="truncated chunk budget",
+        top_k=1,
+        max_chars=96,
+    )
+    body = block.text.split("\n", 1)[1]
+    assert len(body) <= 96
+    assert "[c0000 | Method]" in body
+    assert body.endswith("...")
 
 
 def test_render_messages_preserves_source_span_with_paper_context():
@@ -358,6 +468,33 @@ def test_shipped_variant_does_not_carry_paper_instruction():
     )
     # Same system message whether or not a paper block is injected.
     assert prompt_default.messages[0] == prompt_with_paper.messages[0]
+
+
+def test_run_context_ablation_plumbs_history_knob_and_summary():
+    from types import SimpleNamespace
+
+    import run_context_ablation as rca
+
+    args = SimpleNamespace(
+        wav="tmp/clip.wav",
+        paper_context_path="data/paper_artifacts/clip.json",
+        output_dir="outputs/test",
+        chunk_ms=450,
+        source="en",
+        target="de",
+        max_history_utterances=1,
+        alignment_backend_name="qwen_forced",
+        mt_backend_name="gemma_transformers_alignatt",
+        paper_context_top_k=3,
+        paper_context_max_chars=1200,
+        paper_context_history_window_words=60,
+        min_start_seconds=2.0,
+        translation_alignatt_min_source_mass=0.0,
+    )
+    processor_config = rca.build_processor_config(args)
+    assert processor_config.max_history_utterances == 1
+    summary = rca.build_summary(args=args, load_ms=12.34, per_mode_summaries=[])
+    assert summary["max_history_utterances"] == 1
 
 
 def test_paper_context_instruction_slot_plumbing_when_explicitly_set():

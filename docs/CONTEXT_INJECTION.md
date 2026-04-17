@@ -64,14 +64,17 @@ Expressed on `CascadeRuntimeConfig` and surfaced on
 |---|---|---|
 | `--paper-context-path` | `None` | Path to a `PaperArtifact` JSON. Required when mode is not `off`. |
 | `--paper-context-mode` | `off` | One of `off`, `title_abstract`, `retrieved_chunks`, `title_and_chunks`. |
+| `--max-history-utterances` | `1` | Number of previously committed source utterances concatenated into the retrieval query. Canonical batch and single-audio ablation both default to `1` so the evaluation harness actually exercises the documented query. |
 | `--paper-context-top-k` | `3` | Max chunks retrieved per MT call. |
 | `--paper-context-max-chars` | `1200` | Budget on the rendered block, before the `[Paper context]` header. |
 | `--paper-context-history-window-words` | `60` | Words of confirmed source history to concatenate into the retrieval query. |
 
-`max_chars` is a hard ceiling. BM25 retrieves in score order; a chunk that
-would not fit is dropped cleanly rather than partial-truncated (except for
-the top-ranked chunk, which may be word-boundary-truncated so the block is
-never empty when retrieval found anything relevant).
+`max_chars` is a hard ceiling on the rendered body, before the
+`[Paper context]` header. BM25 retrieves in score order; a chunk that would
+not fit is dropped cleanly rather than partial-truncated (except for the
+top-ranked chunk, which may be word-boundary-truncated so the block is never
+empty when retrieval found anything relevant). Separators count too: title,
+abstract, and chunk boundaries all share the same body budget.
 
 ## Producing paper artifacts
 

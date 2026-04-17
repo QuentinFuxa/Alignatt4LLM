@@ -203,30 +203,30 @@ class PaperContextSelector:
         remaining = int(max_chars)
 
         if mode in (CONTEXT_MODE_TITLE_ABSTRACT, CONTEXT_MODE_TITLE_AND_CHUNKS):
-            front = self._render_front_matter(remaining=remaining)
+            front = self._render_front_matter_section(remaining=remaining)
             if front:
-                sections.append(front)
-                remaining -= len(front)
+                remaining = self._append_section(sections, front, remaining)
 
         if mode in (CONTEXT_MODE_RETRIEVED_CHUNKS, CONTEXT_MODE_TITLE_AND_CHUNKS):
             # title-only prefix is cheap context in every mode that retrieves;
             # we still keep the title visible even when the abstract wasn't
             # requested so the model has a one-line paper handle.
             if mode == CONTEXT_MODE_RETRIEVED_CHUNKS and self.artifact.title:
-                title_line = f"Title: {self.artifact.title}"
-                if len(title_line) + 2 <= remaining:
-                    sections.append(title_line)
-                    remaining -= len(title_line) + 2
+                title_line = self._render_prefixed_line(
+                    "Title", self.artifact.title, remaining
+                )
+                if title_line:
+                    remaining = self._append_section(sections, title_line, remaining)
             retrieved = self._render_retrieved_chunks(
                 query=query,
                 top_k=top_k,
                 remaining=remaining,
             )
             if retrieved is not None:
-                block_text, chunk_ids = retrieved
-                if block_text:
-                    sections.append(block_text)
-                    used_chunk_ids.extend(chunk_ids)
+                chunk_sections, chunk_ids = retrieved
+                for section in chunk_sections:
+                    remaining = self._append_section(sections, section, remaining)
+                used_chunk_ids.extend(chunk_ids)
 
         if not sections:
             return PaperContextBlock(text="", mode=mode)
@@ -239,28 +239,46 @@ class PaperContextSelector:
             used_chunk_ids=tuple(used_chunk_ids),
         )
 
-    def _render_front_matter(self, *, remaining: int) -> str:
-        pieces: list[str] = []
-        if self.artifact.title:
-            pieces.append(f"Title: {self.artifact.title}")
-        if self.artifact.abstract:
-            pieces.append(f"Abstract: {self.artifact.abstract}")
-        if not pieces:
+    def _render_prefixed_line(self, prefix: str, text: str, remaining: int) -> str:
+        if remaining <= 0 or not text:
             return ""
-        block = "\n".join(pieces)
-        if len(block) <= remaining:
-            return block
-        # Budget overflow: prefer to keep the title intact, truncate the
-        # abstract on a word boundary. Deterministic truncation (no ellipsis
-        # in mid-word).
-        title_line = f"Title: {self.artifact.title}" if self.artifact.title else ""
-        abstract_budget = remaining - (len(title_line) + 1 if title_line else 0)
-        abstract_line = _truncate_words(self.artifact.abstract, abstract_budget - len("Abstract: "))
-        out = title_line
-        if abstract_line:
-            prefix = "\n" if out else ""
-            out = f"{out}{prefix}Abstract: {abstract_line}"
-        return out
+        line = f"{prefix}: {text}"
+        if len(line) <= remaining:
+            return line
+        return _truncate_words(line, remaining)
+
+    def _append_section(self, sections: list[str], section: str, remaining: int) -> int:
+        if not section:
+            return remaining
+        needed = len(section) if not sections else len(section) + 2
+        if needed > remaining:
+            return remaining
+        sections.append(section)
+        return remaining - needed
+
+    def _render_front_matter_section(self, *, remaining: int) -> str:
+        title_line = (
+            self._render_prefixed_line("Title", self.artifact.title, remaining)
+            if self.artifact.title
+            else ""
+        )
+        if not title_line:
+            if self.artifact.abstract:
+                return self._render_prefixed_line("Abstract", self.artifact.abstract, remaining)
+            return ""
+        if not self.artifact.abstract:
+            return title_line
+        if len(title_line) + 1 >= remaining:
+            return title_line
+        abstract_line = self._render_prefixed_line(
+            "Abstract",
+            self.artifact.abstract,
+            remaining - len(title_line) - 1,
+        )
+        if not abstract_line:
+            return title_line
+        candidate = f"{title_line}\n{abstract_line}"
+        return candidate if len(candidate) <= remaining else title_line
 
     def _render_retrieved_chunks(
         self,
@@ -268,14 +286,14 @@ class PaperContextSelector:
         query: str,
         top_k: int,
         remaining: int,
-    ) -> tuple[str, list[str]] | None:
+    ) -> tuple[list[str], list[str]] | None:
         if self.bm25 is None:
             return None
         scored = self.bm25.score(query, top_k=top_k)
         if not scored:
             return None
 
-        lines: list[str] = []
+        sections: list[str] = []
         used: list[str] = []
         for entry in scored:
             chunk = self._chunk_by_id.get(entry.chunk_id)
@@ -287,44 +305,46 @@ class PaperContextSelector:
                 + "]"
             )
             candidate = f"{header}\n{chunk.text}"
-            if lines:
-                needed = len(candidate) + 2  # "\n\n" separator
-            else:
-                needed = len(candidate)
-            if needed > remaining:
-                # Try to partial-truncate the chunk if it is the first one
-                # and nothing else made it in; otherwise stop cleanly so the
-                # selector never returns a half-sentence of a ranked chunk.
-                if lines:
+            candidate_needed = len(candidate) if not sections else len(candidate) + 2
+            if candidate_needed > remaining:
+                if sections:
                     break
-                budget_for_text = remaining - len(header) - 1
-                truncated = _truncate_words(chunk.text, max(0, budget_for_text))
+                body_budget = remaining - len(header) - 1
+                truncated = _truncate_words(chunk.text, body_budget)
                 if not truncated:
                     break
-                lines.append(f"{header}\n{truncated}")
+                sections.append(f"{header}\n{truncated}")
                 used.append(chunk.chunk_id)
-                remaining = 0
+                remaining -= len(sections[-1])
                 break
-            lines.append(candidate)
+            sections.append(candidate)
             used.append(chunk.chunk_id)
-            remaining -= needed
+            remaining -= candidate_needed
 
-        if not lines:
+        if not sections:
             return None
-        return ("\n\n".join(lines), used)
+        return (sections, used)
 
 
 def _truncate_words(text: str, max_chars: int) -> str:
-    """Truncate on a word boundary; never returns a partial final word."""
+    """Truncate on a word boundary and keep the suffix inside ``max_chars``."""
     if max_chars <= 0 or not text:
         return ""
     if len(text) <= max_chars:
         return text
-    truncated = text[:max_chars]
-    # Drop trailing partial word.
-    if " " in truncated and not text[max_chars].isspace():
+    suffix = "..."
+    if max_chars <= len(suffix):
+        return suffix[:max_chars]
+    truncated = text[: max_chars - len(suffix)]
+    if " " in truncated and len(text) > len(truncated) and not text[len(truncated)].isspace():
         truncated = truncated.rsplit(" ", 1)[0]
-    return truncated.rstrip(" .,;:-") + "..."
+    truncated = truncated.rstrip(" .,;:-")
+    if not truncated:
+        return suffix[:max_chars]
+    candidate = f"{truncated}{suffix}"
+    if len(candidate) <= max_chars:
+        return candidate
+    return candidate[:max_chars]
 
 
 def build_retrieval_query(

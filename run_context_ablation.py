@@ -9,16 +9,17 @@ canonical SimulStream processor while flipping only the paper-context mode:
     3. BM25-retrieved paper chunks
 
 The only knob that changes between conditions is ``paper_context_mode``; the
-paper artifact and every other runtime knob are held constant. The bundle
-is hot-reused between conditions (the PaperContextSelector is cheap to
-rebuild — PLAN.md Step 4 explicitly asks for a minimal three-condition
-comparison).
+paper artifact, ``max_history_utterances`` and every other runtime knob are
+held constant. The bundle is hot-reused between conditions (the
+PaperContextSelector is cheap to rebuild — PLAN.md Step 4 explicitly asks for
+a minimal three-condition comparison).
 
 Usage (from ``.venv-inference``):
 
     python run_context_ablation.py \
         --wav tmp/ccpXHNfaoy_first75.wav \
         --paper-context-path data/paper_artifacts/ccpXHNfaoy.json \
+        --max-history-utterances 1 \
         --output-dir outputs/context_ablation_ccp75 \
         --source en --target de --chunk-ms 450
 """
@@ -53,6 +54,7 @@ from simulstream.server.speech_processors import SAMPLE_RATE
 
 
 CONDITIONS = ("off", "title_abstract", "retrieved_chunks")
+DEFAULT_MAX_HISTORY_UTTERANCES = 1
 
 
 def load_wav_raw(path: str) -> np.ndarray:
@@ -90,6 +92,52 @@ class ConditionResult:
     mean_word_delay_ms: float | None
     stream_updates: list[dict[str, Any]]
     hypothesis_record: dict[str, Any]
+
+
+def build_processor_config(args: argparse.Namespace) -> SimpleNamespace:
+    return SimpleNamespace(
+        source_lang_code=args.source,
+        target_lang_code=args.target,
+        chunk_ms=args.chunk_ms,
+        speech_chunk_size=args.chunk_ms / 1000.0,
+        alignment_backend_name=args.alignment_backend_name,
+        mt_backend_name=args.mt_backend_name,
+        min_start_seconds=args.min_start_seconds,
+        max_history_utterances=args.max_history_utterances,
+        paper_context_path=args.paper_context_path,
+        paper_context_mode="off",
+        paper_context_top_k=args.paper_context_top_k,
+        paper_context_max_chars=args.paper_context_max_chars,
+        paper_context_history_window_words=args.paper_context_history_window_words,
+        translation_alignatt_min_source_mass=args.translation_alignatt_min_source_mass,
+    )
+
+
+def build_summary(
+    *,
+    args: argparse.Namespace,
+    load_ms: float,
+    per_mode_summaries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "schema_version": ARTIFACT_SCHEMA_VERSION,
+        "generated_at_utc": utc_now_isoformat(),
+        "kind": "context_ablation_single_audio",
+        "wav": args.wav,
+        "paper_context_path": args.paper_context_path,
+        "source_language_code": args.source,
+        "target_language_code": args.target,
+        "alignment_backend_name": args.alignment_backend_name,
+        "mt_backend_name": args.mt_backend_name,
+        "chunk_ms": args.chunk_ms,
+        "max_history_utterances": args.max_history_utterances,
+        "paper_context_top_k": args.paper_context_top_k,
+        "paper_context_max_chars": args.paper_context_max_chars,
+        "paper_context_history_window_words": args.paper_context_history_window_words,
+        "translation_alignatt_min_source_mass": args.translation_alignatt_min_source_mass,
+        "model_load_ms": round(load_ms, 1),
+        "conditions": per_mode_summaries,
+    }
 
 
 def run_one_condition(
@@ -209,6 +257,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source", default="en")
     parser.add_argument("--target", default="de")
     parser.add_argument(
+        "--max-history-utterances",
+        type=int,
+        default=DEFAULT_MAX_HISTORY_UTTERANCES,
+        help=(
+            "Number of previously committed source utterances to include in the "
+            "retrieval query. Default 1, matching the canonical batch runner so "
+            "single-audio ablations remain comparable."
+        ),
+    )
+    parser.add_argument(
         "--alignment-backend-name",
         default="qwen_forced",
         choices=("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast"),
@@ -241,21 +299,7 @@ def main() -> None:
     args = parse_args()
     out_dir = ensure_output_dir(args.output_dir)
 
-    processor_config = SimpleNamespace(
-        source_lang_code=args.source,
-        target_lang_code=args.target,
-        chunk_ms=args.chunk_ms,
-        speech_chunk_size=args.chunk_ms / 1000.0,
-        alignment_backend_name=args.alignment_backend_name,
-        mt_backend_name=args.mt_backend_name,
-        min_start_seconds=args.min_start_seconds,
-        paper_context_path=args.paper_context_path,
-        paper_context_mode="off",
-        paper_context_top_k=args.paper_context_top_k,
-        paper_context_max_chars=args.paper_context_max_chars,
-        paper_context_history_window_words=args.paper_context_history_window_words,
-        translation_alignatt_min_source_mass=args.translation_alignatt_min_source_mass,
-    )
+    processor_config = build_processor_config(args)
 
     load_start = perf_counter()
     CascadeAlignAttProcessor.load_model(processor_config)
@@ -314,24 +358,7 @@ def main() -> None:
             "final_asr": result.final_asr,
         })
 
-    summary = {
-        "schema_version": ARTIFACT_SCHEMA_VERSION,
-        "generated_at_utc": utc_now_isoformat(),
-        "kind": "context_ablation_single_audio",
-        "wav": args.wav,
-        "paper_context_path": args.paper_context_path,
-        "source_language_code": args.source,
-        "target_language_code": args.target,
-        "alignment_backend_name": args.alignment_backend_name,
-        "mt_backend_name": args.mt_backend_name,
-        "chunk_ms": args.chunk_ms,
-        "paper_context_top_k": args.paper_context_top_k,
-        "paper_context_max_chars": args.paper_context_max_chars,
-        "paper_context_history_window_words": args.paper_context_history_window_words,
-        "translation_alignatt_min_source_mass": args.translation_alignatt_min_source_mass,
-        "model_load_ms": round(load_ms, 1),
-        "conditions": per_mode_summaries,
-    }
+    summary = build_summary(args=args, load_ms=load_ms, per_mode_summaries=per_mode_summaries)
     write_json(out_dir / "ablation_summary.json", summary)
     print(f"\nSummary written to {out_dir / 'ablation_summary.json'}")
 
