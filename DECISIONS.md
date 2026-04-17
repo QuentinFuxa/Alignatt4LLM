@@ -1347,6 +1347,26 @@ Runtime-level scalar substitution stays behind Transformers MT for
 the paper's published numbers; vLLM MT production use would need
 the compile-cache-fragility fix first.
 
+**Additional attempt blocked:** also tried with
+`mt_vllm_enforce_eager=True` + `mt_vllm_cudagraph_mode=None` to
+skip the compile cache entirely. Same `ValueError: too many values
+to unpack (expected 20)` at the same line. The enforce_eager flag
+doesn't disable the AOT graph load early enough in the engine init
+sequence to prevent this. The bug is deeper than the config surface
+exposes.
+
+**Third attempt also blocked.** The issue is structural to how
+the vLLM worker + our patched Gemma4Attention + torchinductor
+interact during engine init. A proper fix needs either:
+(a) an upstream vLLM change that honours enforce_eager before the
+    AOT graph is loaded, OR
+(b) rewriting the MT observer patch to not add arguments to the
+    traced graph (inline the observer capture as a no-op stub
+    that torch.compile elides).
+
+Both are substantial engineering items — significantly beyond
+tonight's scope. Definitive tonight-blocker.
+
 ### Third-gate coverage: `alignatt:provenance_weak` joins loop-replay F1 = 1.000
 
 The three discrete MT gates are `alignatt:source_frontier`,
