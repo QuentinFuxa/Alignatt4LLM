@@ -1367,6 +1367,36 @@ interact during engine init. A proper fix needs either:
 Both are substantial engineering items — significantly beyond
 tonight's scope. Definitive tonight-blocker.
 
+**Attempted: wrap observer capture with ``@torch.compiler.disable``**
+(added and reverted in-place in `gemma_vllm_mt_observer.py`). Rationale:
+keep the observer's tensor scatter/gather out of the AOT-compiled
+Gemma4 forward graph, so the ``ValueError: too many values to unpack``
+on cache reload should disappear. Dynamo DID honour the decorator:
+
+```
+torch._dynamo.exc.Unsupported: Skip calling `torch.compiler.disable()`d function
+  Explanation: Skip calling function `_capture_mt_qk_into_tensor_buffers`
+               since it was wrapped with `torch.compiler.disable`
+               (reason: None)
+```
+
+— but vLLM compiles Gemma4 in **fullgraph** mode, which does not
+permit graph breaks. `torch.compiler.disable` requires a break.
+Structural incompatibility: this patch cannot ship.
+
+**The right fix** (beyond tonight's scope) is to re-express the
+observer capture as a single **PyTorch custom op** registered via
+`torch.library.custom_op`. A custom op appears to AOT compile as a
+single opaque node, so it needs no graph break and locks down the
+traced graph's argument signature to exclude observer tensors.
+That's a ~100-line change (custom-op registration + inference
+backend decorator + CUDA kernel registration) — bounded but
+non-trivial.
+
+Leaving the compile-cache fragility as a **documented structural
+issue** for a follow-up session. Runtime scalar substitution stays
+behind Transformers MT for the paper's published numbers.
+
 ### Third-gate coverage: `alignatt:provenance_weak` joins loop-replay F1 = 1.000
 
 The three discrete MT gates are `alignatt:source_frontier`,

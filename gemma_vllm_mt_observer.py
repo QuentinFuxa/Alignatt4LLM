@@ -274,6 +274,21 @@ def _resolve_mt_observer_bindings(
 
 
 def _capture_mt_qk_into_tensor_buffers(attn_module, positions, q, k) -> None:
+    # NOTE (commit 2a818d0 / 5e557a8 / 4ebfee0 / this diff): an
+    # earlier attempt wrapped this function with
+    # ``@torch.compiler.disable`` to keep the observer-capture out of
+    # the AOT-compiled Gemma4 forward graph. That patch is not
+    # shippable: vLLM compiles the model in fullgraph mode, which
+    # does not permit graph breaks, and
+    # ``@torch.compiler.disable`` requires one. The dynamo error is
+    # explicit: *"Skip calling torch.compiler.disable()'d function"
+    # — the model is using torch.compile in fullgraph mode"*. A
+    # proper fix would need to either (a) convince vLLM to allow a
+    # break at the observer call, or (b) replace the observer
+    # capture path with a PyTorch custom op registered via
+    # ``torch.library.custom_op`` so it becomes a single dispatcher
+    # call that AOT can represent as an opaque node. Both are out
+    # of night scope.
     observer = _get_mt_qk_tensor_observer(attn_module)
     if observer is None:
         return
