@@ -2888,3 +2888,55 @@ runtime and offline predictor execute different gate definitions —
 but the hypothesis-level translation is bit-identical across a
 10× threshold range on clip 1, a stronger result than per-update
 fidelity would imply."
+
+## 2026-04-17 (user pivot to IWSLT context injection)
+
+### Context injection 3-way A/B on OiqEWDVtWk (AlignAtt-paper talk)
+
+First real test of the extra-context pipeline with a paper-backed
+clip. All runs on vLLM MT cg=full (observer fixed), chunk_ms=450,
+punctuation_lcp, paper_context_top_k=3, max_chars=1200.
+
+| Mode              | BLEU  | chrF  | COMET | CA   | upd | src_fr+rw | sim vs off |
+|-------------------|-------|-------|-------|------|-----|-----------|------------|
+| off               | 27.19 | 63.43 | 0.831 | 1638 | 322 | 31+21     | —          |
+| **title_abstract**| **28.09** | **65.13** | **0.865** | 1624 | 324 | 46+29     | 0.676      |
+| retrieved_chunks  | 23.91 | 62.90 | 0.785 | 1524 | 332 | 38+26     | 0.477      |
+| title_and_chunks  | 28.09 | 65.13 | 0.865 | 1603 | 322 | 44+28     | 0.676      |
+
+**title_abstract wins cleanly**: +0.90 BLEU, +1.70 chrF,
+**+0.034 COMET** (0.831 → 0.865) — a substantial COMET gain
+that strongly implies document-level discourse/terminology
+benefit, not just incidental wording.
+
+**retrieved_chunks alone hurts**: −3.28 BLEU, −0.046 COMET.
+Without the abstract, the selected top-k chunks distract rather
+than help. Probably because the retrieval query (ASR prefix + 60
+words of history) selects topically-nearby paragraphs that are
+not self-contained as context for MT.
+
+**title_and_chunks ≡ title_abstract**: identical final output
+(same BLEU/chrF/COMET, same char-similarity to off = 0.676).
+At max_chars=1200 the budget is entirely consumed by title+abstract
+(~1100 chars), so no retrieval chunks land. Confirms the abstract
+is doing all the heavy lifting.
+
+**Gate firings INCREASE with good context**: 31+21 → 46+29
+under title_abstract. The policy loop becomes more active — more
+source_frontier and rewind firings — which is consistent with the
+MT being pickier about committing partials when it has stronger
+domain priors.
+
+**Latency is free**: CA 1638→1624ms for title_abstract. Extra
+prompt tokens don't hurt streaming latency in this regime (RTF
+0.40 → 0.42, tiny).
+
+**Next:** replicate on a second PDF-backed clip (ccpXHNfaoy) to
+check whether the +0.90 BLEU / +0.034 COMET win is paper-specific
+or generalises. Running on a parallel A40 via `ssh quest`.
+
+Artifacts:
+- `outputs/night1_ende_disc_vllm_cg_clip2_FIXED/` (off, baseline)
+- `outputs/night2_context_clip2_title_abstract/` (WINNER)
+- `outputs/night2_context_clip2_retrieved_chunks/`
+- `outputs/night2_context_clip2_title_and_chunks/`
