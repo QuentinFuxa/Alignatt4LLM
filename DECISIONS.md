@@ -2215,6 +2215,46 @@ output, same RTF 0.399."*
 Artifact: `outputs/night1_ende_scalar_vllm_mt_instrumented/`
 (overwrites the broken-observer artifact from earlier tonight).
 
+### Chunk 700 operating point on vLLM MT cg=full (2026-04-17)
+
+Ran the second PLAN operating point (chunk_ms=700) on vLLM MT
+cg=full with the fix stack, to validate high-latency regime
+works and compare against the pre-fix reanchor_chunk700.
+
+| Mode                           | BLEU  | chrF  | COMET | CA   | upd | src_fr | rw | fwd | RTF   |
+|--------------------------------|-------|-------|-------|------|-----|--------|----|-----|-------|
+| reanchor_chunk700 (pre-fix)    | 38.19 | 66.53 | 0.940 | 2945 | 357 | —      | —  | 0?  | —     |
+| **disc vLLM cg=full chunk700** | **38.87** | **66.76** | **0.940** | 3013 | 338 | 58     | 30 | 54  | 0.341 |
+
+Chunk 700 with observer fix beats pre-fix by **+0.68 BLEU, +0.23
+chrF** (COMET unchanged, CA +68ms). The fixed observer is
+**actually contributing quality**, not just restoring a no-op: 88
+real gate firings (58 src_fr + 30 rewind) stop MT at unsafe tokens
+that the pre-fix broken observer let through.
+
+**Both PLAN operating points now validated on observer-fixed
+vLLM MT cg=full:**
+
+| chunk_ms | BLEU  | chrF  | COMET | CA   | RTF   |
+|----------|-------|-------|-------|------|-------|
+| 450      | 27.55 | 63.39 | 0.861 | 1565 | 0.399 |
+| 700      | 38.87 | 66.76 | 0.940 | 3013 | 0.341 |
+
+Low-latency (chunk_ms=450) and high-latency (chunk_ms=700) points
+both have observer-validated policy loops, high throughput, and
+gate firings. Paper's two-operating-point Pareto curve is clean.
+
+Artifact: `outputs/night1_ende_disc_vllm_cg_chunk700_FIXED/`.
+
+### Loop-replay F1=1.000 on observer-fixed vLLM MT (2026-04-17)
+
+Ran `scripts/loop_replay_gate_predictor.py` on the vLLM MT cg=full
+FIXED artifacts (both discrete and scalar). Both hit F1 = 1.000
+on source_frontier and rewind. The observer metadata is complete
+and loop-replay predicts gates exactly, matching the Transformers
+MT discrete behaviour. Three-gate contract validated on the
+production speed path.
+
 ### Loop-replay F1 drops on scalar-mode artifacts (2026-04-17)
 
 Ran the discrete-gate loop-replay predictor
