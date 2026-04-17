@@ -79,6 +79,11 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "asr_commit_mode",
             "asr_alignatt_frontier_margin_ms",
             "asr_stability_k",
+            "translation_source_frontier_mode",
+            "translation_source_frontier_scalar_threshold",
+            "mt_vllm_enforce_eager",
+            "mt_vllm_cudagraph_mode",
+            "mt_vllm_enable_prefix_caching",
         ]
         overrides = {
             key: getattr(config, key)
