@@ -400,6 +400,159 @@ def _capture_mt_qk_into_tensor_buffers(attn_module, positions, q, k) -> None:
     observer.decode_written_buffer.logical_or_(decode_write_mask)
 
 
+# Global registry mapping layer index -> observer. Used by the
+# custom op below so the per-layer observer lookup is a Python
+# dict access in the op implementation, not a traced attribute
+# access inside the AOT-compiled Gemma4 forward graph.
+_LAYER_OBSERVER_REGISTRY: dict[int, "_MTPromptDecodeQKTensorObserver | None"] = {}
+
+
+def _register_layer_observer(layer_idx: int, observer) -> None:
+    _LAYER_OBSERVER_REGISTRY[int(layer_idx)] = observer
+
+
+def _clear_layer_observer(layer_idx: int) -> None:
+    _LAYER_OBSERVER_REGISTRY.pop(int(layer_idx), None)
+
+
+_CUSTOM_OP_REGISTERED = False
+
+
+def _ensure_custom_op_registered() -> None:
+    """Lazily register ``alignatt::capture_mt_qk`` once per process.
+
+    The op takes a layer-index scalar + positions/q/k tensors and
+    returns nothing. The fake impl (for AOT-compile tracing) is a
+    no-op; the real impl dispatches to the existing observer
+    capture via the layer-index lookup in
+    ``_LAYER_OBSERVER_REGISTRY``. Registering the capture as a
+    custom op makes it an opaque dispatcher node in the AOT graph,
+    so:
+
+      (a) dynamo doesn't trace observer tensor ops into the graph,
+          which keeps the graph's argument signature independent
+          of observer state;
+      (b) no graph break is required, so fullgraph AOT compile
+          succeeds;
+      (c) the compile cache is reusable across processes regardless
+          of whether an observer is configured at cache-load time.
+
+    This is the documented fix path from the
+    ``a8cca6f`` attempted-`@torch.compiler.disable` rollback.
+    """
+    global _CUSTOM_OP_REGISTERED
+    if _CUSTOM_OP_REGISTERED:
+        return
+
+    @torch.library.custom_op(
+        "alignatt::capture_mt_qk", mutates_args=(), device_types=None
+    )
+    def capture_mt_qk(
+        layer_idx: int,
+        positions: torch.Tensor,
+        q: torch.Tensor,
+        k: torch.Tensor,
+    ) -> None:
+        observer = _LAYER_OBSERVER_REGISTRY.get(int(layer_idx))
+        if observer is None:
+            return
+        _capture_mt_qk_into_tensor_buffers_from_observer(
+            observer, positions, q, k
+        )
+
+    @capture_mt_qk.register_fake
+    def _capture_mt_qk_fake(layer_idx, positions, q, k):
+        return None
+
+    _CUSTOM_OP_REGISTERED = True
+
+
+def _capture_mt_qk_into_tensor_buffers_from_observer(
+    observer, positions, q, k
+) -> None:
+    """Body of the observer capture that ``capture_mt_qk`` dispatches to.
+
+    Identical logic to the deprecated
+    ``_capture_mt_qk_into_tensor_buffers(attn_module, ...)`` but
+    takes the observer directly rather than looking it up from the
+    module. Separating the two makes it trivial for the custom op
+    to invoke the observer path without re-entering dynamo.
+    """
+    positions_flat = positions.reshape(-1).to(dtype=torch.int64)
+    if positions_flat.numel() == 0:
+        return
+
+    num_q_heads = observer.selected_heads_tensor.numel()
+    num_kv_heads = observer.selected_kv_heads_tensor.numel()
+    head_dim = observer.head_dim
+    q_heads = q.reshape(-1, q.shape[-1] // head_dim, head_dim)
+    k_heads = k.reshape(-1, k.shape[-1] // head_dim, head_dim)
+    selected_q = torch.index_select(
+        q_heads, dim=1, index=observer.selected_heads_tensor
+    ).to(dtype=torch.float32)
+    selected_k = torch.index_select(
+        k_heads, dim=1, index=observer.selected_kv_heads_tensor
+    ).to(dtype=torch.float32)
+
+    prompt_length = observer.prompt_length_tensor
+    max_prompt = observer.prompt_k_buffer.shape[1]
+    max_decode = int(observer.decode_q_buffer.shape[0])
+
+    observer.forward_call_count_tensor.add_(1)
+
+    # --- prompt K scatter ---
+    prompt_mask = (positions_flat >= 0) & (positions_flat < prompt_length)
+    prompt_mask_i32 = prompt_mask.any().to(dtype=torch.int32)
+    observer.prompt_forward_call_count_tensor.add_(prompt_mask_i32)
+    prompt_offsets_clamped = positions_flat.clamp(min=0, max=max_prompt - 1)
+    prompt_k_scratch = observer.prompt_k_scratch
+    prompt_k_scratch.zero_()
+    prompt_k_scratch.index_copy_(1, prompt_offsets_clamped, selected_k.transpose(0, 1))
+    prompt_written_scratch = observer.prompt_written_scratch
+    prompt_written_scratch.zero_()
+    prompt_written_scratch.index_fill_(0, prompt_offsets_clamped, 1)
+    prompt_write_mask = prompt_mask.to(dtype=torch.int32)
+    observer.prompt_k_buffer.copy_(
+        torch.where(
+            prompt_write_mask.view(1, -1, 1) > 0,
+            prompt_k_scratch,
+            observer.prompt_k_buffer,
+        )
+    )
+    observer.prompt_written_buffer.logical_or_(
+        prompt_written_scratch.to(dtype=torch.bool) & prompt_mask
+    )
+
+    # --- decode Q / K scatter ---
+    decode_positions = positions_flat - prompt_length
+    decode_mask = (decode_positions >= 0) & (decode_positions < max_decode)
+    decode_mask_i32 = decode_mask.any().to(dtype=torch.int32)
+    observer.decode_forward_call_count_tensor.add_(decode_mask_i32)
+    decode_offsets_clamped = decode_positions.clamp(min=0, max=max_decode - 1)
+    decode_q_scratch = observer.decode_q_scratch
+    decode_q_scratch.zero_()
+    decode_q_scratch.index_copy_(0, decode_offsets_clamped, selected_q)
+    decode_k_scratch = observer.decode_k_scratch
+    decode_k_scratch.zero_()
+    decode_k_scratch.index_copy_(0, decode_offsets_clamped, selected_k)
+    decode_write_mask = decode_mask.to(dtype=torch.bool)
+    observer.decode_q_buffer.copy_(
+        torch.where(
+            decode_write_mask.view(-1, 1, 1),
+            decode_q_scratch,
+            observer.decode_q_buffer,
+        )
+    )
+    observer.decode_k_buffer.copy_(
+        torch.where(
+            decode_write_mask.view(-1, 1, 1),
+            decode_k_scratch,
+            observer.decode_k_buffer,
+        )
+    )
+    observer.decode_written_buffer.logical_or_(decode_write_mask)
+
+
 def _make_mt_tensor_buffer_gemma4_attention_forward():
     def _patched_forward(self, positions, hidden_states, **kwargs):
         qkv, _ = self.qkv_proj(hidden_states)
@@ -421,7 +574,14 @@ def _make_mt_tensor_buffer_gemma4_attention_forward():
         else:
             q = self.rotary_emb(positions, q, k)[0]
 
-        _capture_mt_qk_into_tensor_buffers(self, positions, q, k)
+        # Dispatch the observer capture through the custom op so
+        # AOT-compile sees a single opaque node rather than tracing
+        # into the observer tensor scatters. Layer index is stored
+        # on the module at stub-install / configure time; if it's
+        # missing for some reason, fall back to -1 (never found in
+        # the registry, so the custom op's no-op path fires).
+        layer_idx = int(getattr(self, "_alignatt_mt_layer_idx", -1))
+        torch.ops.alignatt.capture_mt_qk(layer_idx, positions, q, k)
 
         attn_output = self.attn(q, k, v)
         output, _ = self.o_proj(attn_output)
@@ -432,6 +592,8 @@ def _make_mt_tensor_buffer_gemma4_attention_forward():
 
 def install_global_gemma4_attention_mt_patch() -> None:
     from vllm.model_executor.models.gemma4 import Gemma4Attention
+
+    _ensure_custom_op_registered()
 
     if not hasattr(Gemma4Attention, "_alignatt_mt_qk_original_forward"):
         Gemma4Attention._alignatt_mt_qk_original_forward = Gemma4Attention.forward
@@ -459,7 +621,7 @@ def install_stub_observers_on_model(model) -> int:
     """
     layers = _resolve_vllm_gemma_decoder_layers(model)
     stubbed = 0
-    for layer in layers:
+    for layer_idx, layer in enumerate(layers):
         attn = getattr(layer, "self_attn", None)
         if attn is None:
             continue
@@ -470,6 +632,16 @@ def install_stub_observers_on_model(model) -> int:
         if "_alignatt_mt_qk_tensor_observer" not in attn.__dict__:
             attn._alignatt_mt_qk_tensor_observer = None
             stubbed += 1
+        # Tag with a stable integer layer index so the patched
+        # forward can pass it to the alignatt::capture_mt_qk custom
+        # op (which looks up the per-layer observer in the registry
+        # dict via that index).
+        attn._alignatt_mt_layer_idx = int(layer_idx)
+        # Ensure the registry has an entry, even if the entry is
+        # None (no observer yet). That way
+        # alignatt::capture_mt_qk always finds something in its
+        # lookup; unconfigured layers just return early.
+        _LAYER_OBSERVER_REGISTRY.setdefault(int(layer_idx), None)
     return stubbed
 
 
@@ -526,6 +698,11 @@ def _configure_mt_qk_observer_on_model(
                 device=device,
             )
         attn._alignatt_mt_qk_tensor_observer = observer
+        # Keep the global registry in sync so the alignatt::capture_mt_qk
+        # custom op dispatches to this observer via the layer-index
+        # key on this module.
+        attn._alignatt_mt_layer_idx = int(layer_idx)
+        _register_layer_observer(int(layer_idx), observer)
         layer_indices.append(int(layer_idx))
 
     model._alignatt_mt_qk_state = {

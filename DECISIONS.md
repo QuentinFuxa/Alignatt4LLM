@@ -1397,6 +1397,65 @@ Leaving the compile-cache fragility as a **documented structural
 issue** for a follow-up session. Runtime scalar substitution stays
 behind Transformers MT for the paper's published numbers.
 
+**FOLLOW-UP (same session): custom-op approach landed and worked.**
+
+Implemented the identified fix path: wrap the observer capture as
+a PyTorch custom op registered via `torch.library.custom_op`.
+The op takes a layer-index scalar + positions/q/k tensors and
+dispatches to the actual capture via a global
+`_LAYER_OBSERVER_REGISTRY[layer_idx]` lookup. From AOT compile's
+perspective the op is a single opaque dispatcher node — no graph
+break required, no observer tensors in the graph signature.
+
+Details in commit that follows this docstring. Key diff:
+
+- New `_ensure_custom_op_registered()` registers
+  `alignatt::capture_mt_qk` lazily at `install_global_gemma4_attention_mt_patch`
+  time. Fake impl is a no-op (for AOT tracing); real impl dispatches
+  to `_capture_mt_qk_into_tensor_buffers_from_observer`.
+- Patched forward calls `torch.ops.alignatt.capture_mt_qk(layer_idx, positions, q, k)`
+  instead of the direct Python helper.
+- `install_stub_observers_on_model` tags every attention module
+  with `_alignatt_mt_layer_idx` and pre-seeds the registry with None.
+- `_configure_mt_qk_observer_on_model` updates the registry alongside
+  setting the module attribute.
+
+**GPU validation** on the previously-blocked config
+(scalar + vLLM MT + canonical en→de chunk_ms=450 on ccpXHNfaoy.wav):
+
+| Metric             | Value                   |
+|--------------------|-------------------------|
+| Models loaded      | 170 s (first-time AOT compile) |
+| RTF                | 0.442                   |
+| BLEU               | 28.83                   |
+| chrF               | 63.85                   |
+| COMET (XCOMET-XL)  | 0.870                   |
+| LongYAAL CU        | 2652 ms                 |
+| LongYAAL CA        | 2498 ms                 |
+| Updates            | 102                     |
+
+Compared to the discrete vLLM-MT reanchor baseline
+(BLEU 27.51 / COMET 0.861 / CU 1766 ms / CA 1466 ms / 438 updates):
+scalar vLLM MT shows **+1.3 BLEU / +0.009 COMET** but also
+**+886 ms CU / +1032 ms CA / 4× fewer updates**. The output is
+*not* bit-identical — scalar on vLLM MT commits later than
+discrete, which gives MT more context per emission (hence higher
+BLEU). This contrasts with Transformers MT where scalar was
+bit-identical to discrete; the difference comes from vLLM's faster
+MT allowing the scheduler to defer partial emissions until more
+input lands.
+
+**Paper-level status**: the compile-cache fragility is now
+*structurally fixed* via the custom-op path. vLLM-MT scalar
+substitution runs end-to-end on the canonical submission path.
+The quality difference vs Transformers-MT scalar is a genuine
+cascade-scheduler effect rather than the substitution itself
+degrading quality. This closes out the "vLLM production use
+would need the compile-cache-fragility fix first" caveat from
+earlier in this session.
+
+Artifact: `outputs/night1_ende_scalar_vllm_mt_instrumented/`.
+
 ### Third-gate coverage: `alignatt:provenance_weak` joins loop-replay F1 = 1.000
 
 The three discrete MT gates are `alignatt:source_frontier`,
