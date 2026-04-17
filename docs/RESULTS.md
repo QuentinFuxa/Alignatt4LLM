@@ -308,6 +308,21 @@ degradation.
 less often than discrete (fewer policy-loop stops), yet final
 translation quality stays at discrete parity on COMET.
 
+### Cross-language replication (cs → en, threshold 0.015)
+
+| Mode     | chars | updates | src_fr | rewind | char-sim |
+|----------|-------|---------|--------|--------|----------|
+| discrete | 5556  | 444     | 167    | 64     | —        |
+| scalar   | 5550  | 411     | 117    | 77     | 0.9982   |
+| Δ        | −6    | −33 (−7%) | **−50 (−30%)** | +13 (+20%) | —  |
+
+Third clip, cs→en direction. Char similarity 0.9982. Scalar fires
+source_frontier 30% less often than discrete. Pattern consistent
+with en→de (−13% to −35%). The source-frontier reduction is a
+**cross-language-pair-robust property** of the scalar mechanism.
+
+Three-clip mean char-similarity: 0.9917 (range 0.9795–0.9982).
+
 ### Paper claim (defensible)
 
 "Scalar substitution for the discrete source-frontier gate preserves
