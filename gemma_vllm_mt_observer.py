@@ -516,27 +516,44 @@ def _capture_mt_qk_into_tensor_buffers_from_observer(
     observer.forward_call_count_tensor.add_(1)
 
     # --- prompt K scatter ---
+    # NOTE: the write mask must be shaped by the *buffer* size
+    # (``max_prompt``), not by the *positions* size. vLLM's
+    # determine_available_memory dummy_run calls this op with up
+    # to 8192 positions, but the observer's prompt_k_buffer is
+    # sized to max_prompt_tokens=1024. A num_positions-shaped
+    # mask breaks the torch.where broadcast below. Pre-custom-op
+    # code used scatter_reduce into prompt_written_scratch to
+    # build a buffer-shaped mask; mirror that here.
     prompt_mask = (positions_flat >= 0) & (positions_flat < prompt_length)
     prompt_mask_i32 = prompt_mask.any().to(dtype=torch.int32)
     observer.prompt_forward_call_count_tensor.add_(prompt_mask_i32)
     prompt_offsets_clamped = positions_flat.clamp(min=0, max=max_prompt - 1)
-    prompt_k_scratch = observer.prompt_k_scratch
-    prompt_k_scratch.zero_()
-    prompt_k_scratch.index_copy_(1, prompt_offsets_clamped, selected_k.transpose(0, 1))
+    prompt_values = selected_k.transpose(0, 1)  # (kv_heads, seq, head_dim)
+    prompt_mask_f32 = prompt_mask.to(dtype=prompt_values.dtype).view(1, -1, 1)
+    prompt_index = prompt_offsets_clamped.view(1, -1, 1).expand(
+        prompt_values.shape[0], -1, prompt_values.shape[2]
+    )
+    prompt_scratch = observer.prompt_k_scratch
+    prompt_scratch.zero_()
+    prompt_scratch.scatter_add_(1, prompt_index, prompt_values * prompt_mask_f32)
     prompt_written_scratch = observer.prompt_written_scratch
     prompt_written_scratch.zero_()
-    prompt_written_scratch.index_fill_(0, prompt_offsets_clamped, 1)
-    prompt_write_mask = prompt_mask.to(dtype=torch.int32)
+    prompt_written_scratch.scatter_reduce_(
+        0,
+        prompt_offsets_clamped,
+        prompt_mask.to(dtype=prompt_written_scratch.dtype),
+        reduce="amax",
+        include_self=False,
+    )
+    prompt_write_mask = prompt_written_scratch.to(dtype=torch.bool)
     observer.prompt_k_buffer.copy_(
         torch.where(
-            prompt_write_mask.view(1, -1, 1) > 0,
-            prompt_k_scratch,
+            prompt_write_mask.view(1, -1, 1),
+            prompt_scratch,
             observer.prompt_k_buffer,
         )
     )
-    observer.prompt_written_buffer.logical_or_(
-        prompt_written_scratch.to(dtype=torch.bool) & prompt_mask
-    )
+    observer.prompt_written_buffer.logical_or_(prompt_write_mask)
 
     # --- decode Q / K scatter ---
     decode_positions = positions_flat - prompt_length
@@ -544,13 +561,30 @@ def _capture_mt_qk_into_tensor_buffers_from_observer(
     decode_mask_i32 = decode_mask.any().to(dtype=torch.int32)
     observer.decode_forward_call_count_tensor.add_(decode_mask_i32)
     decode_offsets_clamped = decode_positions.clamp(min=0, max=max_decode - 1)
+    # Buffer-shaped (max_decode) write mask, same reasoning as the
+    # prompt side. CUDA scatter_reduce_ doesn't support Bool, so
+    # work with int32 and convert at the end.
+    decode_write_scratch = torch.zeros(
+        max_decode, device=decode_mask.device, dtype=torch.int32
+    )
+    decode_write_scratch.scatter_reduce_(
+        0,
+        decode_offsets_clamped,
+        decode_mask.to(dtype=torch.int32),
+        reduce="amax",
+        include_self=False,
+    )
+    decode_write_mask = decode_write_scratch.to(dtype=torch.bool)
+    decode_mask_f32 = decode_mask.to(dtype=selected_q.dtype).view(-1, 1, 1)
+    decode_index_q = decode_offsets_clamped.view(-1, 1, 1).expand(
+        -1, selected_q.shape[1], selected_q.shape[2]
+    )
     decode_q_scratch = observer.decode_q_scratch
     decode_q_scratch.zero_()
-    decode_q_scratch.index_copy_(0, decode_offsets_clamped, selected_q)
+    decode_q_scratch.scatter_add_(0, decode_index_q, selected_q * decode_mask_f32)
     decode_k_scratch = observer.decode_k_scratch
     decode_k_scratch.zero_()
-    decode_k_scratch.index_copy_(0, decode_offsets_clamped, selected_k)
-    decode_write_mask = decode_mask.to(dtype=torch.bool)
+    decode_k_scratch.scatter_add_(0, decode_index_q, selected_k * decode_mask_f32)
     observer.decode_q_buffer.copy_(
         torch.where(
             decode_write_mask.view(-1, 1, 1),
