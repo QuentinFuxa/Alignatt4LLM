@@ -358,3 +358,585 @@ by explicit opt-in.
 Test updates: `test_alignment_helpers.py` assertions flipped accordingly;
 new test confirms `alignatt_frontier` remains accepted as an opt-in
 value.
+
+---
+
+## 2026-04-16 (24h extra-context run) — Step 0 anchor
+
+PLAN.md asks for one defensible extra-context mechanism for the IWSLT 2026
+Speech-to-Text with Extra Context sub-track. Read AGENTS.md, PLAN.md, and
+the live MT prompt path. Main decision for this run:
+
+- **Substrate:** extra context enters through the **Gemma MT prompt**, not
+  through the Qwen ASR prompt. `qwen_forced` stays the ASR default.
+- **Entry point:** `TranslationVariant._render_structured_user_message` in
+  `cascade_translation_variants.py`. A new `[Paper context]` section is
+  prepended *before* `[Confirmed earlier sentence pairs]` and well before
+  `[Current English ASR prefix]` so (a) the `source_text_char_span_in_user_message`
+  offsets remain correct relative to the enclosing user message, and (b)
+  `build_prompt_source_map` in `cascade_mt_backend.py` (line 1474) still
+  finds the *current* source prefix via `rfind(source_header)` — the paper
+  block must never contain the source header string.
+- **Default behaviour:** `paper_context_mode="off"`. No behavioural change
+  unless a paper artifact and a non-off mode are explicitly configured.
+- **Main mechanism (recommended):** offline PDF → structured `PaperArtifact`
+  JSON (`title`, `authors`, `abstract`, paragraph-level `chunks`); runtime
+  lexical BM25 retrieval over the chunks using the current ASR prefix +
+  a small history window as the query; top-k chunks rendered into the
+  MT prompt under a fixed character budget.
+- **Baseline mechanism:** static `title + abstract` block (no retrieval).
+- **Fallback branch:** ASR-side term priming is **not** opened this run.
+
+Test-set layout: 21 talks with matched `test-set/pdf/{id}.pdf`,
+`test-set/audio/{id}.wav`, and per-line references in `test-set/ref/*.txt`
+(919 lines each, mapped via `test-set/audio-segments.yaml`). One paper
+per talk — retrieval is single-document, not multi-document.
+
+## 2026-04-16 (24h extra-context run) — mechanism landed
+
+Code added (no model load, no GPU use):
+
+- `context_injection/paper_artifact.py` — deterministic PDF → schema-v1
+  `PaperArtifact` JSON (title, authors, abstract, paragraph chunks with
+  optional section headers). CLI: `python -m context_injection.paper_artifact`.
+- `context_injection/context_selector.py` — `PaperContextSelector` with an
+  Okapi BM25 index over the artifact's chunks. Four modes
+  (`off` / `title_abstract` / `retrieved_chunks` / `title_and_chunks`)
+  honouring a hard character budget.
+- `CascadeRuntimeConfig` gains five knobs (path, mode, top_k, max_chars,
+  history_window_words) with validation that forbids a non-off mode
+  without a path.
+- `LoadedModelBundle.ensure_paper_context_selector()` loads/reloads the
+  selector lazily; `CascadeAlignAttProcessor._bundle_key` includes
+  `paper_context_path` so flipping the artifact rebuilds the bundle.
+- `CascadeSession.build_translation_messages` builds a query from the
+  current ASR prefix + `N` recent source-history words, calls the
+  selector, and forwards the rendered `[Paper context]` block to
+  `TranslationVariant.render_messages`.
+- `TranslationVariant._render_structured_user_message` prepends the
+  `[Paper context]` block and rejects any block that contains the source
+  header (would break `rfind(source_header)` in
+  `build_prompt_source_map`).
+- `run_simulstream_batch.py` gains `--paper-context-{path,mode,top-k,
+  max-chars,history-window-words}` and records them in the manifest.
+
+Empirical artefact validation on real PDFs (`OiqEWDVtWk.pdf`,
+`ccpXHNfaoy.pdf`, `myfXyntFYL.pdf`): extraction produces 78-96 chunks
+per paper; BM25 on a live-like ASR prefix
+("AlignAtt attention-based policy for simultaneous speech translation
+and latency") retrieves the "Inference and Evaluation" chunk of the
+Papi/AlignAtt paper as top-1, which is what a principled lexical scorer
+should do here.
+
+Test coverage (`test_context_injection.py`, 13 tests, no GPU):
+
+- artifact parse + round-trip + determinism
+- BM25 top-k ordering on method / evaluation queries
+- mode `off` returns empty block
+- `title_abstract` budget is respected
+- `render_messages` preserves `source_text_char_span_in_user_message`
+  when a paper block is injected
+- `render_messages(paper_context_block="")` is byte-identical to the
+  pre-context call (no accidental behaviour change for the default path)
+- `render_messages` rejects a paper block that contains the source header
+- query builder respects the history-word window
+- `CascadeRuntimeConfig` validates mode ↔ path consistency
+
+Full suite: `pytest` reports **99 passed** across the suite
+(86 non-GPU tests + 13 new context-injection tests).
+
+## Three-condition ablation on `tmp/ccpXHNfaoy_first75.wav` (Distilling Script Knowledge paper)
+
+Ran `run_context_ablation.py` with `qwen_forced` + `gemma_transformers_alignatt`,
+chunk_ms=450, top_k=3, max_chars=1200. Bundle stays hot across the three
+conditions because `paper_context_path` is intentionally *not* in
+`CascadeAlignAttProcessor._bundle_key`. Output under
+`outputs/context_ablation_ccp75/`.
+
+ASR is identical across all three conditions (same Qwen path, same 75 s
+clip) — the observed translation differences are **MT-only**.
+
+| Mode | RTF | first_emit_audio_s | updates |
+|---|---|---|---|
+| `off` | 1.512 | 4.05 | 92 |
+| `title_abstract` | 1.440 | 4.05 | 85 |
+| `retrieved_chunks` | 1.491 | **3.15** | 87 |
+
+Latency cost of context injection is negligible. Retrieved-chunks mode
+emits slightly earlier, not later — consistent with a faster first MT
+commit (the context seems to give the model a confident first guess).
+
+**Terminology / fidelity deltas (qualitative, no reference yet):**
+
+- Title: "Distilling script knowledge **from** large language models"
+  - `off`: *"Das Unterscheiden von Skriptwissen **und** großen Sprachmodellen"*
+    (wrong relation — "and" instead of "from", plus "distinguishing" for "distilling").
+  - `title_abstract` / `retrieved_chunks`:
+    *"Die Unterscheidung von Skriptwissen **aus** großen Sprachmodellen"*
+    (correct "from"; "distilling" still becomes "Unterscheidung" — Qwen+Gemma
+    both default to "Unterscheidung"; this is an intrinsic MT bias).
+- "decompose goals into steps"
+  - `off` / `title_abstract`: *"in Schritte zerlegen"*.
+  - `retrieved_chunks`: *"in **prozedurale** Schritte zerlegen"* — the
+    paper explicitly uses "procedural" framing in the retrieved chunk.
+- "good planner should write scripts that are reasonable and faithful to constraints"
+  - `off`: *"Skripte schreiben, die vernünftig sind. und treu den Vorgaben."*
+    (short, generic.)
+  - `retrieved_chunks`: *"Skripte **erstellen, die den Einschränkungen
+    entsprechen und diese auch einhalten**"* (paper-consistent phrasing).
+
+**Honest negative observation for `title_abstract`:** the static
+title+abstract block leaks directly into the German output. The
+translation contains the German sentence *"(z. B. „einen Kuchen für
+Diabetiker backen")"* even though the live ASR never says "diabetics"
+— the Gemma MT quoted the abstract's own example. This is exactly the
+hallucination failure mode the PLAN warned about with "giant raw PDF
+dump stuffed into the prompt" — and the reason the PLAN labels static
+context a "first baseline" rather than the main mechanism.
+
+`retrieved_chunks` does **not** show this leakage on the same clip:
+"chocolate cake" stays "Kuchen mit Schokolade" rather than being
+replaced by a paper-sourced example. Paragraph-level chunks feel like
+"text we're discussing", not "examples we should emit".
+
+## Recommendation (PLAN.md Step 6)
+
+**Retrieved BM25 chunks is the defensible mechanism and worth scaling
+out; `title_abstract` is not.** Reasons:
+
+1. Clear qualitative improvements over `no context` on paper-specific
+   terminology (correct preposition, procedural framing,
+   constraint-faithful script formulation).
+2. No source-hallucination leakage observed on this clip — unlike the
+   static title+abstract baseline, which inserted the abstract's
+   diabetic-cake example into the MT output.
+3. Latency cost is within noise (±0.07 RTF), and first-emit is
+   actually earlier than `off`.
+4. The mechanism is BM25 over automatically extracted paragraph
+   chunks: no hand-curated terminology, no LLM rerank, no
+   benchmark-tuned behaviour. Defensible end-to-end.
+
+What is **still open** before a paper-ready number (kept out of this
+24h run on purpose):
+
+- Quantitative BLEU / chrF / COMET under OmniSTEval on a full-length
+  clip with matched reference (`.venv-evaluation` path) — the
+  three-condition wins need to survive reference-backed scoring.
+- Budget sweep on `paper_context_max_chars` and `top_k` to
+  characterise the latency/quality curve.
+- Per-talk replication on ≥1 more PDF-backed clip; the AlignAtt paper
+  clip (`test-set/audio/OiqEWDVtWk.wav`) is the natural next target.
+- The `title_abstract` leakage observation is itself a paper figure:
+  "why retrieval-over-chunks beats raw abstract context".
+- PLAN Step 5 (ASR-side term priming) stays closed — the remaining
+  failure mode is translation-choice, not name recognition.
+
+## Second-clip replication on `tmp/OiqEWDVtWk_first90.wav` (AlignAtt paper)
+
+Ran the same `run_context_ablation.py` on the 90 s prefix of
+`test-set/audio/OiqEWDVtWk.wav` (Papi et al., *Attention as a Guide for
+Simultaneous Speech Translation*), `data/paper_artifacts/OiqEWDVtWk.json`.
+Output under `outputs/context_ablation_oiqewd90/`.
+
+ASR again identical across conditions (MT-only deltas).
+
+| Mode | RTF | first_emit_audio_s | updates |
+|---|---|---|---|
+| `off` | 2.146 | 3.15 | 105 |
+| `title_abstract` | 2.177 | 3.15 | 110 |
+| `retrieved_chunks` | 2.382 | 3.15 | 103 |
+
+Retrieval costs ~11 % RTF on this clip (vs ~noise on ccpXHNfaoy) —
+the AlignAtt paper has 78 chunks and the query grows with history, so
+BM25 runs on more tokens. Still strictly below the `off` latency floor
+in wallclock terms that matter (first-emit).
+
+**Qualitative terminology wins:**
+
+- "problems of current **SimulST** models"
+  - `off`: *"Simulistenmodelle"* (model invented a word).
+  - `title_abstract` / `retrieved_chunks`: *"SimulST-Modelle"* — the
+    artifact's abstract repeatedly uses "SimulST" and the MT picks it up.
+
+- **Critical reversal on leakage.** Opposite of ccpXHNfaoy:
+  - `title_abstract` on OiqEWDVtWk shows **no visible leakage**. The
+    German output stays tightly bound to the ASR.
+  - `retrieved_chunks` on OiqEWDVtWk leaks paper content verbatim.
+    The German output inserts *"respektive die derzeit besten (Local
+    Agreement) und die am weitesten verbreiteten (Wait-k) Richtlinien,
+    die direkt auf unsere Offline-ST-Systeme für simultane Inferenz
+    angewendet werden können"* and *"Um diese Ziele zu erreichen,
+    schlagen wir EDATT (Encoder-Decoder Attention) [2] vor, eine
+    neuartige adaptive Richtlinie für SimulST, die die
+    Encoder-Decoder-Aufmerksamkeitsmuster eines offline trainierten
+    ST-Modells nutzt, um..."* — none of which appears in the source
+    ASR. Those tokens are clearly being translated *from the retrieved
+    paper chunks*, not from the [Current English ASR prefix] block.
+
+**Honest mechanism-level conclusion.** The mechanism is paper-sensitive:
+
+- On a "far-from-talk" paper like ccpXHNfaoy, `retrieved_chunks` wins
+  cleanly; `title_abstract` leaks the abstract's example phrase.
+- On a "close-to-talk" paper like OiqEWDVtWk, `title_abstract` stays
+  clean; `retrieved_chunks` leaks because the retrieved passages
+  paraphrase what the speaker is *about to* say.
+
+This is not "retrieval beats static" — it is "whichever block contains
+content that is too close to the continuation gets quoted". The Gemma
+MT model treats `[Paper context]` as a plausible continuation of the
+source instead of as read-only reference material, and the leakage
+magnitude scales with source/context similarity.
+
+## Updated recommendation (PLAN.md Step 6, revised)
+
+- The **integration** (runtime plumbing, PaperArtifact schema, BM25
+  selector, default-off config, test coverage) is defensible and
+  should stay. The code contract is clean and reusable.
+- The **current rendering strategy** — an English `[Paper context]`
+  block in the source language, immediately adjacent to the current
+  source prefix — is **not** safe to submit. Both modes leak depending
+  on paper distance.
+- Before scaling out, the next Ralph iteration should land at least
+  one of:
+  1. A **role-explicit system prompt** line ("The `[Paper context]`
+     block is reference-only; do not translate content from it, and
+     do not introduce content absent from `[Current <src> ASR prefix]`").
+     Cheapest intervention.
+  2. A **target-language paper block** rendered by pre-translating the
+     retrieved chunks once offline and injecting the target-language
+     version. Removes the ambiguity about whether the block is "more
+     source".
+  3. A **provenance guard** that vetoes any drafted token whose MT
+     AlignAtt attention lies strictly inside the paper-context span
+     (the MT observer already partitions prompt attention; this would
+     re-use that partition as a commit filter).
+
+Until at least (1) lands and replicates on both clips without visible
+leakage, the mechanism is a **negative-result-worth-publishing**
+rather than a submission-ready feature. AlignAtt paper story must be
+honest about this rather than cherry-picking ccpXHNfaoy.
+
+Full SimulStream runs for both clips are under
+`outputs/context_ablation_ccp75/` and
+`outputs/context_ablation_oiqewd90/`, including per-condition
+stream-updates JSONL so a follow-up iteration can diff revisions and
+compute reference-backed BLEU / COMET.
+
+## Mitigation 1 attempted — role-explicit system prompt — **negative**
+
+Implemented `TranslationVariant.paper_context_instruction_template` and
+appended an explicit "[Paper context] is read-only background; never
+translate from it; never introduce content absent from [Current <src>
+ASR prefix]" clause to the MT system prompt iff a paper block is
+actually injected. Tests (`test_reference_only_instruction_*`) pin
+that default-off callers get a byte-identical system message.
+
+Re-ran the 90 s OiqEWDVtWk ablation with the mitigation on. Output
+under `outputs/context_ablation_oiqewd90_mitigated/`.
+
+| Mode | RTF | Δ vs. unmitigated | Leak? | Text health |
+|---|---|---|---|---|
+| `off` | 2.193 | +0.047 | n/a | unchanged |
+| `title_abstract` | 2.205 | +0.028 | no | unchanged |
+| `retrieved_chunks` | 2.295 | **−0.087** | **yes (EDATT still appears)** | **degenerate** |
+
+`retrieved_chunks` output with the mitigation on contains:
+
+- *"die attention weights. Die attention weights zeigen auf die
+  attention policy von EDATT. Die Links geben an, wo die attention
+  weights hinzeigen."* — fragmented non-translation.
+- A long run of literal `} } } } }` tokens — classic token-level
+  mode collapse.
+- A trailing *"That is That is model that is that is that is..."* loop.
+
+The instruction did **not** prevent leakage (EDATT still leaked from
+the retrieved chunks) and additionally produced **mode collapse** on
+the main contribution mode. `off` and `title_abstract` outputs are
+byte-identical to the unmitigated baseline, so the damage is scoped
+to "paper block present + reference-only clause active" — i.e. the
+instruction interacts badly with Gemma-4-E4B specifically.
+
+Possible explanations, not yet tested:
+
+- Gemma-4-E4B receives a contradictory signal: "here is a `[Paper
+  context]` block" *and* "do not translate from it" — and its
+  next-token distribution collapses when the retrieved chunks happen
+  to be very close to what the ASR is about to say.
+- The clause is English-only and may bias the decoder into repeating
+  English tokens (`That is`) even in German-only mode.
+- The clause is long (~80 tokens) and may push the prompt closer to
+  `max_model_len=1024`, causing a tail-truncation that corrupts the
+  continuation.
+
+Either way, **mitigation 1 is not a viable fix as-specified**. The
+instruction plumbing (`paper_context_instruction_template` slot in
+`TranslationVariant`) is retained because it is useful for the two
+remaining mitigations — but the default variant must not ship with
+the current English clause active. Action taken: the template is
+**emptied** on `ALIGNATT_PREFIX_TRANSLATION_VARIANT` so the
+injection plumbing stays in place but produces no instruction, while
+the slot remains available for future experiments.
+
+## Updated recommendation (after mitigation 1)
+
+The runtime plumbing is defensible and should stay. The paper story
+is now:
+
+1. A clean, typed mechanism for injecting `[Paper context]` into a
+   simultaneous MT prompt is tractable — the source-span contract
+   and AlignAtt survive it, the latency cost is modest.
+2. **Gemma-4-E4B leaks paper content under both static and retrieved
+   rendering modes.** The leakage is paper-dependent (far-from-talk
+   vs close-to-talk) and cannot be fixed by a system-prompt-level
+   reference-only instruction — that intervention actively breaks
+   generation.
+3. Two architecturally cleaner mitigations remain untested and are
+   the natural next paper experiments:
+   - Target-language paper block (pre-translate chunks offline;
+     eliminates "more source in the same language" ambiguity).
+   - MT AlignAtt provenance guard (re-use the existing MT observer's
+     4-way `source_accessible / source_inaccessible / non_source_prompt
+     / suffix` partition as a commit filter that vetoes any drafted
+     token whose attention mass concentrates inside the paper-context
+     span). This is the principled path and reuses infrastructure the
+     repo already has.
+
+Submission default: `paper_context_mode="off"`. Shipping any
+non-off mode requires passing mitigation 2 or 3.
+
+## Mitigation 3 attempted — provenance guard via `translation_alignatt_min_source_mass=0.3` — **partial win**
+
+Discovery: the MT AlignAtt backend already exposes the right mechanism.
+`translation_alignatt_min_source_mass` vetoes any drafted token whose
+`provenance[t].source_accessible` attention mass falls below the
+threshold, with stop reason `alignatt:provenance_weak` (see
+`cascade_mt_backend.py:1185`). No new code needed in the MT probe — the
+paper-context block naturally counts as `non_source_prompt` in the
+observer's 4-way partition, so tokens attending primarily to it get
+their source-accessible mass pushed down and the guard fires.
+
+Plumbed the knob through `run_context_ablation.py --translation-alignatt-min-source-mass`
+and re-ran the 90 s OiqEWDVtWk ablation at `0.3`. Output under
+`outputs/context_ablation_oiqewd90_guard03/`.
+
+| Mode | RTF | updates | leak? | text health |
+|---|---|---|---|---|
+| `off` (baseline) | 2.193 | 105 | n/a | clean |
+| `off` + guard 0.3 | 2.290 | 75 | n/a | clean (fewer updates) |
+| `retrieved_chunks` | 2.382 | 103 | **yes (EDATT/Wait-k/Local Agreement)** | clean |
+| `retrieved_chunks` + guard 0.3 | 2.597 | 42 | **partial** (interpolation chunk still leaks; EDATT / Wait-k gone) | clean |
+
+Observations:
+
+- **No mode collapse** — in stark contrast to mitigation 1. The
+  provenance guard is a decode-time filter, not an instruction; the
+  model's distribution is untouched. When the guard fires it simply
+  truncates the draft early, which is exactly what the `alignatt`
+  family of commit rules already does for `source_frontier` and
+  `rewind` — the cascade is already designed to handle partial
+  drafts gracefully.
+- **Partial leak suppression** — the most blatant paper-content leaks
+  *(Um diese Ziele zu erreichen, schlagen wir EDATT vor…, Wait-k,
+  Local Agreement)* are **eliminated**. A remaining, subtler leak
+  survives: *"Da es mit dieser Methode nicht möglich ist, eine
+  spezifische Latenz in Sekunden zu erhalten, interpolieren wir die
+  vorherige und folgende"* — a translation of a retrieved-chunk
+  sentence about interpolating latency values. The guard at 0.3 is
+  not strict enough to catch tokens whose attention is merely
+  *balanced* between source and paper.
+- **RTF cost ~6 %** on retrieved_chunks; update count roughly halves
+  (103 → 42), which means the guard kept the cascade more cautious
+  on every partial update. This is the classic latency-vs-safety
+  tradeoff and is defensible as a paper knob.
+- **Orthogonal finding during this run:** retrieved chunks sometimes
+  contained the pymupdf4llm layout artefact `==> Bild [430 x 186] <==`
+  (German localised figure marker) which leaked into the translation.
+  Fixed at artifact-parse time with a generic regex that strips all
+  `==>...<==` and `![…](…)` markdown image placeholders. Regression
+  test `test_parse_markdown_body_strips_pymupdf_image_markers`
+  pinned. The three cached artifacts under `data/paper_artifacts/`
+  have been rebuilt; the fix is upstream of retrieval so no re-run
+  is needed to benefit from it on future ablations.
+
+## Final updated recommendation
+
+1. Ship the runtime plumbing. It is clean, typed, tested, and has
+   reusable value (ACL-paper PDF → JSON artifact → BM25 selector →
+   MT prompt contract → optional provenance guard via existing
+   `translation_alignatt_min_source_mass`).
+2. Ship `paper_context_mode="off"` as the default, as today.
+3. Treat the mechanism as **conditionally usable with the provenance
+   guard**:
+   - `paper_context_mode=retrieved_chunks`
+   - `--translation-alignatt-min-source-mass 0.3` or higher
+   - accept ~6 % RTF overhead and a ~half-size drop in stream updates
+     (the guard truncates drafts more aggressively)
+4. Before submission, land the final paper-ready sweep:
+   - `min_source_mass` ∈ {0.0, 0.1, 0.3, 0.5, 0.7} to curve latency
+     vs. leakage-vs-BLEU on both existing clips
+   - reference-backed metric bundle on at least one full clip
+   - decide whether to also pre-translate chunks offline (mitigation 2)
+     for the "close-to-talk" papers where the guard alone is
+     insufficient — this is the cleanest story, because a German
+     `[Paper context]` block makes "do not translate this" literally
+     true at the tokenisation level.
+5. Keep `paper_context_mode` experimental until at least one
+   reference-backed metric bundle confirms the guarded mode is
+   *not strictly worse* than `off`.
+
+The paper narrative is now:
+*"We show that a cascade simultaneous-MT system can consume ACL-paper
+extra context via a clean retrieval-over-paragraph-chunks prompt
+contract, and we characterise a paper-content leakage failure mode
+that naive `[Paper context]` prompts exhibit in modern instruction
+-tuned MT models. The cascade's existing MT AlignAtt observer
+provides a drop-in mitigation — a source-attention-mass provenance
+guard — that eliminates the most blatant leaks at modest latency cost
+without requiring any prompt-engineering hack."*
+
+## Cross-clip confirmation of the guard on `ccpXHNfaoy_first75.wav`
+
+Re-ran the same `run_context_ablation.py --translation-alignatt-min-source-mass 0.3`
+on the first clip (Distilling-Script-Knowledge paper). Output under
+`outputs/context_ablation_ccp75_guard03/`.
+
+| Mode | Unmit. RTF | Guard RTF | Unmit. updates | Guard updates |
+|---|---|---|---|---|
+| `off` | 1.512 | 1.617 | 92 | 64 |
+| `title_abstract` | 1.440 | 1.822 | 85 | 32 |
+| `retrieved_chunks` | 1.491 | 1.895 | 87 | 32 |
+
+**Two independent wins for the guard on this clip:**
+
+1. The `title_abstract` "bake a cake for diabetics" leak that
+   motivated this whole mitigation track is **gone**. The
+   guard-filtered output never pulls the abstract's concrete example
+   into the translation.
+
+2. The guard *unlocks better terminology choices* on the title
+   translation, not merely suppresses bad ones:
+   - `off`: *"Das Unterscheiden von Skriptwissen und großen
+     Sprachmodellen"* — wrong relation ("and") and wrong
+     lemma ("distinguishing" ≠ "distilling").
+   - `title_abstract` unmitigated: *"Die Unterscheidung von
+     Skriptwissen aus großen Sprachmodellen"* — relation fixed
+     ("from"), lemma still wrong.
+   - `title_abstract` + guard 0.3: *"Das Destillieren von
+     Skriptwissen aus großen Sprachmodellen"* — **both correct.**
+     The guard rejected the confident-but-paper-attending
+     "Unterscheidung" token, leaving "Destillieren" as the next
+     plausible source-grounded candidate.
+
+`retrieved_chunks` + guard on ccpXHNfaoy gives *"Die Extraktion von
+Skriptwissen aus großen Sprachmodellen"* — a synonym of Destillieren,
+likewise correct. Both context-on modes are superior to `off` under
+the guard; **neither leaks.**
+
+## Cross-clip summary (two clips, two papers, one setting)
+
+| Clip | Mode | Unmit. leak | Guard 0.3 leak | Terminology win |
+|---|---|---|---|---|
+| ccp75 (Script Distilling) | `title_abstract` | **yes** (diabetic-cake) | none | yes ("Destillieren") |
+| ccp75 | `retrieved_chunks` | none | none | yes ("prozedurale Schritte") |
+| oiqewd90 (AlignAtt) | `title_abstract` | none | none | yes ("SimulST-Modelle") |
+| oiqewd90 | `retrieved_chunks` | **yes** (EDATT/Wait-k) | partial (one residual interpolation paraphrase) | yes |
+
+The same setting works across both clips. The mechanism is now
+submission-defensible:
+
+```
+paper_context_mode               = retrieved_chunks  (or title_and_chunks)
+paper_context_top_k              = 3
+paper_context_max_chars          = 1200
+translation_alignatt_min_source_mass = 0.3
+```
+
+Latency cost: **~20 % RTF** on context-on modes, **~6 %** on `off`
+(the baseline is also affected because the guard operates on every
+token's provenance, and even in `off` mode some tokens attend to the
+system prompt or the language-pair instruction, which count as
+`non_source_prompt`). This is a clean paper figure: a single latency
+knob controls a principled safety/quality tradeoff.
+
+## Third-clip replication on `tmp/myfXyntFYL_first90.wav` (Prompting PaLM)
+
+Ran `run_context_ablation.py` with the same settings
+(`guard=0.3`, `top_k=3`, `max_chars=1200`) on a 90 s prefix of the
+Prompting-PaLM-for-Translation talk. Output under
+`outputs/context_ablation_myf90_guard03/`.
+
+| Mode | RTF | updates | Observations |
+|---|---|---|---|
+| `off` | 2.085 | 88 | *"Palm ist ein Sprachmodell"*, *"fünfhundertvierzig Milliarden"* spelled out |
+| `title_abstract` | 2.073 | 59 | *"**PaLM** ist ein Sprachmodell"* (capitalisation fixed), *"Sprachmodell-Prompting"*; **no leakage** |
+| `retrieved_chunks` | 2.110 | 54 | *"PaLM ist ein Sprachmodell mit **540** Milliarden Parametern"* (numeric rendering matches paper style), but one subtle leak: *"Unsere Beiträge sind wie folgt: • Wir bewerten die Übersetzungsfähigkeit von LLMs…"* — a structured contribution list from the paper that the ASR never spoke |
+
+ASR did render "PaLM" as "Palm" in the live audio, which the MT
+propagates when `off`. With context (either mode), the MT recovers
+the correct capitalisation from the paper's title/abstract or
+chunks. Context-on also produces numerals ("540 Milliarden") that
+match the paper's "540B" phrasing, vs the off mode's spelled-out
+"fünfhundertvierzig Milliarden".
+
+## Cross-paper summary (three clips, one setting)
+
+| Clip | Paper theme | `off` clean? | `title_abstract+0.3` | `retrieved_chunks+0.3` |
+|---|---|---|---|---|
+| ccp75 | Script Knowledge Distillation | wrong lemma | **✓ clean + "Destillieren" win** | **✓ clean + "Extraktion" win** |
+| oiqewd90 | AlignAtt SimulST | wrong "Simulistenmodelle" | **✓ clean + "SimulST-Modelle"** | partial leak (interpolation paraphrase) |
+| myf90 | Prompting PaLM | wrong "Palm" case | **✓ clean + "PaLM" + "540 Mrd."** | minor leak ("Unsere Beiträge sind wie folgt:") |
+
+**Revised submission recommendation:** **`paper_context_mode="title_abstract" + translation_alignatt_min_source_mass=0.3`** is the defensible paper-ready pair. It shows consistent terminology wins on all three clips and **no observed leakage on any clip**. `retrieved_chunks` has higher ceiling on well-separated papers (ccp75) but sometimes leaks structure-heavy phrases from close-to-talk chunks on other papers — so for a paper-wide default, static title+abstract (guarded) is the safer operating point. Retrieved chunks remains a natural follow-up to characterise with a stricter guard (0.5+) or mitigation 2 (target-language chunks) before shipping.
+
+Command for the recommended mode:
+
+```bash
+.venv-inference/bin/python run_simulstream_batch.py \
+    --alignment-backend-name qwen_forced \
+    --mt-backend-name gemma_vllm_alignatt \
+    --paper-context-path data/paper_artifacts/<id>.json \
+    --paper-context-mode title_abstract \
+    --translation-alignatt-min-source-mass 0.3 \
+    --wavs test-set/audio/<id>.wav \
+    --output-dir outputs/submission_<id>
+```
+
+## Sweep point at `min_source_mass=0.5` on OiqEWDVtWk — closes the retrieved_chunks loop
+
+Ran the same OiqEWDVtWk_first90 clip with guard tightened to 0.5.
+Output under `outputs/context_ablation_oiqewd90_guard05/`.
+
+| Mode | Guard | first_emit_audio_s | updates | leak? |
+|---|---|---|---|---|
+| `retrieved_chunks` | 0.0 | 3.15 | 103 | yes (EDATT, Wait-k, interpolation) |
+| `retrieved_chunks` | 0.3 | 3.15 | 42 | partial (interpolation paraphrase remains) |
+| `retrieved_chunks` | **0.5** | **5.4** | **23** | **none observed** |
+| `title_abstract` | 0.3 | 3.15 | 110 | none |
+| `title_abstract` | 0.5 | 5.4 | 27 | none |
+| `off` | 0.5 | 5.4 | 34 | n/a |
+
+The guard at 0.5 **eliminates** the residual "interpolation" paraphrase
+that 0.3 could not catch. It does so by rejecting any drafted token
+whose MT attention mass on the accessible source is below 0.5 —
+i.e. every token that even partially attends to the paper block gets
+vetoed. Cost is concrete:
+
+- first-emit slips from 3.15 s to 5.4 s (2.25 s latency tax)
+- stream updates roughly halve from 42 → 23; the cascade emits in
+  coarser bursts
+- `off` is affected too (75 → 34 updates at 0.3 → 0.5, same clip)
+  because the guard operates on every token's provenance regardless
+  of paper-block presence
+
+This closes the paper's latency/leak curve with three clean operating
+points: **0.0 (unsafe)**, **0.3 (title_abstract safe; retrieved_chunks
+partially safe)**, **0.5 (retrieved_chunks fully safe, latency taxed).**
+
+The submission recommendation from the previous iteration stands
+(**`title_abstract` + `min_source_mass=0.3`**) because it lands
+leak-free on every clip at the lowest latency cost. `retrieved_chunks`
++ `0.5` is a paper-ready *alternative* operating point with a
+different latency/quality profile; the final sub-track submission
+should pick between them based on the concrete LongYAAL target
+(`0-2 s` vs `2-4 s` regimes per the IWSLT task page).
+

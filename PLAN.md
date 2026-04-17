@@ -1,191 +1,426 @@
-# PLAN.md
+# Context Injection Plan
 
-Living plan for the simultaneous speech-translation cascade. Short and
-focused; historical narrative has been archived to
-[`docs/archive/PLAN_HISTORY_2026-04.md`](docs/archive/PLAN_HISTORY_2026-04.md).
+Active mission for a dedicated 24h agent.
 
-For session-by-session decision log see [`DECISIONS.md`](DECISIONS.md).
-For the runtime surface see [`docs/RUNTIME_ARCHITECTURE.md`](docs/RUNTIME_ARCHITECTURE.md).
-For concrete numbers see [`docs/RESULTS.md`](docs/RESULTS.md).
+This file replaces the broader repo roadmap for now. The current objective is
+to earn one strong, paper-defensible extra-context mechanism for the
+IWSLT 2026 simultaneous Speech-to-Text with Extra Context sub-track, using this
+repo's cascade runtime rather than a separate baseline script stack.
 
-## Primary direction
+Historical broad planning belongs in `docs/archive/`. Session-level decisions
+should still be appended to `DECISIONS.md`.
 
-Ship, measure, and write up:
+## External framing
 
-- ASR side: `qwen_forced` (Qwen3-ASR-1.7B + Qwen3-ForcedAligner-0.6B) via vLLM.
-- MT side: `gemma_vllm_alignatt` (Gemma-4-E4B MT) via vLLM with an engine-native MT AlignAtt observer.
-- ASR commit rule: `punctuation_lcp` (default). `alignatt_frontier` remains available as an opt-in for paths where the ASR model doesn't emit sentence-terminal punctuation (Gemma-4 ASR). AlignAtt-frontier is *not* a drop-in replacement on Qwen ASR — it costs ~11 BLEU / 0.3 COMET on en→de for a ~440 ms CA gain (measured on `ccpXHNfaoy.wav`).
+Verified against the IWSLT 2026 simultaneous track page on 2026-04-16:
 
-Gemma ASR is reachable via `gemma_onepass_qk_fast` or `gemma_vllm_qk_fast` and works end-to-end, but Gemma-4-E4B as a standalone ASR model is intrinsically weaker than Qwen3-ASR-1.7B on our clips (hallucinations, regurgitation of training examples). This is a model-intrinsic property, not a cascade-infrastructure issue, so Gemma ASR stays as an experimental option rather than the default.
+- There is a main Speech-to-Text track and a Speech-to-Text with Extra Context
+  sub-track.
+- For the extra-context sub-track, participants may preprocess the ACL paper
+  PDFs before running the streaming system.
+- Main English directions are `en->de`, `en->zh`, and `en->it`; `cs->en` is a
+  separate direction without ACL-paper PDF context.
+- Ranking is by quality under two non-computation-aware LongYAAL regimes:
+  `0-2 s` and `2-4 s`.
+- Docker submissions are expected to run on a single `H100 80GB`.
 
-## Status snapshot (end of 2026-04-16 session)
+Relevant links:
 
-Phases 0–5 of the "move Gemma MT from Transformers to vLLM" plan are delivered and end-to-end validated on one test-set clip:
+- https://iwslt.org/2026/simultaneous
+- https://github.com/owaski/iwslt-2026-baselines
 
-| Phase | What it delivered | Status |
-|---|---|---|
-| 0 | `mt_backend_name` as an independent runtime axis + CLI surface + dispatcher + runtime defaults + tests | ✅ |
-| 1 | Minimal `gemma_vllm_mt_backend.py` doing draft generation via vLLM | ✅ |
-| 2 | `gemma_vllm_mt_observer.py` + `gemma_vllm_mt_worker.py` — engine-native MT AlignAtt observer with prompt-K, decode-Q, decode-K capture and 4-way provenance reconstruction | ✅ |
-| 3 | Policy loop integrated on the vLLM side; same stop-reason vocabulary (`alignatt:source_frontier` / `rewind` / `provenance_weak`); curated 6-prompt parity; observer sequence trimmed to draft length | ✅ (decisions match on 5/6; numerical provenance drift documented) |
-| 4 | Single-prompt MT parity harness with subprocess isolation per backend | ✅ |
-| 5 | End-to-end SimulStream with `qwen_forced` + `gemma_vllm_alignatt` on `tmp/alignatt_smoke18.wav` | ✅ (RTF 0.536, coherent German, no observer failures) |
+## Mission
 
-Phase 6 (measurement) is in progress — one-clip numbers on `ccpXHNfaoy.wav` and a chunk-size calibration curve on `OiqEWDVtWk.wav` are in [`docs/RESULTS.md`](docs/RESULTS.md).
+Build and validate a clean extra-context path that helps long-form ACL-talk
+translation by giving the MT model access to compact, relevant information from
+the corresponding ACL paper PDF.
 
-## Architectural review findings (2026-04-16 audit)
+The result must be something we could defend honestly in a paper:
 
-- **There is a real `cs->en` correctness risk in the runtime surface.** `LANGUAGE_CODE_TO_NAME` is built before `Czech` is added to `LANGUAGE_NAME_TO_CODE`, and heads-path refresh currently keys off `target_lang` changes but not `source_lang` changes. This is a submission blocker, not cleanup.
+- no hand-written lexical substitution tables
+- no talk-specific prompt hacks
+- no benchmark-artifact patching
+- no giant raw PDF dump stuffed into the prompt
+- no hidden oracle information
 
-- **The runtime mixes backend-build config with live policy config.** Engine-construction knobs and per-session thresholds share the same config object, but bundle reuse fingerprints only a subset. That is bad for reproducible ablations and dangerous for an overnight autonomous agent.
+If the 24h investigation ends in a negative result, that is acceptable, but the
+agent must leave behind a clean artifact, honest measurements, and a clear
+recommendation about whether to continue.
 
-- **The current latency story is mostly scheduler-driven.** In practice `chunk_ms` is the main latency knob; `translation_alignatt_inaccessible_ms` has near-zero effect in the current architecture. We should not overclaim "AlignAtt controls latency" unless we actually make scheduling frontier-aware.
+## Default architectural bet
 
-- **The current paper story is asymmetrical on the source side.** The elegant source rule is `alignatt_frontier`, but the best submission path on Qwen is still `punctuation_lcp`. The overnight mechanism work should either close that gap or explicitly accept the asymmetry.
+Use **Gemma on the MT side** as the main context-injection substrate.
 
-- **The biggest remaining levers are clear, but they are not equally suitable for tonight.**
-  - `mt_vllm_enable_prefix_caching` is the highest-upside compute-aware systems improvement, but it is backend-risky.
-  - Better long-form / PDF context is likely the highest-upside quality improvement, but it is too broad for tonight.
-  - A source commit rule that combines stability and accessibility is local, testable, and directly addresses the paper-elegance gap.
+Concretely:
 
-- **Several policy knobs are not yet defended by measurements.** `translation_alignatt_min_source_mass`, `translation_alignatt_filter_width`, `translation_alignatt_rewind_threshold`, `translation_emit_policy`, and `asr_alignatt_frontier_margin_ms` should be treated as ablation candidates, not settled defaults.
+- Keep `alignment_backend_name="qwen_forced"` as the main ASR path.
+- Keep Gemma as the translation model.
+- Inject paper context into the **Gemma MT prompt contract**, not into the
+  Qwen ASR prompt by default.
 
-- **The compact observer contract is still only half-landed.** `alignment_backend.py` already points toward a clean typed observer surface, but the MT runtime still exposes large ad hoc `alignatt_metadata` dicts. Unifying ASR and MT around the same compact observer contract remains an important cleanup target for a paper-defensible system.
+Why this is the main bet:
 
-- **The observer currently captures more structure than policy consumes.** That is not necessarily bad, but it means three promising paper branches remain open: per-head weighting instead of uniform averaging, a continuous confidence scalar instead of three discrete gates, and a provenance contract that is load-bearing rather than mostly diagnostic.
+- Qwen ASR is currently the strongest and most stable source frontend in this
+  repo; we should avoid destabilizing it unless MT-side context clearly fails.
+- The MT prompt contract is already structured and under our control in
+  `cascade_translation_variants.py`.
+- Extra paper context is semantically much closer to translation disambiguation,
+  terminology consistency, and long-form discourse consistency than to raw ASR.
+- AlignAtt remains well-defined if paper context is kept as a separate
+  non-source prompt region outside the mapped current-source span.
 
-## Overnight objective
+## Existing assets to reuse, not worship
 
-By morning, the repo should satisfy all three:
+Two scripts already exist in `context_injection/`:
 
-1. **No obvious submission trap** in the runtime surface (`cs->en`, heads refresh, backend reuse identity).
-2. **Two defensible operating points** for the canonical submission pair:
-   - low latency: `chunk_ms = 450`
-   - high latency: `chunk_ms = 700`
-3. **Exactly one additional mechanism branch** explored with evidence, not a grab-bag of speculative edits.
+- `context_injection/extract_abstract.py`
+- `context_injection/ner_llm.py`
 
-Use the current local assets for tonight's loop. The repo currently has `test-set/` but not a local official dev-set workflow. Do not block engineering work on that; just keep in mind that final submission still needs dev logs.
+These are useful bootstrap assets copied from the public baseline pattern, but
+they should be treated as **starting points**, not final architecture.
 
-## Autonomous loop policy
+What they are good for:
 
-The overnight agent should **not go idle after the first success**. If a step finishes early or a branch gets blocked, it should continue to the next admissible item in the execution order rather than stopping.
+- fast PDF-to-text bootstrapping
+- extracting title / authors / abstract
+- producing a first terminology list for analysis or ablation
 
-Operationally:
+What they are *not* yet:
 
-- Keep moving until all reachable items in this plan are either completed, explicitly blocked, or clearly not worth the remaining night budget.
-- If a GPU run is in flight or cooling down, use the meantime for no-GPU work: tests, replay analyses, docs, plan hygiene, result summarization, or preparing the next run.
-- If the default mechanism branch fails quickly, switch to the fallback branch instead of stalling.
-- If the main path is clean ahead of schedule, proceed to the stretch / paper branches rather than terminating early.
-- Prefer one more bounded, measurable experiment over ending the night with unused iteration budget.
-- Update `DECISIONS.md` as work progresses so a human waking up mid-run can see what has already been tried, what is currently running, and what remains next.
+- a clean runtime integration
+- a principled retrieval pipeline
+- a justified final mechanism for this repo
 
-## Execution order for an autonomous night run
+## Primary hypothesis
 
-### Step 1 — Submission hardening (no GPU)
+The best extra-context mechanism in this repo is likely:
 
-Fix the runtime-surface issues first:
+1. offline preprocessing of each ACL paper PDF into a compact structured
+   artifact
+2. runtime retrieval of a small number of relevant context snippets based on
+   the current English ASR prefix and recent confirmed history
+3. injection of those snippets into the Gemma MT prompt as an explicit
+   `[Paper context]` block
+4. strict token-budgeting so the extra context helps without destroying latency
+   or crowding out the live source prefix
+
+This is the main branch.
+
+## Secondary hypotheses
+
+These are worth measuring, but they are not the main contribution:
+
+- Static `title + abstract` context may already help and should be the first
+  baseline.
+- Entity-only context may help terminology consistency, but on its own it is
+  probably too weak and too heuristic-looking to be our main story.
+- ASR-side terminology priming may help on names, but it should be treated as a
+  fallback branch, not the default direction.
+
+## Non-goals for this 24h run
+
+- Do not revive Gemma ASR as the main path.
+- Do not turn this into a generic RAG framework.
+- Do not build a multi-document retrieval system; there is one paper per talk.
+- Do not optimize for broad benchmark coverage before one single PDF-backed talk
+  behaves convincingly.
+- Do not sink the whole budget into PDF parsing churn or embedding-model churn.
+- Do not make uncontrolled prompt changes across both ASR and MT at once.
+
+## Success condition
+
+By the end of the 24h run, the repo should contain:
+
+- one clean extra-context mechanism integrated into the main runtime
+- one or two compact offline artifacts derived from the paper PDF
+- one single-audio validation story on a PDF-backed ACL talk
+- at least one honest ablation against `no context`
+- a short written note saying whether the mechanism is worth scaling out
+
+The best-case outcome is a measurable quality/consistency win with acceptable
+latency drift. A good second-best outcome is a negative result that clearly
+explains why the mechanism is not worth pursuing.
+
+## Hard constraints from this repo
+
+- Use `.venv-inference`.
+- Avoid unnecessary model reloads; hot-start reuse matters.
+- Treat full SimulStream runs as expensive.
+- Validate on one audio first.
+- Keep backend runs sequential and isolated.
+- Prefer `run_simulstream_compare.py` for canonical single-audio iteration when
+  that is sufficient.
+- SimulStream is the canonical inference path.
+- OmniSTEval is the canonical evaluation path.
+
+Also keep the current stable runtime assumptions intact unless there is a real
+scientific reason to change them:
+
+- `qwen_forced` for ASR
+- Gemma MT as the translation backend
+- lazy model loading through `LoadedModelBundle.load()`
+- no broad "let's reload everything and see" experiments
+
+## Design rules
 
-- Rebuild `LANGUAGE_CODE_TO_NAME` from the final language map.
-- Recompute `translation_alignatt_heads_path` when either `source_lang` or `target_lang` changes.
-- Expand backend identity / bundle fingerprint so engine semantics cannot silently drift under hot reuse.
-- Add small config-only regression tests for the above.
+The mechanism must obey all of these:
 
-**Acceptance gate:** tests pass without loading models, and the resulting behaviour is obvious from the code and test names.
+- Extra context must be explicitly represented in code, not smuggled in through
+  ad hoc prompt-string concatenation spread across files.
+- The live current-source span must remain clearly delimited for
+  `PromptSourceMap`; paper context is non-source prompt content.
+- The accepted-prefix contract must remain intact.
+- The default behavior must stay `off` unless context is explicitly configured.
+- The agent should prefer a small number of generic knobs over many fragile
+  prompt variants.
+- If retrieval is used, retrieval must depend only on information available at
+  the current time step.
 
-### Step 2 — Re-anchor the current baseline before changing ideas
+## Recommended implementation shape
 
-Do not start from broad sweeps. Re-validate the shipped pair first:
+Prefer a design close to this:
 
-- Pair: `qwen_forced` ASR + `gemma_vllm_alignatt` MT only.
-- First smoke check: `tmp/alignatt_smoke18.wav` only if needed to catch breakage quickly.
-- Then one long clip: `test-set/audio/ccpXHNfaoy.wav`.
-- Operating points: `chunk_ms = 450` and `chunk_ms = 700`.
+1. A small offline module, likely a new file, that turns a PDF into a structured
+   artifact such as:
+   - title
+   - authors
+   - abstract
+   - section headers
+   - chunked text passages
+   - optional entity list
 
-**Acceptance gate:** both runs complete cleanly, produce coherent outputs, and land in the intended low/high latency regimes without reopening architectural questions.
+2. A runtime-side context selector that chooses a tiny context package such as:
+   - static title + abstract
+   - or top-k retrieved chunks
+   - or title + top-k chunks
 
-### Step 3 — Widen only after Step 2 is clean
+3. A structured prompt integration on the MT side, probably by extending
+   `RenderedTranslationPrompt` and `TranslationVariant.render_messages()` so the
+   paper context is rendered intentionally rather than injected as a random
+   string.
 
-Once the canonical pair is re-anchored:
+4. Minimal targeted tests around:
+   - config defaults
+   - prompt rendering
+   - source-span preservation
+   - retrieval budget determinism
 
-- Sanity-check one clip each for `en->it` and `en->zh`.
-- Do **not** start a full multilingual sweep if a single-clip sanity check is already unstable.
-- Treat `cs->en` as a first-class direction for code correctness, but do not let a missing local eval workflow block the night.
+## Files the agent should inspect first
 
-**Acceptance gate:** no direction-specific runtime breakage and no missing-heads / missing-reference surprises in the local paths we actually use.
+- `docs/CONTEXT_INJECTION.md` — current mechanism + reproducible commands
+- `context_injection/paper_artifact.py`, `context_injection/context_selector.py`
+- `context_injection/extract_abstract.py`, `context_injection/ner_llm.py`
+  (legacy bootstrap scripts; the new `paper_artifact` module supersedes them)
+- `cascade_translation_variants.py`
+- `cascade_runtime.py`
+- `cascade_mt_backend.py`
+- `run_simulstream_compare.py`
+- `README.md`
+- `docs/RUNTIME_ARCHITECTURE.md`
 
-### Step 4 — One mechanism branch only
+## Preferred execution order
 
-Pick **one** branch for tonight. Default choice:
+### Step 0 - Re-anchor the problem without GPU churn
 
-- **Default branch:** prototype `stable_and_accessible` as a third ASR commit rule.
-  A source unit becomes committable only when it is both behind the audio frontier and stable across consecutive ASR hypotheses.
+Before editing code:
 
-Why this branch first:
+- Read the IWSLT task description and the public baseline for the extra-context
+  sub-track.
+- Inspect where this repo currently builds the MT prompt.
+- Write down one explicit main mechanism and at most one fallback.
 
-- It directly addresses the biggest conceptual gap in the current paper story.
-- It is local to the runtime and easier to reason about than MT-engine surgery.
-- It can be falsified quickly on one clip.
+Acceptance gate:
 
-**Acceptance gate:** evaluate on one long clip only. Keep it only if it clearly improves the quality/latency tradeoff over pure `alignatt_frontier` without collapsing Qwen quality toward the old −11 BLEU regime.
+- The agent can explain, in `DECISIONS.md`, exactly where context should enter
+  the runtime and why Gemma MT is the primary substrate.
 
-### Step 5 — If Step 4 fails early, use one fallback branch
+### Step 1 - Define the offline paper artifact
 
-Fallback branch, only if the default branch is clearly a dead end:
+Create a compact, reusable representation for one talk's paper.
 
-- Reopen MT prefix caching with observer-safe cache identity.
+Minimum viable artifact:
 
-This branch is valuable but riskier. If it turns into compile-cache / worker-debugging churn, stop and log the blocker rather than burning the whole night.
+- `paper_id` or source path
+- title
+- authors
+- abstract
+- chunk list with stable chunk ids
 
-### Step 6 — Cheap follow-ups only if the main branch succeeded early
+Preferred richer artifact:
 
-Only after Steps 1–4 are clean:
+- section headers when extraction is reliable
+- a normalized text form for retrieval
+- optional entity list as metadata, not as the only signal
 
-- `translation_alignatt_min_source_mass` sweep on one clip.
-- `FREEZE_NONEXPANDING_MAJOR_REWRITES` vs `RAW_PASSTHROUGH` A/B, ideally via replay where possible.
+Important:
 
-These are worthwhile, but they are not the main overnight objective.
+- Reuse the current `context_injection` scripts if that is faster, but feel free
+  to refactor or replace them if the result becomes cleaner.
+- Avoid designing around only the abstract if reliable paragraph chunking is
+  available.
 
-### Step 7 — Stretch / paper branches if the night is going unusually well
+Acceptance gate:
 
-These are explicitly non-critical for submission hardening, but they are good branches to preserve in the plan so an autonomous agent can opportunistically pick one if the main path finishes early.
+- One PDF can be deterministically converted into a compact JSON artifact with a
+  shape the runtime can consume directly.
 
-- **PDF / extra-context retrieval branch.**
-  - Main-track version: retrieve from previously committed sentence pairs within the same talk instead of relying on a tiny FIFO only.
-  - Extra-context version: preprocess ACL PDFs into compact reusable chunks (title / abstract / section headers / top-k retrieved spans) and inject retrieved snippets only.
-  - Goal: improve long-form consistency and open a path to the IWSLT extra-context sub-track without turning the runtime into ad hoc RAG glue.
+### Step 2 - Land a static-context baseline first
 
-- **Observer-contract cleanup branch.**
-  - Replace MT-side free-form `alignatt_metadata` dict accretion with a typed compact observer surface parallel to `alignment_backend.py`.
-  - Goal: make the runtime and the paper tell the same story about what the observer is allowed to expose.
+Do the smallest credible runtime integration before building retrieval.
 
-- **Head-weighting branch.**
-  - Replace uniform averaging across selected heads with a principled weighting scheme using quantities already captured: peak mass, inverse variance, or cross-head argmax agreement.
-  - Goal: turn "top-k heads" from a static heuristic into a measurable effective-head mechanism.
+Recommended first baseline:
 
-- **Continuous confidence branch.**
-  - Replace the current discrete gate trio (`rewind`, `source_frontier`, `provenance_weak`) with a single confidence scalar derived from the same observed rows.
-  - Goal: collapse several loosely-related knobs into one cleaner paper mechanism.
-  - Best first implementation path: offline replay from existing `stream_updates.jsonl` / provenance captures before touching the online runtime.
+- inject `title + abstract` on the MT side only
+- keep the context block explicit, e.g. `[Paper context]`
+- keep it outside the current-source span used by AlignAtt
 
-## Not tonight
+Why this first:
 
-- Do **not** revive Gemma ASR as the main path.
-- Do **not** launch broad benchmark sweeps before the current single-clip objective is already clean.
+- it is the cheapest proof that the runtime integration is sound
+- it gives a proper baseline against retrieval
+- it de-risks prompt and token-budget plumbing before smarter selection
 
-## Hard rules
+Acceptance gate:
 
-- Do **not** silently make `gemma_vllm_alignatt` the MT default. Keep `STABLE_MT_BACKEND_NAMES = ("gemma_transformers_alignatt",)`.
-- Do **not** re-enable MT vLLM prefix caching without the cache-native observer port.
-- Do **not** widen to a full benchmark sweep before the single-clip sanity check is clean.
-- Do **not** conflate ASR-side and MT-side observer work. They are two separate substrates that happen to share a design pattern.
-- Do **not** revive Gemma ASR fine-tuning inside this repo. The pivot is: keep Qwen ASR, put vLLM experimentation on the MT side.
+- The system runs with context on one PDF-backed example without breaking source
+  mapping, accepted-prefix handling, or the streaming loop.
 
-## Paper-level framing
+### Step 3 - Add principled retrieval over paper chunks
 
-**What is already defensible today**
+After the static baseline works, build the main mechanism.
 
-*A simultaneous speech-translation cascade can run with engine-native AlignAtt observers under real vLLM execution on the MT side, while keeping Qwen ASR as the strong source frontend. The system admits clean low/high latency operating points (`chunk_ms = 450 / 700`) and produces stable end-to-end SimulStream artefacts with a compact observer substrate rather than Python-side attention dumps.*
+Preferred retrieval order:
 
-**What the overnight mechanism branch is trying to earn**
+1. start simple with a transparent lexical scorer or very small retriever
+2. only add a heavier embedding/reranking model if the simple version is clearly
+   inadequate
 
-*Replace the current "punctuation on the source, AlignAtt on the target" asymmetry with a more principled source commit rule based on stability plus accessibility, without paying the quality cliff of naive `alignatt_frontier`.*
+The query should be built from:
+
+- current English ASR prefix
+- optionally a short window of earlier confirmed English source context
+
+The query should *not* use:
+
+- future text
+- references
+- manually curated term lists
+
+The selected context package should be small and stable:
+
+- top-k chunks only
+- fixed token or character budget
+- deterministic ordering
+
+Acceptance gate:
+
+- Retrieval produces a compact context block that is obviously relevant on at
+  least one real example and does not explode prompt length.
+
+### Step 4 - Measure three minimal conditions only
+
+Do not start with a large matrix.
+
+Measure on one PDF-backed ACL talk:
+
+- `no context`
+- `static title+abstract`
+- `retrieved paper chunks`
+
+If time allows, add exactly one extra diagnostic ablation:
+
+- `entities only`
+
+Track at minimum:
+
+- translation output examples
+- one quality metric bundle if references are available
+- latency drift
+- prompt length or context budget
+
+Acceptance gate:
+
+- There is a clear written comparison showing whether retrieved context is
+  better than no context and better than naive static context.
+
+### Step 5 - Only then decide whether ASR-side context is worth touching
+
+Fallback branch only.
+
+Touch ASR-side context injection **only if** the evidence strongly suggests that
+the dominant remaining failure mode is name recognition rather than translation
+choice.
+
+If this branch is opened:
+
+- keep it narrow
+- reuse the offline paper artifact
+- prefer term priming over broad prompt redesign
+- keep Qwen ASR as the backend
+
+But do not let this fallback eat the whole night.
+
+Acceptance gate:
+
+- Either a narrow ASR-side experiment lands, or the agent explicitly records why
+  the branch was not worth opening.
+
+### Step 6 - Leave the repo in a reusable state
+
+Before stopping:
+
+- document the chosen mechanism
+- record what worked and what failed
+- keep defaults conservative
+- do not leave half-integrated prompt hacks behind
+
+Ideal deliverables:
+
+- a small doc such as `docs/CONTEXT_INJECTION.md`
+- a clean config surface
+- one reproducible command line for the winning experiment
+- one reproducible command line for the baseline
+
+## What to optimize for scientifically
+
+The intended paper story is not "we pasted a glossary into the prompt."
+
+The intended story is closer to:
+
+*A simultaneous cascade can exploit document-level extra context by retrieving a
+compact, time-local, paper-grounded support set from the associated ACL paper
+and exposing it to the MT model through an explicit structured prompt contract,
+improving long-form technical translation without violating streaming
+constraints.*
+
+That story becomes stronger if:
+
+- the context selector is simple and measurable
+- the runtime integration is explicit and typed
+- the added prompt region is clearly separated from the live source span
+- the win is visible on terminology or discourse consistency, not just on one
+  cherry-picked string edit
+
+## What to avoid
+
+- no talk-specific exceptions
+- no giant entity dumps
+- no "if paper mentions X force translation Y" logic
+- no hidden lexical replacement post-processing
+- no proliferating prompt variants that differ only in wording
+- no broad benchmark sweeps before the single-example mechanism is convincing
+
+## Best first guess
+
+If the agent needs a default path and should not spend an hour debating
+alternatives, choose this:
+
+1. keep `qwen_forced` ASR
+2. keep Gemma MT
+3. preprocess one paper into `title + abstract + chunked body`
+4. integrate a `[Paper context]` block into the MT prompt
+5. first run `title + abstract`
+6. then replace static context with top-k retrieved chunks
+7. compare against `no context`
+
+This is the shortest path to an actual result.

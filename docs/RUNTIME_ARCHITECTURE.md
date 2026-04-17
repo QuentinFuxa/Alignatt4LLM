@@ -114,10 +114,15 @@ AlignAtt-frontier on Qwen trades ~440 ms CA for −11.7 BLEU / −9 chrF / −0.
 
 Numbers in [`RESULTS.md`](RESULTS.md). `--translation-alignatt-inaccessible-ms` has ~zero effect in this architecture (the scheduler already waits on commits); `--translation-alignatt-min-source-mass` can add ~1 BLEU at a ~250 ms CU cost on en→de if desired.
 
+## Extra-context (IWSLT sub-track) runtime axis
+
+`CascadeRuntimeConfig.paper_context_mode ∈ {off, title_abstract, retrieved_chunks, title_and_chunks}` is an independent knob alongside the ASR/MT backend axes. Default `off` — every non-context caller is byte-identical to the pre-context runtime. When a `PaperArtifact` JSON is supplied via `paper_context_path`, the session computes a BM25 query from the current ASR prefix + recent source history and prepends a `[Paper context]` block to the Gemma MT user message, kept strictly outside the span tracked by `PromptSourceMap` so AlignAtt and the accepted-prefix contract remain intact. Pairs with `translation_alignatt_min_source_mass` (MT-AlignAtt provenance guard) to suppress paper-content leakage on close-to-talk papers. Full design: [`CONTEXT_INJECTION.md`](CONTEXT_INJECTION.md).
+
 ## See also
 
 - [`MT_VLLM_BACKEND.md`](MT_VLLM_BACKEND.md) — MT observer / worker design, Phase 0–5 status
 - [`RESULTS.md`](RESULTS.md) — consolidated quality/latency numbers
+- [`CONTEXT_INJECTION.md`](CONTEXT_INJECTION.md) — extra-context mechanism, ablations, submission setting
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) — operational gotchas
 - `DECISIONS.md` (at repo root) — append-only session log
 - `docs/archive/` — historical design notes preserved for context

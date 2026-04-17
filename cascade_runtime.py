@@ -40,6 +40,14 @@ from cascade_translation_variants import (
     TRANSLATION_VARIANTS,
     TranslationVariant,
 )
+from context_injection import (
+    CONTEXT_MODE_OFF,
+    VALID_CONTEXT_MODES,
+    PaperArtifact,
+    PaperContextBlock,
+    PaperContextSelector,
+    build_retrieval_query,
+)
 from simulstream.server.speech_processors import SAMPLE_RATE
 
 
@@ -217,6 +225,17 @@ class CascadeRuntimeConfig:
     # considered committable. Only used when asr_commit_mode="alignatt_frontier".
     asr_alignatt_frontier_margin_ms: float = 500.0
 
+    # Extra-context injection (IWSLT 2026 Speech-to-Text with Extra Context
+    # sub-track). Default off so every non-context path keeps current
+    # behaviour exactly. When a paper artifact is configured, the session
+    # prepends a `[Paper context]` block to the Gemma MT prompt outside the
+    # current-source span. See docs/CONTEXT_INJECTION.md.
+    paper_context_path: str | None = None
+    paper_context_mode: str = CONTEXT_MODE_OFF
+    paper_context_top_k: int = 3
+    paper_context_max_chars: int = 1200
+    paper_context_history_window_words: int = 60
+
     def __post_init__(self) -> None:
         if self.translation_alignatt_heads_path is None:
             self.translation_alignatt_heads_path = alignatt_heads_path_for(
@@ -255,6 +274,20 @@ class CascadeRuntimeConfig:
             raise ValueError(
                 "asr_commit_mode must be one of {'alignatt_frontier', 'punctuation_lcp'}, "
                 f"got {self.asr_commit_mode!r}."
+            )
+        if self.paper_context_mode not in VALID_CONTEXT_MODES:
+            raise ValueError(
+                f"paper_context_mode must be one of {VALID_CONTEXT_MODES}, "
+                f"got {self.paper_context_mode!r}."
+            )
+        if (
+            self.paper_context_mode != CONTEXT_MODE_OFF
+            and self.paper_context_path is None
+        ):
+            raise ValueError(
+                "paper_context_mode is enabled but paper_context_path is None; "
+                "either set paper_context_path to a PaperArtifact JSON file or "
+                "set paper_context_mode='off'."
             )
 
     def apply_overrides(self, **overrides) -> None:
@@ -575,6 +608,8 @@ class LoadedModelBundle:
         self._alignment_backend_id: str | None = None
         self._mt_backend_id: str | None = None
         self._mt_heads_path: str | None = None
+        self._paper_context_selector: PaperContextSelector | None = None
+        self._paper_context_path: str | None = None
 
     def ensure_alignment_backend(self) -> AlignmentBackend:
         if (
@@ -613,9 +648,28 @@ class LoadedModelBundle:
                 self._mt_heads_path = current_heads_path
         return self.mt_backend
 
+    def ensure_paper_context_selector(self) -> PaperContextSelector | None:
+        """Load / reload the PaperContextSelector iff the config points at a PDF artifact.
+
+        The selector is immutable per artifact path: we only rebuild when the
+        path changes (flipping modes on the same artifact does *not* trigger a
+        rebuild). Returns ``None`` when extra-context injection is disabled.
+        """
+        path = self.config.paper_context_path
+        if path is None:
+            self._paper_context_selector = None
+            self._paper_context_path = None
+            return None
+        if self._paper_context_selector is None or self._paper_context_path != path:
+            artifact = PaperArtifact.read_json(path)
+            self._paper_context_selector = PaperContextSelector.from_artifact(artifact)
+            self._paper_context_path = path
+        return self._paper_context_selector
+
     def load(self) -> None:
         self.ensure_alignment_backend()
         self.ensure_mt_backend()
+        self.ensure_paper_context_selector()
 
     def new_session(self) -> "CascadeSession":
         return CascadeSession(self)
@@ -938,6 +992,10 @@ class CascadeSession:
         assistant_prefill: str = "",
     ) -> RenderedTranslationPrompt:
         variant = get_translation_variant(self.config)
+        paper_context_block = self._render_paper_context_block(
+            current_source_prefix=text,
+            source_history=source_history,
+        )
         return variant.render_messages(
             source_lang=self.config.source_lang,
             target_lang=self.config.target_lang,
@@ -947,6 +1005,36 @@ class CascadeSession:
             translation_history=translation_history,
             is_partial=is_partial,
             assistant_prefill=assistant_prefill,
+            paper_context_block=paper_context_block.render(),
+        )
+
+    def _render_paper_context_block(
+        self,
+        *,
+        current_source_prefix: str,
+        source_history: Sequence[str],
+    ) -> PaperContextBlock:
+        mode = self.config.paper_context_mode
+        if mode == CONTEXT_MODE_OFF:
+            return PaperContextBlock(text="", mode=CONTEXT_MODE_OFF)
+        selector = self.bundle.ensure_paper_context_selector()
+        if selector is None:
+            return PaperContextBlock(text="", mode=CONTEXT_MODE_OFF)
+        history_words: list[str] = []
+        for item in source_history:
+            if not item:
+                continue
+            history_words.extend(item.split())
+        query = build_retrieval_query(
+            current_source_prefix=current_source_prefix,
+            history_words=history_words,
+            history_window_words=int(self.config.paper_context_history_window_words),
+        )
+        return selector.select(
+            mode=mode,
+            query=query,
+            top_k=int(self.config.paper_context_top_k),
+            max_chars=int(self.config.paper_context_max_chars),
         )
 
     def translate_with_mt(

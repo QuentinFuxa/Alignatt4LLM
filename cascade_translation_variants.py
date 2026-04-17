@@ -33,6 +33,12 @@ class TranslationVariant:
     partial_segment_rule: str = ""
     stable_segment_rule: str = ""
     system_prompt_template: str | None = None
+    # Optional suffix appended to the rendered system prompt ONLY when a
+    # non-empty paper_context_block is supplied at render time. Keeping this
+    # conditional means the default (no-context) path remains byte-identical
+    # to pre-context runs — critical for submission stability and for honest
+    # A/B comparisons against the no-context baseline.
+    paper_context_instruction_template: str | None = None
     examples: tuple[PrefixContinuationExample, ...] = ()
     preserve_frozen_prefix: bool = False
     include_structured_scaffolding: bool = False
@@ -91,6 +97,7 @@ class TranslationVariant:
         translation_history: list[str],
         is_partial: bool,
         assistant_prefill: str = "",
+        paper_context_block: str = "",
     ) -> RenderedTranslationPrompt:
         if not self.uses_structured_messages:
             user_content = self.render_prompt(
@@ -120,13 +127,26 @@ class TranslationVariant:
 
         messages: list[dict[str, str]] = []
         if self.system_prompt_template:
+            system_content = self.system_prompt_template.format(
+                source_lang=source_lang,
+                target_lang=target_lang,
+            ).strip()
+            paper_instruction = (
+                self.paper_context_instruction_template
+                if (paper_context_block.strip() and self.paper_context_instruction_template)
+                else None
+            )
+            if paper_instruction:
+                rendered_instruction = paper_instruction.format(
+                    source_lang=source_lang,
+                    target_lang=target_lang,
+                ).strip()
+                if rendered_instruction:
+                    system_content = f"{system_content}\n{rendered_instruction}"
             messages.append(
                 {
                     "role": "system",
-                    "content": self.system_prompt_template.format(
-                        source_lang=source_lang,
-                        target_lang=target_lang,
-                    ).strip(),
+                    "content": system_content,
                 }
             )
         if self.uses_structured_scaffolding:
@@ -157,6 +177,7 @@ class TranslationVariant:
             source_lang=source_lang,
             is_partial=is_partial,
             assistant_prefix_seeded=bool(assistant_prefill.strip()),
+            paper_context_block=paper_context_block,
         )
         messages.append(
             {
@@ -198,9 +219,19 @@ class TranslationVariant:
         source_lang: str,
         is_partial: bool,
         assistant_prefix_seeded: bool,
+        paper_context_block: str = "",
     ) -> tuple[str, tuple[int, int]]:
         source_header = f"[Current {source_lang} ASR prefix]\n"
-        content_sections = []
+        content_sections: list[str] = []
+        paper_block = paper_context_block.strip()
+        if paper_block:
+            if source_header in paper_block:
+                raise ValueError(
+                    "paper_context_block must not contain the current-source header; "
+                    "found collision with "
+                    f"{source_header!r}"
+                )
+            content_sections.append(paper_block)
         if context_block != "(none)":
             content_sections.append(
                 "[Confirmed earlier sentence pairs]\n"

@@ -248,6 +248,30 @@ def parse_args() -> argparse.Namespace:
         default=500.0,
         help="Safety margin (ms) for alignatt_frontier commit rule. Default 500.",
     )
+    parser.add_argument(
+        "--paper-context-path",
+        default=None,
+        help=(
+            "Path to a PaperArtifact JSON (produced by "
+            "context_injection.paper_artifact) to inject as MT-side [Paper "
+            "context]. Default: no context."
+        ),
+    )
+    parser.add_argument(
+        "--paper-context-mode",
+        default="off",
+        choices=("off", "title_abstract", "retrieved_chunks", "title_and_chunks"),
+        help=(
+            "Context mechanism. 'off' disables injection, 'title_abstract' "
+            "renders the paper's title+abstract, 'retrieved_chunks' BM25-"
+            "retrieves paragraph chunks from the artifact using the current "
+            "ASR prefix + recent source history as the query, and "
+            "'title_and_chunks' combines both."
+        ),
+    )
+    parser.add_argument("--paper-context-top-k", type=int, default=3)
+    parser.add_argument("--paper-context-max-chars", type=int, default=1200)
+    parser.add_argument("--paper-context-history-window-words", type=int, default=60)
     return parser.parse_args()
 
 
@@ -282,6 +306,11 @@ def main() -> None:
         gemma_vllm_force_generate_api=args.gemma_vllm_force_generate_api,
         asr_commit_mode=args.asr_commit_mode,
         asr_alignatt_frontier_margin_ms=args.asr_alignatt_frontier_margin_ms,
+        paper_context_path=args.paper_context_path,
+        paper_context_mode=args.paper_context_mode,
+        paper_context_top_k=args.paper_context_top_k,
+        paper_context_max_chars=args.paper_context_max_chars,
+        paper_context_history_window_words=args.paper_context_history_window_words,
     )
 
     print("Loading models ...")
@@ -346,6 +375,8 @@ def main() -> None:
         "asr_streaming_unfixed_chunks",
         "gemma_vllm_force_generate_api",
         "asr_commit_mode", "asr_alignatt_frontier_margin_ms",
+        "paper_context_path", "paper_context_mode", "paper_context_top_k",
+        "paper_context_max_chars", "paper_context_history_window_words",
     ]:
         runtime_config[key] = getattr(processor.session.config, key, None)
 

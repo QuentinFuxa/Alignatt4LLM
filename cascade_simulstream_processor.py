@@ -78,6 +78,11 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "gemma_vllm_force_generate_api",
             "asr_commit_mode",
             "asr_alignatt_frontier_margin_ms",
+            "paper_context_path",
+            "paper_context_mode",
+            "paper_context_top_k",
+            "paper_context_max_chars",
+            "paper_context_history_window_words",
         ]
         overrides = {
             key: getattr(config, key)
@@ -89,6 +94,12 @@ class CascadeAlignAttProcessor(SpeechProcessor):
 
     @staticmethod
     def _bundle_key(runtime_config: CascadeRuntimeConfig) -> tuple:
+        # paper_context_path is intentionally *not* in the bundle key: the
+        # PaperContextSelector is trivially cheap to rebuild from a JSON
+        # artifact and its load cost is negligible against a ~5 min ASR +
+        # MT model reload. Swapping artifacts (or toggling context modes)
+        # must stay hot — LoadedModelBundle.ensure_paper_context_selector
+        # refreshes the selector lazily when the path changes.
         return (
             runtime_config.source_lang,
             runtime_config.target_lang,

@@ -36,6 +36,7 @@ Reference numbers (`test-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, chunk_ms=450
 - [`docs/MT_VLLM_BACKEND.md`](docs/MT_VLLM_BACKEND.md) — design of the experimental `gemma_vllm_alignatt` MT backend (Phases 0–5)
 - [`docs/RESULTS.md`](docs/RESULTS.md) — consolidated quality/latency numbers + calibration curve
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — GPU / vLLM / allocator gotchas
+- [`docs/CONTEXT_INJECTION.md`](docs/CONTEXT_INJECTION.md) — ACL-paper extra-context mechanism (IWSLT 2026 sub-track)
 - [`docs/archive/`](docs/archive/) — historical design docs preserved for context
 - [`docs/reference/`](docs/reference/) — upstream model cards and reference papers/implementations
 - [`AGENTS.md`](AGENTS.md), [`CLAUDE.md`](CLAUDE.md) — operational guidance for agents
@@ -48,9 +49,16 @@ Reference numbers (`test-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, chunk_ms=450
 | `run_simulstream_compare.py` | A/B two alignment backends on one clip. |
 | `run_alignment_single_audio.py` | ASR-side diagnostic harness. |
 | `run_mt_backend_parity.py` | MT backend parity harness (Transformers vs vLLM, subprocess-isolated). |
+| `run_context_ablation.py` | Three-condition MT paper-context ablation on one clip (hot bundle). |
 | `evaluate_cascade_outputs.py` | BLEU / chrF / XCOMET-XL / LongYAAL over a run bundle. |
 
 All other one-off research scripts live under [`scripts/`](scripts/).
+
+## Extra-context (IWSLT 2026 sub-track)
+
+ACL-paper PDFs can be preprocessed into compact `PaperArtifact` JSON and injected into the Gemma MT prompt as a `[Paper context]` block (retrieved top-k chunks via BM25 or static title+abstract). The runtime pairs with a **provenance guard** (`translation_alignatt_min_source_mass`) that vetoes any drafted token whose MT attention concentrates on the paper-context span, eliminating paper-content leakage observed with naive context injection.
+
+Design, empirical ablations, and the submission-defensible setting live in [`docs/CONTEXT_INJECTION.md`](docs/CONTEXT_INJECTION.md). Default is `paper_context_mode=off` — extra-context injection is fully opt-in.
 
 ## Environments
 
