@@ -2179,6 +2179,42 @@ submission path. No more "eager as workaround" caveat.
 
 Artifact: `outputs/night1_ende_discrete_vllm_mt_customop_FIXED2/`.
 
+### Scalar == discrete on vLLM MT cg=full (with observer fix)
+
+Ran scalar @ 0.015 on the same vLLM MT cudagraph=full config with
+the observer fix, for the final scalar-vs-discrete A/B on the
+production speed path.
+
+| Mode                   | BLEU  | COMET | CA   | upd | src_fr | rw | RTF   |
+|------------------------|-------|-------|------|-----|--------|----|-------|
+| disc vLLM cg=full fix  | 27.55 | 0.861 | 1565 | 436 | 35     | 27 | 0.399 |
+| scal vLLM cg=full fix  | 27.55 | 0.861 | 1563 | 436 | 35     | 27 | 0.399 |
+
+Char-similarity: **1.0000** (both 5579 chars, bit-identical).
+
+**Bit-identity holds on vLLM MT regardless of cudagraph mode.**
+The earlier eager-mode bit-identity replicates under cudagraph=full
+now that the observer works there. Scalar substitution at vLLM MT
+is a truly zero-impact runtime substitution on this clip.
+
+**Final backend-axis summary:**
+
+| Backend                 | scalar vs discrete | char-sim | BLEU Δ |
+|-------------------------|---------------------|----------|--------|
+| Transformers MT         | distinct            | 0.9973   | −0.76  |
+| vLLM MT eager           | bit-identical       | 1.0000   | 0.000  |
+| vLLM MT cg=full (fixed) | bit-identical       | 1.0000   | 0.000  |
+
+**The strongest possible paper claim now holds on the production
+speed path:** *"Scalar substitution for the discrete source-
+frontier gate is bit-identical on vLLM MT (production backend)
+under both cudagraph=full and enforce_eager, identical gate
+firings (35 src_fr + 27 rewind), identical 5579-char German
+output, same RTF 0.399."*
+
+Artifact: `outputs/night1_ende_scalar_vllm_mt_instrumented/`
+(overwrites the broken-observer artifact from earlier tonight).
+
 ### Loop-replay F1 drops on scalar-mode artifacts (2026-04-17)
 
 Ran the discrete-gate loop-replay predictor
