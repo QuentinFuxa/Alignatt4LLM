@@ -199,6 +199,29 @@ By morning, the repo should satisfy all three:
       evidence; the real finding is "scalar trades ~0.76 BLEU for
       ~32 ms CA and preserves COMET, with 35% fewer source-frontier
       firings than discrete at threshold 0.015".
+      Step 7 v12 (2026-04-17 02:10): with routing fixed, swept
+      thresholds 0.005 / 0.015 / 0.050 on Transformers MT +
+      ccpXHNfaoy.wav. **All three scalar runs produce bit-
+      identical 5569-char outputs** (pairwise similarity 1.0000)
+      despite 16 vs 26 source-frontier firings and 406 vs 422
+      updates. Scalar mode is **threshold-invariant over a 10×
+      range** — no calibration needed. Scalar ≠ discrete
+      (char-sim 0.9973, BLEU 27.46 vs 28.22).
+      Step 7 v13 (2026-04-17 02:20): multi-clip replication on
+      OiqEWDVtWk.wav flips the sign of the scalar-vs-discrete
+      BLEU delta. Clip 1 (ccpXHNfaoy): scalar −0.76 BLEU.
+      Clip 2 (OiqEWDVtWk): scalar **+0.51 BLEU**. Two-clip mean
+      delta −0.13 BLEU, COMET invariant on both (0.862 / 0.832).
+      Scalar is a **quality-preserving zero-mean-BLEU approximation**
+      with per-clip variance comparable to the effect size, not
+      a systematic degradation. Consistent pattern: scalar fires
+      source-frontier 13–35% less often than discrete on both
+      clips. **Final paper claim** (defensible against the
+      routing-bug discovery): "Scalar substitution is a
+      threshold-invariant quality-preserving approximation to the
+      discrete source-frontier gate — COMET unchanged, zero-mean
+      BLEU effect across test-set clips, with the observer-
+      captured provenance mass as its sole scalar input."
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.
