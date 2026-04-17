@@ -1210,6 +1210,38 @@ BLEU 28.22), COMET +0.003 — reproduces the phase5 finding that
 min_source_mass=0.2 buys ~+1-2 BLEU for +1.4s CA. Artifact and
 analysis under `outputs/night1_ende_punct_ms020_chunk450_instrumented/`.
 
+### Per-gate single-feature F1 on the three-gate (ms020) artifact
+
+Ran `per_gate_separability_v2.py` on the new ms020 artifact to
+complete the three-gate scalar-vs-replay characterisation. Top
+1-feature predictor per gate:
+
+| Gate                       | n  | Best feature                             | F1    |
+|----------------------------|----|------------------------------------------|-------|
+| `alignatt:source_frontier` | 28 | `unsafe.source_inaccessible ≥ 0.002`     | 0.982 |
+| `alignatt:rewind`          | 24 | `max_drop_vs_prev_non_none ≥ 9`          | 0.923 |
+| `alignatt:provenance_weak` | 52 | `unsafe.non_source_prompt ≥ 0.654`       | 0.904 |
+
+All three gates cluster at ≥ 0.90 single-feature F1 on the canonical
+submission path, and loop-replay hits F1 = 1.000 for all three.
+That's the clean three-way scalar-approximation number the paper can
+quote, flanking the exact result.
+
+**Surprise on provenance_weak:** the gate is *defined* by
+`source_accessible < min_source_mass`, but `unsafe.source_accessible`
+is NOT the best single-feature predictor (mean 0.115 for fires vs
+0.114 for non-fires — no signal). Reason: for non-provenance_weak
+updates that trigger source_frontier or rewind, the unsafe token
+also has low source_accessible (there's just less "true source"
+attention to distribute in those cases). The cleanest signal is
+instead `unsafe.non_source_prompt ≥ 0.654` — "a lot of attention on
+the non-source prompt" uniquely flags provenance_weak because the
+other gates don't typically fire while non_source_prompt is that
+dominant. A nice paper-level anecdote: the most discriminative
+feature for a gate isn't always the feature in the gate's definition.
+
+Artifact: `outputs/night1_ende_punct_ms020_chunk450_instrumented/per_gate_separability_v2.txt`.
+
 ### Step 6 findings: min_source_mass sweep + emit_policy A/B
 
 All at chunk_ms=450 on ccpXHNfaoy.wav with qwen_forced +
