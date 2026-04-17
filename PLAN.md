@@ -158,7 +158,15 @@ By morning, the repo should satisfy all three:
       / COMET 0.8323 / CU 1948 ms bit-identical between discrete
       and scalar modes. The bit-identical finding now holds on
       both en→de test-set clips with the instrumented schema —
-      configuration-general, not clip-specific.
+      configuration-general, not clip-specific. Stress test on
+      cs→en (csJIsDTYMW.wav, Transformers MT; offline drift was
+      47% mismatch / −41% tokens — worst-case direction): full
+      prediction is **character-for-character identical** between
+      discrete and scalar modes (5556 / 5556 chars). MT regeneration
+      absorbs every per-commit boundary shift into the same final
+      translation regardless of offline-drift size. Offline
+      commit-decision drift is NOT a useful predictor of online
+      quality impact.
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.

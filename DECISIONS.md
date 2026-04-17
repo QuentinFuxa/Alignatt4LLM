@@ -1233,6 +1233,46 @@ configuration-general, not clip-specific.
 
 Artifact: `outputs/night1_ende_punct_chunk450_scalar_OiqEWDVtWk_instrumented/`.
 
+**Stress test on cs→en (the worst-case offline-drift direction):**
+
+Offline drift on cs→en Transformers MT was 47.5% update agreement
+and −41.3% aggregate token delta (v6 analysis) — much worse than
+en→de's 83-87% agreement / ±3% tokens. Ran scalar-substitution on
+the canonical cs→en config (csJIsDTYMW.wav, Transformers MT,
+chunk_ms=450, threshold 0.015) against the existing discrete
+reference `outputs/night1_cs_en_chunk450/`.
+
+| Metric | Discrete cs→en | Scalar cs→en  |
+|--------|---------------:|--------------:|
+| Prediction (first 500 chars) | identical | identical |
+| Prediction length            | 5556 chars | 5556 chars |
+| Full prediction              | **character-for-character identical** | - |
+
+**The full cs→en translation is bit-identical between discrete and
+scalar modes** (5556 / 5556 characters), despite 47% offline
+commit-decision drift. MT regeneration absorbs every single
+per-commit boundary shift into the same final translation.
+
+### Scalar substitution: final paper-grade summary
+
+Three artifacts, two language directions, two MT backends, both
+offline-drift regimes:
+
+| Artifact | Direction | Offline drift (v6) | Online quality Δ |
+|----------|-----------|-------------------:|------------------|
+| ccpXHNfaoy instrumented | en→de | 12.5% mismatch, −8.3% tokens | BLEU / chrF / COMET **identical** |
+| OiqEWDVtWk instrumented | en→de | 17.8% mismatch, −11.8% tokens | BLEU / chrF / COMET **identical** |
+| csJIsDTYMW Transformers | cs→en | **52.5% mismatch, −41.3% tokens** | final translation **character-identical** |
+
+**Offline commit-decision drift is not a useful predictor of online
+quality impact**. MT draft regeneration absorbs single-token commit-
+boundary shifts before they reach the final translation, regardless
+of how large the drift looks at the commit-decision level. The
+discrete `source_frontier` gate behaves as a scalar gate in
+practice.
+
+Artifact: `outputs/night1_cs_en_scalar_chunk450_instrumented/`.
+
 ### Third-gate coverage: `alignatt:provenance_weak` joins loop-replay F1 = 1.000
 
 The three discrete MT gates are `alignatt:source_frontier`,
