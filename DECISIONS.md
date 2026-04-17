@@ -1637,3 +1637,74 @@ Not true at same SHA: discrete vLLM MT has *higher* BLEU (29.21 vs
 vLLM-MT scheduler's property, not the scalar substitution's.
 
 Artifact: `outputs/night1_ende_discrete_vllm_mt_customop_instrumented/`.
+
+**IMPORTANT CAVEAT (discovered after the run):** the observer on the
+vLLM MT path post-`f1cfafa` reports
+`observer_debug.forward_call_count = 0` on EVERY capture — inductor
+DCE-elided the `alignatt::capture_mt_qk` custom op under
+cudagraph=full, because `mutates_args=()` declares the op as pure
+and the `None` return is unused downstream. The policy loop then
+never sees any gate firings:
+
+| Run                                  | observer fwd_count | gate firings |
+|--------------------------------------|--------------------|--------------|
+| cs-en vLLM MT (pre-`f1cfafa` SHA)    | 70                 | 114 src + 38 rw |
+| discrete vLLM MT (post-`f1cfafa`)    | 0                  | 0 real firings  |
+| scalar vLLM MT (post-`f1cfafa`)      | 0                  | 0 real firings  |
+
+So the scalar-vs-discrete divergence observed above is **pure
+vLLM-scheduler non-determinism**, not a scalar-substitution effect
+— with the observer broken, both modes trivially hit the same
+``is_partial=False`` straight-accept path. Reproducibility check
+(two discrete vLLM MT runs on same SHA, different random seed):
+
+| Pair                         | Char similarity |
+|------------------------------|-----------------|
+| disc orig vs disc repro      | 0.9944          |
+| disc orig vs scalar          | 0.9931          |
+| disc repro vs scalar         | 0.9981          |
+
+Run-to-run similarity (0.9944) is comparable to scalar-vs-discrete
+similarity (0.9931) — all observed divergence is within vLLM's
+non-determinism floor, independent of substitution. The ~0.4 BLEU
+deltas are also within that floor (disc 29.21 / disc repro 28.89 /
+scalar 28.83). **The "scalar bit-identical on Transformers MT,
+near-bit-identical on vLLM MT" claim is trivially true because no
+scalar substitution actually runs on the vLLM MT side** — the
+observer is broken.
+
+**Attempted fixes (both failed):**
+
+1. `mutates_args="unknown"` alone — schema now says all tensor args
+   are mutable (annotations `(a1!)`, `(a2!)`, `(a3!)`), but
+   inductor still elides the call since output is unused
+   downstream. Observer fwd_count remained 0.
+2. Sentinel-return trick — op returns `torch.zeros((), ...)` and
+   the patched forward does `attn_output = attn_output +
+   observer_sentinel` to create a data dependency. Dynamo traces
+   this fine (new cache hash `0d3919234f`), and compile succeeds
+   in 100s (vs 3s). But
+   `determine_available_memory`'s dummy run fails with
+   `RuntimeError: The size of tensor a (8192) must match the size
+   of tensor b (1024) at non-singleton dimension 1` — same
+   shape-trace-under-dummy-run failure class as the original
+   compile-cache fragility this op was supposed to fix.
+
+**Status.** Reverted to `mutates_args=()` + `None` return form,
+which at least keeps vLLM MT runs producing output. Observer is
+documented as a no-op on this path. A proper fix requires a
+**post-hoc observer pattern** — capture Q/K outside the compiled
+graph, e.g., via a hook that fires in eager mode after the forward
+pass, with the module storing Q/K in attributes that aren't traced
+by inductor. That is a structural refactor, not a line-change fix.
+
+**Takeaway for the paper.** The "observer contract is complete on
+vLLM MT" claim cannot be made until the observer actually fires on
+vLLM MT. The per-gate F1 = 1.0 loop-replay results all come from
+Transformers MT artifacts. vLLM MT quality numbers
+(BLEU 28.83-29.21, COMET 0.870) are valid end-to-end submission
+candidates — the MT itself runs fine, just the policy observer
+is a no-op on that backend under full cudagraph. Both backends
+produce coherent output; the paper should quote vLLM MT as the
+production speed path and Transformers MT as the observer-
+validated policy path.

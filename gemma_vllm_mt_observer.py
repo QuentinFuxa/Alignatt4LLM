@@ -444,6 +444,21 @@ def _ensure_custom_op_registered() -> None:
     if _CUSTOM_OP_REGISTERED:
         return
 
+    # KNOWN LIMITATION: ``mutates_args=()`` lets inductor DCE-elide
+    # this op entirely at AOT time under cudagraph=full, so the
+    # observer never fires on the vLLM MT path. We tried
+    # ``mutates_args="unknown"`` (still elided) and a sentinel return
+    # threaded through the forward's output (compiles but the
+    # determine_available_memory dummy run blows up with
+    # ``RuntimeError: The size of tensor a (8192) must match the size
+    # of tensor b (1024) at non-singleton dimension 1`` — same shape-
+    # trace class as the original compile-cache fragility this op was
+    # supposed to fix). Keeping the elided ``mutates_args=()`` form
+    # for now: vLLM MT runs end-to-end but with observer_empty on
+    # every partial emission, so the policy loop becomes a no-op for
+    # scalar vs discrete substitution. Proper fix requires a post-
+    # hoc observer pattern (capture Q/K outside the compiled graph)
+    # or an enforce_eager path.
     @torch.library.custom_op(
         "alignatt::capture_mt_qk", mutates_args=(), device_types=None
     )
