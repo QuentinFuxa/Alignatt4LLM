@@ -2940,3 +2940,64 @@ Artifacts:
 - `outputs/night2_context_clip2_title_abstract/` (WINNER)
 - `outputs/night2_context_clip2_retrieved_chunks/`
 - `outputs/night2_context_clip2_title_and_chunks/`
+
+### Context injection clip 3 (myfXyntFYL, PaLM prompting paper)
+
+Extended the 3-way A/B to a second PDF-backed talk — myfXyntFYL is
+about "Prompting PaLM for Translation" (different domain: NLP
+methodology rather than simultaneous ST).
+
+| Mode              | BLEU  | chrF  | COMET | CA   | upd | src_fr+rw |
+|-------------------|-------|-------|-------|------|-----|-----------|
+| off               | 24.11 | 60.44 | 0.821 | 1832 | 328 | 58+21     |
+| title_abstract    | **24.78** | **60.91** | 0.812 | 1789 | 326 | 52+34 |
+| retrieved_chunks  | 23.97 | 60.43 | 0.795 | 1854 | 349 | 55+26     |
+| title_and_chunks  | 21.49 | 59.76 | 0.723 | 1851 | 345 | 50+34     |
+
+**Different pattern from clip 2:**
+
+- `title_abstract`: +0.67 BLEU, +0.47 chrF, **−0.009 COMET**
+  (mixed — BLEU up, COMET slightly down).
+- `retrieved_chunks`: −0.14 BLEU, −0.01 chrF, −0.026 COMET (near
+  neutral BLEU/chrF, small COMET drop — less harmful than on clip
+  2's −3.28 BLEU disaster).
+- `title_and_chunks`: **−2.62 BLEU, −0.098 COMET (catastrophic)**.
+  On clip 3 the retrieval chunks actually land alongside title
+  +abstract (unlike clip 2 where they were budget-squeezed out),
+  and their presence significantly hurts.
+
+**Two-clip summary (context vs off baseline):**
+
+| Mode              | clip2 ΔBLEU | clip2 ΔCOMET | clip3 ΔBLEU | clip3 ΔCOMET |
+|-------------------|-------------|--------------|-------------|--------------|
+| title_abstract    | +0.90       | +0.034       | +0.67       | −0.009       |
+| retrieved_chunks  | **−3.28**   | **−0.046**   | −0.14       | −0.026       |
+| title_and_chunks  | +0.90       | +0.034       | **−2.62**   | **−0.098**   |
+
+- **title_abstract is a positive-mean win** across both clips:
+  +0.79 BLEU avg, +0.012 COMET avg.
+- **retrieved_chunks is consistently negative** on COMET (−0.046,
+  −0.026) and neutral-to-bad on BLEU.
+- **title_and_chunks is per-clip-variable**: identical to
+  title_abstract on clip 2 (budget-squeezed), disaster on clip 3.
+
+**Tentative paper story:**
+
+1. Static `title_abstract` context is the current winner — a
+   small, deterministic, cheap front-matter injection consistently
+   improves BLEU (+0.79 avg) and is neutral-to-positive on COMET.
+2. `retrieved_chunks` as currently implemented does NOT help.
+   It's either near-neutral (clip 3) or actively harmful (clip 2).
+3. Combining static + retrieval (`title_and_chunks`) is unstable
+   — budget interactions matter a lot, and when chunks DO land
+   they introduce noise rather than signal.
+
+**Next steps for retrieval:**
+- Narrower max_chars (e.g., 600 or 400) to force budget tightness
+- Higher top_k with harsh length cap per chunk
+- Different query construction (longer history window, or
+  sentence-aligned rather than raw prefix)
+- Consider that retrieval might need to place chunks *before* the
+  abstract (not after), or in a differently-labelled block
+
+Artifacts: `outputs/night2_context_clip3_{off,title_abstract,retrieved_chunks,title_and_chunks}/`.
