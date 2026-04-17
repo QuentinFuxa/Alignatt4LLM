@@ -592,6 +592,7 @@ class AlignAttDecoderPolicy:
         current_source_local_position: int | None,
         last_aligned_source_local_position: int | None,
         accessible_source_token_count: int,
+        source_inaccessible_mass: float | None = None,
     ) -> tuple[str | None, int | None, int | None, int | None]:
         if current_source_local_position is None:
             return None, None, None, None
@@ -610,8 +611,27 @@ class AlignAttDecoderPolicy:
                 current_source_local_position,
             )
 
-        if current_source_local_position >= max(0, int(accessible_source_token_count)):
-            return "source_frontier", current_source_local_position, None, None
+        mode = getattr(
+            self.runtime_config, "translation_source_frontier_mode", "discrete"
+        )
+        if mode == "scalar" and source_inaccessible_mass is not None:
+            threshold = float(
+                getattr(
+                    self.runtime_config,
+                    "translation_source_frontier_scalar_threshold",
+                    0.015,
+                )
+            )
+            if float(source_inaccessible_mass) >= threshold:
+                return (
+                    "source_frontier",
+                    current_source_local_position,
+                    None,
+                    None,
+                )
+        else:
+            if current_source_local_position >= max(0, int(accessible_source_token_count)):
+                return "source_frontier", current_source_local_position, None, None
         return None, current_source_local_position, None, None
 
     def finalize_partial(
@@ -1159,6 +1179,11 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
         for token_index, (token_id, current_source_local_position) in enumerate(
             zip(draft_generated_ids, aligned_source_local_positions)
         ):
+            source_inaccessible_mass: float | None = None
+            if token_index < len(provenance):
+                source_inaccessible_mass = float(
+                    provenance[token_index].source_inaccessible
+                )
             (
                 unsafe_reason,
                 _,
@@ -1168,6 +1193,7 @@ class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
                 current_source_local_position=current_source_local_position,
                 last_aligned_source_local_position=last_aligned_source_local_position,
                 accessible_source_token_count=source_map.accessible_source_token_count,
+                source_inaccessible_mass=source_inaccessible_mass,
             )
             if unsafe_reason == "rewind":
                 unsafe_target_token_index = token_index

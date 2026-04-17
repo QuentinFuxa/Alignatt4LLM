@@ -136,6 +136,18 @@ class CascadeRuntimeConfig:
     translation_generation_margin: int = 8
     translation_emit_policy: str = RAW_PASSTHROUGH
     translation_max_tail_rewrite_words: int = 14
+    # Scalar-vs-discrete substitution for the alignatt:source_frontier
+    # gate. Default "discrete" matches shipped behaviour: the gate fires
+    # when ``current_source_local_position >= accessible_source_token_count``.
+    # "scalar" replaces that with a threshold on the per-token provenance
+    # mass ``unsafe.source_inaccessible >= threshold``. The scalar path
+    # approximates the discrete gate at a single threshold, trading ~10%
+    # of per-update commit decisions against a smaller online code
+    # surface. See `scripts/scalar_substitution_drift.py` and
+    # `scripts/scalar_threshold_sweep.py` for the offline drift curves
+    # that informed the default threshold 0.015.
+    translation_source_frontier_mode: str = "discrete"
+    translation_source_frontier_scalar_threshold: float = 0.015
     temperature: float = 0.0
     repetition_penalty: float = 1.05
     asr_gpu_memory_utilization: float = 0.2
@@ -272,6 +284,11 @@ class CascadeRuntimeConfig:
             raise ValueError(
                 "asr_stability_k must be >= 2 (LCP of two hypotheses is the "
                 f"weakest possible stability signal); got {self.asr_stability_k!r}."
+            )
+        if self.translation_source_frontier_mode not in ("discrete", "scalar"):
+            raise ValueError(
+                "translation_source_frontier_mode must be 'discrete' or "
+                f"'scalar'; got {self.translation_source_frontier_mode!r}."
             )
 
     def apply_overrides(self, **overrides) -> None:

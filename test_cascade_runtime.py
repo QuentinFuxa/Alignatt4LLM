@@ -286,6 +286,26 @@ def test_backend_fingerprints_flip_on_engine_knobs_but_not_policy_knobs():
     assert alt.mt_backend_fingerprint() != base_mt_fp
 
 
+def test_translation_source_frontier_mode_validated():
+    # New runtime knob: scalar vs discrete source_frontier gate.
+    # Config-only check — unknown values raise.
+    import pytest
+    from cascade_runtime import CascadeRuntimeConfig
+
+    default = CascadeRuntimeConfig()
+    assert default.translation_source_frontier_mode == "discrete"
+    assert default.translation_source_frontier_scalar_threshold == 0.015
+
+    CascadeRuntimeConfig(translation_source_frontier_mode="scalar")
+    CascadeRuntimeConfig(
+        translation_source_frontier_mode="scalar",
+        translation_source_frontier_scalar_threshold=0.02,
+    )
+
+    with pytest.raises(ValueError, match="translation_source_frontier_mode"):
+        CascadeRuntimeConfig(translation_source_frontier_mode="continuous")
+
+
 def test_processor_runtime_config_propagates_backend_and_audio_probe_settings():
     from cascade_simulstream_processor import CascadeAlignAttProcessor
 
