@@ -179,6 +179,26 @@ By morning, the repo should satisfy all three:
       both discrete and scalar modes. Paper claim tightened:
       "scalar substitution is quality-preserving across both MT
       backends, ≥99% char similarity, identical COMET, ≤0.4 BLEU".
+      Step 7 v11 (2026-04-17 02:00): TWO bugs invalidated the
+      prior "bit-identical" claims above. **(1) Config routing
+      bug** — `cascade_simulstream_processor._build_runtime_config`
+      dropped `translation_source_frontier_mode` and four other
+      overrides; every "scalar" run this session was actually
+      discrete-mode. Fix: commit `54e8b94` added the missing keys
+      to `override_keys`. **(2) Custom-op observer DCE** — inductor
+      elides `alignatt::capture_mt_qk` under cudagraph=full because
+      `mutates_args=()` + None-return + unused output. `observer_debug
+      .forward_call_count=0` on all post-`f1cfafa` vLLM MT artifacts.
+      After the routing fix, ran the first **real** scalar-vs-discrete
+      Transformers MT A/B on ccpXHNfaoy.wav: discrete BLEU 28.22 /
+      scalar BLEU 27.46 / char-sim 0.9973 / source_frontier firings
+      40→26 (−35%) / CA 2240→2208 ms. Scalar is a **genuine
+      distinct mechanism with measurable runtime effect**, not a
+      tautological no-op. The "bit-identical" claims above pertain
+      to the routing-bug era and should be disregarded as paper
+      evidence; the real finding is "scalar trades ~0.76 BLEU for
+      ~32 ms CA and preserves COMET, with 35% fewer source-frontier
+      firings than discrete at threshold 0.015".
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.
