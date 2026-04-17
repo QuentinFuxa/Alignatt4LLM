@@ -1918,3 +1918,41 @@ replacement for the discrete gate, with the observer-captured
 provenance mass as its sole scalar input."
 
 Artifact: `outputs/night1_ende_scalar_clip2_REAL/`.
+
+### Cross-language replication: cs→en real scalar (2026-04-17)
+
+Third clip, different direction, different ASR/MT heads. Prior
+cs→en scalar vs discrete were byte-identical (5556/5556 chars),
+the strongest "bit-identical" claim in the routing-bug era. Now
+re-run with the routing fix.
+
+| Mode     | chars | updates | src_fr | rewind | char-sim |
+|----------|-------|---------|--------|--------|----------|
+| discrete | 5556  | 444     | 167    | 64     | —        |
+| scalar   | 5550  | 411     | 117    | 77     | 0.9982   |
+| Δ        | −6    | −33 (−7.4%) | **−50 (−30%)** | +13 (+20%) | —  |
+
+**Consistent with en→de:** scalar fires source_frontier 30% less
+often than discrete on cs→en (vs −13% to −35% across en→de
+clips). The sign and rough magnitude of the policy-loop activity
+shift are **preserved across language pair**.
+
+**Char similarity 0.9982** — close but not bit-identical (prior
+byte-identity was a routing-bug artifact on this clip too).
+
+**Summary across three clips (threshold 0.015):**
+
+| Clip                       | char-sim | src_fr Δ | updates Δ |
+|----------------------------|----------|----------|-----------|
+| en→de ccpXHNfaoy            | 0.9973   | −35%     | −2%       |
+| en→de OiqEWDVtWk            | 0.9795   | −13%     | 0%        |
+| cs→en csJIsDTYMW            | 0.9982   | −30%     | −7%       |
+| mean char-similarity        | 0.9917   | —        | —         |
+
+**The scalar mechanism consistently reduces source-frontier
+firings by 13–35% across languages and clips**, without
+systematically degrading final translation quality. This is the
+strongest cross-clip, cross-language-pair validation of the
+scalar-as-real-mechanism claim the night has produced.
+
+Artifact: `outputs/night1_cs_en_scalar_REAL/`.
