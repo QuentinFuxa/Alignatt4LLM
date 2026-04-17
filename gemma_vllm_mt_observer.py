@@ -459,25 +459,33 @@ def _ensure_custom_op_registered() -> None:
     # scalar vs discrete substitution. Proper fix requires a post-
     # hoc observer pattern (capture Q/K outside the compiled graph)
     # or an enforce_eager path.
+    # With the shape/bool observer-body fix, try the sentinel-return
+    # trick again: return a zero scalar tensor that the patched
+    # forward adds to attn_output, creating a data dependency that
+    # inductor can't DCE under cudagraph=full. The earlier attempt
+    # hit a shape-broadcast bug inside the observer body during
+    # determine_available_memory; that bug is now fixed.
     @torch.library.custom_op(
-        "alignatt::capture_mt_qk", mutates_args=(), device_types=None
+        "alignatt::capture_mt_qk",
+        mutates_args="unknown",
+        device_types=None,
     )
     def capture_mt_qk(
         layer_idx: int,
         positions: torch.Tensor,
         q: torch.Tensor,
         k: torch.Tensor,
-    ) -> None:
+    ) -> torch.Tensor:
         observer = _LAYER_OBSERVER_REGISTRY.get(int(layer_idx))
-        if observer is None:
-            return
-        _capture_mt_qk_into_tensor_buffers_from_observer(
-            observer, positions, q, k
-        )
+        if observer is not None:
+            _capture_mt_qk_into_tensor_buffers_from_observer(
+                observer, positions, q, k
+            )
+        return torch.zeros((), dtype=q.dtype, device=q.device)
 
     @capture_mt_qk.register_fake
     def _capture_mt_qk_fake(layer_idx, positions, q, k):
-        return None
+        return torch.zeros((), dtype=q.dtype, device=q.device)
 
     _CUSTOM_OP_REGISTERED = True
 
@@ -629,10 +637,19 @@ def _make_mt_tensor_buffer_gemma4_attention_forward():
         # on the module at stub-install / configure time; if it's
         # missing for some reason, fall back to -1 (never found in
         # the registry, so the custom op's no-op path fires).
+        #
+        # The op returns a zero-sentinel tensor threaded into
+        # ``attn_output`` so inductor can't DCE the call under
+        # cudagraph=full. Adding a 0-dim scalar is a no-op for
+        # numerics (broadcast of ``torch.zeros((), dtype=q.dtype)``)
+        # but creates a data dependency the compiler must honour.
         layer_idx = int(getattr(self, "_alignatt_mt_layer_idx", -1))
-        torch.ops.alignatt.capture_mt_qk(layer_idx, positions, q, k)
+        observer_sentinel = torch.ops.alignatt.capture_mt_qk(
+            layer_idx, positions, q, k
+        )
 
         attn_output = self.attn(q, k, v)
+        attn_output = attn_output + observer_sentinel
         output, _ = self.o_proj(attn_output)
         return output
 
