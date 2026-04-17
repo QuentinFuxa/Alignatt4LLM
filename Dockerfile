@@ -6,7 +6,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     UV_LINK_MODE=copy \
     HF_HOME=/root/.cache/huggingface \
     HF_HUB_OFFLINE=1 \
-    TRANSFORMERS_OFFLINE=1
+    TRANSFORMERS_OFFLINE=1 \
+    VLLM_USE_DEEP_GEMM=0 \
+    VLLM_MOE_USE_DEEP_GEMM=0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \

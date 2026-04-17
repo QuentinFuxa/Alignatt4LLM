@@ -67,6 +67,15 @@ def build_source_accessibility_frontier(
     inaccessible_ms: float,
     is_final: bool,
 ) -> SourceAccessibilityFrontier:
+    """Build the source frontier over the full MT-visible source prefix.
+
+    Callers pass the complete source text they want the MT to condition on
+    (for partial updates: the live ASR tail after stripping unstable trailing
+    sentence-final punctuation). The returned frontier does *not* ask callers
+    to truncate that source prefix; it only marks which source units AlignAtt
+    may treat as currently accessible when deciding how much target text to
+    accept.
+    """
     spans = list(iter_source_word_spans(source_text))
     timestamps = list(word_timestamps_ms or [])
     units: list[SourceUnit] = []

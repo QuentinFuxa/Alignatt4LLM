@@ -271,7 +271,10 @@ Return only {target_lang} text.
 If the assistant message already contains an accepted {target_lang} prefix, continue directly after it and preserve its wording.
 Prefer natural {target_lang} syntax over word-for-word calques.
 If the ASR prefix contains minor punctuation noise or local disfluencies, translate the most plausible intended meaning without adding new facts.
-Translate from the beginning of the current sentence, preserve names and technical terms when they are already clear, and let the runtime decide which drafted tokens are committed.
+Translate from the beginning of the current sentence.
+Keep {source_lang} personal names and technical acronyms verbatim in the output; render other proper nouns in their established {target_lang} form.
+Use established {target_lang} terminology for domain concepts.
+Let the runtime decide which drafted tokens are committed.
 """.strip()
 
 def make_structured_prefix_variant(*, variant_id: str, description: str) -> TranslationVariant:

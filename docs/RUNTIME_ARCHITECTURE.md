@@ -22,34 +22,35 @@ Canonical inference path: `CascadeAlignAttProcessor` (`cascade_simulstream_proce
 | `gemma_onepass_qk_fast` | Gemma-4-E4B ASR + audio AlignAtt `qk_fast` in one Transformers pass | ✅ |
 | `gemma_vllm_qk_fast` | Gemma-4-E4B ASR via vLLM + engine-native audio observer | experimental |
 
-All three produce `AlignmentResult(text, words)` with per-word end-times so the downstream AlignAtt-frontier commit rule (see below) can operate uniformly.
+All three produce `AlignmentResult(text, words)` with per-word end-times so downstream source normalization and the shipped punctuation-LCP commit path can operate on the same contract.
 
 ### MT backend
 
-`CascadeRuntimeConfig.mt_backend_name` selects the translation backend:
+`CascadeRuntimeConfig.mt_backend_name` is fixed to the shipped translation backend:
 
 | Name | What it is | Stable? |
 |---|---|---|
-| `gemma_transformers_alignatt` | Gemma-4-E4B MT via Transformers + Python-hook AlignAtt | ✅ default |
-| `gemma_vllm_alignatt` | Gemma-4-E4B MT via vLLM + engine-native MT observer (tensor buffers, `cudagraph=full`) | experimental |
+| `gemma_vllm_alignatt` | Gemma-4-E4B MT via vLLM + engine-native MT observer (tensor buffers, `cudagraph=full`) | ✅ default |
 
 Design details in [`MT_VLLM_BACKEND.md`](MT_VLLM_BACKEND.md).
 
-### Recommended combination today
+### Current shipped surfaces
 
 ```
 alignment_backend_name = "qwen_forced"
-mt_backend_name        = "gemma_vllm_alignatt"   # experimental, but Phase 5-validated end-to-end
+mt_backend_name        = "gemma_vllm_alignatt"
+run_simulstream_batch default: chunk_ms=800, max_history_utterances=0
+run_iwslt_submission presets: main_low_latency=450, main_high_latency=700
 ```
 
-See [`RESULTS.md`](RESULTS.md) for the numbers backing this recommendation.
+See [`RESULTS.md`](RESULTS.md) for historical calibration numbers; some tables there come from a richer pre-simplification surface than the current worktree exposes.
 
 ## Module map (active source at repo root)
 
 ```
 cascade_runtime.py                   # CascadeRuntimeConfig, LoadedModelBundle, CascadeSession
 cascade_simulstream_processor.py     # SimulStream SpeechProcessor wrapper
-cascade_mt_backend.py                # BaseMTBackend + TransformersAlignAttGemmaMTBackend + dispatcher
+cascade_mt_backend.py                # BaseMTBackend + MT dispatcher / shared AlignAtt utilities
 cascade_source_frontier.py           # source accessibility frontier + word timestamp normalization
 cascade_source_text.py               # source text normalization for MT
 cascade_text_surface.py              # target text / incremental rendering
@@ -68,8 +69,11 @@ gemma_vllm_mt_observer.py            # MT observer module + reconstruction
 gemma_vllm_mt_worker.py              # MT worker class
 
 patch_qwen_asr_for_transformers5.py  # runtime monkey-patches for qwen_asr on Transformers 5
-qwen3asr_gemma_cascade_core.py       # compatibility shim over the instantiable runtime; do not add features here
 ```
+
+Historical compatibility shims and dated research scripts are intentionally
+kept out of the active module map. See [`scripts/README.md`](../scripts/README.md)
+if you need the legacy notebook/baseline helpers.
 
 ## Session + bundle lifecycle
 
@@ -80,39 +84,47 @@ CascadeRuntimeConfig                       # immutable-ish experiment config
          └── mt_backend         (MT)       # load() called lazily via ensure_mt_backend()
                └── CascadeSession          # mutable per-stream state; created via bundle.new_session()
                      ├── CascadeState      # utterance history, source, asr_hypotheses, utt_timestamps
-                     ├── mt_prompt_cache   # PromptCacheState (Transformers MT only)
+                     ├── mt_prompt_cache   # PromptCacheState (currently inactive on the shipped MT path)
                      ├── partial_translation  # PartialTranslationState
                      └── streaming state   # ASR prefix carry-over state (experimental)
 ```
 
-Bundle caching: `CascadeAlignAttProcessor._bundle_key(config)` includes `alignment_backend_name`, `mt_backend_name`, language pair, and heads path. Flipping backends rebuilds the bundle cleanly.
+Bundle caching: `CascadeAlignAttProcessor._bundle_key(config)` includes `alignment_backend_name`, `mt_backend_name`, language pair, and heads path. Flipping ASR backends or MT engine-shaping knobs rebuilds the bundle cleanly.
 
-## ASR-side commit rule (`asr_commit_mode`)
+## ASR-side commit path (current code)
 
-Two rules available, different tradeoffs:
+The current worktree exposes a single ASR commit behaviour:
 
-- **`punctuation_lcp` (default).** Commit when the longest common prefix of two consecutive ASR hypotheses contains a sentence-terminal punctuation mark. Works well with Qwen3-ASR (which emits clean punctuation) and gives MT a complete sentence to translate before committing. **This is the default for every shipped Qwen3-ASR path and for submission runs.**
-- **`alignatt_frontier` (opt-in).** Commit every contiguous prefix of words whose AlignAtt-aligned `end_time` is at least `asr_alignatt_frontier_margin_ms` (default 500 ms) behind the current audio frontier. Model-agnostic and strictly symmetric to the MT-side accessibility rule. Needed for ASR models that do **not** emit sentence-terminal punctuation on our clips (Gemma-4-E4B in particular — without this rule `utt_timestamps` never advances and the prompt overflows `max_model_len`).
+- **`punctuation_lcp` + EOS flush.** The runtime commits when the longest common prefix of two consecutive ASR hypotheses contains sentence-terminal punctuation, and `finalize_stream()` flushes the trailing tail even without a final punctuation cue.
 
-Empirical justification for keeping `punctuation_lcp` as default: on en→de, `ccpXHNfaoy.wav` (360 s), Qwen3-ASR + Gemma vLLM MT, chunk_ms=450, EOS-flush on:
+Historical `alignatt_frontier` / `stable_and_accessible` ASR commit experiments are still documented in [`DECISIONS.md`](../DECISIONS.md) and [`RESULTS.md`](RESULTS.md), but they are not current runtime knobs and should be treated as archived calibration rather than active submission surfaces.
 
-| Commit rule | BLEU | chrF | COMET | LongYAAL CU | LongYAAL CA |
-|---|---|---|---|---|---|
-| `punctuation_lcp` | **27.51** | **63.54** | **0.861** | 1766 | 1483 |
-| `alignatt_frontier` | 15.78 | 54.43 | 0.558 | 1328 | 1048 |
+## ASR -> MT contract (shipped)
 
-AlignAtt-frontier on Qwen trades ~440 ms CA for −11.7 BLEU / −9 chrF / −0.30 COMET. The word-by-word commits feed MT fragmented sub-sentence context that the model can't translate as fluently. See `DECISIONS.md` for the history (it was briefly the default to unblock the Gemma-ASR path).
+The shipped runtime intentionally separates **source conditioning** from
+**target acceptance**:
+
+- MT conditions on the **full live ASR tail** for the current sentence.
+- Before prompting MT, the runtime strips only unstable trailing
+  sentence-final punctuation from that live tail.
+- `punctuation_lcp` still matters for **committed sentence history** and EOS
+  flush, but it does **not** gate the partial MT call.
+- AlignAtt is the sole runtime mechanism that limits how much new target text
+  may be accepted and emitted from each partial MT draft.
+
+This differs from `baseline.py`, whose target-side emission control is a
+character-level local agreement between consecutive MT hypotheses.
 
 ## Latency/quality knob (today)
 
-`--chunk-ms` controls how often the system wakes up to emit. Empirically:
+`--chunk-ms` is the main user-visible latency knob in the current worktree. The batch CLI defaults to `800`; the frozen submission presets use `450` and `700`. Historical calibration on en→de shows:
 
 - chunk 450 → ~1.7 s LongYAAL (CU), BLEU 27–28 en→de
 - chunk 700 → ~3.5 s CA, BLEU ~31
 - chunk 850 → ~4.7 s CA, BLEU ~37
 - chunk 1500 → ~7.2 s CA, BLEU ~39
 
-Numbers in [`RESULTS.md`](RESULTS.md). `--translation-alignatt-inaccessible-ms` has ~zero effect in this architecture (the scheduler already waits on commits); `--translation-alignatt-min-source-mass` can add ~1 BLEU at a ~250 ms CU cost on en→de if desired.
+Numbers in [`RESULTS.md`](RESULTS.md). The larger ablation tables there include archived runs with knobs that are no longer public in the simplified runtime, so use each run manifest as the exact provenance when comparing old outputs.
 
 ## Extra-context (IWSLT sub-track) runtime axis
 

@@ -11,9 +11,6 @@ from typing import Any, Mapping, Sequence
 
 import torch
 import torch.nn.functional as F
-from transformers import AutoModelForCausalLM, AutoTokenizer, modeling_utils
-from transformers.cache_utils import DynamicCache
-
 from cascade_translation_variants import RenderedTranslationPrompt, TranslationVariant
 from cascade_source_frontier import SourceAccessibilityFrontier
 
@@ -304,16 +301,7 @@ def build_mt_backend(
     model_name: str,
     runtime_config: SimpleNamespace,
 ) -> "BaseMTBackend":
-    # Explicit dispatch on mt_backend_name so callers can compare the stable
-    # Transformers path against the experimental vLLM path (PLAN.md Phase 0).
-    # Defaults to the Transformers backend when the field is absent so existing
-    # callers (tests, legacy notebooks) keep working.
-    backend_name = getattr(runtime_config, "mt_backend_name", "gemma_transformers_alignatt")
-    if backend_name == "gemma_transformers_alignatt":
-        return TransformersAlignAttGemmaMTBackend(
-            model_name=model_name,
-            runtime_config=runtime_config,
-        )
+    backend_name = getattr(runtime_config, "mt_backend_name", "gemma_vllm_alignatt")
     if backend_name == "gemma_vllm_alignatt":
         from gemma_vllm_mt_backend import VLLMAlignAttGemmaMTBackend
 
@@ -430,11 +418,7 @@ class BaseMTBackend(ABC):
                 int(source_tokens * self.runtime_config.partial_translation_token_budget_ratio)
                 + self.runtime_config.partial_translation_token_budget_buffer,
             )
-            max_token_cap = (
-                self.runtime_config.partial_followup_max_new_tokens
-                if assistant_prefill.strip()
-                else self.runtime_config.partial_max_new_tokens
-            )
+            max_token_cap = self.runtime_config.partial_max_new_tokens
         else:
             desired_max_tokens = max(
                 self.runtime_config.translation_min_new_tokens,
@@ -539,7 +523,12 @@ class AlignAttDecoderPolicy:
         )
 
     @classmethod
-    def token_starts_stability_unit(cls, token: str) -> bool:
+    def token_starts_stability_unit(
+        cls,
+        token: str,
+        *,
+        is_first_token: bool = False,
+    ) -> bool:
         """Return True when a token opens a new target stability unit.
 
         A stability unit is the minimal prefix of generated text that cannot be
@@ -552,6 +541,8 @@ class AlignAttDecoderPolicy:
         """
         if not token:
             return False
+        if is_first_token:
+            return True
         if token.startswith(("▁", "Ġ")):
             return True
         if token[0].isspace():
@@ -576,7 +567,7 @@ class AlignAttDecoderPolicy:
         unit_start_indices = [
             idx
             for idx, token in enumerate(token_strings)
-            if self.token_starts_stability_unit(str(token))
+            if self.token_starts_stability_unit(str(token), is_first_token=(idx == 0))
         ]
         if len(unit_start_indices) <= 1:
             return []
@@ -611,27 +602,12 @@ class AlignAttDecoderPolicy:
                 current_source_local_position,
             )
 
-        mode = getattr(
-            self.runtime_config, "translation_source_frontier_mode", "discrete"
+        border_margin = int(
+            getattr(self.runtime_config, "translation_alignatt_border_margin", 0)
         )
-        if mode == "scalar" and source_inaccessible_mass is not None:
-            threshold = float(
-                getattr(
-                    self.runtime_config,
-                    "translation_source_frontier_scalar_threshold",
-                    0.015,
-                )
-            )
-            if float(source_inaccessible_mass) >= threshold:
-                return (
-                    "source_frontier",
-                    current_source_local_position,
-                    None,
-                    None,
-                )
-        else:
-            if current_source_local_position >= max(0, int(accessible_source_token_count)):
-                return "source_frontier", current_source_local_position, None, None
+        frontier = max(0, int(accessible_source_token_count)) + border_margin
+        if current_source_local_position >= frontier:
+            return "source_frontier", current_source_local_position, None, None
         return None, current_source_local_position, None, None
 
     def finalize_partial(
@@ -642,6 +618,7 @@ class AlignAttDecoderPolicy:
         source_map: PromptSourceMap | None,
         unsafe_reason: str | None,
         unsafe_target_token_index: int | None,
+        unsafe_token_id: int | None,
         blocked_source_local_position: int | None,
         blocked_source_unit_index: int | None,
         rewind_from_local_position: int | None,
@@ -649,7 +626,20 @@ class AlignAttDecoderPolicy:
         stop_reason: str | int | None,
         probe_backend: str | None,
     ) -> AlignAttAcceptance:
-        trimmed_generated_ids = self.trim_to_last_stability_unit(accepted_candidate_ids)
+        unsafe_token_starts_new_unit = False
+        if unsafe_token_id is not None:
+            unsafe_token = str(
+                self.tokenizer.convert_ids_to_tokens([int(unsafe_token_id)])[0]
+            )
+            unsafe_token_starts_new_unit = self.token_starts_stability_unit(
+                unsafe_token
+            )
+        if unsafe_token_starts_new_unit:
+            trimmed_generated_ids = list(accepted_candidate_ids)
+        else:
+            trimmed_generated_ids = self.trim_to_last_stability_unit(
+                accepted_candidate_ids
+            )
         word_boundary_trimmed = list(trimmed_generated_ids) != list(accepted_candidate_ids)
         alignatt_metadata = {
             "source_token_count": 0 if source_map is None else len(source_map.source_token_positions),
@@ -663,6 +653,8 @@ class AlignAttDecoderPolicy:
             "aligned_source_local_positions": list(aligned_source_local_positions),
             "unsafe_target_token_index": unsafe_target_token_index,
             "unsafe_reason": unsafe_reason,
+            "unsafe_token_id": unsafe_token_id,
+            "unsafe_token_starts_new_unit": unsafe_token_starts_new_unit,
             "blocked_source_local_position": blocked_source_local_position,
             "blocked_source_unit_index": blocked_source_unit_index,
             "rewind_from_local_position": rewind_from_local_position,
@@ -679,679 +671,6 @@ class AlignAttDecoderPolicy:
         return AlignAttAcceptance(
             accepted_generated_ids=trimmed_generated_ids,
             alignatt_metadata=alignatt_metadata,
-        )
-
-
-class TransformersAlignAttGemmaMTBackend(BaseMTBackend):
-    def __init__(self, *, model_name: str, runtime_config: SimpleNamespace):
-        super().__init__(model_name=model_name, runtime_config=runtime_config)
-        self.model = None
-        self.device = str(getattr(runtime_config, "gemma_transformers_device", "cuda:0"))
-        self.dtype = getattr(torch, str(getattr(runtime_config, "gemma_transformers_dtype", "bfloat16")))
-        self.fast_attention_implementation = str(
-            getattr(runtime_config, "gemma_transformers_fast_attention", "sdpa")
-        )
-        self.alignatt_probe_mode = str(
-            getattr(runtime_config, "translation_alignatt_probe_mode", "qk_fast")
-        )
-        self.qk_fast_probe_supported: bool | None = None
-        self.alignatt_heads: list[AlignAttHead] = []
-        self.alignatt_recorder: SelectedAttentionRecorder | None = None
-        self.alignatt_layer_input_recorder: SelectedLayerInputRecorder | None = None
-        self.prompt_cache = PromptCacheState()
-        self.policy = None
-
-    def reset_caches(self) -> None:
-        self.prompt_cache = PromptCacheState()
-
-    def refresh_alignatt_artifacts(self) -> None:
-        """Reload AlignAtt heads from the current config path and re-register hooks."""
-        if self.alignatt_recorder is not None:
-            for hook in self.alignatt_recorder._hooks:
-                hook.remove()
-            self.alignatt_recorder = None
-        if self.alignatt_layer_input_recorder is not None:
-            for hook in self.alignatt_layer_input_recorder._hooks:
-                hook.remove()
-            self.alignatt_layer_input_recorder = None
-
-        self.alignatt_heads = load_alignatt_heads(
-            getattr(self.runtime_config, "translation_alignatt_heads_path"),
-            top_k=int(getattr(self.runtime_config, "translation_alignatt_top_k_heads", 8)),
-        )
-        if self.model is not None:
-            self.alignatt_recorder = SelectedAttentionRecorder(
-                model=self.model,
-                alignatt_heads=self.alignatt_heads,
-            )
-            self.alignatt_layer_input_recorder = SelectedLayerInputRecorder(
-                model=self.model,
-                alignatt_heads=self.alignatt_heads,
-            )
-        self.qk_fast_probe_supported = None
-
-    def load(self) -> None:
-        if self.tokenizer is None:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.model_name,
-                trust_remote_code=True,
-                local_files_only=True,
-            )
-        if self.model is None:
-            original_caching_allocator_warmup = None
-            if hasattr(modeling_utils, "caching_allocator_warmup"):
-                original_caching_allocator_warmup = modeling_utils.caching_allocator_warmup
-                modeling_utils.caching_allocator_warmup = lambda *args, **kwargs: None
-            try:
-                self.model = AutoModelForCausalLM.from_pretrained(
-                    self.model_name,
-                    torch_dtype=self.dtype,
-                    device_map=self.device,
-                    trust_remote_code=True,
-                    local_files_only=True,
-                    attn_implementation="eager",
-                    low_cpu_mem_usage=True,
-                )
-            finally:
-                if original_caching_allocator_warmup is not None:
-                    modeling_utils.caching_allocator_warmup = original_caching_allocator_warmup
-            self.model.eval()
-        if not self.alignatt_heads:
-            self.alignatt_heads = load_alignatt_heads(
-                getattr(self.runtime_config, "translation_alignatt_heads_path"),
-                top_k=int(getattr(self.runtime_config, "translation_alignatt_top_k_heads", 8)),
-            )
-        if self.policy is None:
-            self.policy = AlignAttDecoderPolicy(
-                tokenizer=self.tokenizer,
-                runtime_config=self.runtime_config,
-            )
-        if self.alignatt_recorder is None:
-            self.alignatt_recorder = SelectedAttentionRecorder(
-                model=self.model,
-                alignatt_heads=self.alignatt_heads,
-            )
-        if self.alignatt_layer_input_recorder is None:
-            self.alignatt_layer_input_recorder = SelectedLayerInputRecorder(
-                model=self.model,
-                alignatt_heads=self.alignatt_heads,
-            )
-
-    @staticmethod
-    def _common_prefix_len(a: Sequence[int], b: Sequence[int]) -> int:
-        size = min(len(a), len(b))
-        idx = 0
-        while idx < size and a[idx] == b[idx]:
-            idx += 1
-        return idx
-
-    @staticmethod
-    def _snapshot_kv(past_kv, length: int):
-        if past_kv is None:
-            return None
-        if hasattr(past_kv, "layers"):
-            snapshot = []
-            for layer_idx, layer in enumerate(past_kv.layers):
-                keys = getattr(layer, "keys", None)
-                values = getattr(layer, "values", None)
-                if keys is None or values is None or getattr(keys, "numel", lambda: 0)() == 0:
-                    continue
-                seq_length = int(layer.get_seq_length()) if hasattr(layer, "get_seq_length") else int(length)
-                snapshot.append(
-                    (
-                        layer_idx,
-                        keys[:, :, :length, :].detach().clone(),
-                        values[:, :, :length, :].detach().clone(),
-                        seq_length,
-                    )
-                )
-            return snapshot
-        if hasattr(past_kv, "key_cache"):
-            return [
-                (
-                    layer_idx,
-                    key[:, :, :length, :].detach().clone(),
-                    value[:, :, :length, :].detach().clone(),
-                    int(length),
-                )
-                for layer_idx, (key, value) in enumerate(
-                    zip(past_kv.key_cache, past_kv.value_cache)
-                )
-            ]
-        if isinstance(past_kv, (list, tuple)):
-            return [
-                (
-                    layer_idx,
-                    key[:, :, :length, :].detach().clone(),
-                    value[:, :, :length, :].detach().clone(),
-                    int(length),
-                )
-                for layer_idx, (key, value) in enumerate(past_kv)
-            ]
-        return None
-
-    def _restore_kv(self, snapshot, length: int):
-        if self.model is None:
-            raise RuntimeError("MT backend is not loaded. Run load() first.")
-        past_kv = DynamicCache(config=self.model.config)
-        for layer_idx, key, value, seq_length in snapshot:
-            past_kv.update(
-                key[:, :, :length, :],
-                value[:, :, :length, :],
-                layer_idx=layer_idx,
-            )
-            layer = past_kv.layers[layer_idx]
-            if hasattr(layer, "cumulative_length"):
-                layer.cumulative_length = int(length)
-        return past_kv
-
-    def _prompt_cache_enabled(self) -> bool:
-        return bool(
-            getattr(self.runtime_config, "gemma_enable_prefix_caching", False)
-            or getattr(self.runtime_config, "gemma_transformers_prompt_kv_reuse", False)
-        )
-
-    @contextmanager
-    def _temporary_attention_implementation(self, attn_implementation: str):
-        if self.model is None:
-            raise RuntimeError("MT backend is not loaded. Run load() first.")
-
-        configs: list[object] = []
-        candidates = (
-            self.model,
-            getattr(self.model, "model", None),
-            getattr(getattr(self.model, "model", None), "language_model", None),
-            getattr(self.model, "base_model", None),
-            getattr(getattr(self.model, "base_model", None), "language_model", None),
-        )
-        seen_ids: set[int] = set()
-        for candidate in candidates:
-            config = getattr(candidate, "config", None)
-            if config is None or id(config) in seen_ids:
-                continue
-            if not hasattr(config, "_attn_implementation"):
-                continue
-            seen_ids.add(id(config))
-            configs.append(config)
-
-        original_implementations = [
-            getattr(config, "_attn_implementation", None)
-            for config in configs
-        ]
-        for config in configs:
-            config._attn_implementation = attn_implementation
-        try:
-            yield
-        finally:
-            for config, original_implementation in zip(configs, original_implementations):
-                config._attn_implementation = original_implementation
-
-    def _run_model(
-        self,
-        *,
-        input_ids: Sequence[int],
-        past_key_values=None,
-        attention_implementation: str,
-        capture_recorder=None,
-    ):
-        if self.model is None:
-            raise RuntimeError("MT backend is not loaded. Run load() first.")
-
-        device = next(self.model.parameters()).device
-        model_kwargs = {
-            "input_ids": torch.tensor([list(input_ids)], device=device),
-            "use_cache": True,
-        }
-        if past_key_values is not None:
-            model_kwargs["past_key_values"] = past_key_values
-
-        with self._temporary_attention_implementation(attention_implementation):
-            if capture_recorder is not None:
-                with capture_recorder.capture() as captured_outputs:
-                    with torch.no_grad():
-                        outputs = self.model(**model_kwargs)
-                return outputs, captured_outputs
-
-            with torch.no_grad():
-                outputs = self.model(**model_kwargs)
-            return outputs, None
-
-    def _forward_prompt_with_cache(
-        self,
-        *,
-        prompt_ids: Sequence[int],
-        prompt_cache_state: PromptCacheState | None = None,
-    ):
-        if self.model is None:
-            raise RuntimeError("MT backend is not loaded. Run load() first.")
-        prompt_cache = self.prompt_cache if prompt_cache_state is None else prompt_cache_state
-        if not self._prompt_cache_enabled():
-            outputs, _ = self._run_model(
-                input_ids=prompt_ids,
-                attention_implementation=self.fast_attention_implementation,
-            )
-            prompt_snapshot = self._snapshot_kv(outputs.past_key_values, len(prompt_ids))
-            return outputs, outputs.past_key_values, 0, prompt_snapshot
-        prev_ids = list(prompt_cache.full_prompt_ids)
-        shared_len = 0
-        if prompt_cache.prompt_kv_snapshot is not None and prev_ids:
-            shared_len = self._common_prefix_len(prompt_ids, prev_ids)
-        if shared_len == len(prompt_ids) and shared_len > 0:
-            shared_len -= 1
-
-        if shared_len > 0 and prompt_cache.prompt_kv_snapshot is not None:
-            past_kv = self._restore_kv(prompt_cache.prompt_kv_snapshot, shared_len)
-            delta_ids = list(prompt_ids[shared_len:])
-            outputs, _ = self._run_model(
-                input_ids=delta_ids,
-                past_key_values=past_kv,
-                attention_implementation=self.fast_attention_implementation,
-            )
-            past_kv = outputs.past_key_values
-        else:
-            outputs, _ = self._run_model(
-                input_ids=prompt_ids,
-                attention_implementation=self.fast_attention_implementation,
-            )
-            past_kv = outputs.past_key_values
-            shared_len = 0
-
-        prompt_snapshot = self._snapshot_kv(past_kv, len(prompt_ids))
-        prompt_cache.prompt_kv_snapshot = prompt_snapshot
-        prompt_cache.full_prompt_ids = list(prompt_ids)
-        return outputs, past_kv, shared_len, prompt_snapshot
-
-    def decode_draft(
-        self,
-        *,
-        prompt_token_ids: Sequence[int],
-        max_new_tokens: int,
-        prompt_cache_state: PromptCacheState | None = None,
-    ) -> DraftDecodingResult:
-        if self.model is None or self.tokenizer is None or self.policy is None:
-            raise RuntimeError("MT backend is not loaded. Run load() first.")
-
-        prompt_cache_start = perf_counter()
-        outputs, past_key_values, num_cached_tokens, prompt_kv_snapshot = self._forward_prompt_with_cache(
-            prompt_ids=prompt_token_ids,
-            prompt_cache_state=prompt_cache_state,
-        )
-        prompt_cache_ms = (perf_counter() - prompt_cache_start) * 1000.0
-        generation_stop_token_ids = set(self.resolve_generation_stop_token_ids())
-
-        draft_generated_ids: list[int] = []
-        stop_reason: str | int | None = None
-        prior_token_ids = list(prompt_token_ids)
-
-        decode_start = perf_counter()
-        for _ in range(max_new_tokens):
-            logits = outputs.logits[0, -1, :].float()
-            logits = self.apply_repetition_penalty(
-                logits,
-                prior_token_ids=prior_token_ids[-64:],
-                repetition_penalty=float(self.runtime_config.repetition_penalty),
-            )
-            next_token_id = int(logits.argmax().item())
-
-            if next_token_id in generation_stop_token_ids:
-                if next_token_id == getattr(self.tokenizer, "eos_token_id", None):
-                    stop_reason = "eos"
-                else:
-                    stop_reason = self.tokenizer.convert_ids_to_tokens(next_token_id)
-                break
-
-            draft_generated_ids.append(next_token_id)
-            prior_token_ids.append(next_token_id)
-
-            outputs, _ = self._run_model(
-                input_ids=[next_token_id],
-                past_key_values=past_key_values,
-                attention_implementation=self.fast_attention_implementation,
-            )
-            past_key_values = outputs.past_key_values
-        decode_ms = (perf_counter() - decode_start) * 1000.0
-
-        return DraftDecodingResult(
-            draft_generated_ids=draft_generated_ids,
-            prompt_num_tokens=len(prompt_token_ids),
-            num_cached_tokens=num_cached_tokens,
-            stop_reason=stop_reason,
-            prompt_kv_snapshot=prompt_kv_snapshot,
-            timings_ms={
-                "prompt_cache_restore": prompt_cache_ms,
-                "draft_decode": decode_ms,
-            },
-        )
-
-    def _probe_source_attention_rows_qk_fast(
-        self,
-        *,
-        draft_generated_ids: Sequence[int],
-        prompt_num_tokens: int,
-        prompt_kv_snapshot,
-        source_map: PromptSourceMap,
-    ) -> tuple[list[torch.Tensor], float, list[TokenProvenanceBreakdown]]:
-        if self.alignatt_layer_input_recorder is None:
-            raise RuntimeError("AlignAtt layer-input recorder is not initialized.")
-
-        probe_start = perf_counter()
-        prompt_past_key_values = self._restore_kv(prompt_kv_snapshot, prompt_num_tokens)
-        outputs, captured_layer_inputs = self._run_model(
-            input_ids=list(draft_generated_ids),
-            past_key_values=prompt_past_key_values,
-            attention_implementation=self.fast_attention_implementation,
-            capture_recorder=self.alignatt_layer_input_recorder,
-        )
-        if captured_layer_inputs:
-            self.qk_fast_probe_supported = True
-        else:
-            self.qk_fast_probe_supported = False
-        source_attention_rows_per_token, provenance = extract_source_attention_rows_per_token_from_fast_path(
-            layer_inputs_by_layer=captured_layer_inputs,
-            prompt_kv_snapshot=prompt_kv_snapshot,
-            runtime_past_key_values=None if outputs is None else outputs.past_key_values,
-            alignatt_heads=self.alignatt_heads,
-            source_positions=source_map.source_token_positions,
-            accessible_source_token_count=source_map.accessible_source_token_count,
-        )
-        probe_ms = (perf_counter() - probe_start) * 1000.0
-        return source_attention_rows_per_token, probe_ms, provenance
-
-    def _probe_source_attention_rows_eager(
-        self,
-        *,
-        draft_generated_ids: Sequence[int],
-        prompt_num_tokens: int,
-        prompt_kv_snapshot,
-        source_map: PromptSourceMap,
-    ) -> tuple[list[torch.Tensor], float, list[TokenProvenanceBreakdown]]:
-        if self.alignatt_recorder is None:
-            raise RuntimeError("AlignAtt recorder is not initialized.")
-
-        probe_start = perf_counter()
-        prompt_past_key_values = self._restore_kv(prompt_kv_snapshot, prompt_num_tokens)
-        _, captured_layer_attentions = self._run_model(
-            input_ids=list(draft_generated_ids),
-            past_key_values=prompt_past_key_values,
-            attention_implementation="eager",
-            capture_recorder=self.alignatt_recorder,
-        )
-        source_attention_rows_per_token = extract_source_attention_rows_per_token(
-            layer_attentions_by_layer=captured_layer_attentions,
-            alignatt_heads=self.alignatt_heads,
-            source_positions=source_map.source_token_positions,
-        )
-        probe_ms = (perf_counter() - probe_start) * 1000.0
-        return source_attention_rows_per_token, probe_ms, []
-
-    def probe_alignatt(
-        self,
-        *,
-        draft_generated_ids: Sequence[int],
-        prompt_num_tokens: int,
-        prompt_kv_snapshot,
-        source_map: PromptSourceMap | None,
-        upstream_stop_reason: str | int | None,
-    ) -> AlignAttProbeResult:
-        if self.model is None or self.tokenizer is None or self.policy is None:
-            raise RuntimeError("MT backend is not loaded. Run load() first.")
-
-        if not draft_generated_ids:
-            return AlignAttProbeResult(
-                accepted_candidate_ids=[],
-                aligned_source_local_positions=[],
-                stop_reason=upstream_stop_reason,
-                probe_backend=None,
-            )
-
-        collect_alignatt = bool(
-            self.alignatt_heads and source_map and source_map.source_token_positions
-        )
-        if not collect_alignatt:
-            return AlignAttProbeResult(
-                accepted_candidate_ids=[int(token_id) for token_id in draft_generated_ids],
-                aligned_source_local_positions=[],
-                stop_reason=upstream_stop_reason,
-                probe_backend=None,
-            )
-
-        if prompt_kv_snapshot is None:
-            raise RuntimeError("Prompt KV snapshot is required for AlignAtt replay probing.")
-
-        probe_backend = self.alignatt_probe_mode
-        provenance: list[TokenProvenanceBreakdown] = []
-        if probe_backend == "qk_fast" and self.qk_fast_probe_supported is False:
-            source_attention_rows_per_token, probe_ms, provenance = self._probe_source_attention_rows_eager(
-                draft_generated_ids=draft_generated_ids,
-                prompt_num_tokens=prompt_num_tokens,
-                prompt_kv_snapshot=prompt_kv_snapshot,
-                source_map=source_map,
-            )
-            probe_backend = "eager_fast_unavailable"
-        elif probe_backend == "qk_fast":
-            source_attention_rows_per_token, probe_ms, provenance = self._probe_source_attention_rows_qk_fast(
-                draft_generated_ids=draft_generated_ids,
-                prompt_num_tokens=prompt_num_tokens,
-                prompt_kv_snapshot=prompt_kv_snapshot,
-                source_map=source_map,
-            )
-            if not source_attention_rows_per_token:
-                source_attention_rows_per_token, probe_ms, provenance = self._probe_source_attention_rows_eager(
-                    draft_generated_ids=draft_generated_ids,
-                    prompt_num_tokens=prompt_num_tokens,
-                    prompt_kv_snapshot=prompt_kv_snapshot,
-                    source_map=source_map,
-                )
-                probe_backend = "eager_fallback"
-        else:
-            source_attention_rows_per_token, probe_ms, provenance = self._probe_source_attention_rows_eager(
-                draft_generated_ids=draft_generated_ids,
-                prompt_num_tokens=prompt_num_tokens,
-                prompt_kv_snapshot=prompt_kv_snapshot,
-                source_map=source_map,
-            )
-        if not source_attention_rows_per_token:
-            return AlignAttProbeResult(
-                accepted_candidate_ids=[int(token_id) for token_id in draft_generated_ids],
-                aligned_source_local_positions=[None] * len(draft_generated_ids),
-                stop_reason=upstream_stop_reason,
-                probe_backend=probe_backend,
-                timings_ms={"alignment_probe": probe_ms},
-            )
-        aligned_source_local_positions = compute_prefix_online_alignatt_source_argmaxes(
-            source_attention_rows_per_token,
-            filter_width=self.policy.alignatt_filter_width(),
-        )
-
-        accepted_candidate_ids: list[int] = []
-        unsafe_reason: str | None = None
-        unsafe_target_token_index: int | None = None
-        blocked_source_local_position: int | None = None
-        blocked_source_unit_index: int | None = None
-        rewind_from_local_position: int | None = None
-        rewind_to_local_position: int | None = None
-        stop_reason = upstream_stop_reason
-        last_aligned_source_local_position: int | None = None
-        min_source_mass = float(
-            getattr(self.runtime_config, "translation_alignatt_min_source_mass", 0.0)
-        )
-
-        for token_index, (token_id, current_source_local_position) in enumerate(
-            zip(draft_generated_ids, aligned_source_local_positions)
-        ):
-            source_inaccessible_mass: float | None = None
-            if token_index < len(provenance):
-                source_inaccessible_mass = float(
-                    provenance[token_index].source_inaccessible
-                )
-            (
-                unsafe_reason,
-                _,
-                rewind_from_local_position,
-                rewind_to_local_position,
-            ) = self.policy.should_stop_in_loop(
-                current_source_local_position=current_source_local_position,
-                last_aligned_source_local_position=last_aligned_source_local_position,
-                accessible_source_token_count=source_map.accessible_source_token_count,
-                source_inaccessible_mass=source_inaccessible_mass,
-            )
-            if unsafe_reason == "rewind":
-                unsafe_target_token_index = token_index
-                stop_reason = "alignatt:rewind"
-                break
-            if unsafe_reason == "source_frontier":
-                unsafe_target_token_index = token_index
-                blocked_source_local_position = current_source_local_position
-                blocked_source_unit_index = source_local_position_to_unit_index(
-                    source_map,
-                    current_source_local_position,
-                )
-                stop_reason = "alignatt:source_frontier"
-                break
-            if (
-                min_source_mass > 0.0
-                and provenance
-                and token_index < len(provenance)
-                and provenance[token_index].source_accessible < min_source_mass
-            ):
-                unsafe_reason = "provenance_weak"
-                unsafe_target_token_index = token_index
-                stop_reason = "alignatt:provenance_weak"
-                break
-            accepted_candidate_ids.append(int(token_id))
-            if current_source_local_position is not None:
-                last_aligned_source_local_position = current_source_local_position
-
-        return AlignAttProbeResult(
-            accepted_candidate_ids=accepted_candidate_ids,
-            aligned_source_local_positions=aligned_source_local_positions,
-            unsafe_reason=unsafe_reason,
-            unsafe_target_token_index=unsafe_target_token_index,
-            blocked_source_local_position=blocked_source_local_position,
-            blocked_source_unit_index=blocked_source_unit_index,
-            rewind_from_local_position=rewind_from_local_position,
-            rewind_to_local_position=rewind_to_local_position,
-            stop_reason=stop_reason,
-            probe_backend=probe_backend,
-            provenance=provenance or None,
-            timings_ms={
-                "alignment_probe": probe_ms,
-            },
-        )
-
-    def translate(
-        self,
-        *,
-        rendered_prompt: RenderedTranslationPrompt,
-        variant: TranslationVariant,
-        is_partial: bool,
-        prompt_cache_state: PromptCacheState | None = None,
-    ) -> MTBackendResult:
-        if self.model is None or self.tokenizer is None or self.policy is None:
-            raise RuntimeError("MT backend is not loaded. Run load() first.")
-
-        total_start = perf_counter()
-        prompt_render_start = perf_counter()
-        prompt_package = self.render_prompt_package(rendered_prompt)
-        prompt_render_ms = (perf_counter() - prompt_render_start) * 1000.0
-        max_new_tokens = self.compute_max_tokens(
-            prompt_tokens=len(prompt_package.prompt_token_ids),
-            source_text=rendered_prompt.source_text,
-            is_partial=is_partial,
-            assistant_prefill=rendered_prompt.assistant_prefill,
-        )
-
-        draft_result = self.decode_draft(
-            prompt_token_ids=prompt_package.prompt_token_ids,
-            max_new_tokens=max_new_tokens,
-            prompt_cache_state=prompt_cache_state,
-        )
-
-        draft_text = self.decode_candidate_text(
-            generated_ids=draft_result.draft_generated_ids,
-            assistant_prefill=rendered_prompt.assistant_prefill,
-            variant=variant,
-            is_partial=is_partial,
-        )
-        draft_token_ids = self.encode_semantic_target_token_ids(draft_text)
-
-        if is_partial:
-            probe_result = self.probe_alignatt(
-                draft_generated_ids=draft_result.draft_generated_ids,
-                prompt_num_tokens=draft_result.prompt_num_tokens,
-                prompt_kv_snapshot=draft_result.prompt_kv_snapshot,
-                source_map=prompt_package.source_map,
-                upstream_stop_reason=draft_result.stop_reason,
-            )
-            acceptance_start = perf_counter()
-            acceptance = self.policy.finalize_partial(
-                accepted_candidate_ids=probe_result.accepted_candidate_ids,
-                aligned_source_local_positions=probe_result.aligned_source_local_positions,
-                source_map=prompt_package.source_map,
-                unsafe_reason=probe_result.unsafe_reason,
-                unsafe_target_token_index=probe_result.unsafe_target_token_index,
-                blocked_source_local_position=probe_result.blocked_source_local_position,
-                blocked_source_unit_index=probe_result.blocked_source_unit_index,
-                rewind_from_local_position=probe_result.rewind_from_local_position,
-                rewind_to_local_position=probe_result.rewind_to_local_position,
-                stop_reason=probe_result.stop_reason,
-                probe_backend=probe_result.probe_backend,
-            )
-            acceptance_ms = (perf_counter() - acceptance_start) * 1000.0
-            accepted_generated_token_ids = tuple(
-                int(token_id) for token_id in acceptance.accepted_generated_ids
-            )
-            acceptance_text = self.decode_candidate_text(
-                generated_ids=accepted_generated_token_ids,
-                assistant_prefill=rendered_prompt.assistant_prefill,
-                variant=variant,
-                is_partial=True,
-            )
-            accepted_token_ids = self.encode_semantic_target_token_ids(acceptance_text)
-            alignatt_metadata = acceptance.alignatt_metadata
-            if probe_result.provenance:
-                alignatt_metadata["provenance_per_draft_token"] = [
-                    {
-                        "source_accessible": p.source_accessible,
-                        "source_inaccessible": p.source_inaccessible,
-                        "non_source_prompt": p.non_source_prompt,
-                        "suffix": p.suffix,
-                    }
-                    for p in probe_result.provenance
-                ]
-            stop_reason = probe_result.stop_reason
-            timings_ms = {
-                "prompt_render": prompt_render_ms,
-                **draft_result.timings_ms,
-                **probe_result.timings_ms,
-                "alignment_filter": acceptance_ms,
-            }
-        else:
-            accepted_generated_token_ids = tuple(int(token_id) for token_id in draft_result.draft_generated_ids)
-            acceptance_text = draft_text
-            accepted_token_ids = draft_token_ids
-            alignatt_metadata = None
-            stop_reason = draft_result.stop_reason
-            timings_ms = {
-                "prompt_render": prompt_render_ms,
-                **draft_result.timings_ms,
-            }
-
-        total_ms = (perf_counter() - total_start) * 1000.0
-        timings_ms["total"] = total_ms
-
-        return MTBackendResult(
-            draft_text=draft_text,
-            acceptance_text=acceptance_text,
-            draft_generated_token_ids=tuple(int(token_id) for token_id in draft_result.draft_generated_ids),
-            accepted_generated_token_ids=accepted_generated_token_ids,
-            draft_token_ids=draft_token_ids,
-            accepted_token_ids=accepted_token_ids,
-            num_cached_tokens=draft_result.num_cached_tokens,
-            prompt_num_tokens=draft_result.prompt_num_tokens,
-            stop_reason=stop_reason,
-            alignatt_metadata=alignatt_metadata,
-            timings_ms=timings_ms,
         )
 
 

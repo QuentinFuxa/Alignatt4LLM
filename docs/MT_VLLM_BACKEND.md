@@ -4,7 +4,7 @@ Status: **shipped**, validated end-to-end on one clip (Phase 5). Quality/latency
 
 ## What this backend is
 
-`mt_backend_name = "gemma_vllm_alignatt"` replaces the Transformers-based MT path (`"gemma_transformers_alignatt"`, still the stable default) with a vLLM engine plus an engine-native MT AlignAtt observer.
+`mt_backend_name = "gemma_vllm_alignatt"` is the active MT path: a vLLM engine plus an engine-native MT AlignAtt observer.
 
 | Surface | File |
 |---|---|
@@ -12,23 +12,21 @@ Status: **shipped**, validated end-to-end on one clip (Phase 5). Quality/latency
 | MT worker | `gemma_vllm_mt_worker.py` — `GemmaMTAlignAttWorker(VLLMGPUWorker)` |
 | MT observer | `gemma_vllm_mt_observer.py` — `_MTPromptDecodeQKTensorObserver` + reconstruction |
 | MT dispatcher | `cascade_mt_backend.build_mt_backend()` — Phase 0 |
-| Parity harness | `run_mt_backend_parity.py` |
+| Probe harness | `run_mt_backend_parity.py` (historical filename, vLLM-only) |
 
 ## Dispatcher and runtime surface (Phase 0)
 
-MT backend selection is an **independent runtime axis** from ASR. Three constants in `cascade_runtime.py`:
+ASR remains a runtime axis; MT no longer does. The shipped constants in `cascade_runtime.py` are:
 
 ```python
 VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast")
 STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast")
 
-VALID_MT_BACKEND_NAMES = ("gemma_transformers_alignatt", "gemma_vllm_alignatt")
-STABLE_MT_BACKEND_NAMES = ("gemma_transformers_alignatt",)
+VALID_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
+STABLE_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
 ```
 
-`CascadeRuntimeConfig.mt_backend_name` defaults to the stable Transformers MT path; the experimental vLLM MT is strictly opt-in. `LoadedModelBundle.ensure_mt_backend()` tracks `_mt_backend_id` so flipping backends between sessions rebuilds correctly.
-
-CLI surface: `run_simulstream_batch.py --mt-backend-name {gemma_transformers_alignatt, gemma_vllm_alignatt}`.
+`CascadeRuntimeConfig.mt_backend_name` defaults to the vLLM MT path. `LoadedModelBundle.ensure_mt_backend()` still fingerprints the MT engine so runtime knob changes rebuild safely when needed.
 
 ## Minimal backend (Phase 1)
 
@@ -103,12 +101,10 @@ The policy loop runs over the **trimmed** draft (after dropping trailing stop to
 
 ## Gates
 
-- The vLLM MT backend is **not** in `STABLE_MT_BACKEND_NAMES`; default runtime is untouched.
+- The vLLM MT backend is the active default in `STABLE_MT_BACKEND_NAMES`.
 - `build_mt_backend(... mt_backend_name="unknown")` raises `ValueError`.
 - Observer sizing is checked at `translate()` time: if `compute_max_tokens(...)` would ask for more tokens than the observer was configured for, the backend raises rather than silently truncate. The test `test_mt_vllm_observer_max_decode_covers_all_runtime_caps` pins the invariant used at `load()` time.
 
-## Relevant tests
+## Validation harness
 
-- `test_cascade_runtime.py`: MT backend registry, dispatcher, `qwen_forced + gemma_vllm_alignatt` as a valid combination, default invariants.
-- `test_gemma_vllm_mt_observer.py`: synthetic capture payload round-trip, provenance-sums-to-1, missing heads, causal suffix mask, bootstrap env round-trip.
-- `run_mt_backend_parity.py`: per-prompt and curated-set parity (not a pytest — needs GPU).
+- `run_mt_backend_parity.py`: isolated per-prompt MT probe harness for MT-side semantics and observer regressions.

@@ -24,8 +24,8 @@ The observer is built on the same substrate as the ASR-side vLLM seam:
 stop reasons plus a ``provenance_per_draft_token`` list — the same
 semantic surface the Transformers backend produces.
 
-The opt-in gate in ``STABLE_MT_BACKEND_NAMES`` still excludes this backend;
-end-to-end runtime integration lives in Phase 5.
+This backend is the active MT path for the simplified runtime; the
+Transformers implementation remains available as a reference backend.
 """
 from __future__ import annotations
 
@@ -76,7 +76,6 @@ class VLLMAlignAttGemmaMTBackend(BaseMTBackend):
         self.max_decode_tokens = max(
             int(getattr(runtime_config, "max_new_tokens", 160)),
             int(getattr(runtime_config, "partial_max_new_tokens", 48)),
-            int(getattr(runtime_config, "partial_followup_max_new_tokens", 16)),
         )
         self._last_generated_token_ids: list[int] | None = None
 
@@ -380,6 +379,7 @@ class VLLMAlignAttGemmaMTBackend(BaseMTBackend):
             accepted_candidate_ids: list[int] = []
             unsafe_reason: str | None = "observer_empty"
             unsafe_target_token_index = 0
+            unsafe_token_id = None
             blocked_source_local_position = None
             blocked_source_unit_index = None
             rewind_from_local_position = None
@@ -391,9 +391,29 @@ class VLLMAlignAttGemmaMTBackend(BaseMTBackend):
                 source_rows,
                 filter_width=self.policy.alignatt_filter_width(),
             )
+            argmax_mass_threshold = float(
+                getattr(
+                    self.runtime_config,
+                    "translation_alignatt_argmax_mass_threshold",
+                    0.0,
+                )
+            )
+            argmax_raw_mass_per_token: list[float | None] = []
+            for token_index, row_tensor in enumerate(source_rows):
+                if token_index >= len(aligned_source_local_positions):
+                    argmax_raw_mass_per_token.append(None)
+                    continue
+                pos = aligned_source_local_positions[token_index]
+                if pos is None or row_tensor.shape[-1] <= 0:
+                    argmax_raw_mass_per_token.append(None)
+                    continue
+                argmax_raw_mass_per_token.append(
+                    float(row_tensor[..., int(pos)].mean().item())
+                )
             accepted_candidate_ids = []
             unsafe_reason = None
             unsafe_target_token_index = None
+            unsafe_token_id = None
             blocked_source_local_position = None
             blocked_source_unit_index = None
             rewind_from_local_position = None
@@ -418,15 +438,28 @@ class VLLMAlignAttGemmaMTBackend(BaseMTBackend):
                 )
                 if unsafe_reason == "rewind":
                     unsafe_target_token_index = token_index
+                    unsafe_token_id = int(token_id)
                     stop_reason = "alignatt:rewind"
                     break
                 if unsafe_reason == "source_frontier":
                     unsafe_target_token_index = token_index
+                    unsafe_token_id = int(token_id)
                     blocked_source_local_position = current_source_local_position
                     blocked_source_unit_index = source_local_position_to_unit_index(
                         source_map, current_source_local_position
                     )
                     stop_reason = "alignatt:source_frontier"
+                    break
+                if (
+                    argmax_mass_threshold > 0.0
+                    and token_index < len(argmax_raw_mass_per_token)
+                    and argmax_raw_mass_per_token[token_index] is not None
+                    and argmax_raw_mass_per_token[token_index] < argmax_mass_threshold
+                ):
+                    unsafe_reason = "argmax_mass_weak"
+                    unsafe_target_token_index = token_index
+                    unsafe_token_id = int(token_id)
+                    stop_reason = "alignatt:argmax_mass_weak"
                     break
                 if (
                     min_source_mass > 0.0
@@ -435,6 +468,7 @@ class VLLMAlignAttGemmaMTBackend(BaseMTBackend):
                 ):
                     unsafe_reason = "provenance_weak"
                     unsafe_target_token_index = token_index
+                    unsafe_token_id = int(token_id)
                     stop_reason = "alignatt:provenance_weak"
                     break
                 accepted_candidate_ids.append(int(token_id))
@@ -447,6 +481,7 @@ class VLLMAlignAttGemmaMTBackend(BaseMTBackend):
             source_map=source_map,
             unsafe_reason=unsafe_reason,
             unsafe_target_token_index=unsafe_target_token_index,
+            unsafe_token_id=unsafe_token_id,
             blocked_source_local_position=blocked_source_local_position,
             blocked_source_unit_index=blocked_source_unit_index,
             rewind_from_local_position=rewind_from_local_position,

@@ -1,0 +1,525 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "lwDNGJCFIK",
+  "source_pdf": "test-set/pdf/lwDNGJCFIK.pdf",
+  "title": "",
+  "authors": "",
+  "abstract": "",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "RoBoCoP: A Comprehensive ROmance BOrrowing COgnate Package and Benchmark for Multilingual Cognate Identification",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "Liviu P. Dinu[♠][,][♡] Ana Sabina Uban[♠][,][♡] Alina Maria Cristea[♡] Anca Dinu[♣][,][♡] Bogdan Iordache[♡] Simona Georgescu[♣][,][♡] Laurent, iu Zoicas,[♣][,][♡]",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "University of Bucharest,[♠] Faculty of Mathematics and Computer Science, ♣ Faculty of Foreign Languages and Literatures, ♡ HLT Research Center",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "{ldinu, auban, alina.cristea}@fmi.unibuc.ro, iordache.bogdan1998@gmail.com,",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "{anca.dinu, simona.georgescu, laurentiu.zoicas}@lls.unibuc.ro",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "The identification of cognates is a fundamental process in historical linguistics, on which any further research is based. Even though there are several cognate databases for Romance languages, they are rather scattered, incomplete, noisy, contain unreliable information, or have uncertain availability. In this paper we introduce a comprehensive database of Romance cognates and borrowings based on the etymological information provided by the dictionaries (the largest known database of this kind, in our best knowledge). We extract pairs of cognates between any two Romance languages by parsing electronic dictionaries of Romanian, Italian, Spanish, Portuguese and French. Based on this resource, we propose a strong benchmark for the automatic detection of cognates, by applying machine learning and deep learning based methods on any two pairs of Romance languages. We find that automatic identification of cognates is possible with accuracy averaging around 94% for the more difficult task",
+      "section": "Abstract"
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "formulations.",
+      "section": "Abstract"
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "Cognates detection and discrimination, as both the foundation of historical linguistics (Campbell, 1998; Mallory and Adams, 2006) and the starting point in historical investigation (Mailhammer, 2015), open windows on numerous areas of social sciences. The immediate implications of the accurate identification of cognate chains can be found in linguistic phylogeny (Atkinson et al., 2005; Alekseyenko et al., 2012; Dunn, 2015; Brown et al., 2008), allowing to trace back language relatedness (Ng et al., 2010) as well as linguistic contact (Epps, 2014), and offering important clues concerning the geographical and chronological dimension of ancient communities (Heggarty, 2015; Mallory and Adams, 2006). The cognate chains are the foundation of the \"comparative grammar-reconstruction\" method (Chambon, 2007; Buchi and Schweickard,",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "2014), and the etymological data thus obtained can be used as a source on human prehistory, corroborating the archaeological inventory (Heggarty, 2015), and providing the basis for ‘linguistic paleontology’ or ‘socio-cultural reconstruction’ (Epps, 2014). An extensive perspective on cognate chains can serve as a basis in the detection of meaning divergence, especially when searching for common patterns that govern the cognitive mechanisms activated in semantic change (Dworkin, 2006). The lexicon still offers significant clues for building a ‘universal’ cognitive network derived from meaning shifts, easily observable in cognate sets, which would be essential in developing a comprehensive theory on cognition and neuropsychology (Glessgen, 2011). At the same time, an integrated view on the cognate pairs between any two related languages would allow taking steps forward in the study of language acquisition (Huckin and Coady, 1999), as well as in the difficult task of eliminating false",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "friends in automatic translation (Uban and Dinu, 2020).",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "Training the machine towards an accurate detection of cognates becomes a necessity in today’s large amount of linguistic data that still hasn’t been processed from a historical point of view (List et al., 2017). Since the foundation of the \"comparative grammar-reconstruction\" method over two centuries ago, linguistic phylogeny is still mainly investigated by means of manual comparison of cognate sets, which implies the extraction of systematic phonetic correspondences between words in language networks, and eventually allows the reconstruction of the protolanguage. Although successfully used by classical linguists, this method is highly counter-economic, which has led to a sustained search for computational methods able to assist the process. The increasing interest in automatic methods for cognate detection calls for a directly proportional need for reliable databases of positive examples, consisting of lists of cognate",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "sets as long as possible. These lists are not easily attainable, even if we deal with well-known languages, with well-developed electronic resources, like the Romance languages[1] .",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "In order to obtain longer lists of cognate sets, the definition of cognates has broadened its limits, including: a) words sharing a similar form and meaning, regardless of their etymology (Frunza et al., 2005; Frunza and Inkpen, 2006, 2008), also referred to as ‘true friends’ (Fourrier and Sagot, 2022; Fourrier, 2022) (e.g. Eng. famine and Fr. famine , although the first one is borrowed from the second); b) words etymologically related, regardless of the type of relation (Hämäläinen and Rueter, 2019) (e.g. Eng. family , borrowed from Middle French famile , in its turn borrowed from Lat. familia , and Rom. femeie ‘woman’, inherited from Lat. familia ); c) words that are similar in their orthographic or phonetic form and are possible translations of each other (Kondrak et al., 2003) (e.g. Eng. sprint and Japanese supurinto ; see above, (Frunza and Inkpen, 2006)).",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "Besides these interpretations, there were also attempts to define cognates by establishing unnecessary limits: words that share a common origin and have the same English translation (Wu and Yarowsky, 2018). Following this acceptation, Ro pleca ‘leave’ and Es llegar ‘arrive’ are not to be identified as cognates, although they are both inherited from Lat. plicare ‘to fold’; such narrowing disregards the possible benefits of a comparative perspective on cognates in the analysis of semantic divergence, one of the most understudied and promising fields in historical linguistics.",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "The simplest definitions of cognates, as “words sharing a common proto-word” (Meloni et al., 2021) or “words that share a common etymological origin” (Fourrier and Sagot, 2022) are likely to be the most effective in computational linguistics, although certain improvements can be made. In this paper, we use the following definition: two words are cognates if and only if the intersection of the sets of their etymons is not void.",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "The urge for a wide (if not exhaustive) database of the Romance lexicon derives both from internal and external needs. On the one hand, the high number of parallel chains of cognates would allow the Romance linguists to revisit the issue of sound laws, which, although apparently well-known, still",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "> 1Among the more than 7000 languages of the world, barely 200 are provided with electronic resources (cf. (Bird, 2020))",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "raises questions about features whose correspondence is not regular and, therefore, is not easily explainable (e.g. Lat s ignum / s igna , Ro s emn , Es s eña , vs Lat s ifflare , Ro s ufla , Es ch illar , where the latter form is considered to be irregular, although this phonetic evolution is not limited to an isolated number of instances). Moreover, in certain cases where there aren’t enough data, linguists still argue whether a phonetic change represents the rule or, on the contrary, it’s the apparent exceptions that make the rule (e.g. Lat fl amma > Es ll ama , but Lat fl ore> Es fl or : at the moment, both theories are based on an even number of examples). Additionally, a complete diagram of the possible phonetic shifts would authorize etymologists to bring back into discussion long-standing etymological cruxes.",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "As for the external needs, we postulate that the algorithms identified by training the machine on one of the best studied language families could be further successfully applied to other languages which are less known or have scarce resources.",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "In terms of automatic approaches for cognate detection, the last decades bring a plethora of such methods (Rama et al., 2018; Jäger et al., 2017; Ciobanu and Dinu, 2014b; Fourrier and Sagot, 2022; Frunza and Inkpen, 2008; Mitkov et al., 2007). Most methods proposed in previous studies include linguistic features and different orthographic and phonetic alignment methods in combination with shallow supervised machine learning models (such as SVMs) or clustering methods (Bergsma and Kondrak, 2007; Inkpen et al., 2005; List, 2012; Koehn and Knight, 2000; Mulloni and Pekar, 2006; Navlea and Todirascu, 2011; Ciobanu and Dinu, 2014b; Simard et al., 1992; Jäger et al., 2017; St Arnaud et al., 2017). A few studies employ deep learning for cognate detection or related tasks. Rama (2016) use siamese convolutional neural networks (CNNs) with character and phonetical features complemented with additional linguistic features in order to detect cognates in languages across three language families,",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "with the majority of examples belonging to Austronesian languages, with up to 85% accuracy. Miller et al. (2020) use language models including a recurrent neural network architecture for lexical borrowing detection. Transformers were used in (Celano, 2022) for predicting cognate reflexes. To the best of our knowledge, no previous studies have used transformer architectures specifically for cognate detection. Previous results on Romance cognate",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "detection in particular are reported in (Ciobanu and Dinu, 2014b), in which cognates are automatically distinguished from non-cognate translation pairs, based on a smaller dataset of cognate pairs in the Romance languages, with accuracies reaching 87% using an SVM with alignment features.",
+      "section": "1 Introduction and Related Work"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "1. We introduce a comprehensive database of Romance cognate pairs (pairs of cognates between any two Romance languages), by parsing the electronic dictionaries with etymological information of Romanian, Italian, Spanish, Portuguese and French (the database will be available for research purposes upon request).",
+      "section": "Starting with these remarks, our main contributions are:"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "2. We propose a strong benchmark for the automatic detection of cognates, by applying a set of machine learning models (using various feature sets and architectures) on any two pairs of Romance languages.",
+      "section": "Starting with these remarks, our main contributions are:"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "The rest of the paper is organized as follows: in Sections 2 and 3 we present the database which we have created and offer details about the processing steps involved, in Section 4 we introduce our approach for the automatic detection of cognates. Methodological details are discussed in Section 4.1, and an extensive error and results analyses is presented in Section 4.2. The last section is dedicated to final remarks.",
+      "section": "Starting with these remarks, our main contributions are:"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "Even though there are several cognate databases for Romance languages, they are incomplete (as the inventory of Romance lexemes based on the Swadesh list (Saenko and Starostin, 2015), cf. (Dockum and Bowern, 2019)), noisy (because of the lack of expert proofing, these being usually obtained with the help of volunteers, like Wikipedia (Meloni et al., 2021), built with automated translation methods (Dinu and Ciobanu, 2014; Wu and Yarowsky, 2022), or are of uncertain availability (cf. (List et al., 2022)).To overcome as much as possible these weaknesses, we have decided to build from scratch a fully available database of Romance cognates, for the main five Romance languages (Italian",
+      "section": "2 Dataset"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "- It, Spanish - Es, French - Fr, Portuguese - Pt and Romanian - Ro), starting with the available machine-readable reference dictionaries[2] , which",
+      "section": "2 Dataset"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "> 2Italian: Il dizionario della lingua italiana De Mauro , dizionario.internazionale.it.",
+      "section": "2 Dataset"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "Spanish: Diccionario de la lengua española published by Real Academia Española , lema.rae.es/drae.",
+      "section": "2 Dataset"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "contain etymological information. The process was semi-automated, guided and verified by human experts, to ensure the quality and coverage of the data.",
+      "section": "2 Dataset"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "Our strategy was to parse one by one all the dictionaries, to extract for each language exhaustive information related to every word and its relevant etymology features (namely its etymon(s), the source language(s), the part(s) of speech), and then to aggregate all this information in order to build a cognate database for all five Romance languages (from now on called RoBoCoP - Romance Borrowings Cognates Package) (see section 2.2). Since each of the five dictionaries had its own editorial choice of presenting the information, the preprocessing, the parsing and the postprocessing strategies had to be customized for each language, which implied a lot of expert and computational effort. The process was very specific to each dictionary and included a cyclical process similar to methodologies used in web scraping - running scripts implementing rule-based algorithms (such as regular expressions) to separate noise from the data for each dictionary and manual evaluation of each output with",
+      "section": "2 Dataset"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "the assistance of linguists in our team, followed by potential refinement of the code to manage all exceptions. Due to the lack of space, we cannot present in detail all the challenges of building the RoBoCoP database, but we only discuss some of the most common difficulties. Addressing them all was a repetitive feedback process involving linguists and computer scientists.",
+      "section": "2 Dataset"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "The preprocessing included cleaning and normalization. We always preserved in our database all accents, diacritics and any other characters that are part of the orthography of the words and etymons. We only normalized additional characters which are occasionally used to indicate pronunciation for the etymons in the source dictionaries (for example, in Romanian, accents are never part of the spelling of the word, but they can occur in the dictionary in order to indicate the stressed syllable). We additionally preserved the etymons exactly as encountered in the dictionary (pre-normalized) in",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "Portuguese: Dicionário infopédia da Língua Portuguesa , published by Porto Editora, www.infopedia.pt/lingua-portuguesa. French: Trésor de la Langue Française informatisé published by Centre National de Ressources Textuelles et Lexicales , www.cnrtl.fr.",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "Romanian: Dict,ionarul Explicativ al Limbii Române published by Academia Român˘a , dexonline.ro.",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "+-------------------+------------------------+-------------------------+-----------------------+ | Word aeroplano | Source language french | Raw Etymon aéroplane | Etymon aéroplane | +-------------------+------------------------+-------------------------+-----------------------+ | aerosol | french | aérosol | aérosol | +-------------------+------------------------+-------------------------+-----------------------+ | afabilidad afable | latin latin | affabil˘ıtas affab˘ılis | affabilitas affabilis | +-------------------+------------------------+-------------------------+-----------------------+",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "Table 1: Excerpt from Spanish etymology dictionary in the RoBoCoP package.",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "a separate column in the database, in case they can be useful for future applications. Moreover, we used the full form of the words including pronunciation indications as the input for generating phonetic transcriptions. We only applied accent and diacritics removal as part of the classification experiments when extracting graphical features.",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "Table 1 illustrates a selection of a few example rows from our database from the Spanish etymology dictionary.",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "We also manually identified the meaning of the abbreviations used throughout the dictionaries, where such a list was not provided in the dictionary. The parsing process was by far the most difficult for French. The biggest challenge was the analytical presentation of the etymological information, organized as a summary of the history of the word, which resulted in a very complex parsing process.",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "The difficulties encountered by the machine in the cognate identification can be classified in two sub-types: 1) cognates whose etymon was registered under different paradigmatic forms, e.g. for nouns, nominative rex , vs accusative regem , leading to missing cognate pairs, such as Es rey (< Lat. rex ) - Fr roi (< Lat. regem ); 2) cognates whose etymologies do not correspond from the point of view of the diachronic or diastratic specifications, e.g. Es local (< Lat localis ) - Fr local (\"emprunté au lat. de basse époque localis \", \"borrowed from Late Latin localis \"): the machine did not match the abreviations \"Lat\" with \"Late Lat\".",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "To overcome the first problem, we added an additional preprocessing step of lemmatizing all the Latin etymons using the CLTK library[3] (Johnson et al., 2021), thus recovering 13,227 cognate pairs in total. We only applied etymon lemmatization as part of the cognate matching algorithm, and kept in our database the original etymon as found in the dictionary, in case the information can further serve for other applications. The second problem led to the necessity of extracting and sorting the",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "source languages. Each dictionary used its own way of abbreviating a source language, e.g. tc. , tur. , turc. , turk. all refer to the Turkish language. We manually normalized language abbreviations across dictionaries, as well as collapsed some of the language varieties with the help of linguists, resulting in a fixed set of source languages that are necessary and sufficient for identifying Romance cognates in a linguistically justified manner (e.g. the Languedocian and the Limousin were collapsed as Occitan, being both dialects of this language). We also leveraged the diachronic and diastratic indications, compiling in the end a list of 259 total identified source languages. Once we extracted the etymologies for each word and language, we moved to the construction of the cognate database, standardizing and structuring the extracted information, so it can be further accessed easily for a wide range of experiments. We describe the construction process in more detail in the next",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "subsection.",
+      "section": "2.1 Data Cleaning and Preprocessing"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "For each of the five Romance languages (It, Es, Fr, Pt, Ro), the database contains lists of words, with their etymologies. Starting with these data, we obtained new lists of cognate pairs between any two Romance languages of the five, by the following procedure. For any triplet < u, e, L1 > in language L1 , if we find a triplet < v, e, L2 > in L2 (having the same etymon e ), add the triplet < u, v, e > to the list of cognate pairs of the language pair ( L1, L2 ). We define two words in a pair of languages as being cognates if and only if the intersection of the sets of their etymons is not void. This definition is the most general and in line with other previous definitions used (Ciobanu and Dinu, 2014b, 2019; Fourrier, 2022). Because RoBoCoP covers both words with Latin origin and borrowings of different origins, it is easy to retrieve from its content more specific definitions. One such definition minds only the most distant ancestor word, the Latin one. To comply with this",
+      "section": "2.2 The Construction of the RoBoCoP Database"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "definition, one needs only to add to RoBoCoP the constraint that the only source language should be Latin and thus one removes the more recent borrowings from other languages.",
+      "section": "2.2 The Construction of the RoBoCoP Database"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "Another particular definition states that two words are cognates if they have a common ancestor, regardless of the level. For example, if two words, u from language A and v from language B have two different etymons, e1 and e2 , respectively,",
+      "section": "2.2 The Construction of the RoBoCoP Database"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "+-------------------+-------------------+-------------------+-------------------+-------------------+ | Ro | It | Es | Pt | Fr | +-------------------+-------------------+-------------------+-------------------+-------------------+ | 45465 | 24257 | 16458 | 28180 | 19822 | +-------------------+-------------------+-------------------+-------------------+-------------------+ | fr:35511 lat:9312 | lat:18437 fr:1981 | lat:11936 fr:1366 | lat:17446 gr:2818 | lat:12804 en:1086 | | it:3358 | gr:1649 | es:712 | fr:2369 | it:912 | +-------------------+-------------------+-------------------+-------------------+-------------------+",
+      "section": "2.2 The Construction of the RoBoCoP Database"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "Table 2: Number of words in dictionaries for each language (upper row), and most frequent source language (lower row) across words in a dictionary.",
+      "section": "2.2 The Construction of the RoBoCoP Database"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "and e1 and e2 have the same etymon e , then, by transitivity (Batsuren et al., 2022), the words u and v are cognates. For instance, this happens often for the language pair (Ro, Pt). This definition of cognates can also be recuperated programmatically from the RoBoCoP database. Both these particular cognate definitions were difficult to account for using other cognate resources, rendering comparison of the computational methods of cognates identification cumbersome or even impossible. As previously stated, for the purposes of this study, we use the definition of cognates where two words are cognates if and only if they share a common etymon (at the first level). Nevertheless, our database supports any of the three versions of cognate definition, becoming a valuable and attractive resource. Aside from cognate and borrowing identification, it allows for proto-words identification as well, which makes RoBoCoP not only a multilingual, but also a powerful multitasking resource. Moreover,",
+      "section": "2.2 The Construction of the RoBoCoP Database"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "since the source of this database are dictionaries of Romance languages, that implicitly include all the words currently in use, it has a wide coverage of cognate pairs of any two Romance languages from the five included, thus maximizing recall. Another advantage of the database is that it minimizes the noise and is reliable, because it was obtained in a computer - assisted manner and manually checked, as opposed to other Romance cognates resources created from Wiktionary or from automated translations.",
+      "section": "2.2 The Construction of the RoBoCoP Database"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "We list here some quantitative aspects of the database. The database comprises a total of 125,598 words across all languages and 90,853 cognate pairs. Table 2 shows the total number of words per language and the top three source languages for borrowings, for each language. The number of cognate pairs identified for any language pair is depicted in Table 3.",
+      "section": "3 Quantitative Aspects of the Database"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "+----+-----------+-------------+-------------+---------------+---------------+ | | | It | Es | Pt | Fr | +----+-----------+-------------+-------------+---------------+---------------+ | Ro | all lat | 6,683 4,999 | 9,056 7,588 | 8,211 5,855 | 8,120 7,360 | +----+-----------+-------------+-------------+---------------+---------------+ | It | all latin | | 8,627 7,863 | 13,343 12,198 | 7,361 7,105 | +----+-----------+-------------+-------------+---------------+---------------+ | Es | all lat | | | 10,731 9,533 | 10,543 10,220 | +----+-----------+-------------+-------------+---------------+---------------+ | Pt | all lat | | | | 8,179 7,783 | +----+-----------+-------------+-------------+---------------+---------------+",
+      "section": "Regarding the accuracy of the extraction and"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "Table 3: Number of cognate pairs for each language pair: total number and pairs of Latin etymology only.",
+      "section": "Regarding the accuracy of the extraction and"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "+-------------+-----------------+-------------+---------+-----+ | | Ro | It | Es | Pt | +-------------+-----------------+-------------+---------+-----+ | It Es Pt Fr | 98% 98% 99% 98% | 99% 99% 98% | 97% 98% | 98% | +-------------+-----------------+-------------+---------+-----+",
+      "section": "Regarding the accuracy of the extraction and"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "Table 4: Estimated accuracy (based on 100 randomly sampled cognate pairs for each language pair) for our cognate extraction method used for building our database based on etymology dictionaries.",
+      "section": "Regarding the accuracy of the extraction and"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "cleaning algorithm, we have computed accuracy scores based on random samples of 100 entries in each language’s etymology dictionary in our database, as well as for each list of cognate pairs corresponding to all language pairs in our database.",
+      "section": "Regarding the accuracy of the extraction and"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "We find the following accuracies for extracting etymologies for each language (the average accuracy is 98.6%): Spanish: 100%, Romanian: 98%, Portuguese 97%, Italian 100%, French 98%. For cognates extraction we find the following accuracies for each language pair as seen in Table 4 (with an average of 98.2%).",
+      "section": "Regarding the accuracy of the extraction and"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "As reflected by the quantitative aspects provided in this section, we created both an effective resource for Romance cognate pairs, and a comprehensive map of borrowings and etymologies for the Romance languages. RoBoCoP is, to our best knowledge, one of the most high-coverage, reliable and complex databases of Romance cognates.",
+      "section": "Regarding the accuracy of the extraction and"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "By comparison with other Romance cognates resources, our database turns out to be more inclusive and well-grounded, as well as the most comprehensive, to the best of our knowledge. The database in (Bouchard-Côté et al., 2007) only comprises 3 Romance languages, Italian, Spanish and Portuguese and contains a much smaller number of cognate pairs. By contrast, RoBoCoP also includes French and Romanian, and defines cognates most generally, with the possibility of recuperating any",
+      "section": "3.1 Comparison with other Romance Cognates Databases"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "of the more restrictive definitions. The resource in (Ciobanu and Dinu, 2014b, 2019) contains only cognate pairs between Romanian and all other main Romance languages. Also, the method used for identifying the cognates employed an intermediary step of Google Translation. Another database (Meloni et al., 2021) that starts from the one proposed in (Ciobanu and Dinu, 2014b) by adding only those cognate pairs from Wiktionary that have a common Latin ancestor. Compared to this data set, RoBoCoP has much more cognate pairs. The archive in (He et al., 2022) uses the work of (Meloni et al., 2021), but removes inexplicably the Romanian language. Finally, the database in (List et al., 2022) covers more languages, but with much fewer cognate pairs than ours, for any language pair.",
+      "section": "3.1 Comparison with other Romance Cognates Databases"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "During the last decades, several computational approaches to the automatic detection of cognate pairs reported fairly good results. The main problem when it comes to evaluating them is that, almost always, the results are not directly comparable across studies. This is not only due to the application of different methodologies, but, most of the time, due to the use of different databases. We address this issue by proposing a comprehensive, reliable database of Romance cognates.",
+      "section": "4 Automatic Cognate Detection Experiments"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "In the following, we will present a series of experiments and results to further help the evaluation process of automatic cognate pairs detection, providing a benchmark for future approaches.",
+      "section": "4 Automatic Cognate Detection Experiments"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "We frame the problem as a binary classification problem, where cognate pairs are positive examples. Because the ultimate purpose of all the experiments is to decide if a pair of words are cognates or not, one needs for training both positive data (pairs of cognates provided by RoBoCoP) and negative data (pairs of non-cognate words). It is remarkable that, to our best coverage of the literature, while positive data was generally well documented, negative data lack explanations, with a few exceptions (Ciobanu and Dinu, 2014b). The choice of negative examples is essential in informing the interpretation of automatic detection results. For instance, it is easy to decide that two obviously different words in two languages such as Romanian ap˘a (’water’) and Spanish cerveza (’beer’) are not cognates, but",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "not so easy for more similar words such as Italian rumare (’rumble’) and Romanian rumen (’ruddy’).",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "Negative examples. To address this issue, we propose two methods of negative example generation which we consider in all experiments. Random negative sampling. In the simpler setting, we generate a negative cognate pair selection that contains pairs of words randomly extracted from non-cognate pairs.",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Levenshtein-based negative sampling. We include a second method where we select as negative examples graphically similar word pairs which do not have common etymology, by conditioning the words in the pair to have a Levenshtein distance (Levenshtein, 1965) smaller than the average Levenshtein distance across cognate sets for that language pair. The Appendix illustrates in more detail the distribution of Levenshtein distances across cognate pairs. Thus, the average Levenshtein distances for negative pairs are smaller than those of positive pairs, ensuring that distinguishing between them is not trivial based on their form. In both settings, we sample words forming negative pairs from word lists in our dictionaries across the entire vocabulary (including inherited and borrowed words, as well as words formed internally). We also include in our database our selection of negative examples in order to facilitate reproductibility.",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "Experimental settings. For all language pairs, we generate datasets balanced in positive and negative examples. We use a 80% : 20% split to generate train and test sets, which are initially shuffled. For validation we use 3-fold cross validation on the training data for all experiments, unless explicitly stated otherwise. We perform a separate set of experiments where we limit positive examples to words with Latin etymology. Negative examples are sampled from non-cognates in a similar way, maintaining the balance between classes.",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "Features. All the experiments are performed using both the graphic form of the words and the phonetic one. To obtain the latter, we employed the eSpeak library[4] , a resource used also by other similar studies (Meloni et al., 2021). For some of our experiments we include feature extraction consisting of computing alignments on the word pairs, emulating methods used by historical linguists. Ciobanu and Dinu (2019) showed that extracting features from the alignment returned by the Needleman-Wunsch",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "4https://github.com/espeak-ng/espeak-ng",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "+----+-----+----------------+----------------+----------------+----------------+----------------+ | | | Ro | It | Es | Pt | Fr | +----+-----+----------------+----------------+----------------+----------------+----------------+ | | | Gr Ph En | Gr Ph En | Gr Ph En | Gr Ph En | Gr Ph En | +----+-----+----------------+----------------+----------------+----------------+----------------+ | Ro | Lat | - - - | 93.8 93.9 94.8 | 90.6 90.7 92.1 | 91.8 91.1 92.7 | 90.5 89.6 91.9 | +----+-----+----------------+----------------+----------------+----------------+----------------+ | | All | - - - | 92.4 93.6 94.6 | 90.4 89.8 91.2 | 91.6 90.5 92.5 | 90.1 89.2 91.2 | +----+-----+----------------+----------------+----------------+----------------+----------------+ | It | Lat | 98.5 98.0 98.6 | - - - | 93.9 94.0 95.1 | 94.2 94.1 95.6 | 93.4 93.2 95.0 | +----+-----+----------------+----------------+----------------+----------------+----------------+ | | All | 98.8 97.9 98.7 | - - - | 93.9 94.3 95.2 | 94.3",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "93.7 95.2 | 93.0 92.2 94.2 | +----+-----+----------------+----------------+----------------+----------------+----------------+ | Es | Lat | 98.5 97.8 98.7 | 98.5 98.3 99.0 | - - - | 91.3 91.2 92.2 | 93.3 93.0 95.0 | +----+-----+----------------+----------------+----------------+----------------+----------------+ | | All | 98.3 97.5 98.5 | 98.8 98.3 99.0 | - - - | 91.7 90.7 93.1 | 93.5 93.0 95.1 | +----+-----+----------------+----------------+----------------+----------------+----------------+ | Pt | Lat | 98.7 97.8 98.8 | 99.0 98.7 99.2 | 98.2 97.9 98.7 | - - - | 93.8 92.9 95.2 | +----+-----+----------------+----------------+----------------+----------------+----------------+ | | All | 97.9 97.9 98.5 | 98.8 98.4 98.9 | 98.1 97.6 98.9 | - - - | 92.7 93.7 95.1 | +----+-----+----------------+----------------+----------------+----------------+----------------+ | Fr | Lat | 98.5 98.0 98.9 | 98.9 98.4 99.1 | 98.5 98.3 99.1 | 98.1 97.6 98.7 | - - - |",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "+----+-----+----------------+----------------+----------------+----------------+----------------+ | | All | 98.5 97.9 98.7 | 98.7 98.2 98.8 | 98.3 98.0 98.9 | 98.2 98.2 98.8 | - - - | +----+-----+----------------+----------------+----------------+----------------+----------------+",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "Table 5: Classification accuracy on the test set using the ensemble model. For each language pair, the results for all cognate pairs as well as for pure cognate pairs only (Latin etymon) are displayed on two consecutive rows; the results using graphic-only (Gr), and phonetic-only (Ph) features, and the best ensemble (En) with combined features are shown on three consecutive columns. The results using the Levenshtein-based negative sampling are shown above the main diagonal, while the results using random negative sampling are shown below the main diagonal.",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "algorithm (Needleman and Wunsch, 1970) on the graphic representations of the words achieved good results when used for training machine learning models for cognates classification. We implement the same approach for extracting n -grams around mismatches from the alignment (caused by insertion, deletion, or substitution). Furthermore, for a given value of n , we consider all such i -grams with the length i ≤ n . For example, given the French-Romanian pair (dieu, zeu), we obtain the alignment ($dieu$, $z-eu$), where $ marks the beginning and ending of the alignments and - represents a deletion/insertion. For n = 2, the extracted features would be d>z, i>-, $d>$z, di>z-, and ie>-e. These features are then vectorized using a binary bag of words. Unlike previous work, we also experimented with the alignment of phonetic representations.",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "Ensemble Model. Our first set of experiments involves training various machine learning algorithms on the alignment features computed for either the graphic or the phonetic representations. For the graphic representations we preprocess the words by removing accents. We experiment with various algorithms: Support Vector Machine, Naive Bayes, XGBoost classifier (Chen and Guestrin, 2016). These models are trained on either the graphic or the phonetic alignments using various hyper-parameters and their performance is assessed using cross validation. For each language pair, we select the best five performing algorithms and train a stacking ensemble classifier. In order to guarantee the presence of both graphic and phonetic features in the final ensembles we make sure to never select more than three models that were trained on",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "graphic, or phonetic features, respectively. We also evaluate ensembles trained using only graphic and only phonetic base models, respectively, to assess if any category of features outperforms the other, or if their combination is more favorable.",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "Convolutional Neural Network. For the deep learning experiments, we encode the graphic or the phonetic representation of the words as simple sequences of characters and train deep neural networks to extract features and provide predictions. These models are \"alignment-agnostic\", in order to see if they can outperform the handcrafted features. The first architecture we employ is a siamese convolutional architecture, combining two CNNs where each arm models one of the words in the pair. Each word is treated as a character sequence, where characters are encoded as learned dense vectors using an embedding layer. The character vocabulary is constructed separately for each language pair, accented characters are kept separately. The outputs of the two CNNs are then concatenated and passed to the final dense layer to produce a prediction.",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "Transformer. The second model employs a Transformer architecture (Vaswani et al., 2017). Either the graphic or the phonetic representation of a word is split into individual characters (without any normalization). For a given pair of words, the character sequences are concatenated with a special [SEP] token placed between them and a [CLS] token placed before the first sequence. The tokens are then positionally embedded and fed through a multi-layered Transformer encoder. The output generated by the last encoder layer for the [CLS] token is used for classification and passed through a feed-forward layer. For this method we hold the",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "Figure 1: Test accuracy scores for all models and features, measured on full dataset and on pure cognates (Latin etymology), using close Levenshtein distance for negative example selection. Deep learning results computed as average across 5 runs.",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "last eighth of the training samples for validation. The validation dataset is also used for selecting the best model at each training epoch. For both deep learning approaches, we train independent models for each language pair, separately on graphical and phonetic representations of the words. Extensive details on the hyper-parameters and the training techniques employed are presented in the Appendix.",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "Metrics. Since datasets are balanced, we use accuracy as our main metric for model selection as well as for interpreting results, and additionally measure and report precision and recall. Detailed results are included in the Appendix.",
+      "section": "4.1 Methodology"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "The best results are obtained using the ensemble models with alignment features across all experimental settings, while the transformer-based model generally comes second (Figure 1). Table 5 shows results for the best performing model (the ensemble model) in all settings. This comparison shows that although no alignment method is superior in every scenario, the combination of both graphic and phonetic features in the ensemble model surpasses the ensembles that were limited to only one kind of features. For any pair of two languages, the cognate detection in random lexical pairs with our best model was accurate in a proportion of 98%-99%, with the lowest accuracy 98.5 for Es-Ro, and the highest of 99.07 for Es-It. When using Levenshteinbased negative sampling, we obtain a minimum of",
+      "section": "4.2 Results and Error Analysis"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "91.24 for Es-Ro, and a maximum of 95.24 for It-Es. This confirms that identifying cognate pairs out of a selection containing clearly different words can be almost trivial for machine learning models. In Figure 1 we separately illustrate results obtained using all models and features and the second, more strict setting for generating negative pairs (Levenshteinbased sampling), which leads to more interesting variations.",
+      "section": "4.2 Results and Error Analysis"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "We notice that, in both situations, Romanian provides the lowest values when compared with any other Romance language, while at the opposite end of the spectrum we find Italian. The interpretation of these results leads to a global perspective on the degree of similarity between languages, which was theoretically discussed in (Dinu and Dinu, 2005; Ciobanu and Dinu, 2014a), and is now able to favor a deeper insight into the phonetic structure of Romance languages measured in relation to Latin and in comparison with each other. While a usual suspect for poor results for low-resource languages such as Romanian is a scarcity of training data, in our case this can not be the case, since our dataset covers all cognates in the vocabulary exhaustively, so detection performance can not be improved simply by augmenting the training data. When taking into account only the cognates originating in Latin, we obtained, in most cases, even better results than for the full set: the lowest accuracy for",
+      "section": "4.2 Results and Error Analysis"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "randomly selected lexical pairs with the ensemble model was 98.65 for It-Ro, while the highest was 99.2 for Pt-It; when using Levenshtein-based negative sampling, the lowest accuracy was 91.9 for Fr-Ro, and the",
+      "section": "4.2 Results and Error Analysis"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "+----+---------------+---------------+---------------+---------------+---------------+ | | Ro | It | Es | Pt | Fr | +----+---------------+---------------+---------------+---------------+---------------+ | Ro | | e$>-$, re>–, | o$>-$, r$>-$, | r$>-$, ar>a-, | e$>-$, r$>-$, | | | | ar>a- | ar>a- | o$>-$ | er>a- | +----+---------------+---------------+---------------+---------------+---------------+ | It | e$>-$, re>–, | | -$>e$, r->re, | -$>e$, r->re, | e$>-$, re>r-, | | | ar>a- | | n->ne | –>ne | ne>n- | +----+---------------+---------------+---------------+---------------+---------------+ | Es | o$>-$, ar>a-, | -$>e$, r->re, | | e$>-$, on>o-, | ci>ti, se>–, | | | r$>-$ | n->ne | | n$>-$ | ar>er | +----+---------------+---------------+---------------+---------------+---------------+ | Pt | r$>-$, ar>a-, | -$>e$, r->re, | e$>-$, on>o-, | | ao>io, o->on, | | | ca>ti | –>ne | n$>-$ | | ca>ti | +----+---------------+---------------+---------------+---------------+---------------+ | Fr |",
+      "section": "4.2 Results and Error Analysis"
+    },
+    {
+      "chunk_id": "c0087",
+      "text": "e$>-$, r$>-$, | e$>-$, re>r-, | ci>ti, se>–, | ao>io, o->on, | | | | er>a- | ne>n- | ar>er | ca>ti | | +----+---------------+---------------+---------------+---------------+---------------+",
+      "section": "4.2 Results and Error Analysis"
+    },
+    {
+      "chunk_id": "c0088",
+      "text": "Table 6: Top 3 informative graphic alignment bigrams according to χ[2] feature selection, based on the full training dataset (above the main diagonal), and the training dataset containing only cognates of Latin origin (below the main diagonal). Bigrams are separated by commas, > marks where the bigram for the first word in the pair ends and where the bigram for the second word begins, − marks an insertion/deletion computed by the alignment algorithm.",
+      "section": "4.2 Results and Error Analysis"
+    },
+    {
+      "chunk_id": "c0089",
+      "text": "highest 95.6 for Pt-It. This increasing accuracy is supported by a higher degree of regularity in the phonetic evolution from Latin to the Romance languages, which also leads to a better correspondence between any two Romance languages. It is thus obvious that the machine was able to better learn and recognize the phonetic correspondences between words inherited or borrowed from Latin, which were not applicable to borrowings from other Indo-European languages (such as English) or nonIndo-European idioms (such as Turkish or Arabic).",
+      "section": "4.2 Results and Error Analysis"
+    },
+    {
+      "chunk_id": "c0090",
+      "text": "There are some cases where the identification of a pair of words as cognates was reported as an error, despite their obvious genetic relation. For example, Es cognitivo and Ro cognitiv are not registered as cognates in our database because they appear in dictionaries with different etymologies: the Spanish word is considered as an internal creation (a derivative from Es cognición ), while the Romanian lexeme is a borrowing from Fr cognitif . The automatic selection of such word pairs as cognates calls into question the supposed status of internal creation of lexemes such as Es cognitivo , given the limited possibilities of derivation with the suffix - ivo (in this case) in Spanish (cf. (Española, 2010)), as well as the significant influence of the French language on Spanish.",
+      "section": "4.2 Results and Error Analysis"
+    },
+    {
+      "chunk_id": "c0091",
+      "text": "We additionally extract relevant features by selecting the top character bigrams according to their weights in the ensemble models. It is especially interesting to compare these features with the criteria generally used by historical linguists for identifying cognates. We find, for example, that of the top ranked orthographic cues, none occurs at the beginning of the word, while many of them occur at the end of the word. Table 6 contains a list of top relevant features.",
+      "section": "4.2 Results and Error Analysis"
+    },
+    {
+      "chunk_id": "c0092",
+      "text": "the automatic analysis and detection of Romance cognates (the largest database of this kind, in our best knowledge, with 125,598 words across all languages and 90,583 cognate pairs).",
+      "section": "5 Conclusions and Future Work"
+    },
+    {
+      "chunk_id": "c0093",
+      "text": "Our framework is the result of collaboration between computer scientists and linguists and includes: a linguistically informed and computationally usable definition of cognate words, a methodology for extracting cognate pairs automatically in a robust way, a comprehensive dataset of word etymologies for Romance languages based on etymological information given by dictionaries, and a comprehensive database of cognate pairs, as well as benchmark results for automatic cognate detection, based on a series of machine learning experiments (using a variety of features and models: graphical and phonetical features, including prior feature engineering to obtain word alignment information, or alignment-agnostic, and several types of model architectures) for automatically detecting cognates.",
+      "section": "5 Conclusions and Future Work"
+    },
+    {
+      "chunk_id": "c0094",
+      "text": "For the most difficult task (cognate detection for Levenshtein-based negative sampling) we obtained an average accuracy around 94%.",
+      "section": "5 Conclusions and Future Work"
+    },
+    {
+      "chunk_id": "c0095",
+      "text": "In future work we intend to distinguish virtual cognates in the database and to complement experiments with discrimination between virtual and true cognates. Furthermore, we aim to investigate the discrimination between cognates and borrowings, also adding semantic features, as well as more phonetic features for each pair of Romance languages.",
+      "section": "5 Conclusions and Future Work"
+    },
+    {
+      "chunk_id": "c0096",
+      "text": "There are no ethical issues that could result from the publication of our work. Our experiments comply with all license agreements of the data sources used. We make the contents of our package available for research purposes upon request.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0097",
+      "text": "We introduced a comprehensive database (in graphic and phonetic form) and framework for There are a few limitations to our cognate extraction methodology that could be improved upon in",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0098",
+      "text": "future work. First, distinguishing between oral and written Latin can further refine the types of etymological relations between words of Latin origin. In isolated cases, the normalization of Latin etymons has led to incorrect cognate pairs.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0099",
+      "text": "Furthermore, according to a wider definition of cognates, cognates extraction could be extended to include deeper relatedness levels. In our experiments reported in this paper, in the case of Latin etymologies, we consider all cognate pairs which have a common Latin ancestor (directly derived from Latin). An extended version of our cognate database can be obtained based on our published dictionaries with etymological information and list of source languages, using the following extended definition: For any pair of Romance languages, we consider all cognate pairs which have a common ancestor at any level. For example, the Ro-Pt pair < u,v > was obtained from the pair < x,y >, because x and y have a second level common ancestor z , and, consequently, we consider < u,v > a cognate pair.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0100",
+      "text": "Another clear limitation is that our database only covers the main Romance languages, and does not yet include other Romance varieties nor any other language families. In terms of cognate detection results, we expect that detecting cognate pairs across language families could be more challenging, and that our results are an overestimation of that (confirmed by the improved results on pairs of Latin origin).",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0101",
+      "text": "In terms of cognate detection experiments, we acknowledge there are different architectures and feature sets to be used for cognate detection which could improve results in the case of deep learning models, and we invite other researchers to propose new methods and test them on our database. An explainability analysis of the deep models could also be interesting to understand to what extent they are capable of identifying \"alignment\" patterns based only on word forms. A classifier trained on all language pairs together could also reveal interesting commonalities across language pairs, as well as potentially obtain better results due to this.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0102",
+      "text": "FISCDI, CoToHiLi project, number 108/2021, Romania. Liviu P. Dinu and Ana Sabina Uban contributed equally to this work.",
+      "section": "Limitations"
+    }
+  ]
+}

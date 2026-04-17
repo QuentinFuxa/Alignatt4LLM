@@ -39,9 +39,8 @@ def _git_provenance() -> dict:
 
 OPERATING_POINT = {
     "min_start_seconds": 2.0,
-    "max_history_utterances": 1,
+    "max_history_utterances": 0,
     "partial_max_new_tokens": 16,
-    "partial_followup_max_new_tokens": 8,
     "translation_alignatt_inaccessible_ms": 0.0,
     "translation_alignatt_rewind_threshold": 8,
 }
@@ -49,9 +48,9 @@ OPERATING_POINT = {
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--wav-path", default="test-set/audio/ccpXHNfaoy.wav")
+    parser.add_argument("--wav-path", default="dev-set/audio/ccpXHNfaoy.wav")
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--chunk-ms", default=450, type=int)
+    parser.add_argument("--chunk-ms", default=800, type=int)
     parser.add_argument(
         "--target-lang",
         default="German",

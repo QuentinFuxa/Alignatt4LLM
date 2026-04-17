@@ -19,9 +19,8 @@ Usage (from ``.venv-inference``):
     python run_context_ablation.py \
         --wav tmp/ccpXHNfaoy_first75.wav \
         --paper-context-path data/paper_artifacts/ccpXHNfaoy.json \
-        --max-history-utterances 1 \
         --output-dir outputs/context_ablation_ccp75 \
-        --source en --target de --chunk-ms 450
+        --source en --target de --chunk-ms 800
 """
 
 from __future__ import annotations
@@ -49,12 +48,12 @@ from cascade_artifacts import (
 )
 from cascade_emission import register_translation_timestamps, register_translation_words
 from cascade_simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
-from cascade_text_surface import is_char_level_target_lang, split_target_emission_units
+from cascade_text_surface import prediction_text_from_target_surface
 from simulstream.server.speech_processors import SAMPLE_RATE
 
 
 CONDITIONS = ("off", "title_abstract", "retrieved_chunks")
-DEFAULT_MAX_HISTORY_UTTERANCES = 1
+DEFAULT_MAX_HISTORY_UTTERANCES = 0
 
 
 def load_wav_raw(path: str) -> np.ndarray:
@@ -101,7 +100,7 @@ def build_processor_config(args: argparse.Namespace) -> SimpleNamespace:
         chunk_ms=args.chunk_ms,
         speech_chunk_size=args.chunk_ms / 1000.0,
         alignment_backend_name=args.alignment_backend_name,
-        mt_backend_name=args.mt_backend_name,
+        mt_backend_name="gemma_vllm_alignatt",
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         paper_context_path=args.paper_context_path,
@@ -128,7 +127,7 @@ def build_summary(
         "source_language_code": args.source,
         "target_language_code": args.target,
         "alignment_backend_name": args.alignment_backend_name,
-        "mt_backend_name": args.mt_backend_name,
+        "mt_backend_name": "gemma_vllm_alignatt",
         "chunk_ms": args.chunk_ms,
         "max_history_utterances": args.max_history_utterances,
         "paper_context_top_k": args.paper_context_top_k,
@@ -169,7 +168,7 @@ def run_one_condition(
         current = processor.tokens_to_string(processor._emitted_units)
         audio_processed_ms = min(start_sample + chunk_size, len(audio)) * 1000.0 / SAMPLE_RATE
         wallclock_elapsed_ms = (perf_counter() - start) * 1000.0
-        if output.new_tokens or output.deleted_tokens:
+        if output.new_tokens:
             register_translation_timestamps(
                 last_raw, current, wallclock_elapsed_ms, word_elapsed_ms,
                 target_lang_code=target_lang_code,
@@ -194,7 +193,7 @@ def run_one_condition(
     eos = processor.end_of_stream()
     final_translation = processor.tokens_to_string(processor._emitted_units)
     final_elapsed_ms = (perf_counter() - start) * 1000.0
-    if eos.new_tokens or eos.deleted_tokens or final_translation != last_translation:
+    if eos.new_tokens or final_translation != last_translation:
         register_translation_timestamps(
             last_raw, final_translation, final_elapsed_ms, word_elapsed_ms,
             target_lang_code=target_lang_code,
@@ -218,8 +217,10 @@ def run_one_condition(
     mean_delay = (sum(word_delays_ms) / len(word_delays_ms)) if word_delays_ms else None
 
     normalized_elapsed = normalize_computation_aware_timestamps(word_delays_ms, word_elapsed_ms)
-    units = split_target_emission_units(final_translation, target_lang_code=target_lang_code)
-    prediction = "".join(units) if is_char_level_target_lang(target_lang_code) else " ".join(units)
+    prediction = prediction_text_from_target_surface(
+        final_translation,
+        target_lang_code=target_lang_code,
+    )
     hypothesis_record = {
         "source": [Path(wav_path).name],
         "source_length": audio_duration_ms,
@@ -253,7 +254,7 @@ def parse_args() -> argparse.Namespace:
         help="Path to the PaperArtifact JSON matching --wav.",
     )
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--chunk-ms", type=int, default=450)
+    parser.add_argument("--chunk-ms", type=int, default=800)
     parser.add_argument("--source", default="en")
     parser.add_argument("--target", default="de")
     parser.add_argument(
@@ -262,7 +263,7 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_MAX_HISTORY_UTTERANCES,
         help=(
             "Number of previously committed source utterances to include in the "
-            "retrieval query. Default 1, matching the canonical batch runner so "
+            "retrieval query. Default 0, matching the simplified canonical batch runner so "
             "single-audio ablations remain comparable."
         ),
     )
@@ -270,11 +271,6 @@ def parse_args() -> argparse.Namespace:
         "--alignment-backend-name",
         default="qwen_forced",
         choices=("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast"),
-    )
-    parser.add_argument(
-        "--mt-backend-name",
-        default="gemma_transformers_alignatt",
-        choices=("gemma_transformers_alignatt", "gemma_vllm_alignatt"),
     )
     parser.add_argument("--paper-context-top-k", type=int, default=3)
     parser.add_argument("--paper-context-max-chars", type=int, default=1200)

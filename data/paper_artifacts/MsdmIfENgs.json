@@ -1,0 +1,420 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "MsdmIfENgs",
+  "source_pdf": "test-set/pdf/MsdmIfENgs.pdf",
+  "title": "Multilingual Large Language Models Are Not (Yet) Code-Switchers",
+  "authors": "Ruochen Zhang[∗][1] Samuel Cahyawijaya[∗][2] Jan Christian Blaise Cruz[∗][3] Genta Indra Winata[∗][4] Alham Fikri Aji[∗][5] \n\n1Brown University 2HKUST \n\n3Samsung R&D Institute Philippines 4Bloomberg 5MBZUAI \n\nruochen_zhang@brown.edu scahyawijaya@connect.ust.hk jcb.cruz@samsung.com gwinata@bloomberg.net alham.fikri@mbzuai.ac.ae",
+  "abstract": "Multilingual Large Language Models (LLMs) have recently shown great capabilities in a wide range of tasks, exhibiting state-of-the-art performance through zero-shot or few-shot prompting methods. While there have been extensive studies on their abilities in monolingual tasks, the investigation of their potential in the context of code-switching (CSW), the practice of alternating languages within an utterance, remains relatively uncharted. In this paper, we provide a comprehensive empirical analysis of various multilingual LLMs, benchmarking their performance across four tasks: sentiment analysis, machine translation, summarization and wordlevel language identification. Our results indicate that despite multilingual LLMs exhibiting promising outcomes in certain tasks using zero or few-shot prompting, they still underperform in comparison to fine-tuned models of much smaller scales. We argue that current “multilingualism\" in LLMs does not inherently imply proficiency with code-switching texts, calling for future research to bridge this discrepancy.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "Large Language Models (LLMs) have shown their potential in the context of zero-shot and few-shot prompting (Brown et al., 2020; Kojima et al., 2022; Wei et al., 2022; Longpre et al., 2023). The successes of these LLMs have also been effective in multilingual settings (Lin et al., 2021; Winata et al., 2021b; Scao et al., 2022) where models are specifically trained to learn individual languages, proven to be highly beneficial for monolingual tasks. However, in multilingual communities, people do not confine themselves to speaking only a single language; instead, they use two or more languages interchangeably during a conversation - a phenomenon known as code-switching (CSW) (Poplack, 1980, 2001). It allows individuals to communicate cultural-specific concepts more",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "> ∗ Equal contribution.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "effectively, signaling their group identity and reinforcing their social connection (Do˘gruöz et al., 2021). Yet, existing multilingual LLMs are not specifically trained with objectives for managing CSW scenarios. Hence, assessing the capabilities of the current multilingual LLMs in processing CSW texts is essential to the development of multilingual language models that are fully compatible with code-switching.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "The main challenge of developing multilingual LLMs optimized for code-switching lies in data scarcity. Given the highly colloquial characteristic of code-switching (Winata et al., 2022b), existing resources dedicated to CSW are rare and collection at large-scale requires considerable annotation efforts. To mitigate such deficiency, Yong et al. (2023) investigate the possibility of employing multilingual LLMs to generate high-quality synthetic CSW texts. The study revealed that, hosted LLMs, such as InstructGPT (Ouyang et al., 2022) and ChatGPT[1] outperform public models like BLOOMZ (Muennighoff et al., 2022) and FlanT5-XXL (Chung et al., 2022) in generating naturalsounding CSW texts. However, the quality of the generated text by these hosted LLMs is mostly confined to Singlish and significantly declines when prompted for other languages. Despite the preliminary promising results, the generation of highquality CSW texts still remains challenging. This observation motivates us to probe",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "from a different perspective - Can existing multilingual LLMs effectively understand CSW?",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "There have been previous studies on evaluating multilingual LMs in CSW scenarios (Tan and Joty, 2021; Adilazuarda et al., 2022), where codeswitched texts are simulated by replacing words from parallel corpora. Winata et al. (2021a) also assesses models’ effectiveness by experimenting with word embeddings constructed from different methods. These works are mainly built upon small",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "1https://chat.openai.com/ Figure 1: Illustration of tasks included in our benchmark study.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "BERT-based models and are restricted by either the number of languages or tasks investigated. Given the recent success of prompting methods on multilingual LLMs and the effects of scaling, this paper presents a more comprehensive empirical analysis of models’ code-switching abilities, including a variety of languages, task types, model architectures, model sizes and prompting methods.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "Our results suggest that the scaling law is applicable to multilingual LLMs across diverse CSW tasks and model architectures. However, fine-tuned smaller-scale models substantially outperform the largest multilingual LLM with prompting methods. In addition, while hosted LLMs achieve scores comparable to our fine-tuned models, such performance remains uninterpretable due to their closedness. We argue that existing multilingual LLMs exhibit limited proficiency in code-switching contexts, highlighting future research opportunities to transform them into true polyglots.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "We explore four code-switching task categories: sentiment analysis (SA), machine translation (MT), summarization (SUM), and word-level language identification (LID). The description of each task is as follows:",
+      "section": "2.1 Datasets"
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "Sentiment Analysis We use sentiment analysis datasets of three different language pairs: Sentimix Spanish-English (Aguilar et al., 2020), MixSenti-",
+      "section": "2.1 Datasets"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "ment Malayalam (Chakravarthi et al., 2020a), and MixSentiment Tamil (Chakravarthi et al., 2020b). Besides the common positive and negative labels, these datasets also contain extra labels like neutral or other. However, occurrences of those labels are very scarce. Hence, to normalize datasets from different sources, we simplify the data by filtering out examples outside positive or negative labels. The dataset sizes, broken down into train/validation/test, are as follows: 8,831/8,831/1,342 pairs for the Spanish-English subset, 2,541/275/703 for Malayalam, and 9,075/1,022/2,499 for the Tamil subset.",
+      "section": "2.1 Datasets"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "Machine Translation We use the code-switched datasets from MixMT 2022 shared task (Srivastava and Singh, 2022) that contains Hinglish-English sentence pairs (8,060 pairs in the training split, 942 pairs in validation and 960 pairs in the test split).",
+      "section": "2.1 Datasets"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "Summarization We use code-switched summarization dataset Gupshup (Mehnaz et al., 2021), which is derived from SAMSum (Gliwa et al., 2019) via crowdsourcing translation. In our experiment, We focus on Hinglish to English, as evaluating code-switched summary systematically with existing auto metrics has shown to be challenging for multilingual LLMs (Zhang and Eickhoff, 2023). The dataset contains 5,831 source-target pairs for training, with 500 pairs each for validation and testing.",
+      "section": "2.1 Datasets"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "Word-level LID We use English-Hindi and Modern Standard Arabic (MSA) - Egyptian Arabic (EA) subsets from the Language Identification task in",
+      "section": "2.1 Datasets"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "+----------------------------------------------------+---------------------------------------------------+ | Model | Model Type Model Sizes Datasets # Languages LLM | | | Objectives Enc-Only Dec-Only Enc-Dec | +----------------------------------------------------+---------------------------------------------------+ | XLM-R (Conneau et al., 2020) mBERT (Devlin et al., | ✓ 250M, 560M CommonCrawl 100 MLM ✓ 178M Wikipedia | | 2019) mDeBERTa v3 (He et al., 2021) mBART-50 (Tang | 104 MLM ✓ 278M CC100 100 RTD w/ GDES ✓ 611M CC25, | | et al., 2020) M2M100 (Fan et al., 2020) XGLM (Lin | ML50 50 Denoising w/ CLM ✓ 418M, 1.2B CCMatrix, | | et al., 2021) BLOOMZ (Muennighoff et al., 2022) | CCAligned 100 CLM ✓ 564M, 1.7B, 2.9B, 4.5B, 7.5B | | mT0 (Muennighoff et al., 2022) | CommonCrawl 30 CLM ✓ 560M, 1.1B, 1.7B, 3B, 7.1B | | | ROOTS, xP3 46 Instruction Tuned ✓ 300M, 580M, | | | 1.2B, 3.7B, 13B mC4, xP3 ∼120 Instruction Tuned |",
+      "section": "2.1 Datasets"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "+----------------------------------------------------+---------------------------------------------------+ | ChatGPT (Bang et al., 2023) | ✓ - - - RLHF | +----------------------------------------------------+---------------------------------------------------+",
+      "section": "2.1 Datasets"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Table 1: Comparison of different model variants studied in this paper.",
+      "section": "2.1 Datasets"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "the LinCE benchmark (Aguilar et al., 2020). In this task, the system is tasked with classifying the language of each word in a sentence into one of the three classes, lang1, lang2, or other. lang1 and lang2 are English and Hindi, or MSA and EA, respectively. The English-Hindi subset contains 4,832 training examples and 744 validation examples. For the MSA-EA subset, it contains 8,464 examples for training and 1,116 for validation. Our results are reported on the validation set as the test set is unavailable publicly.",
+      "section": "2.1 Datasets"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "Zero-shot and Few-shot Models For zero-shot and few-shot prompting, we explore various multilingual generative LLMs of different pretraining processes and architectures, including BLOOMZ, mT0 (Muennighoff et al., 2022) and XGLM (Lin et al., 2021). We explore all model sizes except for BLOOMZ 175B due to resource limitations. We also include ChatGPT into our analysis and specifically GPT-3.5turbo is used. We explore 0, 1, 3, and 5-shot on each model with 5 diverse prompt templates. Details for each prompt can be seen in Appendix C.",
+      "section": "2.2 Models"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "For the SA task, we compute the probability of the model to generate each label as the next immediate continual generation, and then we pick the label resulting in the highest probability for the whole sequence. For MT, SUM and LID, we perform standard text generation. However, for LID, we expect the generated text to follow a predefined format where each [token, language tag] pair is represented as [ token | tag ]. We parse the generation using a dynamic programming algorithm introduced in Paolini et al. (2021) to extract the valid [token, language tag] pairs for evaluation.",
+      "section": "2.2 Models"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "Fine-tuning Models In addition to zero-shot prompting models and few-shot in-context learning, we also experiment with fine-tuning as a bench-",
+      "section": "2.2 Models"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "mark against prompting. For SA and word-level LID tasks, we fine-tune four models, namely, base and large variants of XLM-RoBERTa (Conneau et al., 2020), mBERT (Devlin et al., 2019), and mDeBERTa v3 (He et al., 2021).",
+      "section": "2.2 Models"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "For MT, we fine-tune eight models in total. These include small, base, and large variants of mT0 (Muennighoff et al., 2022); 418M and 1.2B variants of M2M100 (Fan et al., 2020); and standard, one-to-many, and many-to-many variants of mBART-50 (Liu et al., 2020; Tang et al., 2020)[2]",
+      "section": "2.2 Models"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "For SUM, we follow the same setup used in MT, except we only fine-tune the three previously mentioned mT0 models and only the standard mBART50 as the one-to-many and many-to-many variants are specifically for translation only.",
+      "section": "2.2 Models"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "Across all the tasks, we fine-tune the selected models on all the available training instances. Table 1 shows a full overview and comparison of the models investigated in this study and details for training setups for all tasks can be found in Appendix A.",
+      "section": "2.2 Models"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "Overall Results Figure 2 presents the results of various multilingual LLMs for the four CSW tasks.[3] In general, we observe a scaling pattern when prompting multilingual LLMs across tasks. Nevertheless, the performance of these models significantly falls short when compared to that of substantially smaller fine-tuned models. Therefore, adopting a fine-tuned model is a more practical approach for dealing with CSW tasks, especially in scenarios with constrained computational resources. For ChatGPT, it demonstrates comparable performance to fine-tuned models across all tasks",
+      "section": "3 Results and Discussion"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "> 2Due to space constraint, we show a selection of all finetuned models in Table 2. For the full results, please refer to Appendix B.",
+      "section": "3 Results and Discussion"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "> 3Note that the results for SA, MT, SUM are derived from zero-shot prompting while LID results are based on 5-shot.",
+      "section": "3 Results and Discussion"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "+------------------+------------------+-------------+------------------+------------------+----+ | Sentiment | Machine | Translation | Summarization | Language | | | Analysis | | | | Identifcation | | +------------------+------------------+-------------+------------------+------------------+----+ | F1 BLEU RL F1 | | | | | F1 | | Model Mal-Eng | | | | | | | Spa-Eng Tam-Eng | | | | | | | Model Hngβ→Eng | | | | | | | Eng→Hngβ Model | | | | | | | Hngβ→Eng Model | | | | | | | Hin-Eng MSA-EA | | | | | | +------------------+------------------+-------------+------------------+------------------+----+ | Finetuning | Finetuning | | Finetuning | Finetuning | | +------------------+------------------+-------------+------------------+------------------+----+ | XLMR278M 77.08 | M2M100418M 28.53 | | mT0p, 300Mδ | XLMR278M 82.44 | | | 77.14 68.12 | 12.40 | | 29.83 mT0p, | 72.58 XLMR560M | | | XLMR560M 79.94 | mBART50610Mγ | | 580Mδ 37.44 | 86.65 79.79 | | | 78.81 68.28 | 29.53 13.38 | | mT0p, 1.2Bδ |",
+      "section": "3 Results and Discussion"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "mBERT178M 81.99 | | | mBERT178M 78.21 | mT0p, 580Mδ | | 40.12 | 68.02 | | | 70.02 65.19 | 25.47 12.28 | | mBART50610M | mDeBERTa278M | | | mDeBERTa278M | mT0p, 1.2Bδ | | 39.03 | 85.41 68.02 | | | 44.56 88.17 | 31.88 13.90 | | | | | | 45.56 | | | | | | +------------------+------------------+-------------+------------------+------------------+----+ | 0-shot Prompting | 0-shot Prompting | | 0-shot Prompting | 5-shot Prompting | | +------------------+------------------+-------------+------------------+------------------+----+ | mT0300M 36.79 | mT0300M 2.74 | | mT0300M 16.00 | mT0300M 2.13 | | | 48.44 42.26 | 1.60 mT0580M | | mT0580M 20.16 | 0.90 mT0580M | | | mT0580M 44.60 | 6.42 2.37 | | mT01.2B 23.63 | 0.30 0.00 | | | 56.01 47.62 | mT01.2B 10.64 | | mT03.7B 27.40 | mT01.2B 0.22 | | | mT01.2B 55.62 | 1.88 mT03.7B | | mT013B 30.67 | 0.27 mT03.7B | | | 67.63 53.88 | 12.78 2.08 | | BLOOMZ560M 14.22 | 0.19 1.49 mT013B | | | mT03.7B 35.27 | mT013B 19.28 | | BLOOMZ1.1B 16.45 | 7.51 5.07 | | |",
+      "section": "3 Results and Discussion"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "59.28 38.55 | 1.66 BLOOMZ560M | | BLOOMZ1.7B 16.85 | BLOOMZ560M 5.38 | | | mT013B 49.97 | 2.24 1.37 | | BLOOMZ3B 20.97 | 2.08 BLOOMZ1.1B | | | 65.26 50.76 | BLOOMZ1.1B 2.79 | | BLOOMZ7B 17.01 | 16.31 10.56 | | | BLOOMZ560M 59.64 | 1.73 BLOOMZ1.7B | | XGLM564M 4.29 | BLOOMZ1.7B 13.04 | | | 72.79 55.30 | 2.62 2.62 | | XGLM1.7B 5.42 | 3.37 BLOOMZ3B | | | BLOOMZ1.1B 50.64 | BLOOMZ3B 3.13 | | XGLM2.9B 5.75 | 19.61 17.47 | | | 70.89 53.27 | 2.86 BLOOMZ7B | | XGLM4.5B 4.73 | BLOOMZ7B 19.58 | | | BLOOMZ1.7B 47.83 | 3.67 1.88 | | XGLM7.5B 5.92 | 9.26 XGLM564M | | | 73.20 50.15 | XGLM564M 0.45 | | GPT-3.5turbo | 6.65 1.61 | | | BLOOMZ3B 56.84 | 0.28 XGLM1.7B | | 25.07 | XGLM1.7B 5.90 | | | 72.85 53.41 | 0.79 0.43 | | | 6.27 XGLM2.9B | | | BLOOMZ7B 64.21 | XGLM2.9B 1.34 | | | 17.64 10.75 | | | 74.61 59.43 | 0.69 XGLM4.5B | | | XGLM4.5B 19.35 | | | XGLM564M 52.18 | 2.13 0.47 | | | 20.51 XGLM7.5B | | | 64.16 52.66 | XGLM7.5B 1.43 | | | 16.91 18.91 | | | XGLM1.7B 50.83 | 0.39 | | | GPT-3.5turboα | |",
+      "section": "3 Results and Discussion"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "| 65.01 50.55 | GPT-3.5turbo | | | 80.19 71.41 | | | XGLM2.9B 60.15 | 27.64 4.32 | | | | | | 64.78 56.43 | | | | | | | XGLM4.5B 62.32 | | | | | | | 70.34 56.94 | | | | | | | XGLM7.5B 60.93 | | | | | | | 68.52 56.04 | | | | | | | GPT-3.5turbo | | | | | | | 65.92 75.64 | | | | | | | 63.15 | | | | | | +------------------+------------------+-------------+------------------+------------------+----+",
+      "section": "3 Results and Discussion"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "α Due to budget limitations, the results presented in GPT-3.5turbo are based on 1-shot prompting instead of 5-shot. β , γ , δ Hng refers to Hinglish, a mix of Hindi and English. mBART50 refers to the many-to-many variant. mT0p refers to the fine-tuned mT0 with prompt templates.",
+      "section": "3 Results and Discussion"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "Table 2: Code-switching benchmark results for finetuned and prompting models. We report the 0-shot performance for the sentiment analysis, machine translation and summarization tasks; and 5-shot performance for the word-level language identification task.",
+      "section": "3 Results and Discussion"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "and datasets, except for the English to Hinglish MT task. This exception may stem from the challenges in generating code-switched texts as outlined in previous research (Yong et al., 2023; Zhang and Eickhoff, 2023). For the remaining tasks, ChatGPT notably outperforms publicly available multilingual LLMs. Such discrepancy may be attributed to the RLHF objective in its pretraining process, although a comprehensive analysis is hindered by its proprietary nature.",
+      "section": "3 Results and Discussion"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "Figure 5 shows a detailed breakdown for each of the three language datasets in the SA task. The results from fine-tuned models mainly reside in the top-left corner across all three datasets, highlighting their superior performance with considerably smaller sizes. Scaling BLOOMZ and XGLM yield small improvements, however, scores from mT0 fluctuate around 50 F1 when varying sizes. It’s worth noting that the majority-class baseline of these three datasets has an average F1 score of 46. Considering the instability observed during the scaling-up process, mT0 struggles to understand the sentiment when presented in CSW texts.",
+      "section": "3.1 Sentiment Analysis Results"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "As shown in Figure 2 and Table 2, when the source is Hinglish and target English, the performance gap between prompting and fine-tuning in MT is much more apparent, with the best prompted LLM mT0-XXL achieving no more than 20 BLEU while all the fine-tuned models achieved between 25-32 BLEU score. In contrast to SA, we notice especially visible improvement during scaling up encoder-decoder style models such as mT0, while decoder-only models such as BLOOMZ and XGLM have minimal improvements given their overall poor performance.",
+      "section": "3.2 Machine Translation Results"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "We then compare the difference in LLM scaling between translation tasks with code-switched sources and monolingual ones[4] . Figure 3 shows the scaling trajectory of LLMs for both Hindi → English and Hinglish → English translation direction; Table 3 presents the regression coefficient ( β ) in these two scenarios. A large coefficient indicates scaling has more noticeable impacts. We can observe that the influence of scaling is more apparent in monolingual sources than in the code-switched",
+      "section": "3.2 Machine Translation Results"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "> 4Monolingual experiments are conducted on WMT 2014 Hindi-English dataset (Bojar et al., 2014).",
+      "section": "3.2 Machine Translation Results"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "Figure 2: Evaluation results of fine-tuning and prompting LLMs of different scales on various CSW tasks. (top left) F1-score on the sentiment analysis task, (top right) BLEU score on the machine translation task, (bottom left) ROUGE-L on the summarization task, and (bottom right) F1-score on the word-level language identification task. (FT) means results are from fine-tuned models.",
+      "section": "3.2 Machine Translation Results"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "setup. This pattern could potentially result from the limited pretraining samples for Hinglish codeswitched data, leading to a sub-optimal scaling performance.",
+      "section": "3.2 Machine Translation Results"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "When models are tasked with translating the source into CSW text, a substantial performance decline is observed for both fine-tuned and prompted models. We notice that while the larger mT0 models are capable of producing English translations in a zero-shot manner, they struggle to generate CSW texts as seen in previous work (Yong et al., 2023). Upon looking at the output, mT0 simply outputs in English, even in few-shot settings in which it has seen some other Hinglish examples.",
+      "section": "3.2 Machine Translation Results"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "Figure 2 shows the fine-tuning and zero-shot prompting result on the summarization task. Similarly, we see that fine-tuned models outperform the zero-shot approach. Similar to MT, mT0 yields the overall best performance and shows positive scaling law.",
+      "section": "3.3 Summarization Results"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "To disentangle CSW from the equation, we evaluate the LLM’s performance on the same Gupshup dataset, but with English input rather than Hinglish input. The evaluation set is parallel to each other. Interestingly, from Figure 3 and Table 3, we see a",
+      "section": "3.3 Summarization Results"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "similar scaling impact whether the input is monolingual or in code-switch. However, the models are consistently better if the input is in English.",
+      "section": "3.3 Summarization Results"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "Our observation of fine-tuned models in the LID task is similar to the MT task: they outperform prompting methods on multilingual LLMs by a significant margin. In Table 2, we report 5-shots instead of 0-shot prompting results for LID tasks as 0-shot results are all 0 for both language datasets and across all models. The multilingual LLMs are not able to understand the natural language instruction that requires them to generate outputs in a specific format like [ token | tag ] word by word. When prepending more in-context examples in the instruction, we observe slight performance improvements across different models. For results on few-shot experiments for LID, please refer to Section 3.5.",
+      "section": "3.4 Language Identification Results"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "Compared to zero-shot inference, few-shot learning has been shown to boost performance as discussed in previous works(Brown et al., 2020; Liu et al., 2021). However, in CSW settings, we observe different effects of adding more in-context examples",
+      "section": "3.5 Few-Shot Results"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "between tasks. In Figure 4, we notice a decrease in metrics from 0-shot to 1-shot for SA and SUM, suggesting that in-context examples do not contribute to or even degrade models’ performance. We suspect that models have seen these tasks in a monolingual fashion during pretraining, and thus are able to understand instructions well in a zero-shot setting. Instead, models may consider CSW examples as low-quality texts, thus confusing the generation process. For MT, we observe negligible change in the models’ performances with an increasing number of examples. Notably, instead of translating sentences to Hinglish as instructed, models could only repeat the original English sentences. For instance, when provided with 5 in-context examples, mT013B is instructed to “Translate the following text from English to Hinglish. Text: hello there, I have not seen this movie so im going to take a minute to look it over :) Translation:”. It generates “hello there, I have not seen this movie so I going",
+      "section": "3.5 Few-Shot Results"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "to take time to look it over:).” instead of the expected “hello yar, mein is movie ko nahi dekha hoon tho, tho mein thode der ke liye isko dekh loonga”. Similar issues are also observed with BLOOMZ. We hypothesize that models may not fully comprehend the nuances of ’Hinglish’ within the given instruction, which could account for their relatively uniform performance across varying shot numbers.",
+      "section": "3.5 Few-Shot Results"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "On the contrary, more in-context examples benefit the LID task. As no models are pre-trained on the sequence tagging task, the natural instruction entailing the specific generation format is new to the LLMs. Therefore, in our experiments, most models perform best when given 5 learning examples. Additionally, though we observe scaling law patterns in 5-shot settings as shown in Figure 6, for the best-performing billion-parameter models, we still consistently observe their inability to adhere to the format laid out in the instructions. They often fail to replicate the exact words required for sentence tagging or predict multiple tokens within a single bracket pair. For example, in a 5-shot setting, when asked to label the sentence \"we the fans luv you , sirji”, BLOOMZ7b wrongly generates “[ we the fans | lang1 ] [ you | lang1 ] [ sirji | lang1 ] [ , | other ]”, unable to put individual words in the brackets and omitting some words from the original sentence. Given the constraint of",
+      "section": "3.5 Few-Shot Results"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "limited input length, which restricts the number of in-context examples models can learn from, their uncontrollable",
+      "section": "3.5 Few-Shot Results"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "Figure 3: Performance comparison on (top) Hindi → English vs Hinglish → English translation and (bottom) Hinglish → English vs English → English summarization.",
+      "section": "3.5 Few-Shot Results"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "generation still results in a significant performance gap when compared to fine-tuning smaller models ( ∼ 20 F1 vs. ∼ 80 F1).",
+      "section": "3.5 Few-Shot Results"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "Given recent developments in general-purpose, instruction-following LLMs like ChatGPT, with impressive zero-shot abilities across tasks, we also benchmark ChatGPT’s performance in our CSW task. Limited by the budget, we only explore zeroshot performance for SA, MT and SUM given their easy scopes, and 1-shot performance for LID due to the specific output format requirements. Since we can’t access ChatGPT’s output probability distribution, we instruct ChatGPT to return only the exact string label and calculate F1 scores using exact string matching for SA.",
+      "section": "3.6 Benchmarking ChatGPT"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "ChatGPT achieves somewhat comparable performance to finetuning models and significantly outperforms other public multilingual LLMs in most of the tasks. Especially for LID, it shows strong capabilities in following difficult instructions with only one example. The only exception is on the English → Hinglish MT tasks, where its zero-shot",
+      "section": "3.6 Benchmarking ChatGPT"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "+-----------------+---------------------+-------------------+-------------------+-------------------+ | Model | Code-Switched | | Monolingual | | +-----------------+---------------------+-------------------+-------------------+-------------------+ | | | | | | +-----------------+---------------------+-------------------+-------------------+-------------------+ | | β | α | β | α | +-----------------+---------------------+-------------------+-------------------+-------------------+ | | Machine Translation | | | | +-----------------+---------------------+-------------------+-------------------+-------------------+ | | | | | | +-----------------+---------------------+-------------------+-------------------+-------------------+ | mT0 BLOOMZ | 1.057 0.192 | 6.403 2.373 | 1.626 0.824 | 6.075 6.240 | +-----------------+---------------------+-------------------+-------------------+-------------------+ | | Summarization | | | |",
+      "section": "3.6 Benchmarking ChatGPT"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "+-----------------+---------------------+-------------------+-------------------+-------------------+ | | | | | | +-----------------+---------------------+-------------------+-------------------+-------------------+ | mT0 BLOOMZ XGLM | 0.712 0.312 0.029 | 5.471 3.507 0.444 | 0.738 0.644 0.012 | 9.228 8.637 0.883 | +-----------------+---------------------+-------------------+-------------------+-------------------+",
+      "section": "3.6 Benchmarking ChatGPT"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "Table 3: Regression slope ( β ) and intercept ( α ) of scaling mT0 and BLOOMZ on monolingual/code-switched machine translation and summarization task.",
+      "section": "3.6 Benchmarking ChatGPT"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "performance is only slightly better than other public LLMs. We hypothesize mainly two reasons behind the difficulty in generating CSW texts: 1) as alluded to in the previous section, CSW texts can be perceived as noises given tasks and pretraining processes are designed in a monolingual fashion; 2) LLMs may have a lack of sufficient representation for CSW text structure. In our analysis, LLMs perform much better in SA tasks as they could pick up cues from individual works instead of paying attention to language “structure” when tasked with text generation.",
+      "section": "3.6 Benchmarking ChatGPT"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "Lastly, while ChatGPT delivers promising results without any fine-tuning, the lack of complete transparency on its pretraining datasets, model architecture, and training details obstructs a better understanding of its performance. This presents roadblocks to future improvements in code-switching proficiency for public multilingual LLMs.",
+      "section": "3.6 Benchmarking ChatGPT"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "In this section, we walk through various implications of our work and provide recommendations for enabling better CSW ability in LLMs. By highlighting this limitation, we compel researchers to consider CSW as a core feature of many people’s multilingual repertoire across the world.",
+      "section": "4 Implications for Future LLMs"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "Fairer Data Representation for Code-Switching Our results in Section 3 show that existing LLMs have similar scaling patterns between monolingual and CSW. However, despite all the models under study having seen each of the languages during pretraining, there is still a performance gap between monolingual and CSW. This suggests that the ability to code-switch is not acquired by LLMs after",
+      "section": "4 Implications for Future LLMs"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "pretraining and/or instruction-tuning with multilingual data (Xue et al., 2021; Scao et al., 2022; Muennighoff et al., 2022), indicating the need for adding better data representation for code-switching in the multilingual pretraining and/or instruction-tuning process. Such an approach can be done through manual CSW data collection and/or various data augmentation methods (Tan and Joty, 2021; Adilazuarda et al., 2022; Dhole et al., 2023). Aside from adding more CSW data, one potential solution is to identify and include the code-switching language pairs into consideration of multilingual pretraining and/or instruction-tuning. This allows better resampling strategy (Lample and Conneau, 2019; Aharoni et al., 2019; Conneau et al., 2020; Xue et al., 2021; Tang et al., 2021; Cahyawijaya et al., 2021) for CSW data during the multilingual pretraining and/or instruction-tuning.",
+      "section": "4 Implications for Future LLMs"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "Adaptation and Extension of Code-Switching Optimization Objectives Existing LLMs are optimized solely with language modeling objectives either for sentence denoising or sentence completion. However, alternative optimization objectives„ such as meta transfer learning (Winata et al., 2020) and additional token/span-level language identification objective (Li et al., 2019), have been demonstrated to effectively enhance CSW performance with minimal performance loss on monolingual tasks in CSW speech processing. By adapting and extending these approaches to NLP, we may be able to equip LLMs with better CSW capability without requiring expensive data collection and annotation. This would be particularly advantageous for LLMs, especially in applications where CSW is prevalent within the multilingual community.",
+      "section": "4 Implications for Future LLMs"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "In light of the fact that LLMs are the driving force behind the progress of various NLP technologies (Thoppilan et al., 2022; SambaNova Systems, 2023; Pratap et al., 2023), we emphasize the importance of incorporating code-switched capabilities in LLMs to promote inclusivity and diversity in language technology, particularly for multilingual speakers who frequently engage in code-switching in their daily lives. By enabling NLP technology to reflect the language-mixing patterns of users, people can communicate in ways that are more comfortable and authentic to their linguistic identities, eliminating the need for people to adjust their speech patterns to become legible to machines. It",
+      "section": "Towards More Inclusive Language Technology"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Figure 4: Few-shot evaluation performance for (top left) sentiment analysis task, (top right) machine translation task, (bottom left) summarization task and (bottom right) word-level LID task.",
+      "section": "Towards More Inclusive Language Technology"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "would not only mitigate the effects of linguistic profiling (Baugh, 2005; Dingemanse and Liesenfeld, 2022) and hegemonic, Western-centric technological designs but also foster greater trust among users in language technology through naturalistic dialogue interactions. Therefore, we urge the integration of code-switched recognition and generation capabilities in future LLMs.",
+      "section": "Towards More Inclusive Language Technology"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "Code-Switching Code-switching is a common practice observed in multilingual communities where people mix multiple languages within an utterance (Poplack, 2001). While more than half of the world population speaks more than one language, the availability of resources and assessments for code-switching is much more limited compared to the extensive literature on monolingual cases. The key challenges of collecting high-quality codeswitching data lie in the colloquial nature of the practice and the language proficiency required for accurate annotation (Winata et al., 2022b). The recent advances of “multilingual” large language models compel one to explore whether these models are proficient in code-switching contexts like a true polyglot. Previous research (Winata et al., 2021a) has studied the code-switching capabilities of language models in NER and POS-tagging tasks, however, the work is limited to using only differ-",
+      "section": "5 Related Work"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "ent word embeddings and encoder-only models. In this paper, we expand on previous works and provide a detailed analysis of more model variations, task objectives and downstream applications of diverse language pairs adopted from existing CSW benchmarks like LinCE (Aguilar et al., 2020) and GlueCOS (Khanuja et al., 2020).",
+      "section": "5 Related Work"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "Multilingual Large Language Models Models like mBERT (Devlin et al., 2019) and XLMR (Conneau et al., 2020) have become the goto multilingual options for supervised fine-tuning, given their impressive abilities and adaptability to many languages. With the success of largescale generative models, their capabilities have been enriched with multilingual objectives (Lin et al., 2021; Scao et al., 2022; Muennighoff et al., 2022) through pretraining on large multilingual corpora such ROOTS (Laurençon et al., 2022), mC4 (Raffel et al., 2019) and xP3 (Muennighoff et al., 2022). In addition to excelling in different monolingual and multilingual benchmarks via zero-shot prompting (Sanh et al., 2021; Wei et al., 2021; Kojima et al., 2022; Muennighoff et al., 2022; Bang et al., 2023), research has shown that scaling up model sizes (Cahyawijaya et al., 2023; Kaplan et al., 2020; Fernandes et al., 2023) and incorporating in-context learning examples (Winata et al., 2022a; Tanwar et al., 2023) could",
+      "section": "5 Related Work"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "help further boost",
+      "section": "5 Related Work"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "their performance. Yet, given the scarcity of CSW evaluation resources, how these multilingual LLMs perform in code-switching scenarios still remains questionable. In this paper, we evaluate these models under various settings including fine-tuning, zero-shot prompting, and in-context learning, and provide recommendations for future improvements in code-switching proficiency.",
+      "section": "5 Related Work"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "In this paper, we systematically study multilingual LLMs’ capabilities in code-switching tasks along various dimensions, including but not limited to finetuning vs. prompting, task objectives, scaling laws and model architecture. We observe that, despite improvements with larger sizes, existing multilingual LLMs still yield inferior performance compared to fine-tuning smaller models. We argue that multilingual LLMs are not necessarily code-switching compatible. Given that multilingual LLMs are not explicitly trained for codeswitching data, we recommend future development should incorporate a more comprehensive evaluation framework that encompasses code-switching texts. Finally, our study is limited to models’ performance in sentiment analysis, machine translation, summarization and language identification. We suggest that benchmarking across a broader set of tasks is required. However, the scarcity of high-quality open-source code-switching datasets and the challenges associated with",
+      "section": "6 Conclusion"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "their collection process imply future work should also include constructing code-switching data with more complexity, such as commonsense reasoning.",
+      "section": "6 Conclusion"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "The scope of code-switching languages in this work is limited to Hindi-English, Standard-Egyptian Arabic, Spanish-English, Tamil-English, and Malayalam-English. It is beneficial to include more languages to demonstrate the generality of our claim. However, a challenge in doing so arises from the lack of available code-switched text datasets. We explore four different NLP downstream tasks. However, similar to the previous point, it would be interesting to cover more tasks. Similarly, the main challenge of expanding into different tasks is the lack of available datasets. We anticipate that future studies will broaden the exploration of code-switching languages and tasks beyond those examined in this research to showcase the gener-",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "alizability of the findings to other code-switching languages and tasks.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "In addition, in this study, we choose multilingual LLMs based on two criteria: 1) they present or advertise themselves as multilingual and 2) their pretraining data contain all the languages featured in our benchmark dataset. Although some recently released LLMs like Llama-2 (Touvron et al., 2023) and Falcon (Penedo et al., 2023) have demonstrated state-of-the-art performance across various other benchmarks, we defer the evaluation of their codeswitching capabilities to future research.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "Finally, our observations are based on the model sizes allowed by our local compute resources. A more comprehensive analysis can be obtained by experimenting with a wider range of variations, including larger model sizes and more in-context examples given a more generous compute budget.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "Our paper highlights the evaluation of LLMs on code-switching, a common phenomenon in the multilingual community. The research was carried out in compliance with the principles of academic integrity, including honesty, transparency, and rigor. The data used in this study was collected in accordance with ethical guidelines, and all participants provided informed consent. Within our study, we are aware of the potential impact that comes with our work and our experiments replicate prior work under comparable experimental conditions. We also ensured that the study did not cause harm or distress to any individuals or communities. The findings of this study have important implications for the development of multilingual LLMs and their potential applications in code-switching tasks. However, we acknowledge that further research is needed to address the limitations and gaps identified in this study. We believe that responsible and ethical use of language technology is crucial for creating just",
+      "section": "Ethical Considerations"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "and equitable systems that benefit all individuals and communities.",
+      "section": "Ethical Considerations"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "We would like to thank Xinyu Hua and Samson Tan for the constructive feedback and helpful discussion on our project.",
+      "section": "Acknowledgements"
+    }
+  ]
+}

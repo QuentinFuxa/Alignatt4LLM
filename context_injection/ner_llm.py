@@ -1,6 +1,6 @@
 """
 Extract named entities from paper (title, authors, abstract) using
-Qwen3-30B-A3B-Instruct via vLLM.
+a configurable instruction model via vLLM.
 
 Each paper produces THREE separate prompts (title, authors, abstract).
 Samples N times per prompt (default 16) and keeps entities appearing
@@ -25,7 +25,7 @@ from vllm.sampling_params import StructuredOutputsParams
 
 logging.getLogger().setLevel(logging.ERROR)
 
-NER_MODEL = "/data/user_data/siqiouya/ckpts/pretrained/llm/Qwen3-30B-A3B-Instruct-2507-FP8/"
+NER_MODEL = os.environ.get("CASCADE_CONTEXT_NER_MODEL", "")
 
 # JSON schema to force the model to output {"entities": ["str", ...]}
 NER_JSON_SCHEMA = {
@@ -185,7 +185,7 @@ def majority_vote(all_responses, min_count):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Extract named entities from paper abstracts using Qwen3 via vLLM"
+        description="Extract named entities from paper abstracts using a vLLM-served instruction model"
     )
     parser.add_argument(
         "input",
@@ -206,16 +206,28 @@ def main():
         type=int, default=8,
         help="Minimum number of samples an entity must appear in to be kept (default: 8)",
     )
+    parser.add_argument(
+        "--model",
+        default=(NER_MODEL or None),
+        help=(
+            "Model path or id for the NER LLM. Defaults to "
+            "CASCADE_CONTEXT_NER_MODEL if set."
+        ),
+    )
     args = parser.parse_args()
+    if not args.model:
+        raise SystemExit(
+            "No NER model configured. Pass --model or set CASCADE_CONTEXT_NER_MODEL."
+        )
 
     with open(args.input, "r", encoding="utf-8") as f:
         results = json.load(f)
 
     print(f"Loaded {len(results)} papers from {args.input}")
-    print(f"Loading {NER_MODEL} ...")
+    print(f"Loading {args.model} ...")
 
     llm = LLM(
-        model=NER_MODEL,
+        model=args.model,
         trust_remote_code=True,
         gpu_memory_utilization=0.8,
         tensor_parallel_size=1,

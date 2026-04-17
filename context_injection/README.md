@@ -24,8 +24,9 @@ the public IWSLT baseline pattern during initial exploration.
 
 - `extract_abstract.py` — pre-`PaperArtifact` PDF-to-text bootstrap.
   Superseded by `paper_artifact.build_paper_artifact_from_pdf`.
-- `ner_llm.py` — Qwen3-30B-A3B structured NER over a paper's
-  title/authors/abstract. Potentially useful if a future
+- `ner_llm.py` — structured NER over a paper's
+  title/authors/abstract using a user-specified vLLM-served instruction model.
+  Potentially useful if a future
   entity-based context mechanism is explored, but not currently
   referenced by any runtime path.
 

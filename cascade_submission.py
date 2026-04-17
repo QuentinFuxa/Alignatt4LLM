@@ -16,14 +16,11 @@ class SubmissionPreset:
     alignment_backend_name: str = "qwen_forced"
     mt_backend_name: str = "gemma_vllm_alignatt"
     min_start_seconds: float = 2.0
-    max_history_utterances: int = 1
+    max_history_utterances: int = 0
     partial_max_new_tokens: int = 16
-    partial_followup_max_new_tokens: int = 8
     translation_alignatt_rewind_threshold: int = 8
     translation_alignatt_inaccessible_ms: float = 0.0
-    asr_commit_mode: str = "punctuation_lcp"
-    asr_alignatt_frontier_margin_ms: float = 500.0
-    asr_stability_k: int = 3
+    translation_alignatt_argmax_mass_threshold: float = 0.0
     mt_vllm_enforce_eager: bool = False
     mt_vllm_cudagraph_mode: str = "full"
     mt_vllm_enable_prefix_caching: bool = False
@@ -50,13 +47,10 @@ class SubmissionPreset:
             min_start_seconds=self.min_start_seconds,
             max_history_utterances=self.max_history_utterances,
             partial_max_new_tokens=self.partial_max_new_tokens,
-            partial_followup_max_new_tokens=self.partial_followup_max_new_tokens,
             translation_alignatt_min_source_mass=self.translation_alignatt_min_source_mass,
             translation_alignatt_rewind_threshold=self.translation_alignatt_rewind_threshold,
             translation_alignatt_inaccessible_ms=self.translation_alignatt_inaccessible_ms,
-            asr_commit_mode=self.asr_commit_mode,
-            asr_alignatt_frontier_margin_ms=self.asr_alignatt_frontier_margin_ms,
-            asr_stability_k=self.asr_stability_k,
+            translation_alignatt_argmax_mass_threshold=self.translation_alignatt_argmax_mass_threshold,
             mt_vllm_enforce_eager=self.mt_vllm_enforce_eager,
             mt_vllm_cudagraph_mode=self.mt_vllm_cudagraph_mode,
             mt_vllm_enable_prefix_caching=self.mt_vllm_enable_prefix_caching,
@@ -75,14 +69,14 @@ SUBMISSION_PRESETS = {
         track="main",
         latency_regime="low",
         chunk_ms=450,
-        description="Main-track low-latency preset (~0-2 s LongYAAL on current calibration).",
+        description="Main-track low-latency preset on the simplified runtime surface (450 ms chunks).",
     ),
     "main_high_latency": SubmissionPreset(
         name="main_high_latency",
         track="main",
         latency_regime="high",
         chunk_ms=700,
-        description="Main-track high-latency preset (~2-4 s LongYAAL on current calibration).",
+        description="Main-track high-latency preset on the simplified runtime surface (700 ms chunks).",
     ),
     "context_low_latency": SubmissionPreset(
         name="context_low_latency",
@@ -92,8 +86,8 @@ SUBMISSION_PRESETS = {
         paper_context_mode="title_abstract",
         translation_alignatt_min_source_mass=0.3,
         description=(
-            "Extra-context low-latency preset using the current paper-ready "
-            "title+abstract guarded setting."
+            "Extra-context low-latency preset on the simplified runtime "
+            "surface using the title+abstract guarded setting."
         ),
     ),
     "context_high_latency": SubmissionPreset(
@@ -104,8 +98,8 @@ SUBMISSION_PRESETS = {
         paper_context_mode="title_abstract",
         translation_alignatt_min_source_mass=0.3,
         description=(
-            "Extra-context high-latency preset using the current paper-ready "
-            "title+abstract guarded setting."
+            "Extra-context high-latency preset on the simplified runtime "
+            "surface using the title+abstract guarded setting."
         ),
     ),
 }

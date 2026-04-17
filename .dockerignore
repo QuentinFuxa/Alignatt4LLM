@@ -6,5 +6,7 @@ __pycache__
 outputs
 tmp
 test-set
+dev-set
+zip_downloaded
 docs/archive
 dedicated_audio_gemma_aligner

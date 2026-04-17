@@ -39,7 +39,6 @@ from cascade_artifacts import (
 from cascade_emission import register_translation_timestamps, register_translation_words
 from cascade_runtime import STABLE_ALIGNMENT_BACKEND_NAMES
 from cascade_simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
-from cascade_text_surface import split_target_emission_units
 from simulstream.server.speech_processors import SAMPLE_RATE
 
 
@@ -118,34 +117,6 @@ def compute_cer(reference: str, hypothesis: str) -> float:
     return _levenshtein(ref, hyp) / max(1, len(ref))
 
 
-def translation_revision_stats(
-    stream_updates: list[dict[str, Any]],
-    *,
-    target_lang_code: str,
-) -> tuple[int, int]:
-    revision_updates = 0
-    suppressed_units = 0
-    previous_units: list[str] = []
-
-    for payload in stream_updates:
-        current_units = split_target_emission_units(
-            str(payload.get("translation_text", "")),
-            target_lang_code=target_lang_code,
-        )
-        common_prefix_len = 0
-        for prev, cur in zip(previous_units, current_units):
-            if prev != cur:
-                break
-            common_prefix_len += 1
-        deleted = len(previous_units) - common_prefix_len
-        if deleted > 0:
-            revision_updates += 1
-            suppressed_units += deleted
-        previous_units = current_units
-
-    return revision_updates, suppressed_units
-
-
 def first_nonempty_emission(
     stream_updates: list[dict[str, Any]],
 ) -> tuple[float | None, float | None]:
@@ -182,7 +153,6 @@ def build_processor_config(args: argparse.Namespace, *, backend_name: str) -> Si
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         partial_max_new_tokens=args.partial_max_new_tokens,
-        partial_followup_max_new_tokens=args.partial_followup_max_new_tokens,
         translation_alignatt_min_source_mass=args.translation_alignatt_min_source_mass,
         translation_alignatt_rewind_threshold=args.translation_alignatt_rewind_threshold,
         translation_alignatt_inaccessible_ms=args.translation_alignatt_inaccessible_ms,
@@ -208,8 +178,6 @@ def run_single_backend_to_artifacts(
     word_delays_ms: list[float] = []
     word_elapsed_ms: list[float] = []
     updates: list[StreamUpdate] = []
-    revision_updates = 0
-    suppressed_units = 0
     last_translation = ""
     last_raw_translation = ""
     start_time = perf_counter()
@@ -222,11 +190,7 @@ def run_single_backend_to_artifacts(
         audio_processed_ms = min((start_sample + chunk_size), len(audio)) * 1000.0 / SAMPLE_RATE
         wallclock_elapsed_ms = (perf_counter() - start_time) * 1000.0
 
-        if output.deleted_tokens:
-            revision_updates += 1
-            suppressed_units += len(output.deleted_tokens)
-
-        if output.new_tokens or output.deleted_tokens:
+        if output.new_tokens:
             register_translation_timestamps(
                 last_raw_translation,
                 current_translation,
@@ -261,11 +225,7 @@ def run_single_backend_to_artifacts(
     total_wallclock_s = final_elapsed_ms / 1000.0
     rtf = total_wallclock_s / (audio_duration_ms / 1000.0) if audio_duration_ms > 0 else 0.0
 
-    if eos_output.deleted_tokens:
-        revision_updates += 1
-        suppressed_units += len(eos_output.deleted_tokens)
-
-    if eos_output.new_tokens or eos_output.deleted_tokens or final_translation != last_translation:
+    if eos_output.new_tokens or final_translation != last_translation:
         register_translation_timestamps(
             last_raw_translation,
             final_translation,
@@ -323,8 +283,6 @@ def run_single_backend_to_artifacts(
             "model_load_ms": round(load_ms, 2),
             "total_wallclock_s": round(total_wallclock_s, 4),
             "rtf": round(rtf, 6),
-            "revision_updates": revision_updates,
-            "suppressed_units": suppressed_units,
         },
     )
     return artifacts, {
@@ -332,8 +290,6 @@ def run_single_backend_to_artifacts(
         "total_wallclock_s": round(total_wallclock_s, 4),
         "rtf": round(rtf, 6),
         "num_updates": len(updates),
-        "revision_updates": revision_updates,
-        "suppressed_units": suppressed_units,
     }
 
 
@@ -353,10 +309,6 @@ def summarize_backend_artifacts(
     final_asr = transcript_path.read_text(encoding="utf-8").strip()
     final_translation = translation_path.read_text(encoding="utf-8").strip()
     stream_updates = load_jsonl(stream_updates_path)
-    revision_updates, suppressed_units = translation_revision_stats(
-        stream_updates,
-        target_lang_code=target_lang_code,
-    )
     first_audio_s, first_wallclock_s = first_nonempty_emission(stream_updates)
     audio_duration_ms = float(manifest.get("audio_duration_ms", 0.0))
     provenance = dict(manifest.get("run_provenance", {}) or {})
@@ -384,8 +336,6 @@ def summarize_backend_artifacts(
         "total_wallclock_s": total_wallclock_s,
         "rtf": provenance.get("rtf"),
         "num_updates": len(stream_updates),
-        "revision_updates": revision_updates,
-        "suppressed_units": suppressed_units,
         "first_nonempty_emission_audio_s": first_audio_s,
         "first_nonempty_emission_wallclock_s": first_wallclock_s,
         "has_terminal_eos_update": bool(stream_updates and stream_updates[-1].get("is_eos")),
@@ -434,8 +384,7 @@ def write_comparison_outputs(output_dir: str | Path, report: dict[str, Any]) -> 
                 f"first_emit_audio_s={backend['first_nonempty_emission_audio_s']}",
                 f"  load_ms={backend['model_load_ms']}  wallclock_s={backend['total_wallclock_s']}  "
                 f"rtf={backend['rtf']}",
-                f"  updates={backend['num_updates']}  revisions={backend['revision_updates']}  "
-                f"suppressed_units={backend['suppressed_units']}",
+                f"  updates={backend['num_updates']}",
                 f"  stream_updates={backend['stream_updates_path']}",
                 "",
             ]
@@ -476,8 +425,6 @@ def run_backend_subprocess(
         str(args.max_history_utterances),
         "--partial-max-new-tokens",
         str(args.partial_max_new_tokens),
-        "--partial-followup-max-new-tokens",
-        str(args.partial_followup_max_new_tokens),
         "--translation-alignatt-min-source-mass",
         str(args.translation_alignatt_min_source_mass),
         "--translation-alignatt-rewind-threshold",
@@ -504,14 +451,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--wav", default=DEFAULT_WAV)
     parser.add_argument("--reference", default=DEFAULT_REFERENCE)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--chunk-ms", default=450, type=int)
+    parser.add_argument("--chunk-ms", default=800, type=int)
     parser.add_argument("--source", default="en")
     parser.add_argument("--target", default="de")
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
-    parser.add_argument("--max-history-utterances", default=1, type=int)
+    parser.add_argument("--max-history-utterances", default=0, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
-    parser.add_argument("--partial-followup-max-new-tokens", default=8, type=int)
     parser.add_argument("--translation-alignatt-min-source-mass", default=0.0, type=float)
     parser.add_argument("--translation-alignatt-rewind-threshold", default=8, type=int)
     parser.add_argument("--translation-alignatt-inaccessible-ms", default=0.0, type=float)

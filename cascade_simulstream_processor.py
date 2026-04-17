@@ -8,13 +8,17 @@ from typing import List
 from simulstream.server.speech_processors import SpeechProcessor
 from simulstream.server.speech_processors.incremental_output import IncrementalOutput
 
+from cascade_incremental_output import (
+    append_only_incremental_output,
+    empty_incremental_output,
+)
 from cascade_runtime import (
     LANGUAGE_CODE_TO_NAME,
     CascadeRuntimeConfig,
     LoadedModelBundle,
     alignatt_heads_path_for,
 )
-from cascade_text_surface import split_target_emission_units
+from cascade_text_surface import join_public_emission_units, split_public_emission_units
 
 
 class CascadeAlignAttProcessor(SpeechProcessor):
@@ -33,8 +37,6 @@ class CascadeAlignAttProcessor(SpeechProcessor):
         bundle = type(self)._ensure_bundle(self._runtime_config)
         self._session = bundle.new_session()
         self._emitted_units: list[str] = []
-        self._last_asr: str = ""
-        self._last_committed_segments: int = 0
 
     @staticmethod
     def _build_runtime_config(config: SimpleNamespace) -> CascadeRuntimeConfig:
@@ -51,21 +53,21 @@ class CascadeAlignAttProcessor(SpeechProcessor):
                 getattr(config, "alignment_backend_name", "qwen_forced")
             ),
             mt_backend_name=str(
-                getattr(config, "mt_backend_name", "gemma_transformers_alignatt")
+                getattr(config, "mt_backend_name", "gemma_vllm_alignatt")
             ),
         )
         override_keys = [
             "min_start_seconds",
             "max_history_utterances",
             "partial_max_new_tokens",
-            "partial_followup_max_new_tokens",
             "translation_alignatt_inaccessible_ms",
             "translation_alignatt_rewind_threshold",
+            "translation_alignatt_border_margin",
             "translation_alignatt_min_source_mass",
+            "translation_alignatt_argmax_mass_threshold",
             "translation_alignatt_top_k_heads",
             "translation_alignatt_filter_width",
             "translation_alignatt_probe_mode",
-            "translation_scheduler_stall_seconds",
             "temperature",
             "repetition_penalty",
             "gemma_audio_align_probe_mode",
@@ -77,11 +79,6 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "asr_streaming_rollback_words",
             "asr_streaming_unfixed_chunks",
             "gemma_vllm_force_generate_api",
-            "asr_commit_mode",
-            "asr_alignatt_frontier_margin_ms",
-            "asr_stability_k",
-            "translation_source_frontier_mode",
-            "translation_source_frontier_scalar_threshold",
             "mt_vllm_enforce_eager",
             "mt_vllm_cudagraph_mode",
             "mt_vllm_enable_prefix_caching",
@@ -150,17 +147,8 @@ class CascadeAlignAttProcessor(SpeechProcessor):
 
     def process_chunk(self, waveform) -> IncrementalOutput:
         session_result = self._session.process_audio_chunk(waveform)
-        committed_segments = len(self._session.state.utt_sources)
         if session_result is None:
-            return IncrementalOutput([], "", [], "")
-        if (
-            session_result.asr_text == self._last_asr
-            and committed_segments == self._last_committed_segments
-        ):
-            return IncrementalOutput([], "", [], "")
-
-        self._last_asr = session_result.asr_text
-        self._last_committed_segments = committed_segments
+            return empty_incremental_output()
         translation, _ = self._session.apply_translation_emit_policy(
             self._current_emitted_text(),
             session_result.raw_translation_text,
@@ -201,41 +189,35 @@ class CascadeAlignAttProcessor(SpeechProcessor):
         self._runtime_config.paper_context_path = path
 
     def tokens_to_string(self, tokens: List[str]) -> str:
-        if not tokens:
-            return ""
-        from cascade_text_surface import is_char_level_target_lang
-
-        if is_char_level_target_lang(self._target_lang_code):
-            return "".join(tokens)
-        return " ".join(tokens)
+        return join_public_emission_units(tokens, target_lang_code=self._target_lang_code)
 
     def clear(self) -> None:
         self._runtime_config.paper_context_path = self._default_paper_context_path
         self._session.clear()
         self._emitted_units = []
-        self._last_asr = ""
-        self._last_committed_segments = 0
 
     def _current_emitted_text(self) -> str:
         return self.tokens_to_string(self._emitted_units)
 
     def _compute_incremental_output(self, new_translation: str) -> IncrementalOutput:
-        new_units = split_target_emission_units(
+        new_units = split_public_emission_units(
             new_translation, target_lang_code=self._target_lang_code
         )
         previous_units = self._emitted_units
-        common_prefix_len = 0
-        for prev, cur in zip(previous_units, new_units):
-            if prev != cur:
-                break
-            common_prefix_len += 1
+        if not new_units:
+            return empty_incremental_output()
+        if len(new_units) < len(previous_units):
+            return empty_incremental_output()
+        if new_units[: len(previous_units)] != previous_units:
+            return empty_incremental_output()
 
-        deleted_units = previous_units[common_prefix_len:]
-        added_units = new_units[common_prefix_len:]
+        added_units = new_units[len(previous_units) :]
+        if not added_units:
+            return empty_incremental_output()
+
         self._emitted_units = list(new_units)
-        return IncrementalOutput(
-            new_tokens=added_units,
-            new_string=self.tokens_to_string(added_units),
-            deleted_tokens=deleted_units,
-            deleted_string=self.tokens_to_string(deleted_units),
+        added_string = self.tokens_to_string(added_units)
+        return append_only_incremental_output(
+            new_tokens=[added_string],
+            new_string=added_string,
         )

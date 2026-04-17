@@ -64,14 +64,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--connection-file", default=DEFAULT_CONNECTION_FILE)
     parser.add_argument("--wav-path", default=DEFAULT_WAV_PATH)
-    parser.add_argument("--chunk-ms", default=450, type=int)
+    parser.add_argument("--chunk-ms", default=800, type=int)
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
-    parser.add_argument("--partial-followup-max-new-tokens", default=8, type=int)
     parser.add_argument("--rewind-threshold", default=8, type=int)
     parser.add_argument("--inaccessible-ms", default=0.0, type=float)
-    parser.add_argument("--scheduler-stall-seconds", default=1.2, type=float)
-    parser.add_argument("--max-history-utterances", default=1, type=int)
+    parser.add_argument("--max-history-utterances", default=0, type=int)
     parser.add_argument("--tag", default=None)
     return parser.parse_args()
 
@@ -183,10 +181,8 @@ def run_baseline_in_kernel(
     chunk_ms: int,
     min_start_seconds: float,
     partial_max_new_tokens: int,
-    partial_followup_max_new_tokens: int,
     rewind_threshold: int,
     inaccessible_ms: float,
-    scheduler_stall_seconds: float,
     max_history_utterances: int,
     output_dir: str,
     run_provenance: dict,
@@ -194,10 +190,8 @@ def run_baseline_in_kernel(
     overrides = {
         "min_start_seconds": float(min_start_seconds),
         "partial_max_new_tokens": int(partial_max_new_tokens),
-        "partial_followup_max_new_tokens": int(partial_followup_max_new_tokens),
         "translation_alignatt_rewind_threshold": int(rewind_threshold),
         "translation_alignatt_inaccessible_ms": float(inaccessible_ms),
-        "translation_scheduler_stall_seconds": float(scheduler_stall_seconds),
         "max_history_utterances": int(max_history_utterances),
     }
     overrides_json = json.dumps(overrides)
@@ -249,7 +243,6 @@ def main() -> None:
         f"=== Latency experiment: chunk_ms={args.chunk_ms} "
         f"min_start={args.min_start_seconds} "
         f"partial_max={args.partial_max_new_tokens} "
-        f"followup_max={args.partial_followup_max_new_tokens} "
         f"rewind={args.rewind_threshold} "
         f"inaccessible_ms={args.inaccessible_ms} "
         f"history={args.max_history_utterances} ==="
@@ -269,10 +262,8 @@ def main() -> None:
             chunk_ms=args.chunk_ms,
             min_start_seconds=args.min_start_seconds,
             partial_max_new_tokens=args.partial_max_new_tokens,
-            partial_followup_max_new_tokens=args.partial_followup_max_new_tokens,
             rewind_threshold=args.rewind_threshold,
             inaccessible_ms=args.inaccessible_ms,
-            scheduler_stall_seconds=args.scheduler_stall_seconds,
             max_history_utterances=args.max_history_utterances,
             output_dir=str(output_dir),
             run_provenance=run_provenance,

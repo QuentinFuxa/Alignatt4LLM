@@ -1,13 +1,22 @@
-# Results — Qwen3 ASR + Gemma vLLM MT cascade
+# Results — historical calibration for the Qwen3 ASR + Gemma vLLM MT cascade
 
 This doc consolidates the end-to-end results produced in the 2026-04-16 Phase 0 → Phase 6 push. All numbers come from `run_simulstream_batch.py` using the real `CascadeAlignAttProcessor` path — no research-harness shortcuts. All evaluations go through `evaluate_cascade_outputs.py` (OmniSTEval + XCOMET-XL).
 
-## Recommended runtime configuration
+Important: the current worktree exposes a smaller runtime surface than some of the historical runs recorded below. In particular, public `asr_commit_mode`, `alignatt_frontier`, `stable_and_accessible`, and `partial_followup_max_new_tokens` are no longer shipped knobs in the simplified runtime. Treat each archived run's `manifest.json` as the exact provenance of that run.
 
-- `alignment_backend_name = "qwen_forced"`  (Qwen3-ASR-1.7B + Qwen3-ForcedAligner-0.6B)
-- `mt_backend_name        = "gemma_vllm_alignatt"`  (Gemma-4-E4B MT through vLLM + engine-native AlignAtt observer)
+## Current worktree surface vs historical calibration
 
-Defaults that matter for latency/quality:
+- Current shipped pair:
+  - `alignment_backend_name = "qwen_forced"`
+  - `mt_backend_name        = "gemma_vllm_alignatt"`
+- Current simplified runtime:
+  - fixed ASR commit path = `punctuation_lcp` + EOS flush
+  - partial MT conditioning = full live ASR tail, with unstable trailing sentence punctuation stripped
+  - target emission limit = MT-side AlignAtt acceptance on that full MT-visible source prefix
+  - `run_simulstream_batch.py` defaults to `chunk_ms=800`, `max_history_utterances=0`
+  - frozen submission presets use `chunk_ms=450` and `chunk_ms=700`
+
+The calibration runs most often cited in this doc were produced on the earlier tuning surface below:
 
 ```
 chunk_ms                                = 450  (see calibration table below)
@@ -44,13 +53,15 @@ Historical baseline (same numerics, chunk_ms=450 only):
 `outputs/simulstream_phase6_one_clip/` (BLEU 27.5133, chrF 63.5404,
 COMET 0.861, CA 1473 ms, CU 1766 ms).
 
-## Mechanism ablation: `stable_and_accessible` K-sweep
+## Historical mechanism ablation: `stable_and_accessible` K-sweep
 
 Third ASR commit rule introduced 2026-04-16 overnight: a source word is
 committable iff it is both *accessible* (aligned end_time ≥ margin
 behind the audio frontier) AND *stable* (identical at the same position
 in the last K consecutive ASR hypotheses). `alignatt_frontier` is the
 K=2 special case; `asr_stability_k` controls K for K ≥ 2.
+
+This section is historical reference only: the current simplified worktree no longer exposes these ASR commit modes as public runtime knobs.
 
 Same clip / configuration (`ccpXHNfaoy.wav`, chunk_ms=450,
 margin = 500 ms, `qwen_forced` + `gemma_vllm_alignatt`):
@@ -249,7 +260,7 @@ Provenance *magnitudes* differ between the Transformers MT backend (Python hook 
 
 The numerical deltas are within single-digit ms per-token but accumulate across 8 heads and get amplified through softmax.
 
-**Practical impact:** acceptance decisions (stop_reason, blocked_frontier) are reproducible; provenance *absolute means* are not bit-identical. For paper figures that depend on exact provenance numbers, use the Transformers backend. For runtime / latency measurements, the vLLM backend is the one we ship.
+**Practical impact:** acceptance decisions (stop_reason, blocked_frontier) are reproducible; provenance *absolute means* are not bit-identical. The shipped runtime now standardises on the vLLM backend; treat the old Transformers measurements in this section as historical calibration only.
 
 ## Historical RTF anchors (for reference)
 
@@ -266,7 +277,7 @@ Caveat: smoke18 is a short clip, different git SHAs produced the snapshots, and 
 
 ---
 
-## Scalar source-frontier substitution (paper mechanism, 2026-04-17)
+## Scalar source-frontier substitution (historical ablation, removed from active runtime)
 
 **Mechanism.** The discrete `source_frontier` gate stops the MT policy
 loop when `current_source_local_position >= accessible_source_token_count`.
@@ -274,8 +285,8 @@ The scalar substitution replaces that boolean with a threshold on the
 observer's provenance mass: stop when
 `source_inaccessible_mass >= threshold` (default 0.015).
 
-Configured via `translation_source_frontier_mode=scalar` +
-`translation_source_frontier_scalar_threshold=<float>`.
+These measurements are preserved for traceability only. The scalar gate was
+an exploratory branch and is no longer exposed by the active runtime.
 
 ### Single-clip A/B (ccpXHNfaoy.wav, Transformers MT, chunk_ms=450)
 

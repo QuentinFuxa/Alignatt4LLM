@@ -1,9 +1,9 @@
-"""Single-prompt and curated-set MT backend parity harness (PLAN.md Phases 1-4).
+"""Single-prompt and curated-set MT backend probe harness.
 
-The orchestrator spawns one child subprocess per MT backend so the PyTorch
-(Transformers) and vLLM allocators never share a CUDA context, then runs
-every prompt in the set inside that child to amortize the ~60s vLLM engine
-load.
+Retained under its historical filename, but the active repo now supports a
+single MT backend only: ``gemma_vllm_alignatt``. The harness still runs each
+prompt inside an isolated child subprocess so repeated prompt probes do not
+pollute the live vLLM allocator state.
 
 Single-prompt shape (backward compatible):
 
@@ -37,10 +37,7 @@ defaults. ``min_source_mass`` is applied to
 ``CascadeRuntimeConfig.translation_alignatt_min_source_mass`` for that
 prompt only.
 
-Phase 1+ notes: ``gemma_vllm_alignatt`` uses the MT AlignAtt observer from
-Phase 2 and matches the Transformers acceptance contract from Phase 3. The
-policy loop runs over the trimmed draft (excluding trailing stop tokens) so
-provenance means and operating token counts align across backends.
+``gemma_vllm_alignatt`` uses the MT AlignAtt observer from the shipped runtime.
 """
 from __future__ import annotations
 
@@ -66,8 +63,6 @@ from cascade_translation_variants import RenderedTranslationPrompt, TRANSLATION_
 
 
 _BACKEND_ALIASES = {
-    "transformers": "gemma_transformers_alignatt",
-    "gemma_transformers_alignatt": "gemma_transformers_alignatt",
     "vllm": "gemma_vllm_alignatt",
     "gemma_vllm_alignatt": "gemma_vllm_alignatt",
 }
@@ -122,8 +117,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--backends",
         nargs="+",
-        default=["transformers", "vllm"],
-        help="Backend selection. Aliases: transformers, vllm.",
+        default=["vllm"],
+        help="Backend selection. Only the shipped alias 'vllm' is supported.",
     )
     parser.add_argument("--output", required=True)
     # Worker-mode private flags.

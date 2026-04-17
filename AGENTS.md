@@ -16,6 +16,7 @@ For each change, examine the existing system and redesign it into the most elega
 - Avoid test bloat, hyper-granular assertion noise, and large test scaffolding for temporary or exploratory changes.
 - Do not hesitate to remove, replace, or redesign code that is poorly conceived. During this phase, strong cleanup and bold simplification are encouraged when they improve the system.d
 - What we want here, is, more generally, break alignatt for LLMs. Goal is to write a paper. That's a challenge, and that justify the investigation you should deep dive in. The more interessting and clever/replicable/solid/ implementaiton, the happier i am
+- **Never emit `deleted_tokens` or `deleted_string`. Streaming output is append-only: once target text has been emitted, we forbid rewriting the past.**
 
 ## Runtime notes
 - The active runtime lives in `cascade_runtime.py`.
@@ -31,10 +32,9 @@ For each change, examine the existing system and redesign it into the most elega
 
 ### Supported MT backends
 
-- `gemma_transformers_alignatt` = Gemma-4-E4B MT through Transformers + Python-hook AlignAtt — **stable, default**
-- `gemma_vllm_alignatt` = Gemma-4-E4B MT through vLLM + engine-native MT AlignAtt observer — experimental, Phase 5-validated
+- `gemma_vllm_alignatt` = Gemma-4-E4B MT through vLLM + engine-native MT AlignAtt observer — **sole supported MT backend**
 
-MT backend selection is an independent runtime axis (`--mt-backend-name` on `run_simulstream_batch.py`). See `docs/MT_VLLM_BACKEND.md`.
+MT now has one supported path. See `docs/MT_VLLM_BACKEND.md`.
 
 Everything else is historical or archived. `hybrid_*` and `gemma_two_pass` are no longer active backends. `eager` remains acceptable only for explicit calibration / debug tooling.
 

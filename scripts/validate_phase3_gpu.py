@@ -28,8 +28,7 @@ def main():
         config,
         min_start_seconds=2.0,
         partial_max_new_tokens=16,
-        partial_followup_max_new_tokens=8,
-        max_history_utterances=1,
+        max_history_utterances=0,
         translation_alignatt_inaccessible_ms=0.0,
         translation_alignatt_rewind_threshold=8,
     ):

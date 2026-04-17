@@ -9,8 +9,8 @@ Runs audio through the real CascadeAlignAttProcessor and reports:
   - peak GPU memory (if available)
 
 Usage (from .venv-inference):
-    python benchmark_simulstream_speed.py --wav test-set/audio/ccpXHNfaoy.wav
-    python benchmark_simulstream_speed.py --wav test-set/audio/ccpXHNfaoy.wav --chunk-ms 800 --target de
+    python benchmark_simulstream_speed.py --wav dev-set/audio/ccpXHNfaoy.wav
+    python benchmark_simulstream_speed.py --wav dev-set/audio/ccpXHNfaoy.wav --chunk-ms 800 --target de
 """
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def load_wav_raw(path: str) -> np.ndarray:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="SimulStream speed benchmark.")
     parser.add_argument("--wav", required=True, help="Input WAV file path.")
-    parser.add_argument("--chunk-ms", default=450, type=int, help="Chunk size in ms.")
+    parser.add_argument("--chunk-ms", default=800, type=int, help="Chunk size in ms.")
     parser.add_argument("--source", default="en", help="Source language code.")
     parser.add_argument("--target", default="de", help="Target language code.")
     parser.add_argument(
@@ -59,9 +59,8 @@ def parse_args() -> argparse.Namespace:
         choices=("qwen_forced", "gemma_onepass_qk_fast"),
     )
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
-    parser.add_argument("--max-history-utterances", default=1, type=int)
+    parser.add_argument("--max-history-utterances", default=0, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
-    parser.add_argument("--partial-followup-max-new-tokens", default=8, type=int)
     parser.add_argument("--translation-alignatt-min-source-mass", default=0.0, type=float)
     parser.add_argument("--output-json", default=None, help="Write results to JSON file.")
     return parser.parse_args()
@@ -89,7 +88,6 @@ def main() -> None:
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         partial_max_new_tokens=args.partial_max_new_tokens,
-        partial_followup_max_new_tokens=args.partial_followup_max_new_tokens,
         translation_alignatt_min_source_mass=args.translation_alignatt_min_source_mass,
     )
 
@@ -112,7 +110,6 @@ def main() -> None:
     chunk_times_ms: list[float] = []
     num_updates_with_output = 0
     total_new_tokens = 0
-    total_deleted_tokens = 0
 
     try:
         import torch as _torch
@@ -131,7 +128,6 @@ def main() -> None:
         if output.new_tokens:
             num_updates_with_output += 1
             total_new_tokens += len(output.new_tokens)
-        total_deleted_tokens += len(output.deleted_tokens)
 
     eos_start = perf_counter()
     eos_output = processor.end_of_stream()
@@ -141,7 +137,6 @@ def main() -> None:
     if eos_output.new_tokens:
         num_updates_with_output += 1
         total_new_tokens += len(eos_output.new_tokens)
-    total_deleted_tokens += len(eos_output.deleted_tokens)
 
     sorted_times = sorted(chunk_times_ms)
     n_chunks = len(chunk_times_ms)
@@ -169,7 +164,6 @@ def main() -> None:
         "eos_ms": round(eos_ms, 2),
         "num_updates_with_output": num_updates_with_output,
         "total_new_tokens": total_new_tokens,
-        "total_deleted_tokens": total_deleted_tokens,
         "peak_gpu_mb": round(peak_gpu_mb, 1) if peak_gpu_mb is not None else None,
     }
 
@@ -188,7 +182,6 @@ def main() -> None:
     print(f"  EOS time:           {eos_ms:.1f} ms")
     print(f"  Updates w/ output:  {num_updates_with_output}")
     print(f"  Total new tokens:   {total_new_tokens}")
-    print(f"  Total deleted:      {total_deleted_tokens}")
     if peak_gpu_mb is not None:
         print(f"  Peak GPU memory:    {peak_gpu_mb:.0f} MB")
     print("=" * 60)

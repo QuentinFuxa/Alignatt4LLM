@@ -7,13 +7,13 @@ models hot across audios to avoid repeated 5-minute load costs.
 Usage (from .venv-inference):
     # Sanity set (3 audios):
     python run_simulstream_batch.py \\
-        --inputs test-set/audio/myfXyntFYL.wav test-set/audio/DyXpuURBMP.wav test-set/audio/ccpXHNfaoy.wav \\
+        --inputs dev-set/audio/myfXyntFYL.wav dev-set/audio/DyXpuURBMP.wav dev-set/audio/ccpXHNfaoy.wav \\
         --output-dir outputs/simulstream_batch_ende_2s \\
         --chunk-ms 450 --target de
 
     # Full set (all supported media files in directory):
     python run_simulstream_batch.py \\
-        --input-dir test-set/audio/ \\
+        --input-dir dev-set/audio/ \\
         --output-dir outputs/simulstream_fullset_ende_2s \\
         --chunk-ms 450 --target de
 """
@@ -43,7 +43,7 @@ from cascade_artifacts import (
     write_json,
     write_jsonl,
 )
-from cascade_text_surface import is_char_level_target_lang, split_target_emission_units
+from cascade_text_surface import prediction_text_from_target_surface
 from cascade_emission import register_translation_timestamps, register_translation_words
 from simulstream.server.speech_processors import SAMPLE_RATE
 
@@ -84,7 +84,7 @@ def run_single_audio(
         audio_processed_ms = min((start_sample + chunk_size), len(audio)) * 1000.0 / SAMPLE_RATE
         wallclock_elapsed_ms = (perf_counter() - start_time) * 1000.0
 
-        if output.new_tokens or output.deleted_tokens:
+        if output.new_tokens:
             register_translation_timestamps(
                 last_raw_translation, current_translation,
                 wallclock_elapsed_ms, word_elapsed_ms,
@@ -121,7 +121,7 @@ def run_single_audio(
     final_translation = processor.tokens_to_string(processor._emitted_units)
     final_elapsed_ms = (perf_counter() - start_time) * 1000.0
 
-    if eos_output.new_tokens or eos_output.deleted_tokens or final_translation != last_translation:
+    if eos_output.new_tokens or final_translation != last_translation:
         register_translation_timestamps(
             last_raw_translation, final_translation,
             final_elapsed_ms, word_elapsed_ms,
@@ -155,8 +155,10 @@ def run_single_audio(
     rtf = total_wallclock_s / (audio_duration_ms / 1000.0) if audio_duration_ms > 0 else 0.0
 
     normalized_elapsed_ms = normalize_computation_aware_timestamps(word_delays_ms, word_elapsed_ms)
-    units = split_target_emission_units(final_translation, target_lang_code=target_lang_code)
-    prediction = "".join(units) if is_char_level_target_lang(target_lang_code) else " ".join(units)
+    prediction = prediction_text_from_target_surface(
+        final_translation,
+        target_lang_code=target_lang_code,
+    )
 
     return {
         "input_path": input_path,
@@ -288,15 +290,20 @@ def run_batch_inference(
         "min_start_seconds": getattr(processor_config, "min_start_seconds"),
         "max_history_utterances": getattr(processor_config, "max_history_utterances"),
         "partial_max_new_tokens": getattr(processor_config, "partial_max_new_tokens"),
-        "partial_followup_max_new_tokens": getattr(processor_config, "partial_followup_max_new_tokens"),
         "translation_alignatt_min_source_mass": getattr(
             processor_config, "translation_alignatt_min_source_mass"
         ),
         "translation_alignatt_rewind_threshold": getattr(
             processor_config, "translation_alignatt_rewind_threshold"
         ),
+        "translation_alignatt_border_margin": getattr(
+            processor_config, "translation_alignatt_border_margin", 0
+        ),
         "translation_alignatt_inaccessible_ms": getattr(
             processor_config, "translation_alignatt_inaccessible_ms"
+        ),
+        "translation_alignatt_argmax_mass_threshold": getattr(
+            processor_config, "translation_alignatt_argmax_mass_threshold", 0.0
         ),
         "hypothesis_elapsed_semantics": HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
         "stream_update_elapsed_semantics": STREAM_UPDATE_ELAPSED_SEMANTICS_WALLCLOCK,
@@ -310,8 +317,6 @@ def run_batch_inference(
         "asr_streaming_prefix_enabled", "asr_streaming_rollback_words",
         "asr_streaming_unfixed_chunks",
         "gemma_vllm_force_generate_api",
-        "asr_commit_mode", "asr_alignatt_frontier_margin_ms",
-        "asr_stability_k",
         "paper_context_path", "paper_context_mode", "paper_context_top_k",
         "paper_context_max_chars", "paper_context_history_window_words",
         "mt_vllm_enforce_eager", "mt_vllm_cudagraph_mode",
@@ -384,7 +389,7 @@ def parse_args() -> argparse.Namespace:
         help="Directory of input media files (all supported files used).",
     )
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--chunk-ms", default=450, type=int)
+    parser.add_argument("--chunk-ms", default=800, type=int)
     parser.add_argument("--source", default="en")
     parser.add_argument("--target", default="de")
     parser.add_argument(
@@ -392,20 +397,45 @@ def parse_args() -> argparse.Namespace:
         default="qwen_forced",
         choices=("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast"),
     )
-    parser.add_argument(
-        "--mt-backend-name",
-        default="gemma_transformers_alignatt",
-        choices=("gemma_transformers_alignatt", "gemma_vllm_alignatt"),
-        help="Experimental MT backend axis (PLAN.md Phase 0). Default stays on "
-        "the stable Transformers MT path.",
-    )
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
-    parser.add_argument("--max-history-utterances", default=1, type=int)
+    parser.add_argument("--max-history-utterances", default=0, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
-    parser.add_argument("--partial-followup-max-new-tokens", default=8, type=int)
     parser.add_argument("--translation-alignatt-min-source-mass", default=0.0, type=float)
     parser.add_argument("--translation-alignatt-rewind-threshold", default=8, type=int)
+    parser.add_argument(
+        "--translation-alignatt-border-margin",
+        default=0,
+        type=int,
+        help=(
+            "Speculative look-ahead tokens beyond the accessible source frontier. "
+            "0 (default) keeps the strict AlignAtt source_frontier rule; positive "
+            "values let drafted tokens commit even when their attention argmax "
+            "points up to N tokens past the last accessible ASR-committed source."
+        ),
+    )
     parser.add_argument("--translation-alignatt-inaccessible-ms", default=0.0, type=float)
+    parser.add_argument(
+        "--translation-alignatt-argmax-mass-threshold",
+        default=0.0,
+        type=float,
+        help=(
+            "Confidence-gated acceptance threshold on the reconstructed softmax "
+            "mass at the argmax source position (per-head averaged). Default "
+            "0.0 disables the gate and preserves argmax-only AlignAtt; raising "
+            "it stops acceptance with reason 'alignatt:argmax_mass_weak' when "
+            "the attention at the aligned source token is too diffuse."
+        ),
+    )
+    parser.add_argument(
+        "--mt-vllm-enable-prefix-caching",
+        action="store_true",
+        help=(
+            "Enable vLLM prefix caching for the MT backend. Caches the stable "
+            "prompt prefix (system + task instructions) across partial MT "
+            "calls within an utterance. Source tokens live after the stable "
+            "prefix, so the observer still captures their K on every prefill."
+        ),
+    )
     parser.add_argument(
         "--asr-streaming-prefix-enabled",
         action="store_true",
@@ -420,40 +450,6 @@ def parse_args() -> argparse.Namespace:
             "Ablation control for PLAN.md step 1: force gemma_vllm_qk_fast to use "
             "llm.generate(prompt_token_ids, multi_modal_data) even without a "
             "streaming prefix. Isolates the API path change from prefix-prefill."
-        ),
-    )
-    parser.add_argument(
-        "--asr-commit-mode",
-        choices=("alignatt_frontier", "punctuation_lcp", "stable_and_accessible"),
-        default="punctuation_lcp",
-        help=(
-            "ASR-side commit rule. 'punctuation_lcp' (default) commits when the "
-            "LCP of two consecutive ASR hypotheses contains a sentence-terminal "
-            "punctuation mark; works well with Qwen3-ASR. 'alignatt_frontier' "
-            "is the model-agnostic fallback for ASR backends that do not emit "
-            "punctuation. 'stable_and_accessible' requires both frontier "
-            "accessibility and K-hypothesis stability (K = --asr-stability-k); "
-            "K=2 is equivalent to 'alignatt_frontier', K>=3 is strictly more "
-            "conservative. See docs/RESULTS.md for the BLEU/CA tradeoff."
-        ),
-    )
-    parser.add_argument(
-        "--asr-alignatt-frontier-margin-ms",
-        type=float,
-        default=500.0,
-        help=(
-            "Safety margin (ms) for alignatt_frontier and "
-            "stable_and_accessible commit rules. Default 500."
-        ),
-    )
-    parser.add_argument(
-        "--asr-stability-k",
-        type=int,
-        default=3,
-        help=(
-            "K for 'stable_and_accessible' commit rule. Word prefix must be "
-            "identical across the last K ASR hypotheses before it is eligible "
-            "for commit. K=2 collapses to 'alignatt_frontier'. Default 3."
         ),
     )
     parser.add_argument(
@@ -504,21 +500,20 @@ def main() -> None:
         chunk_ms=args.chunk_ms,
         speech_chunk_size=args.chunk_ms / 1000.0,
         alignment_backend_name=args.alignment_backend_name,
-        mt_backend_name=args.mt_backend_name,
+        mt_backend_name="gemma_vllm_alignatt",
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         partial_max_new_tokens=args.partial_max_new_tokens,
-        partial_followup_max_new_tokens=args.partial_followup_max_new_tokens,
         translation_alignatt_min_source_mass=args.translation_alignatt_min_source_mass,
         translation_alignatt_rewind_threshold=args.translation_alignatt_rewind_threshold,
+        translation_alignatt_border_margin=args.translation_alignatt_border_margin,
         translation_alignatt_inaccessible_ms=args.translation_alignatt_inaccessible_ms,
+        translation_alignatt_argmax_mass_threshold=args.translation_alignatt_argmax_mass_threshold,
+        mt_vllm_enable_prefix_caching=args.mt_vllm_enable_prefix_caching,
         asr_streaming_prefix_enabled=args.asr_streaming_prefix_enabled,
         asr_streaming_rollback_words=args.asr_streaming_rollback_words,
         asr_streaming_unfixed_chunks=args.asr_streaming_unfixed_chunks,
         gemma_vllm_force_generate_api=args.gemma_vllm_force_generate_api,
-        asr_commit_mode=args.asr_commit_mode,
-        asr_alignatt_frontier_margin_ms=args.asr_alignatt_frontier_margin_ms,
-        asr_stability_k=args.asr_stability_k,
         paper_context_path=args.paper_context_path,
         paper_context_mode=args.paper_context_mode,
         paper_context_top_k=args.paper_context_top_k,

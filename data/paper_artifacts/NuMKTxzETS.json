@@ -1,0 +1,465 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "NuMKTxzETS",
+  "source_pdf": "test-set/pdf/NuMKTxzETS.pdf",
+  "title": "Shall We Pretrain Autoregressive Language Models with Retrieval? A Comprehensive Study",
+  "authors": "Boxin Wang[∗][‡][1] Wei Ping[∗†][2] Zihan Liu[2] Mohammad Shoeybi[2] \n\nBo Li[1] Chaowei Xiao[2][,][3] \n\nPeng Xu[∗][2] Lawrence McAfee[2] Yi Dong[2] Oleksii Kuchaiev[2] Anima Anandkumar[2] Bryan Catanzaro[2]",
+  "abstract": "Large decoder-only language models (LMs) can be largely improved in terms of perplexity by retrieval ( e.g. , RETRO), but its impact on text generation quality and downstream task accuracy is unclear. Thus, it is still an open question: shall we pretrain large autoregressive LMs with retrieval? To answer it, we perform a comprehensive study on a scalable pretrained retrieval-augmented LM (i.e., RETRO) compared with standard GPT and retrievalaugmented GPT incorporated at fine-tuning or inference stages. We first provide the recipe to reproduce RETRO up to 9.5B parameters while retrieving a text corpus with 330B tokens. Based on that, we have the following novel findings: i) RETRO outperforms GPT on text generation with much less degeneration (i.e., repetition), moderately higher factual accuracy, and slightly lower toxicity with a nontoxic retrieval database. ii) On the LM Evaluation Harness benchmark, RETRO largely outperforms GPT on knowledge-intensive tasks, but is on par with GPT on other tasks. Furthermore, we introduce a simple variant of the model, RETRO++, which largely improves open-domain QA results of original RETRO (e.g., EM score +8 . 6 on Natural Question) and significantly outperforms retrieval-augmented GPT in both finetuning and zero-shot evaluation settings. Our findings highlight the promising direction of pretraining autoregressive LMs with retrieval as future foundation models. We release our implementation at: https://github.com/N VIDIA/Megatron-LM#retro.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "Large language models (LMs), including masked LMs (e.g., BERT (Devlin et al., 2018)), autoregressive LMs (e.g., GPT (Brown et al., 2020)), and encoder-decoder LMs (e.g., T5 (Raffel et al.,",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "> ∗ Equal contribution. ‡Work done during an internship at NVIDIA.[1] UIUC.[2] NVIDIA.[3] University of Wisconsin, Madison. †Correspondence to: Wei Ping <wping@nvidia.com>",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "2020), BART (Lewis et al., 2020a)), have obtained state-of-the-art results for various NLP tasks. Among them, the autoregressive LMs like GPT3 (Brown et al., 2020) and GPT-4 (OpenAI, 2023) demonstrate noticeable in-context learning ability and excellent long-form text generation results. Due to its importance, the community has spent considerable efforts to scale up such autoregressive generative LMs with more data and parameters and observed significant breakthroughs in a variety of real-world applications (e.g., Brown et al., 2020), including open-ended text generation and various downstream tasks (e.g., question answering). The successful public examples include GPT-3 (w/ 170B parameters) (Brown et al., 2020), Gopher (280B) (Rae et al., 2021), Megatron-Turing (530B) (Smith et al., 2022), and PaLM (540B) (Chowdhery et al., 2022).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "Although large-scale autoregressive LMs have achieved huge successes, they also suffer from several weaknesses. First, it requires a huge number of model parameters to memorize the world knowledge, which makes it costly for deployment. Second, it is difficult to safeguard factual accuracy, which may provide users with incorrect information (Lee et al., 2022). Third, it is expensive to update the model knowledge learned during pretraining with up-to-date facts (Meng et al., 2022), yielding outdated answers (Lewis et al., 2020b).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "To mitigate the problems above, one line of research proposes to improve language models with retrieval. The retrieval process can be integrated into LMs at: i) fine-tuning stage (Karpukhin et al., 2020; Lewis et al., 2020b; Guu et al., 2020), or ii) pretraining stage (Borgeaud et al., 2022; Izacard et al., 2022). Most previous work augments BERT or encoder-decoder LMs with retrieval at fine-tuning stage, demonstrating successes for knowledge-intensive NLP tasks (Guu et al., 2020; Karpukhin et al., 2020; Lewis et al., 2020b; Khandelwal et al., 2020). However, it re-",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "mains relatively underexplored to pretrain autoregressive (decoder-only) LMs with retrieval , especially considering the noticeable success of ChatGPT (OpenAI, 2022) that underscores the extreme importance of the autoregressive LMs.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "Most recently, RETRO (Borgeaud et al., 2022) proposes to pretrain autoregressive LMs with a retrieval module, which is practically scalable to large-scale pretraining from scratch by retrieving billions of token and largely reduces model parameters while achieving lower perplexity than standard GPT. It also provides the flexibility to update the knowledge stored in LMs (Petroni et al., 2019) by updating the retrieval database without training LMs again. The success of pretraining LMs with retrieval raises an important question for the community if we want to pretrain autoregressive LMs in the future: Shall we pretrain autoregressive (decode-only) LMs with retrieval by default or not? However, previous work (Borgeaud et al., 2022) misses the important evaluation on whether the model like RETRO could obtain comparable or even better results in terms of open-ended text generation and various NLP downstream tasks, apart from lower perplexity on the held-out dataset compared to standard",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "GPT.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "To answer the above question and bridge the missing gap, we perform an extensive study on RETRO, as to the best of our knowledge, RETRO is the only retrieval-augmented autoregressive LM that supports large-scale pretraining with retrieval on the massive pretraining corpus with hundreds of billion or trillion tokens. Our comprehensive study sheds light on the promising direction of pertaining autoregressive LMs with retrieval to serve as future foundation models, as they overall outperform standard GPT models in terms of perplexity, text generation quality, and downstream task performances, especially for knowledge-intensive tasks, including open-domain QA.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "We successfully reproduce and pretrain RETRO (Borgeaud et al., 2022) from scratch[1] , with parameter sizes ranging from 148M up to 9.5B by retrieving from a text corpus with over 330B tokens. In addition, we discuss the inference strategy of RETRO for text generation that is not covered in Borgeaud et al. (2022), and perform a large-scale",
+      "section": "2 Key Findings"
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "evaluation in different scenarios.",
+      "section": "2 Key Findings"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "To minimize the discrepancy variables between RETRO and GPT, we use the same decoder architecture, same hyper-parameters, and same pre-training corpus to pre-train RETRO and GPT given the same number of pre-training steps. We highlight our novel findings for RETRO and GPT as follows:",
+      "section": "2 Key Findings"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "We conduct a systematic study (see §5) to understand and analyze RETRO by evaluating its openended text generation quality via human and automatic evaluations. RETRO exhibits better performance than GPT with considerably less repetition , moderately higher factual accuracy , and slightly lower toxicity levels. RETRO is on par with GPT in terms of fluency , coherence .",
+      "section": "2.1 Text Generation"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "In terms of zero-shot evaluation on the standard benchmark, RETRO can overall improve upon the GPT across different tasks, significantly outperforming GPT on knowledge-intensive tasks such as Hellaswag and BoolQ while achieving similar performance on other tasks. Specifically, we evaluate the zero-shot capabilities of RETRO and GPT on nine representative NLP downstream classification tasks (see §6). Additionally, our findings demonstrate that RETRO can leverage retrieved neighbors and significantly improves accuracy for knowledgeintensive tasks in zero-shot evaluations. In contrast, incorporating these retrieved neighbors directly during the inference stage can hurt GPT’s performance. These results further substantiate the potential of RETRO, which is pre-trained with retrieval capabilities, as a promising approach.",
+      "section": "2.2 LM Evaluation Harness Benchmark"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "For open-domain QA tasks, RETRO achieves considerably superior performance than retrievalaugmented GPT that incorporates retrieval during fine-tuning across different model sizes and datasets. Specifically, we propose a variant of the model, RETRO++, for open-domain QA that feeds the most relevant evidence into the decoder and more evidence into its encoder, which is different from the original version (Borgeaud et al., 2022). RETRO++ can largely improve the exact matching score (EM) on Natrual Question from 40.9% to 54.1%, which is significant higher than the 45.5% reported by the original RETRO.",
+      "section": "2.3 Open-domain QA"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "+------------------+--------------+-----------------+-----------------+-----------------+-------------+ | Model Name | #/ Retrieval | When to Involve | Architecture | Initialization | Re-indexing | | | Tokens | Retrieval | | | | +------------------+--------------+-----------------+-----------------+-----------------+-------------+ | RETRO (Borgeaud | O(1012) | Pretraining | decoder-only | From Scratch / | No | | et al.) | | | | Pretrained GPT | | +------------------+--------------+-----------------+-----------------+-----------------+-------------+ | Atlas (Izacard | O(109) | Pretraining | encoder-decoder | Pretrained T5 | Yes | | et al.) | | | | | | +------------------+--------------+-----------------+-----------------+-----------------+-------------+ | REALM (Guu et | O(109) | Pretraining | encoder-only | Pretrained BERT | Yes | | al.) | | | | | | +------------------+--------------+-----------------+-----------------+-----------------+-------------+ | RAG (Lewis et | O(109) |",
+      "section": "2.3 Open-domain QA"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "Fine-tuning | encoder-decoder | Pretrained BART | No | | al.) | | | | | | +------------------+--------------+-----------------+-----------------+-----------------+-------------+ | DPR (Karpukhin | O(109) | Fine-tuning | encoder-only | Pretrained BERT | No | | et al.) | | | | | | +------------------+--------------+-----------------+-----------------+-----------------+-------------+ | FiD (Izacard and | O(109) | Fine-tuning | encoder-decoder | Pretrained T5 | No | | Grave) | | | | | | +------------------+--------------+-----------------+-----------------+-----------------+-------------+ | KNN-LM | O(109) | Inference | decoder-only | Pretrained GPT | No | | (Khandelwal et | | | | | | | al.) | | | | | | +------------------+--------------+-----------------+-----------------+-----------------+-------------+",
+      "section": "2.3 Open-domain QA"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Table 1: Comparison of different retrieval-augmented models in terms of #/ retrieval tokens, which stage to incorporate retrieval into LMs, the architecture of the backbone LM, whether it requires initialization from the existing LM checkpoint, and whether it requires expensive re-indexing. RETRO is the most scalable retrieval-augmented LM due to its chunk-level retrieval and scalable decoder-only autoregressive LM backbone (Thoppilan et al., 2022; Brown et al., 2020; Smith et al., 2022; Chowdhery et al., 2022) without expensive retrieval index refresh.",
+      "section": "2.3 Open-domain QA"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "Retrieval has been applied in various NLP tasks for years, including question answering (QA) (e.g., Bilotti et al., 2007), machine translation (e.g., Zhang et al., 2018), and conversation (Shuster et al., 2021; Thoppilan et al., 2022; Komeili et al., 2021). In particular, language models have been augmented with retrieval at different stages, including inference time (Khandelwal et al., 2020; Yogatama et al., 2021), fine-tuning stage (Karpukhin et al., 2020; Lewis et al., 2020b; Guu et al., 2020), and pretraining stage (Borgeaud et al., 2022; Izacard et al., 2022).",
+      "section": "3 Related Work"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "LMs have been augmented with retrieval at the fine-tuning stage for downstream tasks, primarily for open-domain QA. DPR (Karpukhin et al., 2020) finetunes one BERT to encode questions and the other BERT to encode answers within a dual encoder framework, using a contrastive loss to align the hidden representations of question and corresponding answer. RAG (Lewis et al., 2020b) studies the fine-tuning recipe for retrieval-augmented generation models, especially on open-domain QA tasks. FiD (Izacard and Grave, 2021) improves RAG with a better LM backbone T5, and fuses multiple retrieved passages to the decoder during fine-tuning to further improve QA accuracy. WebGPT (Nakano et al., 2021) leverages web search engine and fine-tunes GPT using reinforcement learning with human feedback (RLHF) for reference generation and factuality improvement, which is orthogonal to our work that focuses on pretraining with retrieval. The proposed RLHF can be applied to RETRO as well.",
+      "section": "3 Related Work"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "REALM (Guu et al., 2020) performs both unsupervised pretraining and supervised fine-tuning",
+      "section": "3 Related Work"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "strategies for retrieval-augmented BERT model in open-domain QA. Their pretraining involves asynchronous re-embedding and re-indexing all documents every several hundred training steps, which quickly becomes impractical for training corpus with trillion tokens. Atlas (Izacard et al., 2022) uses a similar approach but augments the T5 architecture (Raffel et al., 2020) with retrieval at both pre-training and fine-tuning. Before pretraining, it first initializes the encoder-decoder LM backbone with pretrained T5, and the dense retriever with pretrained Contriever (Izacard et al.). During pretraining, it also applies asynchronous index refresh every 1000 steps.",
+      "section": "3 Related Work"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "In contrast, RETRO (Borgeaud et al., 2022) embeds and indexes the whole training corpus at chunk-level (e.g., chuck size = 64) with a frozen BERT before pretraining. During pretraining, the model relies on a trainable bidirectional encoder to embed the retrieved chunks of raw text. The GPT decoder further “select” the relevant piece of evidence from the encoder side by a chunk-wise cross-attention. This architecture design enables LM pretraining on hundreds of billion tokens by retrieving from trillion tokens. See Table 1 for a complete comparison of retrieval-augmented LMs.",
+      "section": "3 Related Work"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "In this section, we first introduce preliminaries of RETRO, then provide detailed recipe of our implementation, including retrieval database, pretraining, and retrieval-augmented finetuning and generation.",
+      "section": "4 Model and Implementation"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "RETRO is an autoregressive language model enhanced with a retrieval module that utilizes chunkwise retrieval, enabling it to scale up to trillions of",
+      "section": "4.1 Preliminaries of RETRO"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "Figure 1: Visualization of padding design for RETRO.",
+      "section": "4.1 Preliminaries of RETRO"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "+-------------------+----------------------------------------------+ | | Small Medium XL XXL | +-------------------+----------------------------------------------+ | | | +-------------------+----------------------------------------------+ | GPT RETRO (k = 2) | 17.76 13.18 10.18 7.86 12.99 10.06 8.10 6.72 | +-------------------+----------------------------------------------+",
+      "section": "4.1 Preliminaries of RETRO"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "Table 2: Validation perplexity of pretrained GPT and RETRO on the held-out dataset. We report the results with k = 2 neighbors in this Table, and we observe the same trend of improvements with larger k as in Borgeaud et al. (2022).",
+      "section": "4.1 Preliminaries of RETRO"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "tokens. The model splits both the input sequence and retrieval datastore into sequences of chunks. RETRO retrieves nearest neighbor chunks from the retrieval database using the previous chunk and fuses this information with the context from preceding chunks to guide the generation of the next chunk. To maintain causality, the model can only use the nearest neighbors of the previous chunk for the autoregressive generation.",
+      "section": "4.1 Preliminaries of RETRO"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "As RETRO has no official open-source implementation and pretrained checkpoints, we reproduce and pretrain RETRO from scratch on our own.",
+      "section": "4.2 Implementation"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "We build the retrieval database with the whole pretraining dataset mentioned in §B. In this way, RETRO and standard GPT of similar size are fair comparisons, as they are pretrained using the same information from the pretraining corpus. The retrieval database is a key-value database, where values are chunks split from the pretraining corpus, and the keys are corresponding BERT embeddings. Our pertaining dataset with 330B tokens yields a retrieval database consisting of 5.3B chunks in total with chunk size m = 64.",
+      "section": "4.2.1 Retrieval Database"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "Retrieval Index. We use the Faiss index (Johnson et al., 2019) as the implementation for the dense retriever to search for approximate nearest neighbors in the BERT embedding space. We configure the Faiss index to cluster the dense embeddings into",
+      "section": "4.2.1 Retrieval Database"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "2[22] centroids accelerated with Hierarchical Navigable Small World graphs (Malkov and Yashunin, 2018) to speed up the query. We also encode the embeddings with optimized product quantization (Gray and Neuhoff, 1998; Ge et al., 2014) to compress memory overhead and further improve the query throughput. As a result, we can achieve 4 ms per query over the whole pretraining corpus averaged for each chunk on a DGX-2H node. One may find more details in Appendix §A.",
+      "section": "4.2.1 Retrieval Database"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "We use the same transformer configurations (#/ layers, hidden size, attention heads) and pretrain both RETRO and standard GPT from scratch. Specifically, we pretrain RETRO across different parameter sizes, ranging from 148M (Small), 410M (Medium), 1.5B (XL), and 9.5B (XXL). We also use the same pretraining schedules to pretrain RETRO and GPT given the same number of steps. We list the validation perplexity of GPT and RETRO after pretraining in Table 2. We present more details in Appendix §B, including pretraining schedules, computational cost (GPU hours), and model architectures.",
+      "section": "4.2.2 Pretraining RETRO Models"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "We discuss the generation and inference recipe in the batch-processing mode for RETRO, which is missing from the previous literature.",
+      "section": "4.2.3 Retrieval-augmented Generation"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "“Left Padding” Rule. The chunk-wise retrieval of RETRO improves scalability but enforces chunkwise alignment constraints, leading to issues in conditional generations with short contexts. When the sequence length is less than the chunk size, RETRO cannot utilize its retrieval capability as there is no previous chunk for retrieval. Instead, RETRO adds padding tokens to the left of the context, allowing RETRO to leverage the retrieved neighbors from the previous context to guide the generation of the",
+      "section": "4.2.3 Retrieval-augmented Generation"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "+----------------------+----------------------+----------------------+------------------+------------------+ | Metrics | Small GPT RETRO | Medium GPT RETRO | XL GPT RETRO | XXL GPT RETRO | +----------------------+----------------------+----------------------+------------------+------------------+ +----------------------+----------------------+----------------------+------------------+------------------+ | Repetition % Self- | 2.86% 2.26% 0.29 0.3 | 1.70% 1.50% 0.29 0.3 | 1.44% 0.96% 0.29 | 1.40% 1.12% 0.31 | | BLEU Zipf Coeffcient | 0.98 0.98 | 0.96 0.98 | 0.29 0.97 0.98 | 0.31 0.96 0.96 | +----------------------+----------------------+----------------------+------------------+------------------+",
+      "section": "4.2.3 Retrieval-augmented Generation"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Table 3: Automatic evaluation on text generation quality for RETRO and GPT across different sizes.",
+      "section": "4.2.3 Retrieval-augmented Generation"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "next token (Figure 1a). We summarize this general principle in RETRO as the “left padding” rule, as it can leverage the contextual information for retrieval to the most. This rule remains preferable for input sequences larger than the chunk size, as it ensures the closest and rightmost context is used for retrieval, making it more relevant for next token prediction (see Figure 1b).",
+      "section": "4.2.3 Retrieval-augmented Generation"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "Frequency of Retrieval. In order to efficiently generate long sequences with RETRO, we note a flexible trade-off between retrieval-augmented generation and computation overhead. The direct method involves retrieval at every decoding step, maximizing the use of the retrieval module but increasing computational overhead (Figure 1b, retrieval step = 1). Another approach retrieves neighbors at the frequency of the chunk size, reducing overhead but sacrificing accuracy (Appendix Figure 3b, retrieval step = 64). To balance these factors, we introduce a flexible retrieval step, which allows model practitioners to choose how many tokens to generate with the current retrieved neighbors before updating the context. Smaller retrieval steps are preferred for downstream tasks with short answers to ensure accurate neighbors, while larger steps are used for efficient generation of long passages. We provide more details in Appendix §C.",
+      "section": "4.2.3 Retrieval-augmented Generation"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "When fine-tuning RETRO for downstream tasks (e.g., QA), it is crucial to separate context or question from the candidate answer chunk to maintain causality in autoregressive modeling. This leads to a modified \"left padding\" rule: pad context chunks from the left and answer chunks from the right (Figure 1c). Padding aligns input sequences with the chunk size, enabling batch-mode training and inference for faster evaluation. By adding padding chunks to the right, sequences with varying chunk numbers can be processed together, further improving efficiency.",
+      "section": "4.2.4 Batched Training for Downstream Tasks"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "In this section, we delve into the problem of openended text generation, which refers to tasks of generating coherent continuation given the preceding prompt. Given that this problem for RETRO has never been studied before, we manage to bridge the gap and evaluate the open-ended text generation of RETRO compared to GPT from three aspects: a ) text quality, b ) factuality, and c ) toxicity.",
+      "section": "5 Open-ended Text Generation"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "We perform both automatic and human evaluations.",
+      "section": "5.1 Text Quality"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "Evaluation Metrics. We follow prior work (Holtzman et al., 2019; Zhu et al., 2018) and consider the following metrics: Repetition % measures percentage of the generations containing repetitive phrases, SELF-BLUE evaluates the diversity of the generations, and Zipf Coefficient measures the use of vocabulary. See detailed definition and evaluation setup in Appendix §D.1.",
+      "section": "5.1.1 Automatic Evaluation"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "Experimental Results. Our results are shown in Table 3. We note that RETRO can reduce the percentage of repetition compared with GPT by a large margin across different sizes. Specifically, RETRO averagely mitigates 21% of repetitions compared with GPT across different sizes. This suggests the retrieval module can help reduce text degeneration by referencing retrieved human text. Regarding vocabulary use and generation diversity, we do not observe major differences between GPT and RETRO, which implies these properties are primarily dependent on the decoder component of LMs.",
+      "section": "5.1.1 Automatic Evaluation"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "We also conduct human evaluations to further verify the quality of the generated text.",
+      "section": "5.1.2 Human Evaluation"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "Evaluation Metrics. We ask human annotators to annotate each generation with fluency scores, which measure the human readability and grammatical errors from 1 (Not human-readable) to 5 (Very fluent), and coherence scores, which measure the",
+      "section": "5.1.2 Human Evaluation"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "+----------------------------------+-----------------------------+----------------------------+ | Decoding Models Factual | | | | Nonfactual NEER ↓ EntailR ↑ NEER | | | | ↓ EntailR ↑ | | | +----------------------------------+-----------------------------+----------------------------+ | Top-p=0.9 RETRO GPT | 52.14% 3.11% 52.42% 2.93% | 56.75% 2.06% 56.82% 2.04% | +----------------------------------+-----------------------------+----------------------------+ | Greedy RETRO GPT | 37.42% 16.66% 39.87% 12.91% | 42.45% 10.88% 45.02% 8.75% | +----------------------------------+-----------------------------+----------------------------+",
+      "section": "5.1.2 Human Evaluation"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "(a) The factuality on FACTUALITYPROMPTS benchmark.",
+      "section": "5.1.2 Human Evaluation"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "+-------------------------------+---------------------------------+-------------------------------+ | Models | QA Format MC1↑ MC2↑ | Null Format MC1↑ MC2↑ | +-------------------------------+---------------------------------+-------------------------------+ +-------------------------------+---------------------------------+-------------------------------+ | GPT RETRO (pretraining) RETRO | 0.222 0.377 0.239 0.382 - - - - | 0.234 0.435 0.248 0.439 0.242 | | (wiki) RETRO (DPR) | | 0.437 0.245 0.439 | +-------------------------------+---------------------------------+-------------------------------+",
+      "section": "5.1.2 Human Evaluation"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "(b) The truthfulness on TruthfulQA benchmark. Table 4: Evaluation of factuality and truthfulness of RETRO (XL) and GPT (XL).",
+      "section": "5.1.2 Human Evaluation"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "relevance between the prompt and the corresponding continuations from 1 (Not Relevant) to 5 (Very Relevant). More details can be found in §D.2. Experimental Results. We present the human vote histogram in Appendix Figure 4. We observe that most votes concentrate on the regime of scores > = 3 for both relevance and fluency, which indicates that our generated text from both models is of high quality and closely related to the prompts. The differences between GPT and RETRO are subtle, with average relevance (3.726) and fluency (3.826) scores of RETRO slightly outperforming the average relevance score (3.715) and fluency (3.818) scores of GPT.",
+      "section": "5.1.2 Human Evaluation"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "From both automatic and human evaluation, we can conclude that although the generation of RETRO adds some complexity, we do not see any sign of the degeneration of RETRO compared to GPT. Moreover, RETRO is shown to be able to reduce the repetition and slightly improve text generation quality.",
+      "section": "5.1.2 Human Evaluation"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "ble 4b, where we observe the consistent conclusion that RETRO tend to be more resilient to human falsehoods than GPT across different prompts (demonstrated in Appendix Table 12 and 13).",
+      "section": "5.1.2 Human Evaluation"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "Since using the null format yields consistently better performance, we thus fix the prompt and conduct ablation studies with different retrieval databases. We observe that the pretraining database and DPR database yield the best factual accuracy. This suggests that ( i ) finetuned retriever or ( ii ) retrieval from a larger corpus are helpful to improve factual accuracy. In addition, the improvement margin for RETRO on TruthfulQA is not as significant as on FACTUALITYPROMPTS. This is likely because TruthfulQA is an adversarial dataset containing difficult question types, such as logical falsehoods and indexical errors (e.g., “Are you an artificial intelligence?”, more examples can be found in Appendix Table 14). In these cases, retrieval from the database does not effectively aid in answering such questions.",
+      "section": "5.1.2 Human Evaluation"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "Factuality refers to being coherent to provide ground truth knowledge sources in NLP. We leverage two well-established benchmarks (Lee et al., 2022; Lin et al., 2021) to evaluate the factual accuracy of RETRO and GPT. We put detailed experimental setup and metrics in the §E.",
+      "section": "5.2 Factuality"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "Factuality Prompts. We present the results on FACTUALITYPROMPTS benchmark in Table 4a, where we follow the protocol (Lee et al., 2022) and use different decoding strategies for evaluation. We observe that overall RETRO demonstrates better factual accuracy and makes fewer hallucinations. Our observation also aligns with (Lee et al., 2022) that different from topp sampling with randomness, greedy decoding gives the much better factual accuracy by sacrificing sample diversity. RETRO shows a significant improvement over GPT using both top-p and greedy decoding algorithms.",
+      "section": "5.2 Factuality"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "TruthfulQA. We also evaluate truthfulness in Ta-",
+      "section": "5.2 Factuality"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "The toxicity of LMs refers to the possibility of LMs that output toxic generations. In this study, we follow REALTOXICTYPROMPTS benchmark (Gehman et al., 2020) to evaluate the potential toxicity of RETRO and GPT.",
+      "section": "5.3 Toxicity"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "Evaluation Metrics. Following Gehman et al. (2020), we report the Expected Maximum Toxicity , which evaluates the toxicity of the worst-case generation, as well as Toxicity Probability that estimates the empirical frequency of generating toxic language. See more details and setup in §F.",
+      "section": "5.3 Toxicity"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "Experimental Results. The toxicity of LMs are shown in Table 5. Compared to GPT, we note that RETRO with the pretraining corpus even increases the toxicity of the generations. Moreover, we observe more toxicity increases in toxic prompts than in nontoxic prompts. This suggests that when prompting RETRO with toxic contexts, it is more likely to retrieve toxic evidence and thus amplify",
+      "section": "5.3 Toxicity"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "+---------------------------+-------------------------+--------------------------+-------------------------+ | Models | Retrieval Database | Exp. Max. Toxicity (↓) | Toxicity Prob. (↓) Full | | | | Full Toxic Nontoxic | Toxic Nontoxic | +---------------------------+-------------------------+--------------------------+-------------------------+ +---------------------------+-------------------------+--------------------------+-------------------------+ | GPT | - | 0.44 0.64 0.39 | 37% 74% 27% | +---------------------------+-------------------------+--------------------------+-------------------------+ +---------------------------+-------------------------+--------------------------+-------------------------+ | RETRO (top-N = 2, top-K = | Pretraining Pretraining | 0.46 0.66 0.40 0.46 0.66 | 40% 76% 30% 39% 77% 29% | | 2) RETRO (top-N = 5, | Pretraining | 0.40 0.46 0.66 0.40 | 39% 76% 29% | | top-K = 2) RETRO (top-N = | | | | | 10, top-K = 2) | | | |",
+      "section": "5.3 Toxicity"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "+---------------------------+-------------------------+--------------------------+-------------------------+ +---------------------------+-------------------------+--------------------------+-------------------------+ | RETRO (top-N = 2, top-K = | Wiki Wiki Wiki | 0.43 0.64 0.38 0.43 0.64 | 35% 73% 25% 35% 71% 26% | | 2) RETRO (top-N = 5, | | 0.38 0.43 0.64 0.38 | 35% 71% 26% | | top-K = 2) RETRO (top-N = | | | | | 10, top-K = 2) | | | | +---------------------------+-------------------------+--------------------------+-------------------------+",
+      "section": "5.3 Toxicity"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "Table 5: Evaluation of LM toxicity for GPT (XL) and RETRO (XL). Model toxicity is evaluated on REALTOXICITYPROMPTS. Full refers to the full set of prompts, Toxic and Nontoxic refer to the toxic and nontoxic subsets of prompts. ↓ means the lower, the better. RETRO can filter from topN nearest neighbors and select the topK nontoxic neighbors for retrieval.",
+      "section": "5.3 Toxicity"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "the issues. To confirm the toxicity amplification issue, we further conduct two sets of ablation studies: ( i ) We save the retrieval evidence and calculate the Expected Mean Toxicity of both generations and retrieval evidence. We observe that the toxicity of retrieval evidence is 0 . 177, higher than the toxicity of the generations (0 . 146). ( ii ) We change the retrieval database to the Wikipedia database, which shows lower toxicity for retrieval evidence (0 . 132). As a result, we observe that RETRO with the Wikipedia retrieval database can help mitigate the toxicity of GPT as shown in Table 5, with the toxicity probability dropping from 37% to 35%. We also note that it is not very helpful to use a larger N as nearest neighbors and filter the retrieval evidence by toxicity. We hypothesize the reason is that the similarity between input and retrieval evidence is limited with larger N , thus yielding low cross-attention on the retrieval evidence.",
+      "section": "5.3 Toxicity"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "Retrieval-augmented GPT at Inference time. We have seen that retrieval significantly improves RETRO across different downstream tasks in the zero-shot setting. In this ablation study, we append the retrieval evidence of RETRO to the beginning of the context to see whether retrieval can also be helpful for GPT at inference time. We evaluate the zero-shot accuracy after prepending the top-1 retrieval evidence. The results are shown in Appendix Table 16. We observe that directly prepending the evidence from the retrieval database messes up the GPT context in the zero-shot setting, yielding low accuracy of around 24 . 5%. We hypothesize the reason is that the retrieval evidence can be noisy. Without pretraining or proper fine-tuning, GPT in the zero-shot learning setting puts too much attention on the noisy evidence, thus giving low downstream accuracy.",
+      "section": "5.3 Toxicity"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Besides the open-ended text generation, it is also important to examine the generalization of RETRO on various downstream tasks, which is also missing from the literature. Therefore, we use LM Evaluation Harness Benchmark (Gao et al., 2021) and consider the following nine representative NLP downstream tasks. See more details in §G.",
+      "section": "6 LM Evaluation Harness Benchmark"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "Zero-shot evaluation. We present the zero-shot evaluation results in Table 6. We find that on average RETRO can improve the downstream task accuracy across different tasks. Moreover, we observe larger improvements in knowledge-intensive tasks such as Hellaswag and BoolQ (6 of 8 cases), which require factual knowledge to guide the reasoning. Note that the zero-shot evaluation results are susceptible to prompt formats, so the results have certain variances.",
+      "section": "6 LM Evaluation Harness Benchmark"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "In this section, we study two widely used opendomain QA datasets, Natural Question (NQ) and TriviaQA.",
+      "section": "6 LM Evaluation Harness Benchmark"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "Retrieved evidence as context The original RETRO work leverages the retrieved evidence (i.e. passages) by feeding them all into the encoder. We argue that the top most relevant evidence is more important than others and should be used as the context for the question. Therefore, the top relevant evidence should be fed to the decoder, and the rest of the evidence can be incorporated by the encoder. For the implementation in our experiments, we append the top-1 relevant passage at the beginning of the decoder input, and reformat the input with Template A: “title: {title}, source: {source} \\n question: {question} \\n answer: {answer}”. For",
+      "section": "7.1 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "+---------------------+---------------------+---------------------+---------------------+---------------------+ | Tasks | Small GPT RETRO | Medium GPT RETRO | XL GPT RETRO | XXL GPT RETRO | +---------------------+---------------------+---------------------+---------------------+---------------------+ | Knowledge-intensive | | | | | | Tasks | | | | | +---------------------+---------------------+---------------------+---------------------+---------------------+ +---------------------+---------------------+---------------------+---------------------+---------------------+ | HellaSwag BoolQ | 31.3 36.2 ↑4.9 59.3 | 43.2 46.2 ↑3.0 57.4 | 56.7 59.0 ↑2.3 62.2 | 72.3 70.6 ↓1.7 67.3 | | | 61.8 ↑2.5 | 57.2 ↓0.2 | 62.7 ↑0.5 | 70.7 ↑3.4 | +---------------------+---------------------+---------------------+---------------------+---------------------+ | Knowledge- | | | | | | nonintensive Tasks | | | | |",
+      "section": "7.1 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "+---------------------+---------------------+---------------------+---------------------+---------------------+ +---------------------+---------------------+---------------------+---------------------+---------------------+ | Lambada RACE PiQA | 41.7 41.4 ↓0.3 34.6 | 54.1 55.0 ↑0.9 37.3 | 63.9 64.0 ↑0.1 40.8 | 73.9 72.7 ↓1.2 44.3 | | WinoGrande ANLI-R2 | 32.5 ↓2.1 64.3 64.8 | 37.3 ↑0.0 70.2 68.7 | 39.9 ↓0.9 73.7 74.1 | 43.2 ↓1.1 78.5 77.4 | | HANS WiC | ↑0.5 52.4 52.0 ↓0.4 | ↓1.5 53.8 55.2 ↑1.4 | ↑0.4 59.0 60.1 ↑1.1 | ↓1.1 68.5 65.8 ↓2.7 | | | 35.1 36.2 ↑1.1 51.5 | 33.5 33.3 ↓0.2 50.5 | 34.3 35.3 ↑1.0 50.1 | 32.2 35.5 ↑3.3 50.8 | | | 51.4 ↓0.1 50.0 50.0 | 50.5 ↑0.0 50.2 50.0 | 50.0 ↓0.1 47.8 49.8 | 56.5 ↑5.7 52.4 52.4 | | | ↑0.0 | ↓0.2 | ↑2.0 | ↑0.0 | +---------------------+---------------------+---------------------+---------------------+---------------------+ +---------------------+---------------------+---------------------+---------------------+---------------------+ | Avg. Acc.",
+      "section": "7.1 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "(↑) | 46.7 47.4 ↑0.7 | 50.0 50.4 ↑0.4 | 54.3 55.0 ↑0.7 | 60.0 60.5 ↑0.5 | +---------------------+---------------------+---------------------+---------------------+---------------------+",
+      "section": "7.1 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "Table 6: Accuracy (Acc.) on nine downstream tasks evaluated in the zero-shot setting for pretrained LMs with different parameter sizes.",
+      "section": "7.1 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "+-----------------------------------+-------------------------------+-----------------------------------+ | Method | NQ | TriviaQA | +-----------------------------------+-------------------------------+-----------------------------------+ +-----------------------------------+-------------------------------+-----------------------------------+ | GPT (close book) REALM (Guu et | 36.1 40.4 41.5 44.5 50.9 51.4 | 45.1 - 56.8 56.1 60.9 67.6 59.9 - | | al., 2020) DPR (Karpukhin et al., | 40.9 45.5 54.1 | 66.7 | | 2020) RAGBART (Lewis et al., | | | | 2020b) RAGGPT FiDLarge (Izacard | | | | and Grave, 2021) RETRO (Ours) | | | | RETRO (Borgeaud et al., 2022) | | | | RETRO++ (Ours) | | | +-----------------------------------+-------------------------------+-----------------------------------+",
+      "section": "7.1 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "Table 7: Comparisons of our RETRO and existing QA models. We report the best results with the largest model configuration respectively.",
+      "section": "7.1 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "the models without retrieved evidence in the context, we follow Borgeaud et al. (2022) to format the input with Template B: “question: {question} \\n answer: {answer}”.",
+      "section": "7.1 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "In additional to several baseline methods in Table 7, we compare the following models: 1) GPT (close-book) simply finetunes a pretrained GPT model with the input Template B without using any retrieved documents. 2) RAG GPT applies RAG finetuning (Lewis et al., 2020b) for GPT, which puts retrieved evidence as its context. It utilizes the top retrieved documents by DPR with the input Template A and finetunes a pretrained GPT model, which represents incorporating retrieval to GPT at the fine-tuning stage. 3) RETRO encodes the retrieved evidence using the encoder and finetunes a pretrained RETRO model with the input Template B. 4) RETRO++ finetunes a pretrained RETRO model with the top retrieved evidence included input Template A while leaving the rest of the evidence to the encoder. More details can be found in §H.",
+      "section": "7.1 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "Figure 2: Comparisons among RAG GPT and RETRO++ models on NQ and TriviaQA. Larger models achieve better performances and RETRO++ is consistently better than RAG GPT",
+      "section": "7.1 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "Table 7 shows the results on NQ and TriviaQA. Our RETRO++ achieves Exact Match (EM) score 54.1, which is 8.6 higher than the original RETRO paper. We find the key to the success of RETRO is to incorporate the top retrieved document from DPR to the decoder as the context , which gives us 13.2 absolute improvement by comparing our RETRO and RETRO++. Note that our RETRO has lower EM score (40.91) than the original paper (45.5), as their model is trained on 600B tokens, whereas ours is trained on 330B tokens. By comparing",
+      "section": "7.2 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "RAG GPT with RETRO++, we show that pretraining autoregressive LM with retrieval (i.e., RETRO++) yields better QA accuracy than only fine-tuning autoregressive LM with retrieval (i.e., RAG GPT ). Appendix §H.3 gives qualitative studies on NQ. Scaling of model sizes. Figure 2 shows the EM score when scaling model sizes for RAG GPT , and RETRO++ on NQ and TriviaQA. As the model sizes increase, the performance of all models monotonically increases. RETRO++ achieves the best performances across all tasks and model sizes. Note that, Wang et al. (2023) further scales up the size of RETRO to 48B and discusses how instruction tuning can help improve retrieval-augmented LLMs for zero-shot open-domain question answering.",
+      "section": "7.2 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "Instruction tuning (Wei et al., 2022a; Chung et al., 2022) finetunes LLMs on a collection of datasets described via natural language instructions, which significantly improve the zero-shot accuracies for unseen downstream tasks. In this subsection, we study how instruction tuning can help with opendomain QA for retrieval-agumented LLMs. Instruction tuning data. We use a blend of high-quality instruction tuning datasets of 128K samples to train LLMs to follow instructions, which include: a high-quality social dialogue dataset SODA (Kim et al., 2022), a long-form QA dataset ELI5 that requires elaborate answers (Fan et al., 2019), LLM-generated instructions: SelfInstruct (Wang et al., 2022) and Unnatural Instructions (Honovich et al., 2022), FLAN and Chainof-thought datasets (Chung et al., 2022; Wei et al., 2022b; Longpre et al., 2023), public human-written conversation datasets OpenAssistant (Köpf et al., 2023) and Dolly (Conover et al., 2023).",
+      "section": "7.3 Zero-shot evaluation with and without instruction tuning"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "Implementation details. We conduct instruction tuning to both GPT (XXL) and RETRO (XXL). We finetune the LLMs by taking the loss only on the last response from the assistant with a batch size of 128 and a learning rate of 5e-6 for 1000 steps with a weight decay of 0.01. We use the Adam optimizer (Kingma and Ba, 2014) with β 1 = 0 . 9 and β 2 = 0 . 98. After finetuning, we follow the same prompt format as RAG GPT for instruction-tuned GPT (XXL) and RETRO++ for instruction-tuned RETRO (XXL) and evaluate the zero-shot accuracy on the Natural Question (NQ) dataset.",
+      "section": "7.3 Zero-shot evaluation with and without instruction tuning"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "+--+---------------------------+-------------+-------------+ | | | RAGGPT | RETRO++ | +--+---------------------------+-------------+-------------+ | | w/o Instruction tuning w/ | 24.43 29.75 | 25.93 31.16 | | | Instruction tuning | | | +--+---------------------------+-------------+-------------+",
+      "section": "7.3 Zero-shot evaluation with and without instruction tuning"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "Table 8: Exact Match (EM) scores for the zero-shot evaluation of RAG GPT and RETRO++ on the NQ dataset before and after instruction tuning.",
+      "section": "7.3 Zero-shot evaluation with and without instruction tuning"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "Results. The results of retrieval-augmented GPT (RAG GPT ) and RETRO++ before and after instruction tuning are shown in Table 8. We observe that applying instruction tuning with RETRO and Retrieval-augmented GPT (RAG GPT ) indeed gives significant accuracy improvement. Moreover, RETRO++ demonstrates consistently better accuracy than RAG GPT . This result further confirms the potential and capabilities of RETRO when employing advanced techniques such as instruction tuning. Note that, Wang et al. (2023) further scale up the RETRO to 48B parameters to unveil the power of instruction tuning.",
+      "section": "7.3 Zero-shot evaluation with and without instruction tuning"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "In this work, we perform a comprehensive study of pretrained retrieval-augmented LLM to answer the question: Shall we pretrain decoder-only LMs with retrieval? We observe consistent improvements in text generation quality, factual accuracy, lower toxicity, and downstream task accuracy, especially for knowledge-intensive tasks, including open-domain QA. Given the ∼ 25% percentage of additional GPU hours for pretraining (see Table 11 Appendix B), we argue pretraining generative language models with retrieval is a promising direction.",
+      "section": "8 Conclusion"
+    },
+    {
+      "chunk_id": "c0087",
+      "text": "Despite the impressive performance of RETRO and RETRO++, our findings reveal several limitations that pave the way for future research to address:",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0088",
+      "text": "• The quality of the retrieval database. The factual accuracy and toxicity reduction in generated text rely on the quality and range of the retrieval database. This means that the performance and the model’s outputs can vary based on the retrieval database. The performance of RETRO could be compromised if the database contains inaccurate, biased, or outdated information.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0089",
+      "text": "• Scalability. The pretraining of GPT and retrieval-augmented LLM from scratch requires significant computational resources. Our work follows Borgeaud et al. (2022) and pretrains",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0090",
+      "text": "GPT and RETRO up to the size of 9B. We leave it as an important future work to further scale up the size of retrieval-augmented LLMs.",
+      "section": "Limitations"
+    }
+  ]
+}

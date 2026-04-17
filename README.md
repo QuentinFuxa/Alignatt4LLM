@@ -1,24 +1,27 @@
 # cascade_simultaneous
 
-Research repo for **simultaneous speech translation** via an ASR → MT cascade with **AlignAtt**-based emission control on both sides.
+Research repo for **simultaneous speech translation** via an ASR → MT cascade with word-timed ASR and **MT-side AlignAtt** emission control.
 
-## Current recommended combination
+## Current Runtime Surface
 
 ```
 alignment_backend_name = "qwen_forced"          # Qwen3-ASR-1.7B + Qwen3-ForcedAligner-0.6B
-mt_backend_name        = "gemma_vllm_alignatt"  # Gemma-4-E4B MT through vLLM + engine-native AlignAtt observer
+mt_backend_name        = "gemma_vllm_alignatt"  # Gemma-4-E4B MT through vLLM + qk_fast AlignAtt observer
+ASR commit path        = punctuation_lcp + EOS flush   # fixed in the current worktree
+ASR -> MT conditioning = full live ASR tail, with unstable trailing sentence punctuation stripped
+MT emission limit      = AlignAtt acceptance over that full MT-visible source prefix
+run_simulstream_batch  = chunk_ms=800, max_history_utterances=0 by default
+submission presets     = main_low_latency: 450 ms, main_high_latency: 700 ms
 ```
 
-Full runtime matrix and rationale: [`docs/RUNTIME_ARCHITECTURE.md`](docs/RUNTIME_ARCHITECTURE.md).
+Full runtime matrix and the exact shipped surfaces: [`docs/RUNTIME_ARCHITECTURE.md`](docs/RUNTIME_ARCHITECTURE.md).
 
 ## Canonical validation loop
 
 ```bash
 # inference
 .venv-inference/bin/python run_simulstream_batch.py \
-    --alignment-backend-name qwen_forced \
-    --mt-backend-name gemma_vllm_alignatt \
-    --inputs test-set/audio/ccpXHNfaoy.wav \
+    --inputs dev-set/audio/ccpXHNfaoy.wav \
     --output-dir outputs/my_run
 
 # evaluation (BLEU / chrF / XCOMET-XL / LongYAAL CU / LongYAAL CA)
@@ -26,7 +29,7 @@ Full runtime matrix and rationale: [`docs/RUNTIME_ARCHITECTURE.md`](docs/RUNTIME
     --output-dir outputs/my_run
 ```
 
-Reference numbers (`test-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, chunk_ms=450): **BLEU 27.5, chrF 63.5, COMET 0.861, LongYAAL CU 1766 ms, LongYAAL CA 1473 ms, RTF 0.401.** Full calibration curve and multi-clip numbers in [`docs/RESULTS.md`](docs/RESULTS.md).
+Historical reference numbers (`dev-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, chunk_ms=450): **BLEU 27.5, chrF 63.5, COMET 0.861, LongYAAL CU 1766 ms, LongYAAL CA 1473 ms, RTF 0.401.** Those runs were produced on an earlier, richer tuning surface; the manifest inside each output directory is the source of truth for exact runtime knobs. Full calibration curve and notes in [`docs/RESULTS.md`](docs/RESULTS.md).
 
 ## Docs map
 
@@ -34,6 +37,7 @@ Reference numbers (`test-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, chunk_ms=450
 - [`DECISIONS.md`](DECISIONS.md) — append-only log of session-level decisions and what changed why
 - [`docs/RUNTIME_ARCHITECTURE.md`](docs/RUNTIME_ARCHITECTURE.md) — ASR/MT axes, module map, session lifecycle
 - [`docs/MT_VLLM_BACKEND.md`](docs/MT_VLLM_BACKEND.md) — design of the experimental `gemma_vllm_alignatt` MT backend (Phases 0–5)
+- [`docs/CASCADE_POLICY_AUDIT.md`](docs/CASCADE_POLICY_AUDIT.md) — rationale for the shipped ASR->MT contract vs `baseline.py`
 - [`docs/RESULTS.md`](docs/RESULTS.md) — consolidated quality/latency numbers + calibration curve
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — GPU / vLLM / allocator gotchas
 - [`docs/CONTEXT_INJECTION.md`](docs/CONTEXT_INJECTION.md) — ACL-paper extra-context mechanism (IWSLT 2026 sub-track)
@@ -50,7 +54,7 @@ Reference numbers (`test-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, chunk_ms=450
 | `run_simulstream_compare.py` | A/B two alignment backends on one clip. |
 | `run_iwslt_submission.py` | Frozen IWSLT submission presets for offline logs or websocket serving. |
 | `run_alignment_single_audio.py` | ASR-side diagnostic harness. |
-| `run_mt_backend_parity.py` | MT backend parity harness (Transformers vs vLLM, subprocess-isolated). |
+| `run_mt_backend_parity.py` | Isolated single-backend MT probe harness (historical name retained). |
 | `run_context_ablation.py` | Three-condition MT paper-context ablation on one clip (hot bundle). |
 | `evaluate_cascade_outputs.py` | BLEU / chrF / XCOMET-XL / LongYAAL over a run bundle. |
 
@@ -67,10 +71,18 @@ Design, empirical ablations, and the submission-defensible setting live in [`doc
 - `.venv-inference` — all inference and streaming paths
 - `.venv-evaluation` — OmniSTEval + XCOMET-XL (do not mix with the inference env)
 
-## Tests
+## Validation
+
+Live validation goes through the streaming runners and artifact evaluation:
 
 ```bash
-.venv-inference/bin/python -m pytest test_*.py -q
-```
+.venv-inference/bin/python run_iwslt_submission.py batch \
+  --preset main_low_latency \
+  --source en \
+  --target de \
+  --input-dir dev-set/audio \
+  --output-dir outputs/iwslt26_main_low_ende
 
-No test needs a model to be loaded; every GPU-shaped test uses synthetic payloads or config-only dispatch checks. Live GPU validation goes through the runners above with `--wavs` or `--wav-dir`.
+.venv-evaluation/bin/python evaluate_cascade_outputs.py \
+  --output-dir outputs/iwslt26_main_low_ende
+```

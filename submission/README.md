@@ -7,11 +7,11 @@ Email: quentin.fuxa@gmail.com
 
 - `run_iwslt_submission.py`
   - `batch`: frozen offline generation for log-based submission
-  - `server`: websocket server for Docker-based submission
+  - `server`: auxiliary websocket path kept for direct SimulStream serving
 - `Dockerfile`
   - CUDA 12.9 + vLLM/Qwen/Gemma inference environment
 - `submission/docker-entrypoint.sh`
-  - starts the frozen submission server inside the container
+  - runs the frozen log-based submission entrypoint inside the container
 
 ## Frozen presets
 
@@ -28,9 +28,15 @@ Email: quentin.fuxa@gmail.com
   - `title_abstract + min_source_mass=0.3`
   - `chunk_ms=700`
 
-These presets freeze the validated runtime knobs from `docs/RESULTS.md` and
-`docs/CONTEXT_INJECTION.md` so submission runs do not depend on a long list of
-hand-entered flags.
+These presets freeze the current simplified runtime surface used by the Docker
+entrypoint, so submission runs do not depend on a long list of hand-entered
+flags. The exact historical manifests from earlier dev-set runs remain the
+source of truth for those earlier experiments.
+
+Current worktree note: the shipped runtime has a fixed ASR commit path
+(`punctuation_lcp` + EOS flush). Historical `asr_commit_mode` ablations remain
+in `docs/RESULTS.md` / `DECISIONS.md`, but they are not public preset knobs
+any more.
 
 ## Log-based submission
 
@@ -77,29 +83,36 @@ Build:
 docker build -t cascade-simul-iwslt26 .
 ```
 
-Run the default websocket server:
+Run the frozen log-based entrypoint:
 
 ```bash
-docker run --gpus all --rm -p 8765:8765 \
-  -e CASCADE_SUBMISSION_PRESET=main_low_latency \
-  -e CASCADE_SOURCE_LANG=en \
-  -e CASCADE_TARGET_LANG=de \
-  cascade-simul-iwslt26
+docker run --gpus all --rm \
+  -e PRESET=main_low_latency \
+  -e SRC_LANG=English \
+  -e TGT_LANG=German \
+  -e SRC_LANG_CODE=en \
+  -e TGT_LANG_CODE=de \
+  -v /host/wavs:/io/wavs:ro \
+  -v /host/out:/io/out \
+  cascade-simul-iwslt26 \
+  /io/wavs/wavlist.txt /io/out/metrics.jsonl
 ```
 
-The container entrypoint starts:
+The container entrypoint renders the frozen speech-processor YAML and then executes:
 
 ```bash
-python run_iwslt_submission.py server \
-  --preset <preset> \
-  --host 0.0.0.0 \
-  --port 8765
+python -m simulstream.inference \
+  --speech-processor-config /tmp/.../speech_processor.yaml \
+  --wav-list-file <wavlist.txt> \
+  --src-lang <SRC_LANG> \
+  --tgt-lang <TGT_LANG> \
+  --metrics-log-file <metrics.jsonl>
 ```
 
-The websocket server expects the standard SimulStream PCM audio stream. For
-extra-context runs, the client may send a metadata JSON message containing
-`"paper_context_path": "/absolute/path/to/talk.json"` before audio chunks for
-that stream.
+`wavlist.txt` must follow the SimulStream contract: paths are relative to the
+wavlist file location. For extra-context runs, pass `PAPER_CONTEXT_PATH` to the
+container when using a single artifact, or use the offline batch flow with
+`--paper-context-dir` outside Docker when each talk has its own artifact.
 
 ## Model paths / offline cache
 

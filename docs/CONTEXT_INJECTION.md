@@ -64,7 +64,7 @@ Expressed on `CascadeRuntimeConfig` and surfaced on
 |---|---|---|
 | `--paper-context-path` | `None` | Path to a `PaperArtifact` JSON. Required when mode is not `off`. |
 | `--paper-context-mode` | `off` | One of `off`, `title_abstract`, `retrieved_chunks`, `title_and_chunks`. |
-| `--max-history-utterances` | `1` | Number of previously committed source utterances concatenated into the retrieval query. Canonical batch and single-audio ablation both default to `1` so the evaluation harness actually exercises the documented query. |
+| `--max-history-utterances` | `0` | Number of previously committed source utterances concatenated into the retrieval query. The simplified canonical runner now defaults to `0`; raise it explicitly only when a retrieval experiment needs prior committed context. |
 | `--paper-context-top-k` | `3` | Max chunks retrieved per MT call. |
 | `--paper-context-max-chars` | `1200` | Budget on the rendered block, before the `[Paper context]` header. |
 | `--paper-context-history-window-words` | `60` | Words of confirmed source history to concatenate into the retrieval query. |
@@ -82,7 +82,7 @@ One talk ↔ one paper ↔ one artifact. Use the PDF extractor:
 
 ```bash
 python -m context_injection.paper_artifact \
-    test-set/pdf/ccpXHNfaoy.pdf test-set/pdf/OiqEWDVtWk.pdf \
+    dev-set/pdf/ccpXHNfaoy.pdf dev-set/pdf/OiqEWDVtWk.pdf \
     -o data/paper_artifacts
 ```
 
@@ -101,10 +101,9 @@ Baseline (no context), single clip:
 
 ```bash
 python run_simulstream_batch.py \
-    --wavs test-set/audio/OiqEWDVtWk.wav \
+    --wavs dev-set/audio/OiqEWDVtWk.wav \
     --output-dir outputs/ctx_none_OiqEWDVtWk \
     --alignment-backend-name qwen_forced \
-    --mt-backend-name gemma_transformers_alignatt \
     --chunk-ms 450 --source en --target de
 ```
 
@@ -112,7 +111,7 @@ Static title+abstract:
 
 ```bash
 python run_simulstream_batch.py \
-    --wavs test-set/audio/OiqEWDVtWk.wav \
+    --wavs dev-set/audio/OiqEWDVtWk.wav \
     --output-dir outputs/ctx_titleabstract_OiqEWDVtWk \
     --paper-context-path data/paper_artifacts/OiqEWDVtWk.json \
     --paper-context-mode title_abstract \
@@ -123,7 +122,7 @@ Retrieved chunks (main mechanism):
 
 ```bash
 python run_simulstream_batch.py \
-    --wavs test-set/audio/OiqEWDVtWk.wav \
+    --wavs dev-set/audio/OiqEWDVtWk.wav \
     --output-dir outputs/ctx_retrieved_OiqEWDVtWk \
     --paper-context-path data/paper_artifacts/OiqEWDVtWk.json \
     --paper-context-mode retrieved_chunks \
@@ -157,7 +156,7 @@ Evaluate and compare the three bundles with
 ## First empirical sanity pass
 
 On `tmp/ccpXHNfaoy_first75.wav` (75 s prefix of the Distilling-Script-Knowledge
-talk), `qwen_forced` + `gemma_transformers_alignatt`, chunk_ms=450,
+talk), `qwen_forced` + `gemma_vllm_alignatt`, chunk_ms=450,
 top_k=3, max_chars=1200 — same session, same hot bundle (ASR output
 identical across all three conditions, so the deltas are MT-only):
 
@@ -211,7 +210,7 @@ Recommended non-experimental pair when the mechanism is enabled:
 
 ```bash
 python run_simulstream_batch.py \
-    --wavs test-set/audio/OiqEWDVtWk.wav \
+    --wavs dev-set/audio/OiqEWDVtWk.wav \
     --output-dir outputs/ctx_retrieved_guarded \
     --paper-context-path data/paper_artifacts/OiqEWDVtWk.json \
     --paper-context-mode retrieved_chunks \

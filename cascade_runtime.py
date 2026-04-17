@@ -61,7 +61,7 @@ LANGUAGE_NAME_TO_CODE = {
     "English": "en",
     "German": "de",
     "Italian": "it",
-    "Chinese": "zh",
+    "Simplified Chinese": "zh",
 }
 LANGUAGE_CODE_TO_NAME = {
     code: name for name, code in LANGUAGE_NAME_TO_CODE.items()
@@ -71,10 +71,9 @@ VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast", "gemma_
 # vLLM backend is opt-in until validated under the full SimulStream loop.
 STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast")
 
-# MT backend surface is separate from the ASR alignment backend surface, so
-# mt_backend_name is an independent runtime axis from alignment_backend_name.
-VALID_MT_BACKEND_NAMES = ("gemma_transformers_alignatt", "gemma_vllm_alignatt")
-STABLE_MT_BACKEND_NAMES = ("gemma_transformers_alignatt",)
+# MT is now a single shipped path: Gemma AlignAtt through vLLM.
+VALID_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
+STABLE_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
 
 # Sentinel returned by the ASR commit helpers when the current chunk must not
 # produce a cascade-visible update (e.g. the word-count invariant is broken
@@ -146,10 +145,19 @@ class CascadeRuntimeConfig:
     translation_alignatt_probe_mode: str = "qk_fast"
     translation_alignatt_inaccessible_ms: float = 0.0
     translation_alignatt_rewind_threshold: int = 8
+    translation_alignatt_border_margin: int = 0
     translation_alignatt_min_source_mass: float = 0.0
+    # Confidence-gated acceptance on top of QK-reconstruction AlignAtt.
+    # For each drafted token the reconstructed source-row softmax peaks at a
+    # local source position ``p``; this is the raw per-head-averaged mass at
+    # ``p`` (∈ [0, 1]). When ``threshold > 0`` and the mass falls below it,
+    # the policy stops with reason ``alignatt:argmax_mass_weak`` — the token's
+    # attention is too diffuse to trust it as an anchored translation of an
+    # accessible source position. Default 0.0 disables the check and
+    # preserves the argmax-only policy.
+    translation_alignatt_argmax_mass_threshold: float = 0.0
     max_new_tokens: int = 160
-    partial_max_new_tokens: int = 48
-    partial_followup_max_new_tokens: int = 16
+    partial_max_new_tokens: int = 16
     translation_min_new_tokens: int = 32
     translation_token_budget_ratio: float = 3.0
     translation_token_budget_buffer: int = 24
@@ -159,18 +167,6 @@ class CascadeRuntimeConfig:
     translation_generation_margin: int = 8
     translation_emit_policy: str = RAW_PASSTHROUGH
     translation_max_tail_rewrite_words: int = 14
-    # Scalar-vs-discrete substitution for the alignatt:source_frontier
-    # gate. Default "discrete" matches shipped behaviour: the gate fires
-    # when ``current_source_local_position >= accessible_source_token_count``.
-    # "scalar" replaces that with a threshold on the per-token provenance
-    # mass ``unsafe.source_inaccessible >= threshold``. The scalar path
-    # approximates the discrete gate at a single threshold, trading ~10%
-    # of per-update commit decisions against a smaller online code
-    # surface. See `scripts/scalar_substitution_drift.py` and
-    # `scripts/scalar_threshold_sweep.py` for the offline drift curves
-    # that informed the default threshold 0.015.
-    translation_source_frontier_mode: str = "discrete"
-    translation_source_frontier_scalar_threshold: float = 0.015
     temperature: float = 0.0
     repetition_penalty: float = 1.05
     asr_gpu_memory_utilization: float = 0.2
@@ -180,9 +176,8 @@ class CascadeRuntimeConfig:
     gemma_transformers_dtype: str = "bfloat16"
     gemma_transformers_fast_attention: str = "sdpa"
     gemma_transformers_prompt_kv_reuse: bool = True
-    translation_scheduler_stall_seconds: float = 1.2
     alignment_backend_name: str = "qwen_forced"
-    mt_backend_name: str = "gemma_transformers_alignatt"
+    mt_backend_name: str = "gemma_vllm_alignatt"
     gemma_audio_alignment_heads_path: str | None = (
         "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
     )
@@ -224,41 +219,6 @@ class CascadeRuntimeConfig:
     # that `find_end_time` relies on for sentence commits.
     asr_streaming_rollback_words: int = 2
     asr_streaming_unfixed_chunks: int = 2
-    # Commit mode for the ASR side of the cascade.
-    # - ``punctuation_lcp`` (default) commits when the longest common prefix
-    #   of two consecutive hypotheses contains a sentence-terminal punctuation
-    #   mark. Works well with Qwen3-ASR which emits clean punctuation; gives
-    #   MT a complete sentence to translate before a commit happens.
-    # - ``alignatt_frontier`` commits every contiguous prefix of words whose
-    #   AlignAtt-aligned audio end_time is far enough from the current audio
-    #   frontier — strictly symmetric to the MT-side accessibility rule. Used
-    #   for models like Gemma-4 ASR that don't emit sentence-terminal
-    #   punctuation on the test clips (`utt_timestamps` never advances
-    #   otherwise and the prompt overflows `max_model_len`).
-    # - ``stable_and_accessible`` commits a contiguous word prefix that is
-    #   both accessible (behind the audio frontier by
-    #   ``asr_alignatt_frontier_margin_ms``) AND stable (identical in the
-    #   last ``asr_stability_k`` consecutive ASR hypotheses). K-stability
-    #   (K ≥ 3) is strictly more conservative than the 2-hypothesis LCP
-    #   used by ``alignatt_frontier`` and is designed to close the quality
-    #   cliff of the frontier rule without reverting to punctuation gating.
-    # Empirically on en→de with Qwen3-ASR + Gemma vLLM MT on ccpXHNfaoy.wav
-    # (360 s): punctuation_lcp → BLEU 27.51 / COMET 0.861 / LongYAAL CU 1766
-    # vs alignatt_frontier → BLEU 15.78 / COMET 0.558 / CU 1328. The latency
-    # win (~440 ms CU) is not worth the quality cliff for Qwen-ASR paths.
-    asr_commit_mode: str = "punctuation_lcp"
-    # Safety margin between a word's aligned end_time and the current audio
-    # frontier, in milliseconds. A word with end_time <= frontier - margin is
-    # considered committable. Used by both ``alignatt_frontier`` and
-    # ``stable_and_accessible``.
-    asr_alignatt_frontier_margin_ms: float = 500.0
-    # Number of consecutive ASR hypotheses that must agree on a word prefix
-    # before ``stable_and_accessible`` considers it committable. K=2 recovers
-    # the behaviour of ``alignatt_frontier``; K≥3 requires stronger
-    # cross-hypothesis agreement at the cost of +(K-2) chunks of initial
-    # buffering per utterance segment. Ignored by other commit modes.
-    asr_stability_k: int = 3
-
     # Extra-context injection (IWSLT 2026 Speech-to-Text with Extra Context
     # sub-track). Default off so every non-context path keeps current
     # behaviour exactly. When a paper artifact is configured, the session
@@ -303,26 +263,6 @@ class CascadeRuntimeConfig:
                 "gemma_vllm_force_generate_api=True is only meaningful with "
                 "alignment_backend_name='gemma_vllm_qk_fast' "
                 f"(got {self.alignment_backend_name!r})."
-            )
-        valid_commit_modes = (
-            "alignatt_frontier",
-            "punctuation_lcp",
-            "stable_and_accessible",
-        )
-        if self.asr_commit_mode not in valid_commit_modes:
-            raise ValueError(
-                f"asr_commit_mode must be one of {set(valid_commit_modes)}, "
-                f"got {self.asr_commit_mode!r}."
-            )
-        if int(self.asr_stability_k) < 2:
-            raise ValueError(
-                "asr_stability_k must be >= 2 (LCP of two hypotheses is the "
-                f"weakest possible stability signal); got {self.asr_stability_k!r}."
-            )
-        if self.translation_source_frontier_mode not in ("discrete", "scalar"):
-            raise ValueError(
-                "translation_source_frontier_mode must be 'discrete' or "
-                f"'scalar'; got {self.translation_source_frontier_mode!r}."
             )
         if self.paper_context_mode not in VALID_CONTEXT_MODES:
             raise ValueError(
@@ -386,14 +326,6 @@ class CascadeRuntimeConfig:
         See alignment_backend_fingerprint for the engine-vs-policy split.
         """
         name = self.mt_backend_name
-        if name == "gemma_transformers_alignatt":
-            return (
-                name,
-                self.gemma_transformers_device,
-                self.gemma_transformers_dtype,
-                self.gemma_transformers_fast_attention,
-                bool(self.gemma_transformers_prompt_kv_reuse),
-            )
         if name == "gemma_vllm_alignatt":
             return (
                 name,
@@ -466,39 +398,6 @@ def find_end_time(word_alignments, position: int, text: str):
     return word_alignments[-n_words_right - 1].end_time
 
 
-def split_text_at_word_boundary(text: str, n_words: int) -> tuple[str, str]:
-    """Split ``text`` after the ``n_words``-th word, carrying trailing punctuation.
-
-    Returns ``(committed, remainder)`` such that:
-      - ``committed`` contains the first ``n_words`` words together with any
-        punctuation immediately following them;
-      - ``remainder`` is the rest of the text with leading whitespace stripped;
-      - ``remove_punctuation(committed).split()`` has length ``n_words``;
-      - ``remove_punctuation(remainder).split()`` has length ``max(0, N - n_words)``
-        where ``N`` is the original text word count.
-
-    This preserves the word-count invariant ``find_end_time`` and the
-    cascade's downstream logic assume.
-    """
-    if n_words <= 0:
-        return "", text.strip()
-    tokens = text.split()
-    committed_tokens: list[str] = []
-    cum_word_count = 0
-    last_committed_idx = -1
-    for i, tok in enumerate(tokens):
-        if remove_punctuation(tok).strip():
-            cum_word_count += 1
-        committed_tokens.append(tok)
-        last_committed_idx = i
-        if cum_word_count == n_words:
-            break
-    if cum_word_count < n_words:
-        return text, ""
-    remainder_tokens = tokens[last_committed_idx + 1 :]
-    return " ".join(committed_tokens), " ".join(remainder_tokens)
-
-
 def n_utterances(text: str) -> int:
     n_utt = text.count(". ") + text.count("! ") + text.count("? ")
     if text.endswith((".", "!", "?")):
@@ -507,6 +406,13 @@ def n_utterances(text: str) -> int:
 
 
 def normalize_partial_asr_hypothesis(text: str) -> str:
+    """Expose the live ASR tail the way the shipped MT path expects it.
+
+    Sentence-finalized history is managed separately by ``punctuation_lcp +
+    EOS flush``. For the still-live tail we keep the full ASR prefix, but we
+    strip unstable trailing sentence-final punctuation before building the MT
+    prompt. MT-side AlignAtt then decides how much target text is safe to emit.
+    """
     text = text.rstrip()
     while text.endswith((".", "!", "?")):
         text = text[:-1].rstrip()
@@ -548,8 +454,6 @@ def should_run_partial_mt_update(
     previous_state: PartialTranslationState,
     source_prefix: str,
     accessible_unit_count: int,
-    current_audio_seconds_value: float,
-    stall_seconds: float,
 ) -> tuple[bool, str]:
     source_prefix = source_prefix.strip()
     if not source_prefix:
@@ -558,32 +462,11 @@ def should_run_partial_mt_update(
         return True, "initial_partial"
     if not source_prefix.startswith(previous_state.source_prefix):
         return True, "source_rebased"
-    blocked_source_unit_index = previous_state.blocked_source_unit_index
-    if (
-        blocked_source_unit_index is not None
-        and accessible_unit_count <= blocked_source_unit_index
-    ):
-        if source_prefix == previous_state.source_prefix:
-            return False, "source_prefix_unchanged"
-        stalled_seconds = max(
-            0.0,
-            current_audio_seconds_value - previous_state.last_mt_audio_seconds,
-        )
-        if stalled_seconds >= float(stall_seconds):
-            return True, "stall_probe"
-        return False, "blocked_frontier_not_reached"
     if accessible_unit_count > previous_state.source_accessible_unit_count:
         return True, "accessible_frontier_advanced"
     if source_prefix == previous_state.source_prefix:
         return False, "source_prefix_unchanged"
-
-    stalled_seconds = max(
-        0.0,
-        current_audio_seconds_value - previous_state.last_mt_audio_seconds,
-    )
-    if stalled_seconds >= float(stall_seconds):
-        return True, "stall_probe"
-    return False, "frontier_not_advanced"
+    return True, "source_prefix_extended"
 
 
 def derive_monotone_partial_acceptance(
@@ -599,7 +482,7 @@ def derive_monotone_partial_acceptance(
         return "", ()
     if not candidate_text:
         return previous_state.accepted_target, previous_state.accepted_token_ids
-    if not previous_state.source_prefix or not source_prefix.startswith(previous_state.source_prefix):
+    if not previous_state.source_prefix:
         return candidate_text, candidate_ids
 
     previous_accepted_ids = previous_state.accepted_token_ids
@@ -822,12 +705,9 @@ class TranslationUnitManager:
 
     def current_accepted_prefill(self, source_text: str) -> str:
         source_text = source_text.strip()
-        partial_state = self.state.partial_translation
         if not source_text:
             self.reset_partial_state()
             return ""
-        if partial_state.source_prefix and not source_text.startswith(partial_state.source_prefix):
-            self.reset_partial_state()
         return self.state.partial_translation.accepted_target
 
     def should_run_partial_mt(
@@ -840,8 +720,6 @@ class TranslationUnitManager:
             previous_state=self.state.partial_translation,
             source_prefix=source_text,
             accessible_unit_count=source_frontier.accessible_unit_count,
-            current_audio_seconds_value=self.session.current_audio_seconds(),
-            stall_seconds=float(self.config.translation_scheduler_stall_seconds),
         )
 
     def snapshot_skipped_partial_result(
@@ -936,12 +814,8 @@ class TranslationUnitManager:
             )
             assistant_prefill = ""
             if (
-                self.state.partial_translation.source_prefix
-                and self.state.partial_translation.accepted_target
+                self.state.partial_translation.accepted_target
                 and segment_idx == len(self.state.utt_sources) - 1
-                and normalized_segment_source.text.startswith(
-                    self.state.partial_translation.source_prefix
-                )
             ):
                 assistant_prefill = self.state.partial_translation.accepted_target
             last_result = self.session.translate_with_mt(
@@ -974,7 +848,9 @@ class TranslationUnitManager:
         translation_segments = [
             segment for segment in self.state.utt_translations[1:] if segment.strip()
         ]
-        partial_source = normalize_partial_asr_hypothesis(self.state.asr_hypotheses[-1])
+        # Partial MT conditions on the full live ASR tail; only unstable
+        # trailing sentence-final punctuation is stripped beforehand.
+        partial_source = self.session.current_live_asr_tail_text()
         normalized_partial_source = self.normalize_source_text(
             partial_source,
             is_final=False,
@@ -1073,15 +949,16 @@ class CascadeSession:
     def current_audio_seconds(self) -> float:
         return len(self.state.source) / SAMPLE_RATE
 
+    def current_live_asr_tail_text(self) -> str:
+        if not self.state.asr_hypotheses:
+            return ""
+        return normalize_partial_asr_hypothesis(self.state.asr_hypotheses[-1])
+
     def render_public_asr_text(self) -> str:
         committed_segments = [
             segment.strip() for segment in self.state.utt_sources[1:] if segment.strip()
         ]
-        partial_segment = ""
-        if self.state.asr_hypotheses:
-            partial_segment = normalize_partial_asr_hypothesis(
-                self.state.asr_hypotheses[-1]
-            )
+        partial_segment = self.current_live_asr_tail_text()
         if partial_segment:
             committed_segments.append(partial_segment)
         return " ".join(committed_segments).strip()
@@ -1187,13 +1064,11 @@ class CascadeSession:
     def transcribe_audio(self, *, is_final_chunk: bool = False) -> str | None:
         """Run ASR on the currently-uncommitted audio tail and apply the commit rule.
 
-        ``is_final_chunk=True`` (used by ``finalize_stream``) switches the commit
-        rule to an **EOS flush**: no more audio is coming, so the
-        "safely behind the frontier" guarantee is vacuously satisfied and every
-        aligned word should commit. Without this flush, the last
-        ``asr_alignatt_frontier_margin_ms`` of every clip is never committed and
-        the public hypothesis is truncated by the trailing 1-2 words (which
-        costs BLEU/chrF/COMET on every submission).
+        ``is_final_chunk=True`` (used by ``finalize_stream``) switches the
+        punctuation-LCP commit rule to an **EOS flush** that emits the whole
+        current hypothesis even without a sentence-final punctuation cue.
+        Without it, the last 1–2 trailing words of every clip stay "partial"
+        and never make it into the public hypothesis.
         """
         alignment_backend = self.bundle.ensure_alignment_backend()
         audio = np.array(
@@ -1243,34 +1118,18 @@ class CascadeSession:
                 flush=True,
             )
 
-        if self.config.asr_commit_mode == "alignatt_frontier":
-            committed = self._try_commit_alignatt_frontier(
-                asr_hypo=asr_hypo,
-                result=result,
-                lcp_text=asr_segment,
-                audio=audio,
-                is_final_chunk=is_final_chunk,
-            )
-        elif self.config.asr_commit_mode == "stable_and_accessible":
-            committed = self._try_commit_stable_and_accessible(
-                asr_hypo=asr_hypo,
-                result=result,
-                audio=audio,
-                is_final_chunk=is_final_chunk,
-            )
-        else:
-            committed = self._try_commit_punctuation_lcp(
-                asr_hypo=asr_hypo,
-                result=result,
-                lcp_text=asr_segment,
-                is_final_chunk=is_final_chunk,
-            )
+        committed = self._try_commit_punctuation_lcp(
+            asr_hypo=asr_hypo,
+            result=result,
+            lcp_text=asr_segment,
+            is_final_chunk=is_final_chunk,
+        )
         if committed is _COMMIT_ABORT:
             return asr_hypo.strip()
 
         if self.state.utt_sources[1:]:
             return self.render_public_asr_text()
-        return normalize_partial_asr_hypothesis(self.state.asr_hypotheses[-1])
+        return self.current_live_asr_tail_text()
 
     def _try_commit_punctuation_lcp(
         self,
@@ -1313,135 +1172,6 @@ class CascadeSession:
             committed_text=lcp_text[: rightest_punct_idx + 1],
             remainder_text=asr_hypo[rightest_punct_idx + 1 :].strip(),
             end_time_s=float(end_time),
-        )
-        return None
-
-    def _try_commit_alignatt_frontier(
-        self,
-        *,
-        asr_hypo: str,
-        result: "AlignmentResult",
-        lcp_text: str,
-        audio: np.ndarray,
-        is_final_chunk: bool = False,
-    ) -> "object":
-        words = result.words
-        if not words:
-            return None
-        if len(words) != len(remove_punctuation(asr_hypo).split()):
-            # Word-count invariant broken; fall back to no commit this chunk.
-            return None
-
-        if is_final_chunk:
-            # EOS flush: commit every aligned word. The margin gate guards
-            # against committing words whose end_time is not safely behind the
-            # current audio frontier; at EOS there is no further audio so the
-            # guarantee is trivially satisfied. The LCP gate is likewise
-            # meaningless at EOS because there is no next hypothesis to
-            # compare against.
-            k_commit = len(words)
-            last_end_time_s = float(words[-1].end_time)
-        else:
-            n_lcp_words = len(remove_punctuation(lcp_text).strip().split())
-            if n_lcp_words <= 0:
-                return None
-
-            audio_frontier_s = float(len(audio)) / float(SAMPLE_RATE)
-            margin_s = max(0.0, float(self.config.asr_alignatt_frontier_margin_ms) / 1000.0)
-            safe_end_time_s = audio_frontier_s - margin_s
-
-            k_commit = 0
-            last_end_time_s = 0.0
-            for word in words[:n_lcp_words]:
-                if word.end_time > safe_end_time_s:
-                    break
-                k_commit += 1
-                last_end_time_s = float(word.end_time)
-        if k_commit <= 0:
-            return None
-
-        committed_text, remainder_text = split_text_at_word_boundary(asr_hypo, k_commit)
-        self._apply_commit(
-            committed_text=committed_text.strip(),
-            remainder_text=remainder_text.strip(),
-            end_time_s=last_end_time_s,
-        )
-        return None
-
-    def _try_commit_stable_and_accessible(
-        self,
-        *,
-        asr_hypo: str,
-        result: "AlignmentResult",
-        audio: np.ndarray,
-        is_final_chunk: bool = False,
-    ) -> "object":
-        """Commit the word prefix that is both K-stable and accessible.
-
-        A word prefix is K-stable if the same character prefix appears at
-        the head of the last K consecutive ASR hypotheses for the current
-        utterance segment. It is accessible if every word in the prefix
-        has aligned end_time at least ``asr_alignatt_frontier_margin_ms``
-        behind the current audio frontier. The committed prefix is the
-        shorter of the two.
-
-        This generalises ``alignatt_frontier`` (which is the K=2 special
-        case via pairwise LCP) to arbitrary K. Higher K trades a little
-        latency (K-1 extra chunks before the first commit in an utterance
-        segment) for stronger cross-hypothesis agreement, which is the
-        dominant failure mode of K=2 on ASR models with clean punctuation
-        (Qwen3-ASR on en→de: K=2 costs ≈11 BLEU vs punctuation_lcp).
-        """
-        words = result.words
-        if not words:
-            return None
-        if len(words) != len(remove_punctuation(asr_hypo).split()):
-            return None
-
-        if is_final_chunk:
-            k_commit = len(words)
-            last_end_time_s = float(words[-1].end_time)
-        else:
-            k_stable = max(2, int(self.config.asr_stability_k))
-            # CascadeState seeds asr_hypotheses with a single empty-string
-            # sentinel (and _apply_commit resets to [remainder_text], which
-            # may itself be empty). Those empty slots are not "real" ASR
-            # observations — they would poison the K-LCP to the empty
-            # string. Consider only non-empty hypotheses for the K-stability
-            # window.
-            non_empty_hypotheses = [h for h in self.state.asr_hypotheses if h]
-            if len(non_empty_hypotheses) < k_stable:
-                return None
-            window = non_empty_hypotheses[-k_stable:]
-            stable_prefix = window[0]
-            for hypo in window[1:]:
-                stable_prefix = longest_common_prefix(stable_prefix, hypo)
-                if not stable_prefix:
-                    break
-            n_stable_words = len(remove_punctuation(stable_prefix).strip().split())
-            if n_stable_words <= 0:
-                return None
-
-            audio_frontier_s = float(len(audio)) / float(SAMPLE_RATE)
-            margin_s = max(0.0, float(self.config.asr_alignatt_frontier_margin_ms) / 1000.0)
-            safe_end_time_s = audio_frontier_s - margin_s
-
-            k_commit = 0
-            last_end_time_s = 0.0
-            for word in words[:n_stable_words]:
-                if word.end_time > safe_end_time_s:
-                    break
-                k_commit += 1
-                last_end_time_s = float(word.end_time)
-
-        if k_commit <= 0:
-            return None
-
-        committed_text, remainder_text = split_text_at_word_boundary(asr_hypo, k_commit)
-        self._apply_commit(
-            committed_text=committed_text.strip(),
-            remainder_text=remainder_text.strip(),
-            end_time_s=last_end_time_s,
         )
         return None
 
@@ -1548,11 +1278,11 @@ class CascadeSession:
         )
 
     def finalize_stream(self) -> SessionProcessingResult:
-        # is_final_chunk=True lets the commit rule flush the tail past the
-        # frontier margin (alignatt_frontier) or without a sentence-final
-        # punctuation cue (punctuation_lcp). Without it the last ~500 ms of
-        # every clip stay "partial" and never make it into the hypothesis.
-        # Env flag CASCADE_DISABLE_EOS_FLUSH=1 lets the A/B compare the fix.
+        # is_final_chunk=True lets the punctuation-LCP commit rule flush the
+        # tail even without a sentence-final punctuation cue. Without it the
+        # last 1–2 trailing words of every clip stay "partial" and never make
+        # it into the hypothesis. Env flag CASCADE_DISABLE_EOS_FLUSH=1 lets
+        # the A/B compare the fix.
         eos_flush = os.environ.get("CASCADE_DISABLE_EOS_FLUSH", "") != "1"
         final_asr = (
             self.transcribe_audio(is_final_chunk=eos_flush)
@@ -1778,7 +1508,6 @@ class CascadeSession:
                 "max_history_utterances": self.config.max_history_utterances,
                 "max_new_tokens": self.config.max_new_tokens,
                 "partial_max_new_tokens": self.config.partial_max_new_tokens,
-                "partial_followup_max_new_tokens": self.config.partial_followup_max_new_tokens,
                 "translation_min_new_tokens": self.config.translation_min_new_tokens,
                 "translation_token_budget_ratio": self.config.translation_token_budget_ratio,
                 "translation_token_budget_buffer": self.config.translation_token_budget_buffer,
@@ -1799,7 +1528,6 @@ class CascadeSession:
                 "gemma_transformers_prompt_kv_reuse": self.config.gemma_transformers_prompt_kv_reuse,
                 "gemma_audio_align_probe_mode": self.config.gemma_audio_align_probe_mode,
                 "gemma_audio_alignment_heads_path": self.config.gemma_audio_alignment_heads_path,
-                "translation_scheduler_stall_seconds": self.config.translation_scheduler_stall_seconds,
             },
             run_provenance=_enrich_provenance(self.config, run_provenance),
         )

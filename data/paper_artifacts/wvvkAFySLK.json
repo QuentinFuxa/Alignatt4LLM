@@ -1,0 +1,465 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "wvvkAFySLK",
+  "source_pdf": "test-set/pdf/wvvkAFySLK.pdf",
+  "title": "Cultural Concept Adaptation on Multimodal Reasoning",
+  "authors": "Zhi Li and Yin Zhang[∗] College of Computer Science and Technology, Zhejiang University, China {zhili, zhangyin98}@zju.edu.cn",
+  "abstract": "Developing cultural adaptation methods is important, which can improve the model performance on the low-resource ones and provide more equitable opportunities for everyone to benefit from advanced technology. Past methods primarily focused on multilingual and multimodal capabilities, and the improvement of multicultural competence is still an unexplored problem. This is largely due to the difficulty of data scarcity and expensive annotation. In this paper, we navigate this uncharted territory by leveraging high-resource cultures to facilitate comprehension of low-resource ones. We first introduce an annotation-free method for cultural-concept adaptation and construct a concept mapping set. To facilitate the model’s comprehension of cultural-concept mappings, we propose a new multimodal data augmentation called CultureMixup. This approach employs a three-tier code-switching strategy on textual sentences. Additionally, it uses a cultural concept-based mixup method for the images. This combination effectively generates new data instances across culture, phrase, word, and image levels. For visually grounded reasoning across languages and cultures, experimental results on five languages show that our method consistently improves performance for four existing multilingual and multimodal models on both zero-shot and few-shot settings.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "The computer vision (CV) and natural language processing (NLP) communities have witnessed significant strides in multilingual and multimodal research in recent years. For instance, XLMs (Conneau and Lample, 2019) have substantially surpassed the previous benchmarks in cross-lingual tasks. The UC[2] model (Zhou et al., 2021) learns to represent input tokens in a context-aware manner by leveraging both linguistic and visual content.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "> ∗ Corresponding author: Yin Zhang.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "+----------------------------------------------------+---------------------------------------+ | Setting | Multilingual Multimodal Multicultural | +----------------------------------------------------+---------------------------------------+ | mBERT (Devlin et al., 2019) XLM-R(Conneau et al., | ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ | | 2020) Vilbert (Lu et al., 2019) Unicoder-VL (Li et | | | al., 2020) M3P(Niet al., 2021a) UC2(Zhouet al., | | | 2021) CCLM (Zeng et al., 2022) | | +----------------------------------------------------+---------------------------------------+ | Our Method | ✓ ✓ ✓ | +----------------------------------------------------+---------------------------------------+",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "Table 1: The different settings between our method and previous work.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "However, despite these advancements, the multicultural element is often neglected. The development of cultural adaptation methods is critical as they enhance model performance for low-resource languages and democratize the benefits of advanced technology. Hershcovich et al. (2022) underscores two major hurdles in cross-cultural NLP: cultural concepts and common sense. Our focus is primarily on the former: models trained on high-resource languages and images struggle to comprehend lowresource cultural concepts.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "A number of previous works (Vilares and Gómez-Rodríguez, 2018; Acharya et al., 2020; Yin et al., 2021; Liu et al., 2021a; Cao et al., 2023) have delved into cultural topics, largely focusing on cultural differences or evaluating the cross-cultural competency of computational models instead of enhancing them. The primary reason is the complexity of improving cross-cultural abilities, as lowresource languages and their cultural concepts are inherently scarce, exacerbating the data scarcity issue. Moreover, annotating cross-cultural data and establishing links between concepts across cultures is an expensive process given the limited number of annotators well-versed in various countries’ cultures.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "To overcome this challenge, we initially propose an annotation-free method for cultural-concept adaptation, which constructs a concept mapping set. An instance of cultural-concept adaptation involves the Chinese concept Erhu[1] , which has no corresponding English translation. Explaining",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "it to English-speaking individuals unfamiliar with Chinese culture would likely involve likening the Erhu to a Chinese violin. This is an example of cultural adaptation. Leveraging the relationships of hypernyms, hyponyms, and synonyms from publicly accessible semantic dictionaries, our method maps source cultural concepts to their corresponding target concepts, thereby eliminating the need for costly manual annotation.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "To support the model’s understanding of culturalconcept mappings, we subsequently introduce a novel cultural concept-based multimodal data augmentation technique. This technique features a three-tier code-switching strategy on textual sentences and a cultural concept-based mixup method for images[2] . By training the model on both original and augmented data, we manage to significantly boost the model’s performance on visually grounded reasoning tasks across languages and cultures. This improvement is reflected by a minimum increase of 2 points over existing multilingual multimodal models. Furthermore, our method can be adapted to improve specific languages or cultural topics by modifying the sampling distribution, thereby mitigating model bias.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "• Leveraging web resources, we propose an annotation-free cultural adaptation method. By utilizing relationships of hypernyms, hyponyms, and synonyms from openly accessible semantic dictionaries, we construct a cultural adaptation graph that facilitates mapping between source and target cultural concepts.",
+      "section": "Our contributions are encapsulated as follows:"
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "• To combat data scarcity and foster the model’s understanding of cultural adaptation mappings, we introduce a novel cultural conceptbased multimodal data augmentation technique, generating new data instances at the concept, phrase, word, and image levels.",
+      "section": "Our contributions are encapsulated as follows:"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "• Key results for the task of visually grounded reasoning across languages and cultures reveal that our methods consistently and significantly outperform baseline measures. Additionally, our technique can be tailored to enhance specific languages or cultural topics by adjusting the sampling distribution, thus reducing model bias.",
+      "section": "Our contributions are encapsulated as follows:"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "> 1 二胡 (Erhu) is a two-stringed bowed musical instrument, which may also be called a Southern Fiddle and is sometimes known in the Western world as the Chinese violin.",
+      "section": "Our contributions are encapsulated as follows:"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "Human language and visual content are intimately entwined with their respective cultures, evolving together, mirroring, and reciprocally influencing them. Culture is typically tied to a specific geographic region or locality, with distinct cultures characterizing different countries. The extant literature on culture tends to concentrate on three key aspects: examining cultural differences or similarities (Vilares and Gómez-Rodríguez, 2018; Acharya et al., 2020; Kozlowski et al., 2018; Sun et al., 2020), developing cross-cultural benchmarks (Peskov et al., 2021; Yin et al., 2021; Liu et al., 2021a), and evaluating the cross-cultural competence of computational models (Nguyen et al., 2022; Arora et al., 2022; Cao et al., 2023). For instance, Liu et al. (2021a) outline the multifaceted challenges involved in reasoning visually across languages and cultures, encompassing cross-modal, cross-lingual, and cross-cultural aspects. In contrast to the majority of prior research focusing",
+      "section": "2.1 Cultural Research"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "predominantly on analysis and evaluation, our work confronts the issue directly by enhancing the model’s adaptability to low-resource cultural concepts from both a visual and textual standpoint.",
+      "section": "2.1 Cultural Research"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "Code-switching is a common occurrence in multilingual communities, wherein the lexicon and morphemes of two or more languages are interchangeably utilized in oral or written communication. Training models using code-switched data encourages the alignment of source and target language representations by blending their contextual information. This approach has been used to challenge multilingual models (Tan and Joty, 2021), enhance Neural Machine Translation (NMT) tasks (Yang et al., 2020a; Liu et al., 2021b; Yang et al., 2020b), and further cross-lingual tasks (Qin et al., 2020; Zhang et al., 2021; Lee et al., 2021). In this study, we broaden the conventional perception of code-switching, transitioning it from a solely linguistic phenomenon to a cultural one.",
+      "section": "2.2 Code-switching and Mixup Methods"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "While code-switching operates on sentences, mixup methods are utilized in a variety of con-",
+      "section": "2.2 Code-switching and Mixup Methods"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "> 2Code-switching is a widespread phenomenon in multilingual communities, characterized by switching words and morphemes from two or more languages in speech or writing. The switched elements usually bear semantic similarity to the originals.",
+      "section": "2.2 Code-switching and Mixup Methods"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "Figure 1: Consider the cultural adaptation of the term 二胡 (Erhu). 二胡 translates to \"Erhu\" in its phonetic English form, but lacks a direct English equivalent. How might this be explained to someone living in an English-speaking country, unfamiliar with Chinese culture? You might refer to the Erhu as the \"Chinese violin,\" as a form of cultural adaptation. We advocate a comprehensive method for cultural adaptation, utilizing relationships of hypernyms, hyponyms, and synonyms from open and freely-available semantic dictionaries to construct a cultural adaptation graph. Each leaf node within this graph could represent a potential cultural adaptation of 二胡 (Erhu). The shorter the path distance in the graph, the more precise the adaptation. For instance, \"violin\" and \"cello\" are better adaptations than \"saxophone\" and \"drum\".",
+      "section": "2.2 Code-switching and Mixup Methods"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "texts, such as mixup (Zhang et al., 2017), cutmix (Yun et al., 2019), attentive cutmix (Walawalkar et al., 2020), and alignmixup (Venkataramanan et al., 2022). Hao et al. (2023) introduced a joint data augmentation method, which generates new image-text pairs while maintaining semantic coherence through image interpolation and text concatenation. In contrast to these approaches, we substitute the target portion of the image with one that corresponds to a low-resource cultural concept.",
+      "section": "2.2 Code-switching and Mixup Methods"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "Most multimodal models based on transformer architecture (Ni et al., 2021b; Zhou et al., 2021; Jain et al., 2021; Liu et al., 2021a; Khan et al., 2021; Song et al., 2021; Zeng et al., 2022) are pre-trained using self-supervised objectives. While these methodologies advance the multilingual and multimodal capabilities of models, they often overlook cross-cultural aptitude. We propose a cultural concept adaptation approach to improve model performance across different cultures. By extending the code-switching mechanism to cultural concepts during fine-tuning, our method can help mitigate biases towards language and culture that may arise from imbalanced pre-training resource distribution, an issue that is challenging to address using selfsupervised pre-training objectives alone.",
+      "section": "2.3 Multilingual Multimodal Models"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "cultural-concept adaptation, which constructs a concept mapping set. To support the model’s understanding of cultural-concept mappings, we subsequently introduce a novel cultural concept-based multimodal data augmentation technique. By training the model on both original and augmented data, we significantly boost the model’s performance.",
+      "section": "3 Method"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "To illuminate the research methodology, we now formally define the central components:",
+      "section": "3.1 Cultural Adaptation"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "Consider a low-resource cultural concept x and a high-resource cultural concepts set Y = {y 1 , . . . , yn}. The cultural adaptation set of x : Yx = {yk, . . . , ym} is a subset of Y such that each y ∈ Yx shares similar category attributes[3] to x.",
+      "section": "Definition 1 (Cultural Adaptation Set)"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "Problem Statement Given x ∈ X , where X is a set of cultural concepts, how can we identify the cultural adaptation set Yx ?",
+      "section": "Definition 1 (Cultural Adaptation Set)"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "Proposed Solution We denote Ho , S , and He as functions to query hyponyms, synonyms, and hypernyms respectively from publicly accessible semantic networks such as Conceptnet (Speer et al., 2017) and Wordnet (Miller, 1995). We construct a cultural adaptation graph Gx by applying a composite function F(x), which is defined as follows:",
+      "section": "Definition 1 (Cultural Adaptation Set)"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "F ( x ) = Ho ( . . . ( Ho ( S ( He ( . . . ( He ( x ))))))) (1) To overcome data scarcity and costly labeling, we initially propose an annotation-free method for",
+      "section": "Definition 1 (Cultural Adaptation Set)"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "> 3For example, the ’violin’ and ’erhu’ are both classified under the category of orchestral instruments.",
+      "section": "Definition 1 (Cultural Adaptation Set)"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "Figure 2: A schematic of three-tier code-switching strategy to the textual sentences. We commence by collecting data from web resources and forming a set of cultural concepts, each represented by an oval of a distinct color. Following this, a cultural concept is sampled for adaptation, based on a probability distribution. This selected adaptation is used to retrieve a corresponding data instance from the training dataset. Subsequently, we apply three levels of code-switching to the retrieved sentences. In these code-switched sentences, words highlighted in yellow, green, blue, and purple denote languages — Chinese, Swahili, Turkish, and Indonesian, respectively.",
+      "section": "Definition 1 (Cultural Adaptation Set)"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "A cultural adaptation graph Gx = ( V, E ) , where V denotes the set of vertices and E the set of edges, is a directed graph created by the iterative application of the Hypon, Syn, and Hyper functions starting from the cultural concept x. Each vertex vi ∈ V represents a cultural concept linked to x through a path of hyponym, synonym, or hypernym relationships, while each directed edge eij ∈ E depicts one of these relationships {Ho, S, He} between the cultural concepts vi and vj.",
+      "section": "Definition 2 (Cultural Adaptation Graph)"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "Given a cultural adaptation graph Gx = ( V, E ), each leaf node vi in Gx potentially represents a cultural adaptation of the cultural concept x . An example of this process is illustrated in Figure 1, showing the cultural adaptation of \" 二胡 (Erhu)\". The ’Erhu’ has a hypernym \" 弓弦乐器[4] \", synonymous in English with \"Bowed string instrument\". This term has various hyponyms, including the ’violin’ and ’cello’, making them potential cultural adaptations of the ’Erhu’. Similarly, \" 乐器 \", the hypernym of \" 弓弦乐器 \", and by extension a secondorder hypernym of ’Erhu’, translates to \"Musical Instrument\" in English. Thus, other instruments like the ’saxophone’ and ’oboe’ may also serve as potential cultural adaptations of the ’Erhu’. In fact, every leaf node in the cultural adaptation graph could potentially represent a cultural adaptation of ’Erhu’, where shorter path distances indicate higher accuracy. For instance, ’violin’ and ’cello’ would provide more accurate cultural adaptations than",
+      "section": "Definition 2 (Cultural Adaptation Graph)"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "’saxophone’ and ’drum’. A simple iterative traversal algorithm can yield all leaf nodes and their respective path distances from ’Erhu’. These",
+      "section": "Definition 2 (Cultural Adaptation Graph)"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "cultural adaptation sets can serve as a kind of multicultural resource.",
+      "section": "Definition 2 (Cultural Adaptation Graph)"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "To mitigate the issue of data scarcity and prompt the model to comprehend the mapping of cultural adaptation, we propose a cultural concept-based multimodal data augmentation named CultureMixup. It includes a three-tier code-switching strategy on the textual sentences and a cultural concept-based mixup method on the image and thereby generates new data instances from the culture, phrase, word, and image levels. We initially gather data from online resources to construct a set X of cultural concepts, each paired with corresponding images. Refer to the appendix A for further details. Subsequently, we select a cultural concept x ∈ X for cultural adaptation according to a predefined probability distribution. The sampling of an adaptation yk ∈ Yx from the high-resource cultural adaptation set is inversely proportional to its path distance in the cultural adaptation graph Gx (as defined in Equation 1), i.e., P ( yk|x ) ∝ d ( x,y 1 k )[.][The adapted] concept yk is then used to retrieve data",
+      "section": "3.2 Culture Mixup"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "instances from the training dataset. Each data instance comprises both textual sentences and images.",
+      "section": "3.2 Culture Mixup"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "We apply a three-tier code-switching strategy to the textual sentences, as displayed in Figure 2.",
+      "section": "3.2.1 Three-tier Code-switching on Text"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "> 4 弓弦乐器 is bowed string instruments in English, which are a subcategory of string instruments that are played by a bow rubbing the strings. The bow rubbing the string causes vibration which the instrument emits as sound.",
+      "section": "3.2.1 Three-tier Code-switching on Text"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Cultural-level We extend the conventional understanding of code-switching from a purely linguistic phenomenon to a cultural one. The culturally adapted concept yk in the sentence is replaced by the original low-resource cultural concept x . For instance, in Figure 2, the word \"violin\" is codeswitched with its Chinese cultural adaptation \" 二 胡 \".",
+      "section": "3.2.1 Three-tier Code-switching on Text"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "Phrase-level For the phrase-level codeswitching, we collect and identify high-frequency phrases pertinent to reasoning and translate them into different languages. If a sentence contains these selected phrases, they are code-switched based on a given probability. For example, in Figure 2, the phrase \"on the left\" is code-switched by \"kushoto\" in Swahili.",
+      "section": "3.2.1 Three-tier Code-switching on Text"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "Word-level At the word level, each word in a sentence undergoes code-switching in a different language based on a specified probability. For example, in Figure 2, the words \"image\" and \"player\" are code-switched by \"resim\" in Turkish and \"peserta\" in Indonesian, respectively.",
+      "section": "3.2.1 Three-tier Code-switching on Text"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "For the image-level cultural adaptation, we first apply an object detection algorithm to the images. We identify visual elements that correspond to highresource cultural concepts yk , and replace them with visual elements associated with the original low-resource cultural concept x . The specific process is as follows:",
+      "section": "3.2.2 Concept-Based Mixup for Images"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "applied to seamlessly integrate the new object into the original image and make it more compatible with the background.",
+      "section": "3.2.2 Concept-Based Mixup for Images"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "This introduces cultural diversity at the visual level, thereby enriching the data instances for training.",
+      "section": "3.2.2 Concept-Based Mixup for Images"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "Pretrained multilingual multimodal models often demonstrate disparate performance across various languages and cultural contexts in test datasets, a discrepancy likely attributable to uneven resource distribution during pretraining. These imbalances pose challenges that are not readily addressed by self-supervised pretraining objectives. Our method offers a mechanism to ameliorate these language and cultural biases by manipulating the sampling distribution. Essentially, we can enhance model performance on specific language or cultural topics in a controllable manner. For instance, if the model is anticipated to be applied in a Turkish context, the sampling probability for Turkish can be increased during data augmentation. Likewise, if the model will be deployed in scenarios involving traditional Chinese musical instruments, like the Erhu, we can elevate the sampling probability of these specific Chinese musical concepts. In summary, our approach provides a statistically significant,",
+      "section": "3.3 Reduce Model Bias"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "fine-grained performance boost for the model over predefined language or cultural categories.",
+      "section": "3.3 Reduce Model Bias"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "1. Visual Element Detection: We use the highresource concept as the vocabulary term and deploy the object detection model to locate the corresponding visual elements in the image.",
+      "section": "4 Experiment"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "2. Bounding Box Extraction: Based on the object detection results, we extract the object that needs to be replaced from the original high-resource image using bounding boxes.",
+      "section": "4 Experiment"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "3. Resizing: We adjust the size of the lowresource image element, which is collected together with concepts themselves, to match the size of the bounding box.",
+      "section": "4 Experiment"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "4. Pasting: The resized new low-resource image is then pasted into the corresponding location of the original image.",
+      "section": "4 Experiment"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "5. Smoothing and Harmonization: Finally, smoothing and harmonization techniques are",
+      "section": "4 Experiment"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "We collect and evaluate cultural concepts from diverse cultures (Indonesian, Swahili, Tamil, Turkish, Chinese) using crowd-sourced workers. The process involves gathering a wide range of cultural concepts manually and validating them through a majority vote. For a detailed methodology, please refer to the appendix. This approach, while costeffective, emphasizes accuracy by requiring a significant consensus among evaluators and prioritizing manual collection to capture cultural nuances. This dataset is publicly available[5] . In evaluating the resulting cultural adaptation graphs, about 84% aligned with human judgment, confirming the method’s effectiveness. For the less accurate graphs, issues were primarily due to translation limitations for certain cultural concepts’ hypernyms.",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "> 5https://github.com/zhilizju/Culture-mixup",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "+-----------------------------+-------------------------------+-------------------------------+ | | | Proportion | +-----------------------------+-------------------------------+-------------------------------+ | Model x : y | NLVR2 EN | MaRVL | +-----------------------------+-------------------------------+-------------------------------+ | | | ZH TA SW ID TR avg. | +-----------------------------+-------------------------------+-------------------------------+ | mUNITER 1:1 2:1 3:1 4:1 5:1 | 69.23 69.74 70.45 70.82 71.24 | 54.85 55.44 53.01 53.43 57.2 | | | | 54.79 56.99 55.81 53.26 54.45 | | | | 56.67 55.44 57.33 56.02 53.97 | | | | 55.14 58.67 56.23 58.04 55.57 | | | | 53.61 54.92 57.99 56.03 56.88 | | | | 55.41 52.99 53.24 56.98 55.10 | +-----------------------------+-------------------------------+-------------------------------+ | mUNITER 3:1 9:3 15:5 | 70.45 71.22 71.56 | 57.33 56.02 53.97 55.14 58.67 | | | | 56.23 58.47 56.11 54.19 55.24 | | | | 58.91 56.58 59.71 58.45 54.35 |",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "| | | 55.24 58.81 57.31 | +-----------------------------+-------------------------------+-------------------------------+",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "Table 2: Different proportion on model performance. x : y means that the total dataset is x + y times larger than the origin English training data. And x + x y[of the total dataset is the origin English training data (just copy origin dataset] x times) and x + y y[of the total dataset is augmented data.][The results cover five languages:][Indonesian (ID), Swahili] (SW), Tamil (TA), Turkish (TR) and Mandarin Chinese (ZH).",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "+---------------------------+------------------------+---------------------------+----------------+ | | | Zero-Shot MaRVL ZH TA SW | Translate-Test | | | | ID TR avg. 56.8 52.2 51.5 | | | | | 55.0 54.7 54.0 55.34 | | | | | 52.66 51.17 54.79 54.66 | | | | | 53.72 54.05 53.14 51.72 | | | | | 55.41 53.22 53.51 60.44 | | | | | (59.71) 58.92(58.45) | | | | | 54.87(54.35) 55.72(55.24) | | | | | 59.53(58.81) 57.90(57.31) | | | | | 55.0 55.1 55.5 57.1 58.0 | | | | | 56.1 53.06 53.06 55.51 | | | | | 55.14 56.19 54.59 54.35 | | | | | 53.95 55.33 54.79 58.31 | | | | | 55.34 57.91 (56.78) | | | | | 58.03(57.88) 60.01(59.06) | | | | | 58.78(58.21) 59.67(59.44) | | | | | 58.88(58.27) 59.88 60.47 | | | | | 52.62 56.74 56.70 57.28 | | | | | 58.3 60.06 52.97 57.18 | | | | | 56.102 57.07 60.13 | | | | | (59.73) 61.61(60.88) | | | | | 58.55(57.97) 58.91(58.75) | | | | | 60.72(60.34) 59.98(59.33) | | | | | 55.04 56.04 55.69 56.47 | | | | | 56.78 56.00 52.96 57.73 | | | | | 53.70 58.16 58.22 56.15 | | | |",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "| 59.21(58.73) 60.89(59.96) | | | | | 61.23(60.6) 59.18(58.99) | | | | | 61.31(60.65) 60.36(59.79) | | +---------------------------+------------------------+---------------------------+----------------+ | Model Method | NLVR2 EN | | | +---------------------------+------------------------+---------------------------+----------------+ | mUNITER MaRVL(Liu et al., | 73.2 71.91 70.93 71.56 | | 63.5 63.82 - - | | 2021a) IGLUE (Bugliarello | | | | | et al., 2022) Our | | | | | Reproduce + Our Method | | | | | xUNITER MaRVL(Liu et al., | | | | | 2021a) IGLUE (Bugliarello | | | | | et al., 2022) Our | | | | | Reproduce + Our Method UC | | | | | 2 IGLUE (Bugliarello et | | | | | al., 2022) Our Reproduce | | | | | + Our Method M 3P IGLUE | | | | | (Bugliarello et al., | | | | | 2022) Our Reproduce + Our | | | | | Method | | | | +---------------------------+------------------------+---------------------------+----------------+ | | 72.8 71.55 70.81 70.34 | | 64.4 64.04 - - |",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "+---------------------------+------------------------+---------------------------+----------------+ | | 70.56 69.05 68.88 | | 63.09 - - | +---------------------------+------------------------+---------------------------+----------------+ | | 68.22 68.71 68.10 | | 62.52 - - | +---------------------------+------------------------+---------------------------+----------------+",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "Table 3: Zero-shot statistics. The best scores are in bold. For our method, we not only report the best performance but also report the statistical mean. The digits in \"( )\" represent the average value of different random seeds. The results cover five languages: Indonesian (ID), Swahili (SW), Tamil (TA), Turkish (TR) and Mandarin Chinese (ZH).",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "Strategies like restricting the use of higher-order hypernyms and implementing an exponential decay of sampling probability for concept inclusion were employed to enhance accuracy and authenticity, ensuring the graphs’ overall quality and reliability. See the appendix B for details.",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "We use the Detic model (Zhou et al., 2022) available at Facebook Research’s GitHub repository for object detection. It employs the CLIP (Radford et al., 2021) classifier and offers open-vocabulary capabilities. With this model, we can freely configure the vocabulary, allowing us to detect specific cultural concepts within images. If you want a more precise result, it is recommended to use the segment anything model(Kirillov et al., 2023), but it may require some manual clicking.",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "Following Liu et al. (2021a), we employ NLVR2 in English for training and MaRVL for testing. MaRVL (Liu et al., 2021a) is a visually grounded reasoning dataset similar to NLVR2 (Suhr et al.,",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "2019). It not only spans five typologically diverse languages (Chinese, Tamil, Swahili, Indonesian, and Turkish) but also adopts different basic-level concepts across different cultures. Thus, the challenges are multi-faceted, including cross-modal, cross-lingual, and cross-cultural aspects. In this task, given two images ( Ileft and Iright ) and a description D , the model needs to assess the validity of the description given the images, which can be cast as a classification problem. See the appendix C for sampled examples and detailed descriptions.",
+      "section": "4.1 Dataset"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "We assess the efficacy of our approach using four existing multilingual multimodal pretrained models that have been released so far:",
+      "section": "4.2 Baseline"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "• mUNITER (Liu et al., 2021a), which extends the UNITER architecture (Chen et al., 2020) to support multilingual functionality.",
+      "section": "4.2 Baseline"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "+---------------------------+----------+-------------------------+ | | | Shot | +---------------------------+----------+-------------------------+ | | | 1 2 4 10 10x2 | +---------------------------+----------+-------------------------+ | mUNITER xUNITER UC 2 M 3P | ZH TR ID | 59.41/56.52 59.23/54.84 | | | | 60.18/54.55 60.60/55.34 | | | | 61.63/54.05 59.66/52.54 | | | | 59.24/55.93 59.73/55.59 | | | | 60.48/54.66 60.97/54.75 | | | | 55.50/51.42 55.88/52.13 | | | | 56.34/54/34 56.71/56.83 | | | | 56.97/51.42 | +---------------------------+----------+-------------------------+ | | ZH TR ID | 57.02/54.45 56.72/53.66 | | | | 57.63/54.94 57.66/53.46 | | | | 57.82/55.73 59.19/55.93 | | | | 59.58/57.46 59.48/57.54 | | | | 59.86/57.80 60.60/58.05 | | | | 58.60/56.12 59.48/57.18 | | | | 59.55/58.87 60.51/58.87 | | | | 60.75/58.60 | +---------------------------+----------+-------------------------+ | | ZH TR ID | 59.34/58.99 59.40/57.02 | | | | 59.29/58.99 59.99/57.21 | | | | 60.91/60.18",
+      "section": "4.2 Baseline"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "59.64/55.76 | | | | 59.92/54.39 60.71/52.63 | | | | 61.15/55.93 61.53/56.27 | | | | 59.33/56.12 59.49/56.29 | | | | 59.52/57.53 60.11/57.62 | | | | 60.89/58.51 | +---------------------------+----------+-------------------------+ | | ZH TR ID | 58.92/52.47 59.32/53.85 | | | | 59.71/52.47 60.03/54.45 | | | | 60.12/54.64 59.90/57.88 | | | | 59.58/58.98 59.81/57.97 | | | | 60.59/58.39 61.19/57.54 | | | | 58.69/57.36 59.40/56.92 | | | | 59.61/57.27 59.57/58.51 | | | | 59.91/58.51 | +---------------------------+----------+-------------------------+",
+      "section": "4.2 Baseline"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "Table 4: Different shots statistics. Results of Our methods/baseline. The baseline results come from IGLUE (Bugliarello et al., 2022). The results cover three languages: Indonesian (ID), Turkish (TR), and Mandarin Chinese (ZH).",
+      "section": "4.2 Baseline"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "• xUNITER (Liu et al., 2021a), which is identical to mUNITER , except for its initialization: while mUNITER is initialized from mBERT, xUNITER originates from XLM-R.",
+      "section": "4.2 Baseline"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "• M[3] P (Ni et al., 2021b), which introduces pretraining tasks using multimodal codeswitching.",
+      "section": "4.2 Baseline"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "• UC[2] (Zhou et al., 2021), which uses masked region-to-token modeling and visual translation language modeling as pretraining tasks.",
+      "section": "4.2 Baseline"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "To provide a fair comparison with baselines (Liu et al., 2021a; Bugliarello et al., 2022), we adopt nearly identical experimental setups and hyperparameters except that we finetune models on the origin and augmented NLVR2 (Suhr et al., 2019) dataset. Despite augmenting the dataset, we maintain the same total number of training steps by reducing the training epochs. For more detailed information about settings and the implementation of the model, please refer to the appendix D. Our code is based on VOLTA (Bugliarello et al., 2020).",
+      "section": "4.2 Baseline"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "In this part, we mainly discuss four parts with experimental results. (1) What proportion is appropriate for the augmented data? (2) The zero-shot and few-shot performance of models with our proposed methods.(3) Ablation studies. (4) Controllability and reduce model bias.",
+      "section": "4.3 Results"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "We conduct two groups of experiments on mUNITER in a zero-shot setting: one examines the impact of the proportion of augmented data, while the other investigates the effect of the total volume of augmented data on model performance while keeping the proportion constant. In Table 2, x : y implies that the total dataset is x + y times larger than the original English training data. Furthermore, x + x y[of][the][total][dataset][is][the][orig-] inal English training data (essentially replicating y the original dataset x times), and x + y[is the code-] switched generated data. To maintain the total number of training steps, we reduce the training epochs and train the models for x 20+ y[epochs.]",
+      "section": "4.3.1 Proportion"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "For the first group of experiments, we establish five different ratios x : y =1 : 1, 2 : 1, 3 : 1, 4 : 1, 5 : 1. Results in Table 2 suggest that as the volume of original data increases, the model’s performance on the English test set consistently improves. However, performance in other languages and cultures initially increases then decreases. This reveals a trade-off: while a substantial proportion of English data aids the model’s task comprehension, an appropriate amount of augmented data from other cultures facilitates the model’s transfer ability. A ratio of roughly 3:1 yields optimal results. We further investigate this by holding the scale constant and incrementally increasing the English and augmented datasets.",
+      "section": "4.3.1 Proportion"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "In order to examine the influence of the total volume of augmented data on model performance",
+      "section": "4.3.1 Proportion"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "+---------------------------------+-------------------------------+-------------------------------+ | | | Ablation | +---------------------------------+-------------------------------+-------------------------------+ | Model Method | NLVR2 EN | MaRVL | +---------------------------------+-------------------------------+-------------------------------+ | | | ZH TA SW ID TR avg. | +---------------------------------+-------------------------------+-------------------------------+ | mUNITER Baseline Our Method All | 70.93 71.56 71.18 70.71 70.65 | 54.05 53.14 51.72 55.41 53.22 | | w/o Concept All w/o Phrase All | 70.85 | 53.51 59.71 58.45 54.35 55.24 | | w/o Word All w/o Image | | 58.81 57.31 58.87 57.3 53.82 | | | | 54.61 57.52 56.42 57.95 56.94 | | | | 53.18 54.02 57.19 55.86 58.69 | | | | 57.22 53.55 54.38 57.55 56.28 | | | | 58.14 56.81 52.95 54.69 56.33 | | | | 55.78 | +---------------------------------+-------------------------------+-------------------------------+",
+      "section": "4.3.1 Proportion"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "Table 5: Ablation studies across five languages.",
+      "section": "4.3.1 Proportion"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "while keeping the proportion constant, we establish three different ratios x : y =3 : 1, 9 : 3, and 15 : 5. As indicated in Table 2, the performance of the model improves with an increase in the volume of augmented data. Taking into account the results from these two sets of experiments, we decide to amplify the dataset to twenty times the original size and choose a ratio of x : y = 15 : 5 for our subsequent zero-shot and few-shot experiments. Although we do not contend that the ratio of x : y = 15 : 5 is optimal, we assert that this choice is adequate to demonstrate the effectiveness of our approach.",
+      "section": "4.3.1 Proportion"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "As previously mentioned, we employ a configuration of x : y = 15 : 5 to augment the dataset to twenty times its original size. This involves replicating the original English NLVR2 dataset (Suhr et al., 2019) 15 times and generating a augmented dataset five times larger. Consequently, the final dataset is 20 times the size of the original English NLVR2 dataset. To maintain a consistent number of training steps with Liu et al. (2021a); Bugliarello et al. (2022), who trained models for 20 epochs, we train our models on this expanded dataset for a single epoch. We present both the best results and statistical mean for our method. ’Translatetest’ refers to the setup in which the multilingual MaRVL datasets are translated into English. The results of Liu et al. (2021a); Bugliarello et al. (2022) are used directly as zero-shot benchmarks.",
+      "section": "4.3.2 Zero-shot and Few-shot"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "Table 3 displays the zero-shot performance of the four models and demonstrates that our method consistently and statistically surpasses the baselines. Our approach considerably diminishes the disparity between the performance in the translation test and the transfer performance, validating the effectiveness of our code-switching method. We observe that, compared with the baselines, our",
+      "section": "4.3.2 Zero-shot and Few-shot"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "method enhances the M[3] P and mUNITER scores by about 3 ∼ 4 points, while UC[2] and xUNITER gain only about 2 ∼ 3 points. This disparity might stem from the fact that UC[2] and xUNITER have acquired better-aligned representations during the pre-training phase.",
+      "section": "4.3.2 Zero-shot and Few-shot"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "Table 4 displays the results of few-shot performance on three languages, demonstrating that our method also achieves the state-of-the-art performance in the few-shot setting. Nevertheless, similar to Liu et al. (2021a); Bugliarello et al. (2022), our results corroborate the finding that unlike textonly multilingual tasks, where even a handful of examples in the target language can substantially enhance model performance, this phenomenon is largely absent in multimodal multilingual settings (Bugliarello et al., 2022). As the number of shots increases, the model’s performance remains largely unchanged or shows slight growth. We attribute this to two main factors. Firstly, the inherent complexity of the task, and secondly, within the same language, data samples embodying diverse cultural concepts may vary significantly. The model may overfit to data samples associated with specific cultural concepts, a phenomenon that warrants further investigation in future studies.",
+      "section": "4.3.2 Zero-shot and Few-shot"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "To examine the impact of our cultural conceptbased multimodal data augmentation approach, we conducted an ablation study on mUNITER , maintaining the 15:5 setting for consistency. The results, as presented in Table 5, represent the statistical mean of various random seeds and underscore that each component of our method significantly contributes to enhancing the model’s performance.",
+      "section": "4.3.3 Ablation Study"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "Our method can be utilized to mitigate model bias on specific target languages or cultural topics by",
+      "section": "4.3.4 Reduce Model Bias"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "Figure 3: UC[2] on Swahili language. \"Baseline\" represents the score reported by Bugliarello et al. (2022) and \"Ours\" represents our replication of basline. \"+1k\" /\"+10k\" represent adding 1k/10k Swahili-English codeswitched data to training dataset. \"Best\" represent the best performance when we add more code-switched data examples.",
+      "section": "4.3.4 Reduce Model Bias"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "adjusting the sampling distribution. For instance, most models exhibit relatively lower scores in Swahili compared to other languages, with UC[2] being particularly affected. To address this, we specifically focus on improving UC[2] ’s performance in Swahili. By sampling, we obtain 1k and 10k examples of Swahili-English code-switched data, which we then merge with the original English dataset to create a new training dataset. As Figure 3 illustrates, our method can significantly enhance the performance of UC[2] in Swahili. We also enhance the model’s performance on the topic \"Speech and language\" in Chinese. For further details, please refer to appendix D.",
+      "section": "4.3.4 Reduce Model Bias"
+    },
+    {
+      "chunk_id": "c0087",
+      "text": "gressive generation, such as GPT-4-V[6] , is also highly worthwhile to explore.",
+      "section": "4.3.4 Reduce Model Bias"
+    },
+    {
+      "chunk_id": "c0088",
+      "text": "Our approach principally amplifies the conceptual adaptability of models to low-resource cultures. Nevertheless, cultural differences are complex and multidimensional, encompassing not only conceptual elements but also elements of common sense. The comprehensive acquisition of such common sense across diverse cultures is a vital yet challenging endeavor. Therefore, our community still has a considerable path to tread in order to fully enhance the multicultural competencies of AI models. Simultaneously, we only conducted experiments on multi-modal models based on masked language modeling. Further investigation is needed to determine the effectiveness on multi-modal models based on autoregressive generation.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0089",
+      "text": "This work was supported by Zhejiang Provincial Natural Science Foundation of China under Grant No. LZ23F020009, the NSFC project (No. 62072399), MoE Engineering Research Center of Digital Library, China Research Centre on Data and Knowledge for Engineering Sciences and Technology, and the Fundamental Research Funds for the Central Universities. We would like to express our sincere gratitude to the anonymous reviewers for their invaluable feedback and constructive comments, which significantly contributed to the improvement of this paper.",
+      "section": "Acknowledgments"
+    },
+    {
+      "chunk_id": "c0090",
+      "text": "To attack the difficulties of data annotation and scarcity, we propose an annotation-free cultural adaptation method and design a novel cultural concept-based multi-modal data augmentation to generate the new data example. By training the model on the augmented dataset, key results indicate that our methods consistently and statistically outperform the baselines. In the future, we plan to apply our method to more downstream tasks related to culture. Employing curriculum learning and designing more refined training strategies according to the difficulty of different languages and cultural concepts is also worth exploring. At the same time, how to further extend our method to make it more applicable to multi-modal models based on autore-",
+      "section": "5 Conclusion"
+    }
+  ]
+}

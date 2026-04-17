@@ -849,7 +849,7 @@ def build_translation_prompt(
             add_generation_prompt=True,
         )
 
-    # Default: HyMT-style prompt
+    # Default: legacy text-only prompt
     if direction not in HYMT_PROMPTS:
         raise ValueError(
             f"No prompt template for direction {direction!r} and model {model_name!r}. "
