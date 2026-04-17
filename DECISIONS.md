@@ -2021,6 +2021,62 @@ cross-clip level**.
 Artifacts: `outputs/night1_ende_scalar_clip2_thr_0p005_REAL/`,
 `outputs/night1_ende_scalar_clip2_thr_0p050_REAL/`.
 
+### Observer fix: vLLM MT eager mode now captures (2026-04-17)
+
+**Breakthrough.** The vLLM-MT observer DCE blocker partially
+unblocked. Two bugs in
+`_capture_mt_qk_into_tensor_buffers_from_observer` caused
+`determine_available_memory` dummy_run to fail with
+`RuntimeError: The size of tensor a (8192) must match the size of
+tensor b (1024) at non-singleton dimension 1`:
+
+1. **Shape mismatch.** `prompt_write_mask`/`decode_write_mask` were
+   sized by `num_positions` (up to 8192 during dummy_run), but
+   buffers are sized by `max_prompt=1024`/`max_decode`. The
+   `torch.where` broadcast failed. Fixed by building a
+   buffer-shaped mask via `scatter_reduce_` into
+   `prompt_written_scratch`/new `decode_write_scratch`, matching
+   the pre-custom-op path that had been silently lost.
+
+2. **CUDA scatter_reduce_ no bool.** `decode_write_scratch` uses
+   int32 (not bool); cast to bool at the end.
+
+**Under `enforce_eager=True` + `cudagraph_mode=None`, the observer
+now actually captures on vLLM MT** — first time since commit
+`f1cfafa`. Verified:
+
+| Mode                           | BLEU  | COMET | CA   | upd | fwd_cnt | src_fr | rewind |
+|--------------------------------|-------|-------|------|-----|---------|--------|--------|
+| vLLM MT cudagraph=full (broken)| 29.21 | 0.870 | 2367 | 102 | **0**   | 0      | 0      |
+| **vLLM MT eager (FIXED)**      | 27.60 | 0.859 | 1808 | 430 | **90**  | 37     | 22     |
+| Transformers MT (reference)    | 28.22 | 0.862 | 2240 | 430 | n/a     | 40     | 26     |
+
+Eager-mode vLLM MT now matches the Transformers MT gate activity
+pattern closely (37+22 vs 40+26 firings, 430 updates each). The
+remaining BLEU gap (−0.62) vs Transformers MT is backend numerics
+(vLLM decode scheduling differs from HF generate).
+
+**Status of the vLLM-MT observer blocker:**
+- `cudagraph=full` path: STILL BROKEN (custom op DCE-elided).
+  Documented as structural; awaiting post-hoc capture pattern.
+- **`enforce_eager=True` path: WORKING.** Observer captures
+  correctly, policy loop fires real gates. Perf penalty: no
+  cudagraph, so inference is slower (RTF 0.74 on eager vs 0.43
+  on cudagraph=full), but still real-time-capable.
+
+**Paper implications:**
+
+1. The "vLLM MT observer broken" caveat tightens to "vLLM MT
+   under cudagraph=full" — eager mode is a working alternative.
+2. Observer-validated vLLM MT scalar-vs-discrete A/B is now
+   possible (eager path). Would need to run scalar eager on
+   top of this to get a clean comparison.
+3. The 102-update floor on cudagraph=full vLLM MT was a
+   symptom of the DCE'd observer (no policy-loop stops). Eager
+   mode's 430-update pattern is the true policy activity.
+
+Artifact: `outputs/night1_ende_discrete_vllm_eager_instrumented/`.
+
 ### Loop-replay F1 drops on scalar-mode artifacts (2026-04-17)
 
 Ran the discrete-gate loop-replay predictor
