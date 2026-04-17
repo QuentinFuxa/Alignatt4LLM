@@ -3047,3 +3047,57 @@ see if the richest mode beats either static-alone or retrieval-
 alone once both can actually fit.
 
 Artifacts: `outputs/night2_context_clip2_rc_budget_{400,600,2400}/`.
+
+### title_and_chunks at larger budgets: worse than either alone
+
+Tested tc at max_chars=2400 and 3600 on clip 2 to see if giving
+the richest mode enough room to land both abstract AND retrieved
+chunks would beat either alone.
+
+| mode     | BLEU  | chrF  | COMET | CA   |
+|----------|-------|-------|-------|------|
+| off      | 27.19 | 63.43 | 0.831 | 1638 |
+| ta@1200  | **28.09** | 65.13 | **0.865** | 1624 |
+| rc@2400  | 27.41 | **65.25** | 0.852 | 1605 |
+| tc@1200  | 28.09 | 65.13 | 0.865 | 1603 |  *← ta-dominant (chunks starved)*
+| tc@2400  | 27.54 | 64.39 | 0.829 | 1486 |  *← ta+chunks actually fit*
+| tc@3600  | 26.65 | 64.17 | 0.851 | 1661 |  *← even more chunks*
+
+**Combining static + retrieval at larger budgets is WORSE than
+either alone.** At 2400 where both the abstract and retrieval
+chunks can fit, BLEU drops below both ta@1200 (28.09→27.54) and
+rc@2400 (27.41→27.54 — actually matches). At 3600 BLEU drops
+further to 26.65 — **below the off baseline**.
+
+**Interpretation:** the abstract and retrieved chunks are not
+additive and often conflict. Possible reasons:
+1. Abstract gives high-level priors; chunks give mid-paragraph
+   details; MT struggles to reconcile when both are present.
+2. The combined prompt exceeds Gemma-4-E4B's effective context
+   sweet spot (or "crowds out" the live current-source span).
+3. Retrieval chunks compete with the abstract for attention,
+   producing worse disambiguation than either source alone.
+
+**Revised context-mechanism ranking on clip 2:**
+
+| rank | mode | BLEU Δ vs off | COMET Δ vs off |
+|------|------|---------------|-----------------|
+| 1    | ta@1200 | +0.90      | +0.034          |
+| 2    | rc@2400 | +0.22      | +0.021          |
+| 3    | off     | 0          | 0               |
+| 4    | tc@2400 | +0.35      | −0.002          |
+| 5    | rc@1200 | −3.28      | −0.046          |
+| 6    | tc@3600 | −0.54      | +0.020          |
+
+**Paper-level conclusion for this single clip:**
+
+Simple static context (`title_abstract` at 1200 chars) is the
+single best mechanism tested. Retrieval needs a larger budget
+(2400+) to deliver any benefit at all. Mixing static and
+retrieval produces unstable results that are worse than either
+alone in the tested budget range. The cleanest paper claim is:
+*"Include the paper's title and abstract in the MT prompt; this
+is a zero-infrastructure win of ~+1 BLEU / +3% COMET on a talk
+that self-references the paper."*
+
+Artifacts: `outputs/night2_context_clip2_tc_budget_{2400,3600}/`.
