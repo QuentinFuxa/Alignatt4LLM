@@ -2020,3 +2020,56 @@ cross-clip level**.
 
 Artifacts: `outputs/night1_ende_scalar_clip2_thr_0p005_REAL/`,
 `outputs/night1_ende_scalar_clip2_thr_0p050_REAL/`.
+
+### Loop-replay F1 drops on scalar-mode artifacts (2026-04-17)
+
+Ran the discrete-gate loop-replay predictor
+(`scripts/loop_replay_gate_predictor.py`) against artifacts from
+all three scalar thresholds and the discrete baseline on clip 1.
+Predictor simulates the *discrete* source_frontier /
+rewind / provenance_weak gates over captured metadata.
+
+| Runtime mode        | src_fr F1 | rewind F1 |
+|---------------------|-----------|-----------|
+| discrete baseline   | 1.000     | 1.000     |
+| scalar @ 0.005      | 0.938     | 0.981     |
+| scalar @ 0.015      | 0.897     | 0.963     |
+| scalar @ 0.050      | 0.938     | 0.981     |
+
+**Discrete predictor is no longer F1=1.0 on scalar artifacts.**
+Expected: the runtime runs the scalar gate (which fires on a
+threshold comparison), the offline predictor runs the discrete
+gate (which fires on an exact ≥ comparison). The two gates make
+different decisions at the per-token level, even though the MT
+regeneration produces bit-identical *final* translations across
+the three scalar thresholds on clip 1.
+
+**Clip-1 consistency with earlier hypothesis-level findings:**
+- Final hypotheses bit-identical across thr 0.005 / 0.015 / 0.050
+  (all 5569 chars, similarity 1.0000).
+- **Per-update gate-prediction fidelity is NOT bit-identical;**
+  mid-threshold (0.015) shows the largest drop from F1 = 1.0.
+- Mid-threshold scalar has slightly more `<both-none>`/`unknown`
+  updates (non-gate stops) that the discrete predictor
+  misclassifies as src_frontier.
+
+**Paper implications:**
+
+1. Loop-replay F1 = 1.000 holds only on discrete-mode artifacts.
+   On scalar-mode artifacts, F1 drops to ~0.9 because the offline
+   predictor and runtime gate no longer match.
+2. The "observer contract is complete" claim (three-gate F1 = 1.000
+   loop replay) continues to hold on the **discrete** policy path
+   only. If the paper advertises scalar as the primary mechanism,
+   loop-replay fidelity should be quoted as discrete-only.
+3. MT regeneration absorbs per-update gate divergences into the
+   same final translation on this clip — the hypothesis-level
+   bit-identity survives the F1 drop.
+
+Paper phrasing: "The discrete-gate loop-replay predictor achieves
+F1 = 1.000 on all three discrete-mode gates. On scalar-mode
+artifacts, per-update F1 drops to 0.90–0.94 — expected, since the
+runtime and offline predictor execute different gate definitions —
+but the hypothesis-level translation is bit-identical across a
+10× threshold range on clip 1, a stronger result than per-update
+fidelity would imply."
