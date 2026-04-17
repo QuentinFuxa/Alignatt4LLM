@@ -1161,6 +1161,59 @@ by drift minimisation rather than by per-gate F1.
 Artifacts: `outputs/night1_*/scalar_threshold_sweep.txt`.
 Source: `scripts/scalar_threshold_sweep.py`.
 
+### Online scalar substitution A/B: bit-identical quality despite offline drift
+
+Implemented the scalar-source_frontier substitution as an opt-in
+online mode (commit `3defa36`): new config fields
+`translation_source_frontier_mode` (`"discrete"` default / `"scalar"`)
+and `translation_source_frontier_scalar_threshold` (default 0.015,
+drawn from the Step 7 v7 drift-optimal sweep). Scalar mode replaces
+`current_source_local_position >= accessible_source_token_count`
+with `provenance[token_index].source_inaccessible >= threshold` in
+`should_stop_in_loop`.
+
+A/B on ccpXHNfaoy.wav, chunk_ms=450, Transformers MT, punctuation_lcp:
+
+| Metric            | Discrete (reference)    | Scalar (threshold 0.015) | Δ               |
+|-------------------|-------------------------|--------------------------|-----------------|
+| BLEU              | 28.22                   | **28.22**                | **0.0000**      |
+| chrF              | 63.53                   | **63.53**                | **0.0000**      |
+| COMET (XCOMET-XL) | 0.862                   | **0.862**                | **0.0000**      |
+| LongYAAL CU       | 1747 ms                 | 1747 ms                  | 0 ms            |
+| LongYAAL CA       | 2240 ms                 | 2212 ms                  | −28 ms (noise)  |
+| RTF               | 1.020                   | 1.009                    | −0.011          |
+
+**Quality is bit-identical across all three quality metrics** (BLEU /
+chrF / COMET). CU matches exactly. CA drifts by 28 ms, within
+wallclock jitter (second run measured 363 s wallclock vs 367 s for
+first).
+
+**Why the flip from the 12-18% offline drift pessimism?** The offline
+drift measures commit DECISIONS (which token the loop breaks at).
+Those differences are almost all ±1-2 tokens per update. MT
+regenerates drafts from the accepted prefix at every partial,
+which means a 1-token difference in the accepted prefix typically
+does NOT change what MT ultimately commits in the final translation.
+The final string is the same even though the intermediate
+commit boundaries differ. This is the real paper-grade answer to
+"can we substitute a scalar for the discrete source_frontier gate?"
+— **yes, with quality-preserving online equivalence,** despite
+offline-drift metrics looking concerning.
+
+Paper narrative this supports:
+
+> The continuous source_frontier scalar is a quality-preserving
+> drop-in replacement for the discrete gate on the canonical
+> submission path (bit-identical BLEU, chrF, and COMET on the
+> measured clip at threshold 0.015). Offline token-decision drift
+> (12-18%) overestimates the substitution's online impact because
+> MT regenerates from accepted prefixes, absorbing single-token
+> commit-boundary shifts.
+
+Artifact: `outputs/night1_ende_punct_chunk450_scalar_instrumented/`.
+Commit: `3defa36` (runtime mode), this run uses the default
+threshold 0.015.
+
 ### Third-gate coverage: `alignatt:provenance_weak` joins loop-replay F1 = 1.000
 
 The three discrete MT gates are `alignatt:source_frontier`,

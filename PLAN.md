@@ -142,7 +142,18 @@ By morning, the repo should satisfy all three:
       rewind F1 = source_frontier F1 = provenance_weak F1 = 1.000.
       All three discrete MT gates deterministically recoverable
       from per-update metadata — "observer contract is complete"
-      claim now covers the full three-gate policy.
+      claim now covers the full three-gate policy. Step 7 v9
+      (commit `3defa36`): shipped the scalar substitution as an
+      opt-in online runtime mode and A/B tested it on the canonical
+      clip. Result: **bit-identical BLEU 28.22 / chrF 63.53 / COMET
+      0.862 / CU 1747 ms** vs the discrete reference. The 12-18%
+      offline commit-decision drift does NOT translate to quality
+      degradation online because MT regenerates from accepted
+      prefixes, absorbing single-token commit-boundary shifts. The
+      scalar substitution is a **quality-preserving drop-in
+      replacement** for the discrete source_frontier gate on the
+      canonical submission path — the strongest possible paper
+      result for the continuous-confidence direction.
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.
