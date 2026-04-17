@@ -1767,3 +1767,51 @@ the override_keys list in `cascade_simulstream_processor` — new
 fields need to appear there too or they silently default. Added a
 docstring TODO to `CascadeRuntimeConfig`: "any new field that
 overrides a runtime knob must be added to override_keys."
+
+### Real scalar-vs-discrete A/B on Transformers MT (2026-04-17)
+
+With the override routing fix in place, ran the first genuine
+scalar-mode online A/B. Both use Transformers MT (observer works
+there), chunk_ms=450, punctuation_lcp, threshold=0.015, canonical
+ccpXHNfaoy.wav (en→de).
+
+| Mode     | BLEU  | chrF  | COMET | CU   | CA   | updates | src_frontier | rewind | obs_empty |
+|----------|-------|-------|-------|------|------|---------|--------------|--------|-----------|
+| discrete | 28.22 | 63.53 | 0.862 | 1747 | 2240 | 430     | 40           | 26     | 26        |
+| scalar   | 27.46 | 63.36 | 0.862 | 1752 | 2208 | 422     | **26**       | 28     | 31        |
+| Δ        | −0.76 | −0.17 | 0.000 | +5   | −32  | −8      | **−14 (−35%)**| +2    | +5        |
+
+**Key observations:**
+
+1. **Scalar is NOT bit-identical to discrete** at threshold 0.015.
+   Char similarity 0.9973 (~15 chars differ across 5561 chars).
+   Earlier "bit-identical" claim was a config-routing artifact
+   (both runs were actually discrete-mode).
+
+2. **Source-frontier gate fires 35% less often in scalar mode**
+   (40 → 26). Consistent with threshold 0.015 being more
+   permissive than the exact discrete comparison — scalar lets
+   through some token commits that discrete would have blocked.
+
+3. **BLEU drops 0.76; CA drops 32ms.** Scalar trades ~1 BLEU
+   for ~30ms latency, consistent with "emit earlier, slightly
+   worse commits" intuition. COMET is preserved (0.862 both).
+
+4. **Rewind and observer_empty counts shift slightly** (±2, +5).
+   This is policy-loop state divergence downstream of the
+   scalar-vs-discrete source_frontier decisions — small but real.
+
+**Paper implications:**
+
+- Scalar substitution has **genuine runtime effect**, not just a
+  tautological equivalence — earlier claims were wrong.
+- The −0.76 BLEU / −32ms CA trade is a real latency-quality knob.
+- Threshold 0.015 isn't tuned for bit-identity; a sweep could
+  find the threshold that minimises |BLEU − discrete_BLEU|.
+- Observer contract remains load-bearing: the discrete gate does
+  something the scalar threshold cannot exactly reproduce.
+  Loop replay F1 = 1.000 on discrete artifacts (predicts the
+  discrete gate decisions) is still valid; scalar is a
+  quality-preserving but behaviourally-distinct approximation.
+
+Artifact: `outputs/night1_ende_scalar_transformers_mt_REAL/`.
