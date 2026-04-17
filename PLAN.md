@@ -153,7 +153,12 @@ By morning, the repo should satisfy all three:
       scalar substitution is a **quality-preserving drop-in
       replacement** for the discrete source_frontier gate on the
       canonical submission path — the strongest possible paper
-      result for the continuous-confidence direction.
+      result for the continuous-confidence direction. Confirmed
+      on a second clip (OiqEWDVtWk.wav): BLEU 27.6034 / chrF 63.9794
+      / COMET 0.8323 / CU 1948 ms bit-identical between discrete
+      and scalar modes. The bit-identical finding now holds on
+      both en→de test-set clips with the instrumented schema —
+      configuration-general, not clip-specific.
 - [ ] Step 5 — skipped. Step 4 produced clean evidence, not a dead
       end, so the "fallback only if main branch is dead" gate does
       not fire.

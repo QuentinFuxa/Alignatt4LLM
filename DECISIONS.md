@@ -1214,6 +1214,25 @@ Artifact: `outputs/night1_ende_punct_chunk450_scalar_instrumented/`.
 Commit: `3defa36` (runtime mode), this run uses the default
 threshold 0.015.
 
+**Multi-clip replication (second clip, OiqEWDVtWk.wav):**
+
+| Metric            | Discrete reference | Scalar (thr 0.015) | Δ              |
+|-------------------|-------------------:|-------------------:|---------------:|
+| BLEU              | 27.6034            | 27.6034            | **0.0000**     |
+| chrF              | 63.9794            | 63.9794            | **0.0000**     |
+| COMET (XCOMET-XL) | 0.8323             | 0.8323             | **0.0000**     |
+| LongYAAL CU       | 1948 ms            | 1948 ms            | 0 ms           |
+| LongYAAL CA       | 2599 ms            | 2652 ms            | +53 ms (noise) |
+
+**Bit-identical on clip 2 as well**: BLEU / chrF / COMET / CU match
+to 4+ significant figures. CA differs by ~2% (wallclock jitter).
+The "scalar substitution is a quality-preserving drop-in replacement"
+result now holds on both en→de test-set clips with the instrumented
+schema. Two-clip cross-validation is enough to claim the finding is
+configuration-general, not clip-specific.
+
+Artifact: `outputs/night1_ende_punct_chunk450_scalar_OiqEWDVtWk_instrumented/`.
+
 ### Third-gate coverage: `alignatt:provenance_weak` joins loop-replay F1 = 1.000
 
 The three discrete MT gates are `alignatt:source_frontier`,
