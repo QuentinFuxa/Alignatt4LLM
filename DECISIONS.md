@@ -1708,3 +1708,62 @@ is a no-op on that backend under full cudagraph. Both backends
 produce coherent output; the paper should quote vLLM MT as the
 production speed path and Transformers MT as the observer-
 validated policy path.
+
+### Config routing bug: scalar mode was silently discarded (2026-04-17)
+
+While investigating why the scalar vLLM MT run produced identical
+stop-reason counts to discrete, discovered a **separate bug in
+`cascade_simulstream_processor._build_runtime_config`**: the
+`override_keys` list was missing five fields:
+
+- `translation_source_frontier_mode`
+- `translation_source_frontier_scalar_threshold`
+- `mt_vllm_enforce_eager`
+- `mt_vllm_cudagraph_mode`
+- `mt_vllm_enable_prefix_caching`
+
+Effect: every call like `cfg.translation_source_frontier_mode = "scalar"`
+set the attribute on the caller's SimpleNamespace, but the override
+was DROPPED during the SimpleNamespace → CascadeRuntimeConfig
+conversion. The runtime got `CascadeRuntimeConfig(translation_source_frontier_mode="discrete")`
+(the default) every time. Every "scalar" online A/B run this
+session was actually a discrete-mode run.
+
+**This invalidates the "online scalar substitution is bit-identical
+on Transformers MT" claim** from Step 7 v9 and Step 7 v10. Both
+discrete and scalar runs ran with the same discrete-mode code
+path, so bit-identity was tautological. The same applies to the
+vLLM MT scalar vs discrete A/B — both ran as discrete with vLLM
+non-determinism producing 0.7% char divergence.
+
+**Still valid:**
+- Offline continuous-confidence replay findings (scripts/continuous_confidence_replay.py)
+  — these simulate scalar by manually evaluating the threshold on captured provenance,
+  independent of runtime mode.
+- Loop-replay F1 = 1.000 on all three gates (scripts/loop_replay_gate_predictor.py)
+  — the artifacts were discrete-mode-only, so replay of the discrete loop is valid.
+- Per-gate F1 characterisation (source_frontier/rewind/provenance_weak).
+- min_source_mass sweep and emit_policy A/B — these used different config knobs that
+  were correctly routed.
+
+**Fix** (commit `54e8b94`): added the five missing keys to the
+override_keys list in `cascade_simulstream_processor.py`. Added
+a `[verify]` assertion in `tmp/scalar_transformers_mt_real.py`
+that prints and asserts the runtime mode before starting inference:
+
+```
+[verify] runtime translation_source_frontier_mode='scalar' threshold=0.015
+```
+
+Confirmed the verify prints `'scalar'` after the fix, so the
+override now propagates correctly. A real scalar-vs-discrete A/B
+is in progress on Transformers MT (the backend where the observer
+works). If outputs differ from the discrete baseline, scalar mode
+has genuine runtime effect; if they remain identical, scalar is
+bit-identical even when genuinely exercised.
+
+**Lesson.** When adding fields to `CascadeRuntimeConfig`, grep for
+the override_keys list in `cascade_simulstream_processor` — new
+fields need to appear there too or they silently default. Added a
+docstring TODO to `CascadeRuntimeConfig`: "any new field that
+overrides a runtime knob must be added to override_keys."
