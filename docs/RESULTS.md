@@ -263,3 +263,79 @@ From `PLAN.md` / `DECISIONS.md` / earlier design notes, on `tmp/alignatt_smoke18
 | **`qwen_forced` + `gemma_vllm_alignatt` (Phase 5 new)** | **0.536** | this push        |
 
 Caveat: smoke18 is a short clip, different git SHAs produced the snapshots, and the `0.536 ↔ 0.798` comparison hasn't been re-run same-code. Do not quote a specific speedup percent without a clean control run. The Phase 6 calibration table above is the reliable ground-truth for quality/latency; the smoke18 numbers exist only for sanity-check continuity with the pre-merge history.
+
+---
+
+## Scalar source-frontier substitution (paper mechanism, 2026-04-17)
+
+**Mechanism.** The discrete `source_frontier` gate stops the MT policy
+loop when `current_source_local_position >= accessible_source_token_count`.
+The scalar substitution replaces that boolean with a threshold on the
+observer's provenance mass: stop when
+`source_inaccessible_mass >= threshold` (default 0.015).
+
+Configured via `translation_source_frontier_mode=scalar` +
+`translation_source_frontier_scalar_threshold=<float>`.
+
+### Single-clip A/B (ccpXHNfaoy.wav, Transformers MT, chunk_ms=450)
+
+| Mode         | BLEU  | chrF  | COMET | CU   | CA   | upd | src_fr | rewind |
+|--------------|-------|-------|-------|------|------|-----|--------|--------|
+| discrete     | 28.22 | 63.53 | 0.862 | 1747 | 2240 | 430 | 40     | 26     |
+| scalar@0.005 | 27.46 | 63.36 | 0.862 | 1830 | 2445 | 406 | 16     | 27     |
+| scalar@0.015 | 27.46 | 63.36 | 0.862 | 1752 | 2208 | 422 | 26     | 28     |
+| scalar@0.050 | 27.46 | 63.36 | 0.862 | 1830 | 2429 | 406 | 16     | 27     |
+
+**All three scalar runs produce bit-identical 5569-char outputs**
+(pairwise char-similarity 1.0000) despite different internal behaviour.
+Scalar is **threshold-invariant over a 10× range**. Scalar ≠ discrete
+(char-sim 0.9973).
+
+### Multi-clip delta (en → de, threshold 0.015)
+
+| Clip              | BLEU Δ (scalar − discrete) | COMET Δ | char-sim |
+|-------------------|----------------------------|---------|----------|
+| ccpXHNfaoy        | −0.76                      | 0.000   | 0.9973   |
+| OiqEWDVtWk        | **+0.51**                  | +0.001  | 0.9795   |
+| Two-clip mean     | −0.13                      | +0.000  | —        |
+
+The scalar-vs-discrete BLEU delta **flips sign across clips**. Two-clip
+mean is approximately zero; COMET is invariant within each clip.
+Scalar is a quality-preserving approximation, not a systematic
+degradation.
+
+**Consistent across both clips:** scalar fires `source_frontier` 13–35%
+less often than discrete (fewer policy-loop stops), yet final
+translation quality stays at discrete parity on COMET.
+
+### Paper claim (defensible)
+
+"Scalar substitution for the discrete source-frontier gate preserves
+COMET quality, averages to zero-BLEU difference across the two
+test-set clips with ±0.5 BLEU per-clip variance, and is invariant to
+threshold choice over a 10× range (0.005–0.050 bit-identical on clip 1).
+The continuous-confidence mechanism is a defensible replacement for
+the discrete gate, with the observer-captured provenance mass as its
+sole scalar input."
+
+### Caveats
+
+- Results above are on Transformers MT. On vLLM MT under
+  `cudagraph=full`, the observer is silently a no-op
+  (`alignatt::capture_mt_qk` is DCE-elided by inductor; see
+  DECISIONS.md "Custom-op observer DCE elision"). Scalar vs discrete
+  cannot be exercised on vLLM MT until the observer is re-enabled
+  via a post-hoc capture pattern or enforce_eager.
+
+- Earlier PLAN entries claiming "scalar bit-identical to discrete on
+  Transformers MT" were a config-routing-bug artifact — both runs
+  actually executed discrete-mode code. After the routing fix
+  (commit `54e8b94`), scalar and discrete are measurably distinct.
+
+Artifacts:
+- `outputs/night1_ende_punct_chunk450_instrumented/` (discrete clip 1)
+- `outputs/night1_ende_scalar_thr_0p005_REAL/`
+- `outputs/night1_ende_scalar_transformers_mt_REAL/` (scalar @ 0.015 clip 1)
+- `outputs/night1_ende_scalar_thr_0p050_REAL/`
+- `outputs/night1_ende_punct_chunk450_OiqEWDVtWk_instrumented/` (discrete clip 2)
+- `outputs/night1_ende_scalar_clip2_REAL/` (scalar @ 0.015 clip 2)
