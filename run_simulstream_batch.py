@@ -407,10 +407,9 @@ def parse_args() -> argparse.Namespace:
         default=0,
         type=int,
         help=(
-            "Speculative look-ahead tokens beyond the accessible source frontier. "
-            "0 (default) keeps the strict AlignAtt source_frontier rule; positive "
-            "values let drafted tokens commit even when their attention argmax "
-            "points up to N tokens past the last accessible ASR-committed source."
+            "Source-token safety margin around the accessible frontier. "
+            "Negative values are more conservative; 0 keeps the strict AlignAtt frontier; "
+            "positive values allow speculative look-ahead beyond the border."
         ),
     )
     parser.add_argument("--translation-alignatt-inaccessible-ms", default=0.0, type=float)

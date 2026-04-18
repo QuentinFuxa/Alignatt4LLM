@@ -155,6 +155,7 @@ def build_processor_config(args: argparse.Namespace, *, backend_name: str) -> Si
         partial_max_new_tokens=args.partial_max_new_tokens,
         translation_alignatt_min_source_mass=args.translation_alignatt_min_source_mass,
         translation_alignatt_rewind_threshold=args.translation_alignatt_rewind_threshold,
+        translation_alignatt_border_margin=args.translation_alignatt_border_margin,
         translation_alignatt_inaccessible_ms=args.translation_alignatt_inaccessible_ms,
         gemma_audio_align_probe_mode=args.gemma_audio_align_probe_mode,
     )
@@ -429,6 +430,8 @@ def run_backend_subprocess(
         str(args.translation_alignatt_min_source_mass),
         "--translation-alignatt-rewind-threshold",
         str(args.translation_alignatt_rewind_threshold),
+        "--translation-alignatt-border-margin",
+        str(args.translation_alignatt_border_margin),
         "--translation-alignatt-inaccessible-ms",
         str(args.translation_alignatt_inaccessible_ms),
     ]
@@ -460,6 +463,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
     parser.add_argument("--translation-alignatt-min-source-mass", default=0.0, type=float)
     parser.add_argument("--translation-alignatt-rewind-threshold", default=8, type=int)
+    parser.add_argument("--translation-alignatt-border-margin", default=0, type=int)
     parser.add_argument("--translation-alignatt-inaccessible-ms", default=0.0, type=float)
     parser.add_argument("--gemma-audio-align-probe-mode", default=None)
     parser.add_argument(

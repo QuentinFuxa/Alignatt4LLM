@@ -19,6 +19,7 @@ class SubmissionPreset:
     max_history_utterances: int = 0
     partial_max_new_tokens: int = 16
     translation_alignatt_rewind_threshold: int = 8
+    translation_alignatt_border_margin: int = 0
     translation_alignatt_inaccessible_ms: float = 0.0
     translation_alignatt_argmax_mass_threshold: float = 0.0
     mt_vllm_enforce_eager: bool = False
@@ -49,6 +50,7 @@ class SubmissionPreset:
             partial_max_new_tokens=self.partial_max_new_tokens,
             translation_alignatt_min_source_mass=self.translation_alignatt_min_source_mass,
             translation_alignatt_rewind_threshold=self.translation_alignatt_rewind_threshold,
+            translation_alignatt_border_margin=self.translation_alignatt_border_margin,
             translation_alignatt_inaccessible_ms=self.translation_alignatt_inaccessible_ms,
             translation_alignatt_argmax_mass_threshold=self.translation_alignatt_argmax_mass_threshold,
             mt_vllm_enforce_eager=self.mt_vllm_enforce_eager,
