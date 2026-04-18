@@ -17,7 +17,7 @@ import json
 import statistics
 from pathlib import Path
 
-from cascade_artifacts import DEFAULT_OUTPUT_DIR, STREAM_UPDATES_FILENAME
+from cascade.artifacts import DEFAULT_OUTPUT_DIR, STREAM_UPDATES_FILENAME
 
 
 DEFAULT_PHASE_KEYS = (

@@ -7,7 +7,7 @@ Branch `maybe_gemma_aligner`. Supersedes the previous ITERATION_RESULT.md.
 The previous conclusion — that Gemma E4B free-run ASR hallucinates on
 conference audio due to domain mismatch — was **wrong**. The hallucination
 was caused by a testing artifact: loading the model with
-`attn_implementation="eager"` via `GemmaAttentionAlignmentBackend`.
+`attn_implementation="eager"` via `GemmaTransformersASRBackend`.
 
 ### Controlled ablation (8 variants × 2 clips)
 
@@ -101,7 +101,7 @@ cumulative precision difference is enough to completely derail generation.
 
 ### Implication for the alignment backend
 
-The alignment backend (`GemmaAttentionAlignmentBackend`) **must** use eager
+The alignment backend (`GemmaTransformersASRBackend`) **must** use eager
 attention to extract attention weights for alignment. This means:
 
 - **Free-run ASR + alignment in one pass is not viable** with the current
@@ -154,7 +154,7 @@ better than previously reported. The recommendation must be rewritten.
 ### `run_gemma_asr_fairness.py` — rebuilt as canonical ablation harness
 
 The old fairness harness loaded the model through
-`GemmaAttentionAlignmentBackend`, which forced `attn_implementation="eager"`.
+`GemmaTransformersASRBackend`, which forced `attn_implementation="eager"`.
 Every variant it tested was tainted by this.
 
 The rebuilt harness:
@@ -185,11 +185,11 @@ The rebuilt harness:
 
 The two-pass full-Gemma frontend is now implemented and working:
 
-1. **Pass 1** (ASR): `GemmaAttentionAlignmentBackend.transcribe()` — default
+1. **Pass 1** (ASR): `GemmaTransformersASRBackend.transcribe()` — default
    attention via `_default_attention_implementation()` context manager, greedy
    decoding via `model.generate()`.
 
-2. **Pass 2** (alignment): `GemmaAttentionAlignmentBackend.align_transcript()` —
+2. **Pass 2** (alignment): `GemmaTransformersASRBackend.align_transcript()` —
    eager attention via `_eager_attention_implementation()` context manager,
    teacher-forced forward pass with attention capture.
 
@@ -200,7 +200,7 @@ The two-pass full-Gemma frontend is now implemented and working:
 
 | File | Role |
 |------|------|
-| `gemma_alignment_probe.py` | Added `transcribe()` (default-attn ASR) and `_default_attention_implementation()` |
+| `cascade/alignment/gemma_transformers_asr_backend.py` | Added `transcribe()` (default-attn ASR) and `_default_attention_implementation()` |
 | `gemma_two_pass_frontend.py` | New: `GemmaTwoPassAlignmentBackend(AlignmentBackend)` |
 | `qwen3asr_gemma_cascade_core.py` | Added `"gemma_two_pass"` to `build_alignment_backend()` |
 

@@ -26,7 +26,7 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from cascade_artifacts import (
+from cascade.artifacts import (
     MANIFEST_FILENAME,
     STREAM_UPDATES_FILENAME,
     InferenceArtifacts,
@@ -36,9 +36,9 @@ from cascade_artifacts import (
     utc_now_isoformat,
     write_inference_artifacts,
 )
-from cascade_emission import register_translation_timestamps, register_translation_words
-from cascade_runtime import STABLE_ALIGNMENT_BACKEND_NAMES
-from cascade_simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
+from cascade.emission import register_translation_timestamps, register_translation_words
+from cascade.runtime import STABLE_ALIGNMENT_BACKEND_NAMES
+from cascade.simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
 from simulstream.server.speech_processors import SAMPLE_RATE
 
 

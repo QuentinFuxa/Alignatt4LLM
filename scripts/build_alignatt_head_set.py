@@ -28,7 +28,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from cascade_mt_backend import (
+from cascade.mt.base import (
     load_alignatt_heads,
     load_alignatt_heads_by_direction,
     multilingual_union_alignatt_heads,

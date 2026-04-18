@@ -3,7 +3,7 @@
 Snapshot date: 2026-04-17
 
 This note records the **shipped** ASR->MT contract after re-reading
-`baseline.py` carefully and deciding what the current cascade should own as
+`scripts/legacy_baseline.py` carefully and deciding what the current cascade should own as
 its explicit policy.
 
 ## Bottom line
@@ -24,7 +24,7 @@ This is the clean separation we want:
 - ASR punctuation commit controls **history management**
 - AlignAtt controls **target emission**
 
-## What `baseline.py` actually does
+## What `scripts/legacy_baseline.py` actually does
 
 The baseline is easy to summarize too loosely as "local agreement".
 Re-reading the code shows a more specific story:

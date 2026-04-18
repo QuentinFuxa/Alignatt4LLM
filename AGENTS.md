@@ -19,7 +19,7 @@ For each change, examine the existing system and redesign it into the most elega
 - **Never emit `deleted_tokens` or `deleted_string`. Streaming output is append-only: once target text has been emitted, we forbid rewriting the past.**
 
 ## Runtime notes
-- The active runtime lives in `cascade_runtime.py`.
+- The active runtime lives in `cascade/runtime.py`.
 - `qwen3asr_gemma_cascade_core.py` is only a temporary compatibility shim consumed by historical scripts under `scripts/`; no active code imports it.
 - We now have **vLLM on both sides** (ASR and MT). The recommended combination is `qwen_forced` ASR + `gemma_vllm_alignatt` MT. See `docs/RUNTIME_ARCHITECTURE.md` for the full matrix.
 - Use the repo environment `.venv-inference`.
@@ -65,7 +65,7 @@ Everything else is historical or archived. `hybrid_*` and `gemma_two_pass` are n
   - `nvidia-smi`
 - If old test processes are still alive (ASR vLLM engine):
   - `pkill -f 'run_simulstream_compare.py|run_simulstream_batch.py|VLLM::EngineCore'`
-- If local Hugging Face snapshot hashes changed, update the three snapshot paths in `cascade_runtime.py`.
+- If local Hugging Face snapshot hashes changed, update the three snapshot paths in `cascade/runtime.py`.
 - If someone removes the runtime monkey-patches, the old `thinker_config` / RoPE crashes will likely come back.
 
 ### Confidence

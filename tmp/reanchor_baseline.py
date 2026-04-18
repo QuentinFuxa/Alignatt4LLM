@@ -15,8 +15,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cascade_simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
-from cascade_artifacts import (
+from cascade.simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
+from cascade.artifacts import (
     ARTIFACT_SCHEMA_VERSION,
     HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
     HYPOTHESIS_FILENAME,

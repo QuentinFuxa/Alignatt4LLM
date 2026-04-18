@@ -7,8 +7,8 @@ import argparse
 import asyncio
 import logging
 
-from cascade_server import serve_submission_processor
-from cascade_submission import VALID_SUBMISSION_PRESET_NAMES, get_submission_preset
+from cascade.server import serve_submission_processor
+from cascade.submission import VALID_SUBMISSION_PRESET_NAMES, get_submission_preset
 from run_simulstream_batch import resolve_input_paths, run_batch_inference
 
 

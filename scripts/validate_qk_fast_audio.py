@@ -13,7 +13,7 @@ from time import perf_counter
 import numpy as np
 import torch
 
-from cascade_mt_backend import (
+from cascade.mt.base import (
     SelectedLayerInputRecorder,
     compute_alignatt_source_argmaxes,
     compute_key_states_from_layer_input_capture,
@@ -21,11 +21,11 @@ from cascade_mt_backend import (
     extract_source_attention_rows_per_token,
     map_attention_head_to_key_value_head,
 )
-from gemma_alignment_probe import (
-    GemmaAttentionAlignmentBackend,
+from cascade.alignment.gemma_transformers_asr_backend import (
+    GemmaTransformersASRBackend,
     detect_audio_span,
 )
-from cascade_runtime import CascadeRuntimeConfig, gemma_model_name
+from cascade.runtime import CascadeRuntimeConfig, gemma_model_name
 
 
 def load_wav(path: str) -> tuple[np.ndarray, int]:
@@ -57,7 +57,7 @@ def main():
     audio, sr = load_wav(wav_path)
     print(f"Audio: {len(audio) / sr:.1f}s")
 
-    backend = GemmaAttentionAlignmentBackend(
+    backend = GemmaTransformersASRBackend(
         model_name=gemma_model_name,
         runtime_config=config,
         audio_heads_path=heads_path,

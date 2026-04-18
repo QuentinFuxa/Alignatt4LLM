@@ -18,7 +18,7 @@ from time import perf_counter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cascade_simulstream_processor import CascadeAlignAttProcessor
+from cascade.simulstream_processor import CascadeAlignAttProcessor
 from run_simulstream_batch import run_single_audio
 from tmp.reanchor_baseline import write_artifacts, build_processor_config
 

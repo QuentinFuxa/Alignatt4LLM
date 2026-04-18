@@ -27,10 +27,10 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cascade_runtime import LoadedModelBundle
-from cascade_submission import get_submission_preset
+from cascade.runtime import LoadedModelBundle
+from cascade.submission import get_submission_preset
 from run_simulstream_batch import resolve_input_paths, run_batch_inference
-from cascade_simulstream_processor import CascadeAlignAttProcessor
+from cascade.simulstream_processor import CascadeAlignAttProcessor
 
 
 DIRECTIONS = ("de", "it", "zh")

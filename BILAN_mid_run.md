@@ -150,7 +150,7 @@ sentence-end wait." User corrected me, correctly, that
 > "LCP is only for ASR commits, not for MT. MT consumes everything every
 > round."
 
-After reading `cascade_runtime.py:render_translation` (line 995+) I confirm:
+After reading `cascade/runtime.py:render_translation` (line 995+) I confirm:
 
 - On every chunk, `should_run_partial_mt` can fire a `translate_with_mt(
   is_partial=True, source_text=<full partial ASR hypothesis>, ...)`.

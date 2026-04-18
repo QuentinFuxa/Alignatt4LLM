@@ -25,10 +25,10 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Adam
 
-from alignment_backend import AlignmentResult, WordAlignment
+from cascade.alignment.base import AlignmentResult, WordAlignment
 from dedicated_audio_gemma_aligner.gemma_audio_features import GemmaAudioFeatures, extract_audio_features
 from dedicated_audio_gemma_aligner.gemma_feature_aligner import TranscriptAudioAligner, enforce_monotone_lis
-from gemma_alignment_probe import (
+from cascade.alignment.gemma_transformers_asr_backend import (
     aggregate_token_timings_to_words,
     split_text_into_word_spans,
 )

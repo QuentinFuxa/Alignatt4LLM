@@ -38,7 +38,7 @@ export VLLM_MOE_USE_DEEP_GEMM=0
 CONFIG_DIR="$(mktemp -d)"
 CONFIG_FILE="${CONFIG_DIR}/speech_processor.yaml"
 
-python /app/submission/render_preset_yaml.py \
+python /app/submission_raw/render_preset_yaml.py \
   --preset "$PRESET" \
   --source-lang-code "$SRC_LANG_CODE" \
   --target-lang-code "$TGT_LANG_CODE" \

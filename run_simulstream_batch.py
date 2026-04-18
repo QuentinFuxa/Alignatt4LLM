@@ -28,9 +28,9 @@ from typing import Any
 
 import numpy as np
 
-from cascade_audio import discover_input_media_paths, load_audio_mono_16khz
-from cascade_simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
-from cascade_artifacts import (
+from cascade.audio import discover_input_media_paths, load_audio_mono_16khz
+from cascade.simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
+from cascade.artifacts import (
     ARTIFACT_SCHEMA_VERSION,
     HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
     HYPOTHESIS_FILENAME,
@@ -43,8 +43,8 @@ from cascade_artifacts import (
     write_json,
     write_jsonl,
 )
-from cascade_text_surface import prediction_text_from_target_surface
-from cascade_emission import register_translation_timestamps, register_translation_words
+from cascade.text_surface import prediction_text_from_target_surface
+from cascade.emission import register_translation_timestamps, register_translation_words
 from simulstream.server.speech_processors import SAMPLE_RATE
 
 

@@ -22,7 +22,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from cascade_simulstream_processor import CascadeAlignAttProcessor
+from cascade.simulstream_processor import CascadeAlignAttProcessor
 from simulstream.server.speech_processors import SAMPLE_RATE
 
 

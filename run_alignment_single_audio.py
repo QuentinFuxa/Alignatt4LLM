@@ -36,7 +36,7 @@ from typing import Sequence
 
 import numpy as np
 
-from alignment_backend import (
+from cascade.alignment.base import (
     AlignAttObserverToken,
     AlignAttProvenanceBreakdown,
     AlignmentBackend,
@@ -145,14 +145,14 @@ def deserialize_alignment(payload: dict) -> AlignmentResult:
 
 
 def build_runtime_config():
-    from cascade_runtime import CascadeRuntimeConfig
+    from cascade.runtime import CascadeRuntimeConfig
 
     return CascadeRuntimeConfig()
 
 
 def build_qwen_backend() -> AlignmentBackend:
-    from qwen_alignment_backend import QwenAlignmentBackend
-    from cascade_runtime import (
+    from cascade.alignment.qwen_forced_backend import QwenAlignmentBackend
+    from cascade.runtime import (
         asr_model_name,
         forced_aligner_model_name,
     )
@@ -172,13 +172,13 @@ def build_gemma_backend(
     top_k: int,
     probe_mode: str | None = None,
 ):
-    from gemma_alignment_probe import GemmaAttentionAlignmentBackend
-    from cascade_runtime import gemma_model_name
+    from cascade.alignment.gemma_transformers_asr_backend import GemmaTransformersASRBackend
+    from cascade.runtime import gemma_model_name
 
     runtime_config = build_runtime_config()
     if probe_mode is not None:
         runtime_config.gemma_audio_align_probe_mode = str(probe_mode)
-    backend = GemmaAttentionAlignmentBackend(
+    backend = GemmaTransformersASRBackend(
         model_name=gemma_model_name,
         runtime_config=runtime_config,
         audio_heads_path=heads_path,
@@ -203,8 +203,8 @@ def build_gemma_vllm_backend(
     compile_cache_dir: str | None = None,
     disable_compile_cache: bool | None = None,
 ):
-    from gemma_vllm_alignment_backend import GemmaVLLMAttentionAlignmentBackend
-    from cascade_runtime import gemma_model_name
+    from cascade.alignment.gemma_vllm_asr_backend import GemmaVLLMASRBackend
+    from cascade.runtime import gemma_model_name
 
     runtime_config = build_runtime_config()
     if executor_backend is not None:
@@ -223,7 +223,7 @@ def build_gemma_vllm_backend(
         runtime_config.gemma_vllm_compile_cache_dir = str(compile_cache_dir)
     if disable_compile_cache is not None:
         runtime_config.gemma_vllm_disable_compile_cache = bool(disable_compile_cache)
-    backend = GemmaVLLMAttentionAlignmentBackend(
+    backend = GemmaVLLMASRBackend(
         model_name=gemma_model_name,
         runtime_config=runtime_config,
         audio_heads_path=heads_path,
@@ -450,7 +450,7 @@ def cmd_gemma_calibrate_heads_forced(args: argparse.Namespace) -> None:
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    from gemma_alignment_probe import save_audio_alignment_heads
+    from cascade.alignment.gemma_transformers_asr_backend import save_audio_alignment_heads
 
     save_audio_alignment_heads(
         str(out_path),
@@ -490,7 +490,7 @@ def _estimate_word_end_offset(
 ) -> float:
     import statistics
 
-    from gemma_alignment_probe import AlignAttHead
+    from cascade.alignment.gemma_transformers_asr_backend import AlignAttHead
 
     # Temporarily install the selected heads on the backend and run one
     # forced alignment with offset=0, then fit the offset to the teacher.
@@ -544,7 +544,7 @@ def cmd_gemma_calibrate_heads(args: argparse.Namespace) -> None:
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    from gemma_alignment_probe import save_audio_alignment_heads
+    from cascade.alignment.gemma_transformers_asr_backend import save_audio_alignment_heads
 
     save_audio_alignment_heads(
         str(out_path),
@@ -559,7 +559,7 @@ def cmd_gemma_calibrate_heads(args: argparse.Namespace) -> None:
             "max_new_tokens": backend.max_new_tokens,
             "notes": (
                 "Monotonicity-dominant ranking with Qwen-teacher MAE as a soft "
-                "quality term. See gemma_alignment_probe._combine_head_score."
+                "quality term. See cascade.alignment.gemma_transformers_asr_backend._combine_head_score."
             ),
         },
     )

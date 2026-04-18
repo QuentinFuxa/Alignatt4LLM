@@ -18,7 +18,7 @@ This note is based on:
 - `assets/alignatt_doc/alignatt_whipser.py`
 - `assets/alignatt_doc/E4B_ALIGNATT_CASCADE_DESIGN.md`
 - `qwen3asr_gemma_cascade_core.py`
-- `cascade_mt_backend.py`
+- `cascade/mt/base.py`
 
 ## Current Runtime Surface
 
@@ -281,7 +281,7 @@ The main problems are not conceptual purity. They are cost, observability design
 
 The current code is better than a naive Whisper port.
 
-In `cascade_mt_backend.py`, partial MT already does:
+In `cascade/mt/base.py`, partial MT already does:
 
 - a fast draft pass with `sdpa`
 - then a second replay pass on a fast path when possible via selected-layer input capture
@@ -834,7 +834,7 @@ The principled recommendation for this phase is therefore to treat
 `chunk_ms = 450`, `partial caps = 16 / 8`, `min_start_seconds = 2.0`,
 `max_history_utterances = 1`, `rewind_threshold = 8` as the operating point
 below `2 s` `LongYAAL CU`, with the per-token rewind truncation in
-`cascade_mt_backend.py` as a standing semantic fix rather than a tuning knob.
+`cascade/mt/base.py` as a standing semantic fix rather than a tuning knob.
 
 
 ## Focused Plan To Cross Below 2 s `LongYAAL CU`

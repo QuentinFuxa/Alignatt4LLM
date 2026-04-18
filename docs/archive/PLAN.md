@@ -29,14 +29,14 @@ Before editing code or launching any expensive run, read these files in order:
 Then read the core implementation:
 
 1. `qwen3asr_gemma_cascade_core.py`
-2. `cascade_mt_backend.py`
+2. `cascade/mt/base.py`
 3. `cascade_emission.py`
 4. `cascade_text_surface.py`
 5. `evaluate_cascade_outputs.py`
 
 Then read the new SimulStream-facing files:
 
-1. `cascade_simulstream_processor.py`
+1. `cascade/simulstream_processor.py`
 2. `run_simulstream_evaluation.py`
 3. `run_simulstream_batch.py`
 4. `benchmark_simulstream_speed.py`
@@ -138,7 +138,7 @@ argmax looks acceptable but the accessible-source attention mass is too weak.
 
 The new work is real and useful:
 
-- `cascade_simulstream_processor.py`
+- `cascade/simulstream_processor.py`
   - first real `SpeechProcessor` wrapper around the cascade
 - `run_simulstream_evaluation.py`
   - produces evaluation-compatible artifacts through the SimulStream path
@@ -152,7 +152,7 @@ The new work is real and useful:
 
 Lightweight verification already done:
 
-- `python -m py_compile cascade_simulstream_processor.py benchmark_simulstream_speed.py run_simulstream_batch.py run_simulstream_evaluation.py qwen3asr_gemma_cascade_core.py`
+- `python -m py_compile cascade/simulstream_processor.py benchmark_simulstream_speed.py run_simulstream_batch.py run_simulstream_evaluation.py qwen3asr_gemma_cascade_core.py`
   - passes
 
 
@@ -162,7 +162,7 @@ The new integration is a strong step forward, but it is **not yet delivery-safe*
 
 ### Blocker 1 - Session isolation is wrong
 
-`cascade_simulstream_processor.py` uses a class-level shared `_core`, while
+`cascade/simulstream_processor.py` uses a class-level shared `_core`, while
 `qwen3asr_gemma_cascade_core.py` stores mutable stream state in module globals:
 
 - `config`
@@ -478,7 +478,7 @@ Syntax check:
 
 ```bash
 .venv-inference/bin/python -m py_compile \
-  cascade_simulstream_processor.py \
+  cascade/simulstream_processor.py \
   run_simulstream_evaluation.py \
   run_simulstream_batch.py \
   benchmark_simulstream_speed.py \

@@ -104,7 +104,7 @@ The vLLM port is a **mechanics rewrite**, not a semantic rewrite.
 
 The following logic in the runtime should remain the source of truth:
 
-- partial translation state in `cascade_runtime.py`
+- partial translation state in `cascade/runtime.py`
 - scheduler decisions
 - monotone acceptance
 - committed-vs-partial segment handling
@@ -197,7 +197,7 @@ Goal:
 
 Changes:
 
-- in `cascade_runtime.py`
+- in `cascade/runtime.py`
   - add `VALID_MT_BACKEND_NAMES`
   - add `STABLE_MT_BACKEND_NAMES`
   - add `mt_backend_name` to `CascadeRuntimeConfig`
@@ -221,8 +221,8 @@ Goal:
 
 Recommended implementation shape:
 
-- new file, e.g. `gemma_vllm_mt_backend.py`
-- new backend class, e.g. `VLLMAlignAttGemmaMTBackend`
+- new file, e.g. `cascade/mt/gemma_vllm_backend.py`
+- new backend class, e.g. `GemmaVLLMMTBackend`
 - same external contract as `TransformersAlignAttGemmaMTBackend`
 
 Minimum features for the first working version:
@@ -486,7 +486,7 @@ The very next implementation step should be:
 
 1. add `mt_backend_name` to the runtime and CLI surfaces
 2. keep all defaults on the current stable path
-3. create a new experimental `gemma_vllm_mt_backend.py`
+3. create a new experimental `cascade/mt/gemma_vllm_backend.py`
 4. make one single-prompt harness that compares MT backends with
    `qwen_forced` completely out of the loop
 
@@ -776,7 +776,7 @@ models that do not emit punctuation in continuation mode".
     Artifacts: `outputs/simulstream_gemma_vllm_short60s/` and
     `outputs/simulstream_gemma_onepass_short60s/`.
   - still much slower than `qwen_forced` RTF `0.798` on `smoke18`.
-- validated vLLM seam defaults: `worker_cls=gemma_vllm_worker.GemmaAlignAttWorker`,
+- validated vLLM seam defaults: `worker_cls=gemma_vllm_worker.GemmaVLLMASRWorker`,
   `cudagraph_mode="full"`, `enforce_eager=False`,
   `enable_prefix_caching=False`
 
@@ -1238,7 +1238,7 @@ The next sequence should be explicit and narrow.
 The worker bootstrap substrate is now hardened:
 
 - per-layer observer module is attached before engine build / warmup /
-  compile (existing `GemmaAlignAttWorker.load_model()`)
+  compile (existing `GemmaVLLMASRWorker.load_model()`)
 - later request preparation reuses the same module identity (existing
   `_configure_audio_qk_tensor_observer_on_model` reuse path, tested)
 - prefix caching remains off by default
@@ -1248,7 +1248,7 @@ The worker bootstrap substrate is now hardened:
   completes, the worker now verifies all tensor observer bindings survived
   and reports `observer_intact_after_warmup` in install diagnostics; fails
   loudly if compile/cudagraph replaced the attention modules
-- **new:** `reset_caches()` on `GemmaVLLMAttentionAlignmentBackend` —
+- **new:** `reset_caches()` on `GemmaVLLMASRBackend` —
   fulfills the `AlignmentBackend` contract, clears prompt observer cache
   and decode-drift state
 
@@ -1343,7 +1343,7 @@ This section is the shortest operational answer to:
 ### Already validated
 
 - a real `vLLM + AlignAtt` Gemma ASR backend now exists in
-  `gemma_vllm_alignment_backend.py`
+  `gemma_vllm_cascade/alignment/base.py`
 - the backend is not a Python-hook-only artifact anymore; the positive
   seam is `worker_cls` + on-device tensor observer
 - `cudagraph=full` is a real positive result, not a speculative path
@@ -1370,11 +1370,11 @@ This section is the shortest operational answer to:
 
 ### Now wired and validated on one clip
 
-- `cascade_runtime.py` now exposes `gemma_vllm_qk_fast` as a third
+- `cascade/runtime.py` now exposes `gemma_vllm_qk_fast` as a third
   valid alignment backend name, alongside `qwen_forced` and
   `gemma_onepass_qk_fast`
 - `build_alignment_backend()` builds a
-  `GemmaVLLMAttentionAlignmentBackend` when this name is selected
+  `GemmaVLLMASRBackend` when this name is selected
 - the default comparison set (`STABLE_ALIGNMENT_BACKEND_NAMES`) still
   only includes the two stable frontends
 - `run_simulstream_batch.py` accepts `gemma_vllm_qk_fast` via CLI
@@ -1451,8 +1451,8 @@ Implementation:
 
 - `VALID_ALIGNMENT_BACKEND_NAMES` now includes `"gemma_vllm_qk_fast"`
 - `STABLE_ALIGNMENT_BACKEND_NAMES` keeps only the two stable frontends
-- `build_alignment_backend()` in `cascade_runtime.py` builds a
-  `GemmaVLLMAttentionAlignmentBackend` when `alignment_backend_name`
+- `build_alignment_backend()` in `cascade/runtime.py` builds a
+  `GemmaVLLMASRBackend` when `alignment_backend_name`
   is `"gemma_vllm_qk_fast"`
 - `CascadeRuntimeConfig` carries vLLM-specific defaults that match the
   validated `cudagraph=full` seam: `enforce_eager=False`,

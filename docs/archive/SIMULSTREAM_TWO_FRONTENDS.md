@@ -19,7 +19,7 @@ Operational defaults:
 
 Runtime architecture:
 
-- `cascade_runtime.py` owns the neutral runtime surface
+- `cascade/runtime.py` owns the neutral runtime surface
 - `CascadeRuntimeConfig` holds immutable-ish experiment config
 - `LoadedModelBundle` loads the selected ASR frontend and the Gemma MT backend
   lazily

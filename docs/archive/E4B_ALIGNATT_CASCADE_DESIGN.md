@@ -1289,7 +1289,7 @@ reject-all were the dominant `CU` and `CA` drains.
 
 ### Implemented Changes
 
-1. **Truncate-on-rewind** in `cascade_mt_backend.py`. The probe loop now
+1. **Truncate-on-rewind** in `cascade/mt/base.py`. The probe loop now
    truncates the drafted suffix at the first rewind token, mirroring the
    `source_frontier` handling, instead of dropping the entire suffix.
    This recovered the safe prefix of `~46` updates per full talk.
@@ -1367,7 +1367,7 @@ Recommended operating point for the `< 2 s` `CU` regime:
 - `max_history_utterances = 1`
 - `translation_alignatt_rewind_threshold = 8`
 - `translation_alignatt_inaccessible_ms = 0`
-- per-token rewind truncation in `cascade_mt_backend.py` (kept as a
+- per-token rewind truncation in `cascade/mt/base.py` (kept as a
   permanent semantic fix, not a tuning knob).
 
 Quality is roughly `~10 BLEU` below the slow `chunk_ms = 800` baseline,
@@ -1386,7 +1386,7 @@ The `latency_v*` numbers in the previous section were collected by a
 harness that hot-reloaded the Python modules but **reused the old
 `core.mt_backend` instance**. Two consequences:
 
-1. Backend code edits in `cascade_mt_backend.py` were not guaranteed to
+1. Backend code edits in `cascade/mt/base.py` were not guaranteed to
    take effect in the next run, because methods were still bound to the
    pre-reload class object.
 2. The backend instance owns the `PromptCacheState`, so prompt KV cache
@@ -1444,7 +1444,7 @@ run.
 ### Regression Test
 
 `test_alignatt_rewind_keeps_safe_prefix_up_to_offending_token` in
-`test_cascade_mt_backend.py` locks in the truncate-on-rewind invariant:
+`test_cascade/mt/base.py` locks in the truncate-on-rewind invariant:
 when the aligned source position jumps backward past
 `translation_alignatt_rewind_threshold`, the policy must return
 `unsafe_reason = "rewind"` on the offending token only, so the caller's
@@ -1601,7 +1601,7 @@ All three directions stay under `2000 ms CU` at the same operating point.
 ### SimulStream Integration
 
 The cascade is now wrapped as a real `SpeechProcessor` subclass
-(`CascadeAlignAttProcessor` in `cascade_simulstream_processor.py`) that
+(`CascadeAlignAttProcessor` in `cascade/simulstream_processor.py`) that
 plugs into the SimulStream framework. This is the canonical delivery path;
 all final evaluations and speed measurements go through this processor.
 

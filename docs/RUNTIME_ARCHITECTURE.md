@@ -1,6 +1,6 @@
 # Runtime architecture
 
-Canonical inference path: `CascadeAlignAttProcessor` (`cascade_simulstream_processor.py`) wrapping a `CascadeSession` from `cascade_runtime.py`. Entry points at the project root:
+Canonical inference path: `CascadeAlignAttProcessor` (`cascade/simulstream_processor.py`) wrapping a `CascadeSession` from `cascade/runtime.py`. Entry points at the project root:
 
 | Entry point | Purpose |
 |---|---|
@@ -40,35 +40,37 @@ Design details in [`MT_VLLM_BACKEND.md`](MT_VLLM_BACKEND.md).
 alignment_backend_name = "qwen_forced"
 mt_backend_name        = "gemma_vllm_alignatt"
 run_simulstream_batch default: chunk_ms=800, max_history_utterances=0
-run_iwslt_submission presets: main_low_latency=450, main_high_latency=700
+run_iwslt_submission presets: main_low_latency=850, main_high_latency=1500
 ```
 
 See [`RESULTS.md`](RESULTS.md) for historical calibration numbers; some tables there come from a richer pre-simplification surface than the current worktree exposes.
 
-## Module map (active source at repo root)
+## Module map (active source in `cascade/`)
 
 ```
-cascade_runtime.py                   # CascadeRuntimeConfig, LoadedModelBundle, CascadeSession
-cascade_simulstream_processor.py     # SimulStream SpeechProcessor wrapper
-cascade_mt_backend.py                # BaseMTBackend + MT dispatcher / shared AlignAtt utilities
-cascade_source_frontier.py           # source accessibility frontier + word timestamp normalization
-cascade_source_text.py               # source text normalization for MT
-cascade_text_surface.py              # target text / incremental rendering
-cascade_translation_variants.py      # prompt templates, rendered-prompt dataclass
-cascade_emission.py                  # emission policy + delay registration
-cascade_artifacts.py                 # output bundle schemas + writers
+cascade/runtime.py                         # CascadeRuntimeConfig, LoadedModelBundle, CascadeSession
+cascade/simulstream_processor.py           # SimulStream SpeechProcessor wrapper
+cascade/mt/base.py                         # BaseMTBackend + MT dispatcher / shared AlignAtt utilities
+cascade/source_frontier.py                 # source accessibility frontier + word timestamp normalization
+cascade/source_text.py                     # source text normalization for MT
+cascade/text_surface.py                    # target text / incremental rendering
+cascade/translation_variants.py            # prompt templates, rendered-prompt dataclass
+cascade/emission.py                        # emission policy + delay registration
+cascade/artifacts.py                       # output bundle schemas + writers
 
-alignment_backend.py                 # AlignmentBackend base + AlignmentResult
-qwen_alignment_backend.py            # qwen_forced
-gemma_alignment_probe.py             # gemma_onepass_qk_fast
-gemma_vllm_alignment_backend.py      # gemma_vllm_qk_fast (ASR observer)
-gemma_vllm_worker.py                 # gemma_vllm_qk_fast worker class
+cascade/alignment/base.py                  # AlignmentBackend base + AlignmentResult
+cascade/alignment/qwen_forced_backend.py   # qwen_forced
+cascade/alignment/gemma_transformers_asr_backend.py
+                                          # gemma_onepass_qk_fast
+cascade/alignment/gemma_vllm_asr_backend.py
+                                          # gemma_vllm_qk_fast (ASR observer)
+cascade/alignment/gemma_vllm_asr_worker.py # gemma_vllm_qk_fast worker class
 
-gemma_vllm_mt_backend.py             # gemma_vllm_alignatt MT backend
-gemma_vllm_mt_observer.py            # MT observer module + reconstruction
-gemma_vllm_mt_worker.py              # MT worker class
+cascade/mt/gemma_vllm_backend.py           # gemma_vllm_alignatt MT backend
+cascade/mt/gemma_vllm_observer.py          # MT observer module + reconstruction
+cascade/mt/gemma_vllm_worker.py            # MT worker class
 
-patch_qwen_asr_for_transformers5.py  # runtime monkey-patches for qwen_asr on Transformers 5
+patch_qwen_asr_for_transformers5.py        # runtime monkey-patches for qwen_asr on Transformers 5
 ```
 
 Historical compatibility shims and dated research scripts are intentionally
@@ -112,12 +114,12 @@ The shipped runtime intentionally separates **source conditioning** from
 - AlignAtt is the sole runtime mechanism that limits how much new target text
   may be accepted and emitted from each partial MT draft.
 
-This differs from `baseline.py`, whose target-side emission control is a
+This differs from `scripts/legacy_baseline.py`, whose target-side emission control is a
 character-level local agreement between consecutive MT hypotheses.
 
 ## Latency/quality knob (today)
 
-`--chunk-ms` is the main user-visible latency knob in the current worktree. The batch CLI defaults to `800`; the frozen submission presets use `450` and `700`. Historical calibration on en→de shows:
+`--chunk-ms` is the main user-visible latency knob in the current worktree. The batch CLI defaults to `800`; the frozen submission presets use `850` and `1500`. Historical calibration on en→de shows:
 
 - chunk 450 → ~1.7 s LongYAAL (CU), BLEU 27–28 en→de
 - chunk 700 → ~3.5 s CA, BLEU ~31

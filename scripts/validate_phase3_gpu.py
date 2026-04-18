@@ -11,14 +11,14 @@ from __future__ import annotations
 
 import torch
 
-from cascade_mt_backend import (
+from cascade.mt.base import (
     IncrementalAlignAttTracker,
     build_mt_backend,
     compute_prefix_online_alignatt_source_argmaxes,
 )
-from cascade_source_frontier import build_source_accessibility_frontier
-from cascade_translation_variants import ALIGNATT_PREFIX_TRANSLATION_VARIANT
-from cascade_runtime import CascadeRuntimeConfig, gemma_model_name, temporary_runtime_config
+from cascade.source_frontier import build_source_accessibility_frontier
+from cascade.translation_variants import ALIGNATT_PREFIX_TRANSLATION_VARIANT
+from cascade.runtime import CascadeRuntimeConfig, gemma_model_name, temporary_runtime_config
 
 
 def main():

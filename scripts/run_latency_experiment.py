@@ -24,7 +24,7 @@ import subprocess
 
 from jupyter_client import BlockingKernelClient
 
-from cascade_artifacts import DEFAULT_WAV_PATH
+from cascade.artifacts import DEFAULT_WAV_PATH
 
 
 DEFAULT_CONNECTION_FILE = "/home/.local/share/jupyter/runtime/kernel-cascade-simultaneous.json"

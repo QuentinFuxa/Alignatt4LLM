@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 
-from cascade_artifacts import DEFAULT_OUTPUT_DIR, DEFAULT_WAV_PATH
+from cascade.artifacts import DEFAULT_OUTPUT_DIR, DEFAULT_WAV_PATH
 from qwen3asr_gemma_cascade_core import run_baseline
 
 

@@ -49,7 +49,7 @@ def replay_gate(
     provenance: list | None = None,
     min_source_mass: float = 0.0,
 ) -> str:
-    """Mirror cascade_mt_backend.py's should_stop_in_loop.
+    """Mirror cascade/mt/base.py's should_stop_in_loop.
 
     With min_source_mass > 0, the provenance_weak gate fires on the
     first token whose provenance[i].source_accessible falls below the

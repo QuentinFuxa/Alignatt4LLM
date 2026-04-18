@@ -52,7 +52,7 @@ ValueError: No available memory for the cache blocks. Try increasing
 
 **Cause:** when generation stops via `stop_token_ids`, vLLM includes the stop-triggering token in `completion.token_ids`. Transformers' `.generate(...)` stops *before* emitting EOS.
 
-**Fix:** `VLLMAlignAttGemmaMTBackend.translate()` strips any trailing ids in `tokenizer.all_special_ids` before decoding the text. See `gemma_vllm_mt_backend.py` around the `raw_ids` → `trimmed_ids` loop.
+**Fix:** `GemmaVLLMMTBackend.translate()` strips any trailing ids in `tokenizer.all_special_ids` before decoding the text. See `cascade/mt/gemma_vllm_backend.py` around the `raw_ids` → `trimmed_ids` loop.
 
 ## `translation_alignatt_inaccessible_ms` has ~zero latency effect
 

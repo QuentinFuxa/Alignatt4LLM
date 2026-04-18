@@ -31,18 +31,18 @@ behind the specialized aligner.
 
 ### Alignment backend abstraction (Phase 1)
 
-- `alignment_backend.py` — `AlignmentBackend` ABC + `AlignmentResult`/
+- `cascade/alignment/base.py` — `AlignmentBackend` ABC + `AlignmentResult`/
   `WordAlignment` dataclasses. Field names (`start_time`, `end_time` in
   seconds) are duck-compatible with `Qwen3ForcedAligner.TimeStamp` so
   `cascade_source_frontier.normalize_word_timestamps_ms` works unchanged.
-- `qwen_alignment_backend.py` — baseline wrapping
+- `qwen_cascade/alignment/base.py` — baseline wrapping
   `Qwen3ASRModel.transcribe(..., return_time_stamps=True)`.
-- `gemma_alignment_probe.py` — `GemmaAttentionAlignmentBackend` with:
+- `cascade/alignment/gemma_transformers_asr_backend.py` — `GemmaTransformersASRBackend` with:
   - `transcribe_and_align` (free-run ASR + attention alignment)
   - `align_transcript` (teacher-forced forced alignment — the path that
     works today)
   - `calibrate_alignment_heads{,_forced}` (rank all 42 × 8 heads)
-- `hybrid_alignment_backend.py` — `HybridQwenAsrGemmaAlignerBackend` =
+- `hybrid_cascade/alignment/base.py` — `HybridQwenAsrGemmaAlignerBackend` =
   Qwen3-ASR text + Gemma attention timings. Fallback to the ASR
   backend's own timings on any Gemma error.
 
@@ -236,10 +236,10 @@ Produced by `run_hybrid_audit.py` on `ccpXHNfaoy.wav` (360 s) and a
 
 ### Evaluation Hygiene (Phase 1)
 
-- **Strict mode**: `hybrid_alignment_backend.py` now accepts
+- **Strict mode**: `hybrid_cascade/alignment/base.py` now accepts
   `strict=True` — Gemma-side failures raise instead of silently falling
   back. Wired via `config.hybrid_strict_mode`.
-- **Audio cap from config**: `gemma_alignment_probe.py` derives
+- **Audio cap from config**: `cascade/alignment/gemma_transformers_asr_backend.py` derives
   `max_audio_seconds` from `processor.audio_seq_length *
   audio_ms_per_token` instead of the hardcoded 30 s default.
 - **Diagnostics**: per-tick `gemma_alignment_used`, `fallback_reason`,
@@ -350,15 +350,15 @@ Under `assets/attention_heads/`:
 
 ## Files Added / Modified
 
-- **Added**: `alignment_backend.py`, `qwen_alignment_backend.py`,
-  `gemma_alignment_probe.py`, `hybrid_alignment_backend.py`,
+- **Added**: `cascade/alignment/base.py`, `qwen_cascade/alignment/base.py`,
+  `cascade/alignment/gemma_transformers_asr_backend.py`, `hybrid_cascade/alignment/base.py`,
   `run_alignment_single_audio.py`, `run_streaming_stability.py`,
   `test_alignment_helpers.py`, `run_gemma_asr_fairness.py`,
   `run_hybrid_audit.py`.
 - **Modified**: `qwen3asr_gemma_cascade_core.py` (backend dispatch +
   snapshot path fix + `hybrid_strict_mode` config),
-  `hybrid_alignment_backend.py` (strict evaluation mode),
-  `gemma_alignment_probe.py` (audio cap from processor config + split
+  `hybrid_cascade/alignment/base.py` (strict evaluation mode),
+  `cascade/alignment/gemma_transformers_asr_backend.py` (audio cap from processor config + split
   prompt contracts).
 
 Seven pure-Python invariants in `test_alignment_helpers.py` lock the

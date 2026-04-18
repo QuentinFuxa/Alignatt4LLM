@@ -5,7 +5,7 @@ import argparse
 import json
 from pathlib import Path
 
-from cascade_artifacts import (
+from cascade.artifacts import (
     DEFAULT_OUTPUT_DIR,
     DEFAULT_SOURCE_LANG_CODE,
     DEFAULT_TARGET_LANG_CODE,
@@ -18,7 +18,7 @@ from cascade_artifacts import (
     final_asr_filename,
     write_inference_artifacts,
 )
-from cascade_emission import (
+from cascade.emission import (
     FREEZE_MAJOR_TAIL_REWRITES,
     FREEZE_NONEXPANDING_MAJOR_REWRITES,
     RAW_PASSTHROUGH,

@@ -31,7 +31,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from alignment_backend import AlignmentResult, WordAlignment
+from cascade.alignment.base import AlignmentResult, WordAlignment
 from run_alignment_single_audio import (
     build_qwen_backend,
     build_gemma_backend,

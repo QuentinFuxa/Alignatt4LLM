@@ -71,7 +71,7 @@ Treat these as established working facts.
 
 Current Gemma audio forced alignment lives in:
 
-- [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py)
+- [cascade/alignment/gemma_transformers_asr_backend.py](/home/fuxa/cascade_simultaneous/cascade/alignment/gemma_transformers_asr_backend.py)
 
 The current implementation:
 
@@ -84,7 +84,7 @@ Today, this path uses `eager` because `SelectedAttentionRecorder` expects actual
 
 ### 4.2 Gemma ASR attention modes
 
-Also in [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py):
+Also in [cascade/alignment/gemma_transformers_asr_backend.py](/home/fuxa/cascade_simultaneous/cascade/alignment/gemma_transformers_asr_backend.py):
 
 1. ASR is now run with default attention (`sdpa`-like path)
 2. eager attention was shown to damage free-run ASR badly
@@ -100,7 +100,7 @@ The whole point of this project is to remove the second requirement if possible.
 
 The MT backend in:
 
-- [cascade_mt_backend.py](/home/fuxa/cascade_simultaneous/cascade_mt_backend.py)
+- [cascade/mt/base.py](/home/fuxa/cascade_simultaneous/cascade/mt/base.py)
 
 already supports a fast AlignAtt probe under `sdpa` using:
 
@@ -116,7 +116,7 @@ This is the key precedent.
 Qwen does **not** rely on “alignment heads from Qwen ASR” in the shipped repo path.
 It uses a dedicated aligner model:
 
-- [qwen_alignment_backend.py](/home/fuxa/cascade_simultaneous/qwen_alignment_backend.py)
+- [qwen_cascade/alignment/base.py](/home/fuxa/cascade_simultaneous/qwen_cascade/alignment/base.py)
 - [Qwen3_aligner.md](/home/fuxa/cascade_simultaneous/Qwen3_aligner.md)
 
 So if we can make the Gemma `qk_fast` path work, that would be a genuinely novel and stronger Gemma-native story.
@@ -133,14 +133,14 @@ Read these before changing anything.
 
 ### 5.2 Audio aligner implementation
 
-1. [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py)
+1. [cascade/alignment/gemma_transformers_asr_backend.py](/home/fuxa/cascade_simultaneous/cascade/alignment/gemma_transformers_asr_backend.py)
 2. [gemma_two_pass_frontend.py](/home/fuxa/cascade_simultaneous/gemma_two_pass_frontend.py)
-3. [alignment_backend.py](/home/fuxa/cascade_simultaneous/alignment_backend.py)
+3. [cascade/alignment/base.py](/home/fuxa/cascade_simultaneous/cascade/alignment/base.py)
 4. [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py)
 
 ### 5.3 MT fast-path AlignAtt implementation
 
-1. [cascade_mt_backend.py](/home/fuxa/cascade_simultaneous/cascade_mt_backend.py)
+1. [cascade/mt/base.py](/home/fuxa/cascade_simultaneous/cascade/mt/base.py)
 
 Pay special attention to:
 
@@ -373,12 +373,12 @@ Explicit is better here.
 
 You will probably need to touch at least:
 
-1. [gemma_alignment_probe.py](/home/fuxa/cascade_simultaneous/gemma_alignment_probe.py)
+1. [cascade/alignment/gemma_transformers_asr_backend.py](/home/fuxa/cascade_simultaneous/cascade/alignment/gemma_transformers_asr_backend.py)
 2. [qwen3asr_gemma_cascade_core.py](/home/fuxa/cascade_simultaneous/qwen3asr_gemma_cascade_core.py)
 
 You may also need to touch:
 
-1. [cascade_mt_backend.py](/home/fuxa/cascade_simultaneous/cascade_mt_backend.py)
+1. [cascade/mt/base.py](/home/fuxa/cascade_simultaneous/cascade/mt/base.py)
 
 But only if extracting genuinely generic helper code improves clarity.
 

@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from cascade_artifacts import (
+from cascade.artifacts import (
     ARTIFACT_SCHEMA_VERSION,
     HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
     HYPOTHESIS_FILENAME,
@@ -18,7 +18,7 @@ from cascade_artifacts import (
     write_json,
     write_jsonl,
 )
-from cascade_simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
+from cascade.simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
 from run_simulstream_batch import git_sha, run_single_audio
 
 

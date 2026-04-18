@@ -11,7 +11,7 @@ Candidate root causes under test:
 3. decode_policy        : greedy (old path) vs sampled (standalone)
 
 The model is loaded ONCE. ``attn_implementation`` is toggled at runtime via
-the config attribute (the same mechanism GemmaAttentionAlignmentBackend uses).
+the config attribute (the same mechanism GemmaTransformersASRBackend uses).
 """
 
 from __future__ import annotations

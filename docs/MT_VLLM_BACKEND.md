@@ -8,15 +8,15 @@ Status: **shipped**, validated end-to-end on one clip (Phase 5). Quality/latency
 
 | Surface | File |
 |---|---|
-| MT backend | `gemma_vllm_mt_backend.py` — `VLLMAlignAttGemmaMTBackend(BaseMTBackend)` |
-| MT worker | `gemma_vllm_mt_worker.py` — `GemmaMTAlignAttWorker(VLLMGPUWorker)` |
-| MT observer | `gemma_vllm_mt_observer.py` — `_MTPromptDecodeQKTensorObserver` + reconstruction |
-| MT dispatcher | `cascade_mt_backend.build_mt_backend()` — Phase 0 |
+| MT backend | `cascade/mt/gemma_vllm_backend.py` — `GemmaVLLMMTBackend(BaseMTBackend)` |
+| MT worker | `cascade/mt/gemma_vllm_worker.py` — `GemmaVLLMMTWorker(VLLMGPUWorker)` |
+| MT observer | `cascade/mt/gemma_vllm_observer.py` — `_MTPromptDecodeQKTensorObserver` + reconstruction |
+| MT dispatcher | `cascade/mt/base.py` — `build_mt_backend()` |
 | Probe harness | `run_mt_backend_parity.py` (historical filename, vLLM-only) |
 
 ## Dispatcher and runtime surface (Phase 0)
 
-ASR remains a runtime axis; MT no longer does. The shipped constants in `cascade_runtime.py` are:
+ASR remains a runtime axis; MT no longer does. The shipped constants in `cascade/runtime.py` are:
 
 ```python
 VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast")
@@ -40,7 +40,7 @@ Gotchas fixed:
 
 ## Engine-native AlignAtt observer (Phase 2)
 
-The backbone design copies the ASR-side tensor-observer pattern (`gemma_vllm_alignment_backend._AudioQKTensorObserver` + `gemma_vllm_worker.GemmaAlignAttWorker`) with two MT-specific deltas:
+The backbone design copies the ASR-side tensor-observer pattern (`cascade/alignment/gemma_vllm_asr_backend.py::_AudioQKTensorObserver` + `cascade/alignment/gemma_vllm_asr_worker.py::GemmaVLLMASRWorker`) with two MT-specific deltas:
 
 ### 1. Capture K at *every* prompt position, not just an audio span
 
@@ -61,18 +61,18 @@ So the MT observer stores K over the full prompt (`max_prompt_tokens = gemma_max
 
 ### 3. Worker bootstrap before engine build
 
-`GemmaMTAlignAttWorker.load_model()` installs `install_global_gemma4_attention_mt_patch()` (which patches `Gemma4Attention.forward`) **before** `super().load_model()`, then reads a JSON bootstrap payload from the `CASCADE_MT_ALIGNATT_OBSERVER_BOOTSTRAP` env var to configure per-layer observers. `compile_or_warm_up_model()` is deferred until `prepare_mt_observer` is called with a real prompt length so the compiled graph is built *with* the observer attached. Matches the ASR worker's pattern directly.
+`GemmaVLLMMTWorker.load_model()` installs `install_global_gemma4_attention_mt_patch()` (which patches `Gemma4Attention.forward`) **before** `super().load_model()`, then reads a JSON bootstrap payload from the `CASCADE_MT_ALIGNATT_OBSERVER_BOOTSTRAP` env var to configure per-layer observers. `compile_or_warm_up_model()` is deferred until `prepare_mt_observer` is called with a real prompt length so the compiled graph is built *with* the observer attached. Matches the ASR worker's pattern directly.
 
 ### 4. Reconstruction
 
-`reconstruct_mt_attention_rows` in `gemma_vllm_mt_observer.py`:
+`reconstruct_mt_attention_rows` in `cascade/mt/gemma_vllm_observer.py`:
 
 1. For each selected `(layer, head)` AlignAtt head, compute `prompt_logits = Q @ prompt_K^T` and `suffix_logits = Q @ decode_K^T`, scale by `attn.scaling` (= 1.0 on Gemma 4).
 2. Apply causal mask on suffix, concatenate, softmax over the full row.
 3. Slice source rows at `source_token_positions` → per-token row `(n_heads, n_source_positions)` for argmax-based alignment.
 4. Sum-reduce into 4-way provenance, average across heads.
 
-Sliding-window mask is a no-op at `gemma_max_model_len=1024` (Gemma 4 sliding window = 512 is larger than any prompt we handle); a full implementation of the window mask is kept for the Transformers qk_fast path (`cascade_mt_backend.apply_window_mask_to_prompt_logits`).
+Sliding-window mask is a no-op at `gemma_max_model_len=1024` (Gemma 4 sliding window = 512 is larger than any prompt we handle); a full implementation of the window mask is kept for the Transformers qk_fast path (`cascade/mt/base.py::apply_window_mask_to_prompt_logits`).
 
 ## Gemma-4 architectural quirks the observer has to know about
 
@@ -85,7 +85,7 @@ Picked up while debugging Phase 2/3 provenance divergence:
 
 ## Semantic contract (Phase 3)
 
-`VLLMAlignAttGemmaMTBackend.translate()` plugs into the existing runtime by producing an `MTBackendResult` with the same stop-reason vocabulary as the Transformers backend:
+`GemmaVLLMMTBackend.translate()` plugs into the existing runtime by producing an `MTBackendResult` with the same stop-reason vocabulary as the Transformers backend:
 
 - `alignatt:source_frontier` — the next drafted token would align beyond the accessible frontier
 - `alignatt:rewind` — the aligned source position jumped backward past `translation_alignatt_rewind_threshold`

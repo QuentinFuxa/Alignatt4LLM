@@ -6,9 +6,9 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from cascade_audio import load_audio_mono_16khz
-from cascade_simulstream_processor import CascadeAlignAttProcessor
-from cascade_text_surface import split_public_emission_units
+from cascade.audio import load_audio_mono_16khz
+from cascade.simulstream_processor import CascadeAlignAttProcessor
+from cascade.text_surface import split_public_emission_units
 from simulstream.server.speech_processors import SAMPLE_RATE
 
 

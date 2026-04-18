@@ -4,7 +4,7 @@ This pass implemented the static code path for Gemma audio forced alignment unde
 
 ## What changed
 
-- `gemma_alignment_probe.py`
+- `cascade/alignment/gemma_transformers_asr_backend.py`
   - added an explicit `gemma_audio_align_probe_mode` switch for forced alignment
   - kept `eager` as the default safe path
   - added a new `qk_fast` replay path that:
@@ -14,7 +14,7 @@ This pass implemented the static code path for Gemma audio forced alignment unde
   - kept the downstream timing pipeline unchanged: head aggregation, argmax, monotonic projection, offset correction, and token-to-word grouping still run exactly as before
 - `qwen3asr_gemma_cascade_core.py`
   - exposed `config.gemma_audio_align_probe_mode` with default `eager`
-- `gemma_two_pass_frontend.py` and `hybrid_alignment_backend.py`
+- `gemma_two_pass_frontend.py` and `hybrid_cascade/alignment/base.py`
   - now surface the selected Gemma probe backend in diagnostics
 - `run_alignment_single_audio.py`
   - `gemma_forced_align` now accepts `--probe-mode eager|qk_fast`

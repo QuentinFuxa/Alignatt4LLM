@@ -1,6 +1,6 @@
 """Compatibility shim over the instantiable cascade runtime.
 
-New code should import from ``cascade_runtime`` directly. This module keeps a
+New code should import from ``cascade.runtime`` directly. This module keeps a
 single default runtime alive so older notebooks and harnesses continue to
 function during the transition.
 """
@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from cascade_mt_backend import build_mt_backend
-from cascade_artifacts import DEFAULT_OUTPUT_DIR, DEFAULT_WAV_PATH
-from cascade_runtime import (
+from cascade.mt.base import build_mt_backend
+from cascade.artifacts import DEFAULT_OUTPUT_DIR, DEFAULT_WAV_PATH
+from cascade.runtime import (
     LANGUAGE_CODE_TO_NAME,
     LANGUAGE_NAME_TO_CODE,
     CascadeRuntimeConfig,

@@ -17,7 +17,7 @@ that produced the 177 ms MAE), and `build_alignment_backend` raises
 silently.
 
 ### 2. Hybrid backend exposes Gemma-vs-fallback usage explicitly
-`hybrid_alignment_backend.py` — every `transcribe_and_align` return now
+`hybrid_cascade/alignment/base.py` — every `transcribe_and_align` return now
 populates `gemma_alignment_used: bool`, `fallback_reason: str | None`,
 `gemma_error: str | None`, and word-count truncation flags. Gemma
 exceptions are caught and reported as `gemma_exception` instead of
@@ -25,7 +25,7 @@ crashing the cascade tick. Hybrid metrics can now be split into pure
 Gemma ticks vs Qwen-fallback ticks.
 
 ### 3. Long-audio guard is loud, not silent
-`gemma_alignment_probe.py` — new `GemmaAudioTooLongError` and
+`cascade/alignment/gemma_transformers_asr_backend.py` — new `GemmaAudioTooLongError` and
 `_enforce_audio_cap` (default 30 s, configurable via
 `max_audio_seconds`) called from both `transcribe_and_align` and
 `align_transcript`. Audio past the encoder cap now raises with the
@@ -120,7 +120,7 @@ span is materially less peaked.
 
 ### Applied fix
 
-`gemma_alignment_probe.py _prepare_forced_alignment_inputs` now puts
+`cascade/alignment/gemma_transformers_asr_backend.py _prepare_forced_alignment_inputs` now puts
 the text block **before** the audio block, decoupling the forced-
 alignment prompting from the free-run ASR prompting:
 
@@ -171,8 +171,8 @@ prompt. Both are now one command away.
 ## Files Modified / Added
 
 - Modified: `qwen3asr_gemma_cascade_core.py` (default head bundle +
-  strict resolution), `hybrid_alignment_backend.py` (fallback
-  diagnostics), `gemma_alignment_probe.py` (long-audio guard; split
+  strict resolution), `hybrid_cascade/alignment/base.py` (fallback
+  diagnostics), `cascade/alignment/gemma_transformers_asr_backend.py` (long-audio guard; split
   prompt contracts — cookbook for free-run ASR, text-first for forced
   alignment), `run_streaming_stability.py` (per-tick fallback accounting),
   `test_alignment_helpers.py` (guard + fallback invariants).

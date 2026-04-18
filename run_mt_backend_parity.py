@@ -51,15 +51,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from cascade_mt_backend import MTBackendResult, build_mt_backend
-from cascade_runtime import (
+from cascade.mt.base import MTBackendResult, build_mt_backend
+from cascade.runtime import (
     CascadeRuntimeConfig,
     LANGUAGE_CODE_TO_NAME,
     VALID_MT_BACKEND_NAMES,
     gemma_model_name,
 )
-from cascade_source_frontier import build_source_accessibility_frontier
-from cascade_translation_variants import RenderedTranslationPrompt, TRANSLATION_VARIANTS
+from cascade.source_frontier import build_source_accessibility_frontier
+from cascade.translation_variants import RenderedTranslationPrompt, TRANSLATION_VARIANTS
 
 
 _BACKEND_ALIASES = {

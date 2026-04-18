@@ -11,7 +11,7 @@ ASR commit path        = punctuation_lcp + EOS flush   # fixed in the current wo
 ASR -> MT conditioning = full live ASR tail, with unstable trailing sentence punctuation stripped
 MT emission limit      = AlignAtt acceptance over that full MT-visible source prefix
 run_simulstream_batch  = chunk_ms=800, max_history_utterances=0 by default
-submission presets     = main_low_latency: chunk_ms=750 border_margin=1 (LOW regime), main_high_latency: chunk_ms=1100 border_margin=1 (HIGH regime)
+submission presets     = main_low_latency: chunk_ms=850 border_margin=1 (LOW regime), main_high_latency: chunk_ms=1500 border_margin=1 (HIGH regime)
 ```
 
 Full runtime matrix and the exact shipped surfaces: [`docs/RUNTIME_ARCHITECTURE.md`](docs/RUNTIME_ARCHITECTURE.md).
@@ -37,7 +37,7 @@ Historical reference numbers (`dev-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, ch
 - [`DECISIONS.md`](DECISIONS.md) — append-only log of session-level decisions and what changed why
 - [`docs/RUNTIME_ARCHITECTURE.md`](docs/RUNTIME_ARCHITECTURE.md) — ASR/MT axes, module map, session lifecycle
 - [`docs/MT_VLLM_BACKEND.md`](docs/MT_VLLM_BACKEND.md) — design of the experimental `gemma_vllm_alignatt` MT backend (Phases 0–5)
-- [`docs/CASCADE_POLICY_AUDIT.md`](docs/CASCADE_POLICY_AUDIT.md) — rationale for the shipped ASR->MT contract vs `baseline.py`
+- [`docs/CASCADE_POLICY_AUDIT.md`](docs/CASCADE_POLICY_AUDIT.md) — rationale for the shipped ASR->MT contract vs the legacy baseline in `scripts/legacy_baseline.py`
 - [`docs/RESULTS.md`](docs/RESULTS.md) — consolidated quality/latency numbers + calibration curve
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — GPU / vLLM / allocator gotchas
 - [`docs/CONTEXT_INJECTION.md`](docs/CONTEXT_INJECTION.md) — ACL-paper extra-context mechanism (IWSLT 2026 sub-track)
@@ -45,6 +45,21 @@ Historical reference numbers (`dev-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, ch
 - [`docs/archive/`](docs/archive/) — historical design docs preserved for context
 - [`docs/reference/`](docs/reference/) — upstream model cards and reference papers/implementations
 - [`AGENTS.md`](AGENTS.md), [`CLAUDE.md`](CLAUDE.md) — operational guidance for agents
+
+## Repo layout
+
+Active library code now lives under [`cascade/`](cascade):
+
+- `cascade/runtime.py` — runtime config, loaded bundle, per-stream session state
+- `cascade/simulstream_processor.py` — SimulStream `SpeechProcessor` wrapper
+- `cascade/alignment/` — ASR/alignment backends
+- `cascade/mt/` — MT backend, worker and observer
+- `cascade/submission.py` — frozen submission presets
+- `cascade/{artifacts,audio,emission,source_frontier,source_text,text_surface,translation_variants}.py`
+  — shared runtime utilities
+
+The repo root is reserved for entry points, top-level docs, and compatibility
+shims.
 
 ## Entry points at the repo root
 
@@ -57,8 +72,9 @@ Historical reference numbers (`dev-set/audio/ccpXHNfaoy.wav`, 360 s, en→de, ch
 | `run_mt_backend_parity.py` | Isolated single-backend MT probe harness (historical name retained). |
 | `run_context_ablation.py` | Three-condition MT paper-context ablation on one clip (hot bundle). |
 | `evaluate_cascade_outputs.py` | BLEU / chrF / XCOMET-XL / LongYAAL over a run bundle. |
+| `qwen3asr_gemma_cascade_core.py` | Compatibility shim for older notebooks and scripts. |
 
-All other one-off research scripts live under [`scripts/`](scripts/).
+All other one-off or historical helpers live under [`scripts/`](scripts/).
 
 ## Extra-context (IWSLT 2026 sub-track)
 

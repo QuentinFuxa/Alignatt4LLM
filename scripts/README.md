@@ -1,6 +1,6 @@
 # `scripts/`
 
-Dated research scripts preserved for reference. **Not maintained** — they may or may not run against the current `cascade_runtime.py` surface.
+Dated research scripts preserved for reference. **Not maintained** — they may or may not run against the current `cascade/runtime.py` surface.
 
 The canonical, maintained entry points are at the repo root:
 
@@ -12,7 +12,9 @@ The canonical, maintained entry points are at the repo root:
 
 ## How to run one of these historical scripts
 
-They import from the repo root (`cascade_runtime`, `cascade_mt_backend`, `qwen3asr_gemma_cascade_core`, etc.). Run them with the repo root on `PYTHONPATH`:
+They import from the repo root package layout (`cascade.runtime`, `cascade.mt.base`,
+`qwen3asr_gemma_cascade_core`, etc.). Run them with the repo root on
+`PYTHONPATH`:
 
 ```bash
 cd /home/cascade_simultaneous
@@ -28,6 +30,8 @@ Without `PYTHONPATH=.`, the imports will fail because Python only puts the scrip
 | `analyze_cascade_timings.py` | Aggregate timing breakdown from `stream_updates.jsonl`. Pre-`full_vllm` era. |
 | `benchmark_simulstream_speed.py` | Per-chunk latency harness; reports RTF, mean/p95/max chunk ms, peak GPU. |
 | `build_alignatt_head_set.py` | Materialise a head-set regime (shared kernel, multilingual union) to disk. |
+| `compare_context_ablations.py` | Summarise `run_context_ablation.py` bundles into one Markdown comparison. |
+| `legacy_baseline.py` | Historical baseline cascade kept for audit/reference only. |
 | `qwen3asr_gemma_cascade_notebook.py` | Jupyter-oriented cascade driver that wraps `qwen3asr_gemma_cascade_core`. |
 | `reemit_cascade_outputs.py` | Re-emit artifacts from an existing run with different emission params. |
 | `restart_jupyter_kernel.py` | List/control/start/warm notebook kernels when running in Jupyter. |
@@ -44,7 +48,7 @@ Without `PYTHONPATH=.`, the imports will fail because Python only puts the scrip
 
 ## What depends on `qwen3asr_gemma_cascade_core.py`
 
-That file is a **compatibility shim** over `cascade_runtime.py` (see `AGENTS.md`). It is kept at the repo root for these scripts to import; no active code imports it. If you remove it, the following scripts stop working:
+That file is a **compatibility shim** over `cascade/runtime.py` (see `AGENTS.md`). It is kept at the repo root for these scripts to import; no active code imports it. If you remove it, the following scripts stop working:
 
 - `run_cascade_baseline.py`
 - `run_latency_experiment.py`

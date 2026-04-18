@@ -10,4 +10,4 @@ Upstream model cards and reference implementations used during the design of thi
 - `simul_streaming_whisper.py` — simultaneous-streaming Whisper reference harness.
 - `whisper_online_main.py` — Whisper-online reference entry point.
 
-The AlignAtt policy in `cascade_mt_backend.py::AlignAttDecoderPolicy` was adapted from `alignatt_whipser.py`; see `docs/archive/ALIGNATT_LLM.md` for the adaptation rationale.
+The AlignAtt policy in `cascade/mt/base.py::AlignAttDecoderPolicy` was adapted from `alignatt_whipser.py`; see `docs/archive/ALIGNATT_LLM.md` for the adaptation rationale.

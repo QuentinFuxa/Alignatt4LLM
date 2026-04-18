@@ -273,14 +273,14 @@ with PLAN's Phase 0 → Phase 5 sequence:
   `build_mt_backend()` dispatcher, `--mt-backend-name` CLI flag, `_bundle_key`
   includes it, `LoadedModelBundle.ensure_mt_backend()` rebuilds on change.
   All runtime tests pass with no default behaviour change.
-- **Phase 1:** minimal `gemma_vllm_mt_backend.py` — render same prompt as
+- **Phase 1:** minimal `cascade/mt/gemma_vllm_backend.py` — render same prompt as
   Transformers, `llm.generate(prompt_token_ids=...)`, deterministic decode.
   Three subtle fixes: trailing EOS token trimming, `mt_vllm_gpu_memory_utilization`
   bumped from 0.3 → 0.5 (Gemma-4 E4B weights are 15.28 GiB), subprocess
   isolation in the parity harness (cross-allocator GPU memory contamination
   between TF and vLLM in one process).
-- **Phase 2:** engine-native MT observer via `gemma_vllm_mt_observer.py` +
-  `gemma_vllm_mt_worker.py`. Parallel to the ASR-side observer but captures
+- **Phase 2:** engine-native MT observer via `cascade/mt/gemma_vllm_observer.py` +
+  `cascade/mt/gemma_vllm_worker.py`. Parallel to the ASR-side observer but captures
   **K at prompt *and* decode positions** so the 4-way provenance partition
   (accessible / inaccessible / non-source / suffix) can be reconstructed
   from `softmax([prompt_K | decode_K])`. Single-prompt validation:
@@ -384,11 +384,11 @@ All moved scripts still compile.
 ├── run_mt_backend_parity.py
 ├── evaluate_cascade_outputs.py
 ├── cascade_*.py          # active runtime
-├── alignment_backend.py, qwen_alignment_backend.py
-├── gemma_alignment_probe.py
-├── gemma_vllm_alignment_backend.py, gemma_vllm_worker.py       # Gemma ASR vLLM
-└── gemma_vllm_mt_backend.py, gemma_vllm_mt_observer.py,
-    gemma_vllm_mt_worker.py                                      # Gemma MT vLLM
+├── cascade/alignment/base.py, qwen_cascade/alignment/base.py
+├── cascade/alignment/gemma_transformers_asr_backend.py
+├── gemma_vllm_cascade/alignment/base.py, cascade/alignment/gemma_vllm_asr_worker.py       # Gemma ASR vLLM
+└── cascade/mt/gemma_vllm_backend.py, cascade/mt/gemma_vllm_observer.py,
+    cascade/mt/gemma_vllm_worker.py                                      # Gemma MT vLLM
 ```
 
 ### Open threads for the next session
@@ -468,7 +468,7 @@ the live MT prompt path. Main decision for this run:
   prepended *before* `[Confirmed earlier sentence pairs]` and well before
   `[Current English ASR prefix]` so (a) the `source_text_char_span_in_user_message`
   offsets remain correct relative to the enclosing user message, and (b)
-  `build_prompt_source_map` in `cascade_mt_backend.py` (line 1474) still
+  `build_prompt_source_map` in `cascade/mt/base.py` (line 1474) still
   finds the *current* source prefix via `rfind(source_header)` — the paper
   block must never contain the source header string.
 - **Default behaviour:** `paper_context_mode="off"`. No behavioural change
@@ -804,7 +804,7 @@ Discovery: the MT AlignAtt backend already exposes the right mechanism.
 `translation_alignatt_min_source_mass` vetoes any drafted token whose
 `provenance[t].source_accessible` attention mass falls below the
 threshold, with stop reason `alignatt:provenance_weak` (see
-`cascade_mt_backend.py:1185`). No new code needed in the MT probe — the
+`cascade/mt/base.py:1185`). No new code needed in the MT probe — the
 paper-context block naturally counts as `non_source_prompt` in the
 observer's 4-way partition, so tokens attending primarily to it get
 their source-accessible mass pushed down and the guard fires.
@@ -1257,8 +1257,8 @@ loaded vLLM AOT graph. Full cache clearing
 (`rm -rf /home/.cache/vllm/torch_compile_cache/torch_aot_compile/
 f5ee.../ && rm -rf /tmp/torchinductor_root`) between tries is
 currently the only fully reliable workaround. The first run in a
-session, especially after any edit to `gemma_vllm_mt_observer.py`
-or `gemma_vllm_mt_worker.py`, lands cleanly; subsequent retries may
+session, especially after any edit to `cascade/mt/gemma_vllm_observer.py`
+or `cascade/mt/gemma_vllm_worker.py`, lands cleanly; subsequent retries may
 need a cache wipe. A robust fix would need to either (i) teach the
 compiled Gemma4 forward to tolerate a missing observer attribute
 (rather than stub-patching it in at worker init), or (ii) invalidate
@@ -2043,7 +2043,7 @@ Both are substantial engineering items — significantly beyond
 tonight's scope. Definitive tonight-blocker.
 
 **Attempted: wrap observer capture with ``@torch.compiler.disable``**
-(added and reverted in-place in `gemma_vllm_mt_observer.py`). Rationale:
+(added and reverted in-place in `cascade/mt/gemma_vllm_observer.py`). Rationale:
 keep the observer's tensor scatter/gather out of the AOT-compiled
 Gemma4 forward graph, so the ``ValueError: too many values to unpack``
 on cache reload should disappear. Dynamo DID honour the decorator:
@@ -2422,7 +2422,7 @@ non-determinism producing 0.7% char divergence.
   were correctly routed.
 
 **Fix** (commit `54e8b94`): added the five missing keys to the
-override_keys list in `cascade_simulstream_processor.py`. Added
+override_keys list in `cascade/simulstream_processor.py`. Added
 a `[verify]` assertion in `tmp/scalar_transformers_mt_real.py`
 that prints and asserts the runtime mode before starting inference:
 
