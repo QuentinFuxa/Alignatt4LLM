@@ -78,6 +78,19 @@ The output directory contains:
 These are the files to keep for the log-based path, together with this README
 and the exact preset name used.
 
+To materialize the six frozen main-track test-set bundles directly under
+`submission/`, grouped by regime and language direction, run:
+
+```bash
+.venv-inference/bin/python submission/sync_artifacts.py
+```
+
+This writes:
+
+- `submission/artifacts/main/low/en-{de,it,zh}/`
+- `submission/artifacts/main/high/en-{de,it,zh}/`
+- `submission/ARTIFACT_INDEX.json`
+
 ## Docker submission
 
 Build:

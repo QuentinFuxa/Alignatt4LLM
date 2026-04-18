@@ -1,0 +1,37 @@
+================================================================
+OmniSTEval v0.1.7  |  Longform speech resegmentation
+================================================================
+
+Settings
+----------------------------------------------------------------
+  hypothesis_file      outputs/iwslt26_devset_chunk1500_borderp1_ende/hypothesis.jsonl
+  speech_segmentation  dev-set/audio-segments.yaml
+  target_reference     dev-set/ref/de.txt
+  target_lang_code     de
+  matched_sources      ['DyXpuURBMP', 'DyXpuURBMP.wav', 'ERmKpJPPDc', 'ERmKpJPPDc.wav', 'EqmWoxNDIr', 'EqmWoxNDIr.wav', 'ICWfTnUMio', 'ICWfTnUMio.wav', 'JRrbTnEZbF', 'JRrbTnEZbF.wav', 'JhbtCwcsWY', 'JhbtCwcsWY.wav', 'MjDvRpkOFq', 'MjDvRpkOFq.wav', 'OiqEWDVtWk', 'OiqEWDVtWk.wav', 'QTlIuodOsA', 'QTlIuodOsA.wav', 'UOlPKyCVgg', 'UOlPKyCVgg.wav', 'ccpXHNfaoy', 'ccpXHNfaoy.wav', 'csJIsDTYMW', 'csJIsDTYMW.wav', 'krJSAnVcGR', 'krJSAnVcGR.wav', 'miPjvjWOvI', 'miPjvjWOvI.wav', 'myfXyntFYL', 'myfXyntFYL.wav', 'rOwZgUjcwB', 'rOwZgUjcwB.wav', 'rxrToXvRyM', 'rxrToXvRyM.wav', 'vrydRuOXbT', 'vrydRuOXbT.wav', 'wJAPXMIoIG', 'wJAPXMIoIG.wav', 'xhjBHGVOyQ', 'xhjBHGVOyQ.wav', 'xiSxNRoOzm', 'xiSxNRoOzm.wav']
+  source_reference     dev-set/ref/en.txt
+  comet_model          Unbabel/XCOMET-XL
+  fix_emission_ca      False
+  output_dir           outputs/iwslt26_devset_chunk1500_borderp1_ende
+
+Scores
+----------------------------------------------------------------
+  BLEU           32.6296
+  chrF           64.2128
+  LongYAAL (CU)  3528.1778
+  LongAL (CU)    2868.1886
+  LongLAAL (CU)  3043.5741
+  LongAP (CU)    1.3891
+  LongDAL (CU)   4470.6040
+  LongYAAL (CA)  3136.1367
+  LongAL (CA)    2487.5628
+  LongLAAL (CA)  2675.8002
+  LongAP (CA)    1.2744
+  LongDAL (CA)   4057.3791
+  COMET          0.9018
+
+Instance-level Details
+----------------------------------------------------------------
+Empty Predictions: 0
+Total Instances:   919
+================================================================
