@@ -56,8 +56,23 @@ LongYAAL CU, and shows no freezes or empty predictions.
 Confirmation on `ccpXHNfaoy.wav` (stable frontier), chunk_ms=1100:
 BLEU 31.87 / chrF 65.71 / COMET 0.8866 / LongYAAL CU 1780 ms / empty 0.
 Both clips support chunk_ms=1100 + border_margin=1 as the frozen
-`main_high_latency` operating point. The full dev-set validation is the
-next step before promoting to the test-set submission.
+`main_high_latency` operating point.
+
+### 6. Phase 1 closed: HIGH dev-set at chunk_ms=1100, border_margin=1
+
+Full dev-set numbers for the frozen `main_high_latency` preset:
+
+| Direction | BLEU  | chrF  | COMET  | LongYAAL CU | LongYAAL CA | Empty |
+|-----------|-------|-------|--------|-------------|-------------|-------|
+| en -> de  | 29.99 | 62.78 | 0.8922 | 2414 ms     | 2037 ms     | 0/919 |
+| en -> it  | 42.75 | 69.24 | 0.8268 | 2315 ms     | 1947 ms     | 0/919 |
+| en -> zh  | 37.91 | 36.12 | 0.7636 | 2258 ms     | 2075 ms     | 0/919 |
+
+All three directions land inside the 2-4 s HIGH band with zero empty
+predictions and COMET deltas of +0.025 / +0.039 / +0.033 over the LOW
+preset. Both `main_low_latency` (chunk_ms=750) and `main_high_latency`
+(chunk_ms=1100) are now dev-validated and ready for the test-set
+submission pass.
 
 ### 4. Phase 0 closed: en->zh at chunk_ms=750, border_margin=1
 
