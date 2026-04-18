@@ -38,6 +38,22 @@ processor config directly.
   submission-packaging host; the organizers are expected to mount
   `/root/.cache/huggingface` read-only per `submission/README.md`.
 
+### 4. Phase 0 closed: en->zh at chunk_ms=750, border_margin=1
+
+Full dev-set (21 MCIF clips, 919 refs), same frozen preset as en->de / en->it:
+
+| Direction | BLEU  | chrF  | COMET  | LongYAAL CU | LongYAAL CA | Empty |
+|-----------|-------|-------|--------|-------------|-------------|-------|
+| en->de    | 27.35 | 61.46 | 0.8669 | 1707 ms     | 1343 ms     | 0/919 |
+| en->it    | 38.37 | 66.82 | 0.7875 | 1675 ms     | 1321 ms     | 0/919 |
+| en->zh    | 35.02 | 33.88 | 0.7308 | 1672 ms     | 1498 ms     | 0/919 |
+
+All three directions are comfortably below the 2 s LOW boundary with
+`Empty Predictions = 0`. `main_low_latency` is now the frozen preset for the
+submission's LOW-regime log-based and Docker entrypoints. `main_high_latency`
+(chunk_ms=1100) remains untested in the dev-set and should not be shipped as a
+validated point until PLAN Phase 1 runs.
+
 ---
 
 # DECISIONS.md — session log of 2026-04-16
