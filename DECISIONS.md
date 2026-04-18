@@ -1,5 +1,47 @@
 # DECISIONS.md — session log of 2026-04-16
 
+## 2026-04-18 session (IWSLT submission freeze)
+
+### 1. Froze `main_*_latency` presets on the validated dev-set point
+
+- Before: `main_low_latency` = `chunk_ms=450, border_margin=0`, which actually
+  produced LongYAAL CU ~2.2 s — wrong side of the 2 s LOW / HIGH boundary.
+- After: `main_low_latency` = `chunk_ms=750, border_margin=1`, validated on the
+  full dev-set at LongYAAL CU 1707 ms (en->de) and 1675 ms (en->it).
+- `main_high_latency` moved from `chunk_ms=700` to `chunk_ms=1100` +
+  `border_margin=1` to target the 2-4 s HIGH regime. **Not dev-validated yet**;
+  this is an educated guess in PLAN Phase 1's `{900,1100,1300,1500}` search.
+- Context-track presets rebased on the same chunk/border pair plus
+  `paper_context_mode=title_abstract` and `min_source_mass=0.3`.
+
+### 2. Fixed language-code corruption on the Docker submission path
+
+`cascade_simulstream_processor.set_{source,target}_language` was storing the
+language *name* into `self._{source,target}_lang_code` when simulstream handed
+it the human-readable `--src-lang`/`--tgt-lang` strings. For en->zh that made
+`is_char_level_target_lang("Simplified Chinese")` return False, so
+`split_target_emission_units` fell back to whitespace tokenisation and broke
+char-level emission. New helper `_resolve_language` accepts either a name or a
+code and normalises to the canonical `(name, code)` pair. The direct Python
+batch path was never affected because it reads `target_lang_code` from the
+processor config directly.
+
+### 3. Deliverable plan for IWSLT 2026 Simultaneous (due 2026-04-19)
+
+- Complete PLAN Phase 0: run `main_low_latency` en->zh on the dev-set to finish
+  the validated-point matrix.
+- Produce `hypothesis.jsonl` + `stream_updates.jsonl` artefacts via
+  `run_iwslt_submission.py batch` on the blind test-set in the three
+  directions en->{de,it,zh}.
+- Ship the `Dockerfile` + `submission/docker-entrypoint.sh` as-is. Docker is
+  not installed on the A100/H100 runtime host, so `docker build` happens on the
+  submission-packaging host; the organizers are expected to mount
+  `/root/.cache/huggingface` read-only per `submission/README.md`.
+
+---
+
+# DECISIONS.md — session log of 2026-04-16
+
 This doc is a short, navigable log of what was decided during the
 2026-04-16 session. It complements `PLAN.md` (which is the long-term
 strategic direction), so a future agent can quickly understand *what

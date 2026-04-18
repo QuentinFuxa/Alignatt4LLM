@@ -15,18 +15,21 @@ Email: quentin.fuxa@gmail.com
 
 ## Frozen presets
 
+All presets share `qwen_forced` ASR + `gemma_vllm_alignatt` MT with
+`translation_alignatt_border_margin=1`.
+
 - `main_low_latency`
-  - `qwen_forced + gemma_vllm_alignatt`
-  - `chunk_ms=450`
+  - `chunk_ms=750`
+  - Validated LOW regime on dev-set (LongYAAL CU ~1.7 s for en->de, en->it)
 - `main_high_latency`
-  - `qwen_forced + gemma_vllm_alignatt`
-  - `chunk_ms=700`
+  - `chunk_ms=1100`
+  - HIGH regime target (LongYAAL CU in 2-4 s band)
 - `context_low_latency`
-  - `title_abstract + min_source_mass=0.3`
-  - `chunk_ms=450`
+  - `main_low_latency` + `paper_context_mode=title_abstract`
+  - `translation_alignatt_min_source_mass=0.3`
 - `context_high_latency`
-  - `title_abstract + min_source_mass=0.3`
-  - `chunk_ms=700`
+  - `main_high_latency` + `paper_context_mode=title_abstract`
+  - `translation_alignatt_min_source_mass=0.3`
 
 These presets freeze the current simplified runtime surface used by the Docker
 entrypoint, so submission runs do not depend on a long list of hand-entered

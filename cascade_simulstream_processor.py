@@ -14,11 +14,24 @@ from cascade_incremental_output import (
 )
 from cascade_runtime import (
     LANGUAGE_CODE_TO_NAME,
+    LANGUAGE_NAME_TO_CODE,
     CascadeRuntimeConfig,
     LoadedModelBundle,
     alignatt_heads_path_for,
 )
 from cascade_text_surface import join_public_emission_units, split_public_emission_units
+
+
+def _resolve_language(language: str) -> tuple[str, str]:
+    """Accept either a language name ("Simplified Chinese") or code ("zh")
+    and return (canonical_name, canonical_code). The Docker path feeds the
+    human-readable name from simulstream's --tgt-lang / --src-lang flags,
+    whereas the Python batch path feeds the code directly."""
+    if language in LANGUAGE_NAME_TO_CODE:
+        return language, LANGUAGE_NAME_TO_CODE[language]
+    if language in LANGUAGE_CODE_TO_NAME:
+        return LANGUAGE_CODE_TO_NAME[language], language
+    return language, language
 
 
 class CascadeAlignAttProcessor(SpeechProcessor):
@@ -166,9 +179,9 @@ class CascadeAlignAttProcessor(SpeechProcessor):
         return self._compute_incremental_output(translation)
 
     def set_source_language(self, language: str) -> None:
-        lang_name = LANGUAGE_CODE_TO_NAME.get(language, language)
+        lang_name, lang_code = _resolve_language(language)
         self._runtime_config.source_lang = lang_name
-        self._source_lang_code = language
+        self._source_lang_code = lang_code
         self._runtime_config.translation_alignatt_heads_path = alignatt_heads_path_for(
             lang_name,
             self._runtime_config.target_lang,
@@ -176,9 +189,9 @@ class CascadeAlignAttProcessor(SpeechProcessor):
         self._session.bundle.ensure_mt_backend()
 
     def set_target_language(self, language: str) -> None:
-        lang_name = LANGUAGE_CODE_TO_NAME.get(language, language)
+        lang_name, lang_code = _resolve_language(language)
         self._runtime_config.target_lang = lang_name
-        self._target_lang_code = language
+        self._target_lang_code = lang_code
         self._runtime_config.translation_alignatt_heads_path = alignatt_heads_path_for(
             self._runtime_config.source_lang,
             lang_name,

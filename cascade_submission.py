@@ -70,38 +70,49 @@ SUBMISSION_PRESETS = {
         name="main_low_latency",
         track="main",
         latency_regime="low",
-        chunk_ms=450,
-        description="Main-track low-latency preset on the simplified runtime surface (450 ms chunks).",
+        chunk_ms=750,
+        translation_alignatt_border_margin=1,
+        description=(
+            "Main-track low-latency preset: qwen_forced ASR + gemma_vllm_alignatt "
+            "MT with chunk_ms=750 and AlignAtt border margin=1. Validated on "
+            "dev-set at LongYAAL CU ~1.7 s (LOW regime) for en->de and en->it."
+        ),
     ),
     "main_high_latency": SubmissionPreset(
         name="main_high_latency",
         track="main",
         latency_regime="high",
-        chunk_ms=700,
-        description="Main-track high-latency preset on the simplified runtime surface (700 ms chunks).",
+        chunk_ms=1100,
+        translation_alignatt_border_margin=1,
+        description=(
+            "Main-track high-latency preset: same mechanism as main_low_latency "
+            "with larger chunk_ms=1100, targeted at the 2-4 s LongYAAL CU regime."
+        ),
     ),
     "context_low_latency": SubmissionPreset(
         name="context_low_latency",
         track="extra_context",
         latency_regime="low",
-        chunk_ms=450,
+        chunk_ms=750,
+        translation_alignatt_border_margin=1,
         paper_context_mode="title_abstract",
         translation_alignatt_min_source_mass=0.3,
         description=(
-            "Extra-context low-latency preset on the simplified runtime "
-            "surface using the title+abstract guarded setting."
+            "Extra-context low-latency preset: main_low_latency plus the "
+            "title+abstract prompt with min_source_mass=0.3 guardrail."
         ),
     ),
     "context_high_latency": SubmissionPreset(
         name="context_high_latency",
         track="extra_context",
         latency_regime="high",
-        chunk_ms=700,
+        chunk_ms=1100,
+        translation_alignatt_border_margin=1,
         paper_context_mode="title_abstract",
         translation_alignatt_min_source_mass=0.3,
         description=(
-            "Extra-context high-latency preset on the simplified runtime "
-            "surface using the title+abstract guarded setting."
+            "Extra-context high-latency preset: main_high_latency plus the "
+            "title+abstract prompt with min_source_mass=0.3 guardrail."
         ),
     ),
 }

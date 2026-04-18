@@ -11,7 +11,7 @@ ASR commit path        = punctuation_lcp + EOS flush   # fixed in the current wo
 ASR -> MT conditioning = full live ASR tail, with unstable trailing sentence punctuation stripped
 MT emission limit      = AlignAtt acceptance over that full MT-visible source prefix
 run_simulstream_batch  = chunk_ms=800, max_history_utterances=0 by default
-submission presets     = main_low_latency: 450 ms, main_high_latency: 700 ms
+submission presets     = main_low_latency: chunk_ms=750 border_margin=1 (LOW regime), main_high_latency: chunk_ms=1100 border_margin=1 (HIGH regime)
 ```
 
 Full runtime matrix and the exact shipped surfaces: [`docs/RUNTIME_ARCHITECTURE.md`](docs/RUNTIME_ARCHITECTURE.md).
