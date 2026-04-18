@@ -1,20 +1,31 @@
 # IWSLT 2026 Simultaneous — submission bundle
 
 Contact: Quentin Fuxa (quentin.fuxa@gmail.com)
-Track: Main, LOW-latency regime (LongYAAL CU ≤ 2 s)
+Track: Main, both latency regimes (LOW ≤ 2 s, HIGH 2-4 s)
 System: `qwen_forced` ASR (Qwen3-ASR-1.7B + Qwen3-ForcedAligner-0.6B) →
 `gemma_vllm_alignatt` MT (Gemma-4-E4B-it with vLLM + MT-side AlignAtt).
 
-## Frozen preset
+## Frozen presets
+
+Both presets share the same alignment mechanism; only `chunk_ms` differs.
 
 `main_low_latency`:
 
 - `chunk_ms = 750`
 - `translation_alignatt_border_margin = 1`
 - `translation_alignatt_inaccessible_ms = 0`
-- everything else: `cascade_submission.SubmissionPreset` defaults.
+
+`main_high_latency`:
+
+- `chunk_ms = 1100`
+- `translation_alignatt_border_margin = 1`
+- `translation_alignatt_inaccessible_ms = 0`
+
+Everything else: `cascade_submission.SubmissionPreset` defaults.
 
 ## Validated dev-set numbers (MCIF, 21 clips / 919 refs)
+
+LOW regime (`main_low_latency`, chunk_ms=750):
 
 | Direction | BLEU  | chrF  | COMET  | LongYAAL CU | LongYAAL CA | Empty |
 |-----------|-------|-------|--------|-------------|-------------|-------|
@@ -22,13 +33,21 @@ System: `qwen_forced` ASR (Qwen3-ASR-1.7B + Qwen3-ForcedAligner-0.6B) →
 | en -> it  | 38.37 | 66.82 | 0.7875 | 1675 ms     | 1321 ms     | 0/919 |
 | en -> zh  | 35.02 | 33.88 | 0.7308 | 1672 ms     | 1498 ms     | 0/919 |
 
-All three directions live on the LOW side of the 2 s LongYAAL CU boundary with
-no empty predictions.
+HIGH regime (`main_high_latency`, chunk_ms=1100):
+
+| Direction | BLEU  | chrF  | COMET  | LongYAAL CU | LongYAAL CA | Empty |
+|-----------|-------|-------|--------|-------------|-------------|-------|
+| en -> de  | 29.99 | 62.78 | 0.8922 | 2414 ms     | 2037 ms     | 0/919 |
+| en -> it  | 42.75 | 69.24 | 0.8268 | 2315 ms     | 1947 ms     | 0/919 |
+| en -> zh  | 37.91 | 36.12 | 0.7636 | 2258 ms     | 2075 ms     | 0/919 |
+
+Both presets achieve zero empty predictions. HIGH regime gains +0.025 / +0.039
+/ +0.033 COMET over LOW across the three directions.
 
 ## Artefact locations
 
 Each test-set direction produces three files under
-`outputs/iwslt26_testset_chunk750_borderp1_en<xx>/`:
+`outputs/iwslt26_testset_chunk<chunk_ms>_borderp1_en<xx>/`:
 
 - `manifest.json` — runtime config + provenance
 - `hypothesis.jsonl` — one record per test-set talk (21 talks)
@@ -36,11 +55,21 @@ Each test-set direction produces three files under
 
 Counts per direction (IWSLT blind test-set, 21 ACL talks each):
 
+LOW regime (`outputs/iwslt26_testset_chunk750_borderp1_*`):
+
 | Direction | hypotheses | stream updates |
 |-----------|------------|----------------|
 | en -> de  | 21         | 6 775          |
 | en -> it  | 21         | 7 330          |
 | en -> zh  | 21         | 7 254          |
+
+HIGH regime (`outputs/iwslt26_testset_chunk1100_borderp1_*`):
+
+| Direction | hypotheses | stream updates |
+|-----------|------------|----------------|
+| en -> de  | 21         | 5 151          |
+| en -> it  | 21         | 5 458          |
+| en -> zh  | 21         | 5 550          |
 
 ## Reproducing from the repo
 
@@ -48,19 +77,17 @@ Counts per direction (IWSLT blind test-set, 21 ACL talks each):
 # 1) install the inference env (see setup_inference_qwen_asr_vllm.sh)
 ./setup_inference_qwen_asr_vllm.sh .venv-inference
 
-# 2) re-run the frozen preset on the test-set per direction
-for TGT in de it zh; do
-  VLLM_USE_DEEP_GEMM=0 VLLM_MOE_USE_DEEP_GEMM=0 \
-    .venv-inference/bin/python run_iwslt_submission.py batch \
-      --preset main_low_latency \
-      --source en \
-      --target $TGT \
-      --input-dir test-set/audio \
-      --output-dir outputs/iwslt26_testset_chunk750_borderp1_en$TGT
-done
+# 2a) LOW regime submission (main_low_latency)
+bash scripts/run_testset_submission.sh
+
+# 2b) HIGH regime submission (main_high_latency)
+PRESET=main_high_latency \
+OUTPUT_PREFIX=outputs/iwslt26_testset_chunk1100_borderp1 \
+  bash scripts/run_testset_submission.sh
 ```
 
-`scripts/run_testset_submission.sh` wraps this loop.
+Both wrap `run_iwslt_submission.py batch` and keep the three directions
+sequential on a single GPU.
 
 ## Docker path
 
