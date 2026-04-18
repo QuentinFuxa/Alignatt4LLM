@@ -38,6 +38,27 @@ processor config directly.
   submission-packaging host; the organizers are expected to mount
   `/root/.cache/huggingface` read-only per `submission/README.md`.
 
+### 5. Phase 1 pilot picked chunk_ms=1100 as the HIGH-regime candidate
+
+Single-clip chunk sweep on `OiqEWDVtWk.wav` (fragile frontier), en->de,
+border_margin=1:
+
+| chunk_ms | BLEU  | chrF  | COMET  | LongYAAL CU | LongYAAL CA |
+|----------|-------|-------|--------|-------------|-------------|
+| 900      | 29.48 | 64.96 | 0.8398 | 2278 ms     | 1901 ms     |
+| 1100     | 35.10 | 67.68 | 0.9037 | 2833 ms     | 2453 ms     |
+| 1300     | 32.23 | 66.56 | 0.8986 | 3209 ms     | 2805 ms     |
+| 1500     | 34.19 | 68.23 | 0.9008 | 3472 ms     | 3058 ms     |
+
+`chunk_ms=1100` wins on COMET (primary metric) and BLEU, stays under 3 s
+LongYAAL CU, and shows no freezes or empty predictions.
+
+Confirmation on `ccpXHNfaoy.wav` (stable frontier), chunk_ms=1100:
+BLEU 31.87 / chrF 65.71 / COMET 0.8866 / LongYAAL CU 1780 ms / empty 0.
+Both clips support chunk_ms=1100 + border_margin=1 as the frozen
+`main_high_latency` operating point. The full dev-set validation is the
+next step before promoting to the test-set submission.
+
 ### 4. Phase 0 closed: en->zh at chunk_ms=750, border_margin=1
 
 Full dev-set (21 MCIF clips, 919 refs), same frozen preset as en->de / en->it:
