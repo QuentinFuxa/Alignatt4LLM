@@ -1,0 +1,455 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "myfXyntFYL",
+  "source_pdf": "test-set/pdf/myfXyntFYL.pdf",
+  "title": "Prompting PaLM for Translation: Assessing Strategies and Performance",
+  "authors": "David Vilar, Markus Freitag, Colin Cherry, Jiaming Luo, Viresh Ratnakar, George Foster Google \n\n{vilar, freitag, colincherry, jmluo, vratnakar, fosterg}@google.com",
+  "abstract": "Large language models (LLMs) that have been trained on multilingual but not parallel text exhibit a remarkable ability to translate between languages. We probe this ability in an indepth study of the pathways language model (PaLM), which has demonstrated the strongest machine translation (MT) performance among similarly-trained LLMs to date. We investigate various strategies for choosing translation examples for few-shot prompting, concluding that example quality is the most important factor. Using optimized prompts, we revisit previous assessments of PaLM’s MT capabilities with more recent test sets, modern MT metrics, and human evaluation, and find that its performance, while impressive, still lags that of stateof-the-art supervised systems. We conclude by providing an analysis of PaLM’s MT output which reveals some interesting properties and prospects for future work.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "Large language models (LLMs) trained to predict the next token from a lengthy context have demonstrated impressive machine translation capabilities, despite being trained on corpora that are overwhelmingly English, with no intentionallyincluded parallel text. In this paper, we carry out an in-depth investigation into the translation capabilities of LLMs, testing different prompting strategies and carefully assessing the resulting performance. We study the recently-introduced PaLM model (Chowdhery et al., 2022), a 540B-parameter decoder-only language model trained on a heavily English-centric, multilingual corpus. It has achieved the strongest MT results among LLMs trained on non-parallel multilingual corpora.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "To ensure a fair assessment of PaLM’s MT capability, we begin with an exploration of example selection methods for use with fixed prompt templates. We vary both the pool from which examples are chosen and the method for choosing",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "Figure 1: Histogram of the sentence-level BLEURT difference between two different 5-shot PaLM runs using the random prompt selection method from the original paper on a corpus of 1000 sentences. Each bar corresponds to a difference range of 1 BLEURT point. A majority of sentences (516) show a difference of more than 1 BLEURT point, demonstrating that the choice of prompt can strongly affect translation quality.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "them, comparing standard random selection to k - nearest-neighbour ( k NN) selection that customizes prompts for specific inputs. Figure 1 highlights the importance of example selection by showing that two randomly-selected sets of examples can result in significantly different distributions of sentencelevel BLEURT scores.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "Although Chowdhery et al. (2022) report interesting results on low-resource and non-English language pairs, their most striking findings concern high-resource pairs. Accordingly, we limit our investigation to French, German, and Chinese translation to and from English. We evaluate sentencelevel translation quality using recommended practices for high-quality MT, specifically: (i) we use recent WMT test sets to guard against train/test data leakage, and to facilitate comparison with state-of-the-art (SOTA) MT systems; (ii) we use a SOTA automatic metric (BLEURT) instead of BLEU which has been demonstrated to be suboptimal for high-quality translations (Kocmi et al.,",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "2021; Freitag et al., 2021b); and (iii) we conduct an expert-based human evaluation with detailed categories to characterize the error patterns of the automatically generated translations.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "• We carry out the first systematic study of LLM prompting for MT, exploring both the example candidate pool and the selection strategy. We find that the quality of examples matters more than the domain from which they are drawn or their lexico-semantic proximity to the current input.",
+      "section": "Our contributions are as follows:"
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "• We evaluate the translation capability of LLMs with the procedure currently recommended by the MT community. We find that, although impressive, the sentence-level translation capacity of LLMs still lags behind SOTA MT.",
+      "section": "Our contributions are as follows:"
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "Inspired by the findings of Radford et al. (2019); Brown et al. (2020), prompting strategies for LLMs have become a topic of intense interest, generating work across a broad spectrum of methods and applications (Liu et al., 2021). A basic distinction can be made between hard (explicit text) prompting such as we use, and soft prompting that seeks to learn embeddings (Lester et al., 2021), activations (Li and Liang, 2021; Hambardzumyan et al., 2021), or attention weights (Liu et al., 2022a) that condition the model to perform a desired task. The latter approach is more expressive and more efficient at inference time, but performance can be sensitive to initialization (Hou et al., 2022), and some techniques require modifications to the model.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "Hard prompts have the advantage of being easy to interpret and modify. Work in this area includes tools to facilitate development of handcrafted prompts (Strobelt et al., 2022; Bach et al., 2022); algorithms to find optimal prompts through gradient-guided search (Shin et al., 2020) or exhaustive search through labels (Schick and Schütze, 2021) or both labels and templates (Gao et al., 2021); as well as studies on the effect of example order (Kumar and Talukdar, 2021; Lu et al., 2022). Hard prompts have also been used to analyze model capabilities (Garg et al., 2022; Li et al., 2022a), the role of data (Singh et al., 2022), and the nature of prompting itself (Min et al., 2022; Wei et al., 2022).",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "With few exceptions, e.g. (Li et al., 2022b; Liu et al., 2022b; Valvoda et al., 2022), early approaches to hard prompting tended to condition on the task rather than the specific input. Our k NN approach for conditioning on the input was pioneered by Liu et al. (2022b), who used RoBERTa embeddings to identify relevant GPT-3 prompts for sentiment, table-to-text, and QA tasks. They found that k NN works better than a random-selection baseline, and that the advantage grows as the size of the (domain-controlled) example pool increases.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "Work on prompting LLMs for MT began with the GPT-3 and PaLM papers (Brown et al., 2020; Chowdhery et al., 2022), which adopted similar approaches, comparing 0, 1, and n -shot[1] random selection of independent sentence pairs from WMT training corpora, and testing on older French, German, and Romanian WMT test sets traditionally used in ML, augmented in PaLM with French → German and Kazakh. For both models, performance increased with number of shots, and n -shot BLEU scores were found to be competitive with previous unsupervised SOTA, and in some settings—particularly into English—supervised SOTA as well.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "In other early MT work, Reynolds and McDonell (2021) experimented with prompt templates for GPT-3, and found that 0-shot prompts with carefully-chosen templates can outperform n -shot prompts with sub-optimal templates. Garcia and Firat (2022) explored using prompts with mT5 (Xue et al., 2021) to control output attributes such as formality, and also examine the effect of using promptlike natural-language tags during fine-tuning. Patel et al. (2022) proposed autoregressive prompting: concatenating only the first predicted word to a prompt and output prefix at each step.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "Après nous, le déluge",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "Since our paper appeared on arXiv in November 2022, there has been a flood of work on using LLMs for MT, which we summarize briefly for completeness. A number of papers (Agrawal et al., 2022; Zhang et al., 2023; Jiao et al., 2023; Hendy et al., 2023) investigate prompt quality and source proximity using methods similar to ours but with different LLMs, notably GPT-3.5, GPT-4 and their instruction-tuned counterparts. Their findings are in line with ours, with the exception of Agrawal et al. (2022), who achieve significant gains using",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "> 1Where n is 64 for GPT-3 and 5 for PaLM.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "lexical matching augmented with a diversity mechanism to select prompts. Apart from differences in model and setting, a potentially salient discrepancy is their emphasis on BLEU rather than neural metrics to measure performance. Other interesting work that conditions prompts on source segments uses dictionaries to supply translations in lowresource settings (Ghazvininejad et al., 2023; Lu et al., 2023), or chain-of-thought inspired prompts that elicit keywords, topic, and related examples from the model itself (He et al., 2023).",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Further recent work looks at the role of data, attributing LLM MT capabilities to the presence of incidental bilingual examples (Briakou et al., 2023), or showing that parallel data (Schioppa et al., 2023), dictionaries (Jones et al., 2023), or restriction to bilingual settings (Garcia et al., 2023) can boost performance in smaller LMs. Another popular line aims at controlling various properties of translations such as formality or use of specified terminology, either statically (Garcia et al., 2023; Moslem et al., 2023) or with human interaction (Pilault et al., 2023). Finally, there is extensive work on analyzing the translation output of LLMs, generally finding that it is more fluent than accurate (Hendy et al., 2023; Anonymous, 2023), good at handling document context (Wang et al., 2023; Karpinska and Iyyer, 2023) but also prone to problems such as hallucination (Zhang et al., 2023; Guerreiro et al., 2023), and frequently sub-par in low-resource settings (Zhu et al., 2023; Bawden",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "and Yvon, 2023)",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "For a general task, prompting an LLM to generate a desired output y from an input x can involve many steps (Liu et al., 2021), including template generation, slot filling, answer search, and answer mapping. In MT, the answer search and mapping processes are simplified because the answers generated by the LLM can be used directly; we simplify further by using a fixed template. What we explore in depth is the slot filling portion; in particular, we test a variety of methods to select few-shot examples for the prompt.",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "In initial experiments we determined that for few-shot prompting the exact form of the template is unimportant, see Appendix A for details. Following this observation, we decided to adopt simple templates where each example if preprended by the corresponding language name. These results in",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "prompts of the form (for n -shot prompting): [source]: [ X 1] [target]: [ Y 1 ] ... [source]: [ Xn ] [target]: [ Yn ] [source]: [ X ] [target]:",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "where [source] and [target] are instantiated with the names in English of the source and target languages, e.g. English and German. Note that this scheme has been found to be present in the training data as a marker for multilingual content (Briakou et al., 2023). Each slot pair ( Xi, Yi ) is filled with a translation example for these languages, and the final slot X is filled with the current source text. Our algorithm for n -shot translation from a source text x to a target text y is:",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "1. Choose translation example pairs ( x 1 , y 1) ... ( xn, yn ). In general, these can depend on x . 2. Plug the example pairs and x into the template. Condition PaLM on the resulting string.",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "3. Perform a greedy search,[2] stopping when the model outputs a newline.",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "4. y .",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "Example selection operates in two phases: first choose a pool containing parallel text, then choose examples from the pool. Choosing the pool lets us control global attributes of examples such as domain and average quality. Our baseline method for choosing examples is to select them randomly from the pool. We also experiment with selecting examples that are “closest” to the source text, on the hypothesis that such examples will help guide the model to produce similar translations.",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "To find relevant examples, we use k -nearest neighbor ( k NN) search on the source side of our parallel pool, inspired by Khandelwal et al. (2021). We carry out the search itself using the method of Guo et al. (2020)[3] , and investigate two possible representations of the sentences, with associated distance measures:",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "> 2We found that using a sampling temperature other than 0 tended to degrade translation quality. 3Available at https://github.com/google-research/ google-research/tree/master/scann.",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "+--------+------+--------+-----+ | LP | Year | #sents | Ref | +--------+------+--------+-----+ | en →de | 2021 | 1002 | C | +--------+------+--------+-----+ | de →en | 2021 | 1000 | B | +--------+------+--------+-----+ | en →zh | 2021 | 1002 | A | +--------+------+--------+-----+ | zh →en | 2021 | 1948 | A | +--------+------+--------+-----+ | en →fr | 2014 | 3003 | N/A | +--------+------+--------+-----+ | fr →en | 2014 | 3003 | N/A | +--------+------+--------+-----+",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "Table 1: Test set information, including the newstest dataset year and, when applicable, the reference we use for scoring.",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "Bag-of-words (BOW): Each sentence is represented by a (sparse) vector of counts associated with words in the vocabulary. As the associated distance measure we use cosine distance. This representation focuses on the surface form of the words, and thus favors lexical similarity between the examples.",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "RoBERTa: Sentences are represented as embeddings in the space defined by RoBERTa (Liu et al., 2019), a multilingual transformer-based model, with Euclidean distance used for retrieval. We expect these embeddings to reflect the semantics of the sentence, and thus retrieve prompts that are relevant to their subject matter.[4]",
+      "section": "3 Prompting for Machine Translation"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "We experiment with translation into and out of English for Chinese, French and German. After English (78.0%), German (3.5%) and French (3.3%) are the two largest languages in PaLM’s 780B token training corpus; Chinese (0.4%) is the 15th largest, and it also represents an inherently more difficult translation task. To facilitate comparisons with recent SOTA systems, and to minimize the chance of overlap with PaLM’s training corpus, we test on news data from the WMT 2021 evaluation campaign (Akhbardeh et al., 2021). Since French was not included in WMT21, we use data from WMT14; apart from being older, these test sets are not purely source-original (Freitag et al., 2019) like the more recent ones. Table 1 shows statistics for our test data.",
+      "section": "4 Data"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "> 4Note that it would be conceivable to use PaLM itself as embedding model, which would provide a representation (and associated similarity measure) closer to the application that we are targeting. However, due to the high computational cost and large amounts of data (for some experiments we embed the totality of the WMT training data) we decided to use a smaller model.",
+      "section": "4 Data"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "+--+--------+---------------------------+---------------------------+ | | | | Size | +--+--------+---------------------------+---------------------------+ | | LP | Pool | | +--+--------+---------------------------+---------------------------+ | | | | en →X X →en | +--+--------+---------------------------+---------------------------+ | | | WMT-full | 96M | +--+--------+---------------------------+---------------------------+ | | de ↔en | WMT-dev | 11 732 13 060 | +--+--------+---------------------------+---------------------------+ | | | high-end | 152 para. | +--+--------+---------------------------+---------------------------+ | | | WMT-full | 55M | +--+--------+---------------------------+---------------------------+ | | zh ↔en | WMT-dev | 7 481 5 916 | +--+--------+---------------------------+---------------------------+ | | fr ↔en | high-end WMT-full WMT-dev | 170 para. 40M 2 886 2 957 | +--+--------+---------------------------+---------------------------+ | | | high-end | 98 para.",
+      "section": "4 Data"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "| +--+--------+---------------------------+---------------------------+",
+      "section": "4 Data"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Table 2: Size of the different prompt pools, measured in sentences for the WMT sets and in paragraphs for the high-end pool.",
+      "section": "4 Data"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "For prompt selection, we use three distinct pools: the full WMT training corpus for each language pair (WMT-full), the corresponding WMT development sets (WMT-dev), and a manually-curated “high-end” pool. Sizes are shown in Table 2. The WMT-full pool is largest and offers the highest probability of close k NN matches, but it is crawled text drawn from sources of varying quality. The WMT-dev pool has generally better quality, and is a closer domain match to our test set; to encourage PaLM to produce more natural text, we included only target-original texts.[5] For German ↔ English and Chinese ↔ English we include all the news test sets from 2010 to 2020. As English ↔ French was discontinued after 2015, we used sets from 2010 to 2013, augmented with newsdiscussion2015.",
+      "section": "4 Data"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "The high-end pool comes from websites containing bilingual articles that we judged to be professionally edited, with native or near-native quality in both languages. The articles are drawn from various domains (biography, business, commentary, culture, fashion, food, news, and obituary), with the news domain of the test sets comprising less than 50% for each language. We treat these articles as symmetrical, and use them as prompt sources in both translation directions. Due to the non-literal nature of the translations, there is frequently no 1-1 correspondence between sentence pairs, so we extract aligned paragraphs for prompting. More detailed information about the high-end pool is provided in Appendix B.",
+      "section": "4 Data"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "> 5 As identified by SACREBLEU.",
+      "section": "4 Data"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "For compatibility with Chowdhery et al. (2022), we ran all experiments at the sentence level, translating each test sentence individually and in isolation from its context. This deprives PaLM of the ability to exploit the longer contexts it was exposed to during training, but it matches the operating mode of our baselines (including SOTA baselines), and facilitates evaluation.[6] We leave an exploration of potential gains from conditioning on longer histories to future work.",
+      "section": "5 Experiments"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "In preliminary experiments, we varied the number of shots from 0 to 10, and found clear performance gains as we increased the number of shots, with diminishing returns after 5 sentence pairs (see Appendix A). Accordingly we report all results on the WMT pools in the 5-shot setting, where each shot is a single sentence pair, matching the configuration in Chowdhery et al. (2022). For the high-end pool, lacking 1-1 sentence alignments, we use 1-shot examples, where each shot is a single paragraph pair. This provides roughly the same quantity of text as 5-shot with sentences, although it creates a stylistic mismatch with our test setup, as we still translate on a sentence-by-sentene basis, as in the other conditions.",
+      "section": "5 Experiments"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "When randomly selecting examples, we observed that there is little variability in automatic scores when selecting different samples[7] (see Appendix C). For the results reported in this section, we let PaLM produce translations with 5 different seeds and we selected the run with the median BLEURT score. Translation time was some orders of magnitude longer than a dedicated translation system.",
+      "section": "5 Experiments"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "Following recent recommendations (Kocmi et al., 2021; Freitag et al., 2021a) we favour neural metrics (BLEURT in our case) over BLEU, although we also report BLEU scores for completeness. We use a cased version of BLEURT (Sellam et al., 2020) that is based on RemBERT (Chung et al., 2020). We use BLEU as implemented in SACREBLEU[8] (Post, 2018), with zh tokenization for English-Chinese, and 13a tokenization for all other languages.",
+      "section": "5 Experiments"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "> 6Evaluation of document-level translations is complicated by potentially non 1-1 sentence correspondences, resulting in long translation units that are truncated by BLEURT and can be difficult for humans to rate reliably.",
+      "section": "5 Experiments"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "> 7Note that this holds for document level scores. The effect on single sentences can still be very important, cf. Figure 1. 8 SACREBLEU signature: nrefs:1|case:mixed|eff:no| tok:TOK|smooth:exp|version:2.1.0, where TOK is 13a or zh.",
+      "section": "5 Experiments"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "To perform human evaluation, we hired professional translators (7 for En → De, 5 for De → En, 4 for Zh → En, and 4 for En → Zh) and measure translation quality with a document-context version of MQM (Lommel et al., 2014) which mimics the setup proposed in Freitag et al. (2021a). This includes using the same error categories, severity levels and error weighting schema. As suggested in the study, we weight each major error with 5 and each minor error with 1, except for minor punctuation errors which get a score of 0 . 1. We depart from Freitag et al. (2021a) in using only a single annotator per segment, and in not imposing a limit of 5 errors per sentence. Additionally, due to technical restrictions on the length of an evaluation session, we limited the MQM evaluation to the first 12 segments per document.",
+      "section": "5 Experiments"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "We warm up by comparing example selection strategies on the two WMT pools, using automatic metrics to evaluate quality on English ↔ German. Results are shown in Table 3. The main observation is that the choice of pool is much more important than the selection method: the results for WMT-dev are notably higher than those for WMT-full across all settings. When comparing k NN selection methods, RoBERTa is more effective than BOW, but it does not provide a consistent advantage over random selection.",
+      "section": "5.1 Selection strategies and pools"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "We conjecture that the quality of an example is more important than its proximity to the current source sentence. The larger size of the full WMT pool means that the k NN approaches will in general be able to find examples that are closer to each source sentence than those from the dev pool, but any resulting gain is offset by the greater risk that an example from the full pool will be a poor translation (since we match only on the source side). Interestingly, had we relied only on BLEU, we would have concluded that the choice of pool is unimportant, and that random selection consistently outperforms k NN.",
+      "section": "5.1 Selection strategies and pools"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "Table 4 contains our main results, for German ↔ English, Chinese ↔ English, and French ↔ English. For each language pair, we ran PaLM with random selection on all three pools and with k NN RoBERTa on the WMT-full pool. We compared these systems to output from the best performing system in the 2021 WMT evaluation campaign for",
+      "section": "5.2 Results on all language pairs"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "+-----------------+--------------------------------------------------+ | LP Pool | Selection BLEURT BLEU | +-----------------+--------------------------------------------------+ | en →de full dev | random 71.8 32.9 kNN BOW 71.7 32.4 kNN RoBERTa | | | 73.0 32.5 random 74.8 32.8 kNN RoBERTa 74.8 32.3 | +-----------------+--------------------------------------------------+ | de →en full dev | random 74.8 38.4 kNN BOW 72.7 36.9 kNN RoBERTa | | | 73.8 35.4 random 75.9 38.0 kNN RoBERTa 75.8 37.2 | +-----------------+--------------------------------------------------+",
+      "section": "5.2 Results on all language pairs"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "Table 3: Comparison of example selection strategies on the WMT-full and WMT-dev pools. Values for random selection are averaged over 5 runs.",
+      "section": "5.2 Results on all language pairs"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "German and Chinese, and for off-the-shelf Google Translate for all six language pairs. We evaluate with BLEU and BLEURT as in the previous section, augmented with human MQM assessments for German and Chinese. French is a special case, as its evaluation set is eight years old, and it is difficult to ensure that any of the MT systems we evaluate have not been exposed to it during training. We include it mostly for the purposes of comparison to Chowdhery et al. (2022), and do not provide SOTA results or perform human evaluation.",
+      "section": "5.2 Results on all language pairs"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "Comparing PaLM results for German and Chinese, the pattern from the previous section holds up: random selection from the WMT-dev pool outperforms selection from the full pool. MQM scores correlate well with BLEURT for these results. Despite domain and style mismatch, results for the highend pool are very similar to those for WMT-dev— closer than any results on the full pool—adding support to the hypothesis that example quality is the main determinant of PaLM’s output quality.",
+      "section": "5.2 Results on all language pairs"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "The French results reverse the general pattern. For this language pair, random selection from the WMT-full pool does best, although the results for all methods are fairly similar, with a difference of approximately 0.5 BLEURT between the best and worst. One potential explanation is the age and quality of newstest2014, as WMT test-set creation has dramatically improved since then.",
+      "section": "5.2 Results on all language pairs"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "Turning to a comparison between PaLM and conventional MT systems, the specialized SOTA systems have a substantial advantage of between 1 and 3 BLEURT points over the best PaLM re-",
+      "section": "5.2 Results on all language pairs"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "sults, a gap that is in their much lower MQM scores. The difference is narrower for the general-purpose Google Translate system: less than 1 BLEURT except for Chinese → English (1.8), with French → English at parity. PaLM’s performance relative to the best MT system for each language pair is generally better when translating into English, where it is lower by 1.0, 2.3, and 0.0 BLEURT for German, Chinese, and French, compared to drops of 2.1, 2.5, and 0.6 in the reverse direction.",
+      "section": "5.2 Results on all language pairs"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "The MQM results show some interesting characteristics of translations produced by PaLM. In all language pairs evaluated, fluency MQM scores for PaLM are generally similar to those for SOTA systems, while accuracy scores are lower. The accuracy gap is dominated by Major Accuracy/Omission errors, followed by inconsistent patterns of other Accuracy/* errors across language pairs. In some languages, the best-performing PaLM systems make fewer Style/Awkward errors than SOTA. Table 5 shows a selection of MQM error counts for PaLM WMT-dev random and SOTA systems; full details are provided in Appendix D.",
+      "section": "5.2 Results on all language pairs"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "Our only results that are directly comparable to the few-shot results from Chowdhery et al. (2022) are the WMT-full BLEU scores in table 4c (WMT14 French test-set). Our result for French → English matches theirs exactly, but our score for English → French is lower by 1.7 (42.3 versus 44.0). We attribute this discrepancy to their use of the SACREBLEU intl tokenizer; when we evaluate our output using this version, we obtain matching scores.",
+      "section": "5.3 Comparison to previous results"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "Our general finding that PaLM’s into-English performance is better than the reverse direction matches the conclusion from Chowdhery et al. (2022), while our comparison with recent SOTA systems on current test sets contrasts with their results indicating that PaLM can rival supervised performance in older settings.",
+      "section": "5.3 Comparison to previous results"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "In this section we delve further into various aspects of PaLM’s MT performance. 6.1 k NN versus random prompts",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "To understand the performance difference between k NN RoBERTa and randomly-selected examples, we performed a qualitative analysis, choosing sen-",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "+--------+---------------------------------------------------+ | LP | System MQM ↓ BLEURT ↑ BLEU ↑ | +--------+---------------------------------------------------+ | en →de | WMT21 Facebook Submission (Tran et al., 2021) | | | 1.18† 76.9 42.0 Google Trans. 1.59 75.7 39.8 PaLM | | | WMT-full random 1.90 73.7 32.9 WMT-full kNN 1.93 | | | 73.0 32.5 WMT-dev random 1.58 74.8 32.8 high-end | | | random 1.67 74.7 32.9 | +--------+---------------------------------------------------+ | de →en | WMT21 Facebook Submission (Tran et al., 2021) | | | 1.31† 76.9 41.9 Google Trans. 1.71 76.4 40.9 PaLM | | | WMT-full random 2.38 74.7 38.3 WMT-full kNN 3.03 | | | 73.8 35.4 WMT-dev random 1.92 75.9 38.0 high-end | | | random 1.89 75.8 38.8 | +--------+---------------------------------------------------+",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "(a) German → English (nt2021). All MQM results labelled with † are significantly better than all other systems based on PERM-BOTH pair-wise significance testing (Koehn, 2004) with p = 0 . 05.",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "+--------+----------------------------------------------------+ | LP | System MQM ↓ BLEURT ↑ BLEU ↑ | +--------+----------------------------------------------------+ | en →zh | WMT21 WeChat Submission (Zeng et al., 2021) 2.47† | | | 66.6 36.9 Google Trans. 3.23 65.0 36.2 PaLM WMT- | | | full random 4.35 62.2 28.6 WMT-full kNN 5.06 60.7 | | | 28.5 WMT-dev random 3.24 64.1 29.2 high-end random | | | 3.70 63.9 29.6 | +--------+----------------------------------------------------+ | zh →en | WMT21 Borderline Submission (Wang et al., 2021) | | | 3.11 70.0 33.4 Google Trans. 3.12 69.5 32.2 PaLM | | | WMT-full random 3.95 67.2 25.8 WMT-full kNN 4.06 | | | 65.8 23.8 WMT-dev random 3.60 67.5 25.3 high-end | | | random 3.89 67.7 25.1 | +--------+----------------------------------------------------+",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "(b) Chinese → English (nt2021). All MQM results labelled with † are significantly better than all other systems based on PERM-BOTH pair-wise significance testing (Koehn, 2004) with p=0.05.",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "+--------+---------------------------------------------------+ | LP | System BLEURT ↑ BLEU ↑ | +--------+---------------------------------------------------+ | en →fr | Google Trans. 76.5 45.7 PaLM WMT-full random 75.9 | | | 42.3 WMT-full kNN 75.3 41.8 WMT-dev random 75.4 | | | 41.9 high-end random 75.2 38.6 | +--------+---------------------------------------------------+ | fr →en | Google Trans. 77.7 43.2 PaLM WMT-full random 77.7 | | | 42.7 WMT-full kNN 77.3 41.2 WMT-dev random 77.2 | | | 42.1 high-end random 77.6 40.4 | +--------+---------------------------------------------------+",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "(c) French → English (nt2014). Table 4: Translation results for all language pairs. Values for random selection are the BLEURT median of 5 runs.",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "+----------------------------------------------------+-------------------------------------------------+ | LP Sev. Category PaLM SOTA de →en Major Omission | Year LP % Clean | | 51 19 en →de Major Omission 26 7 zh →en Major | | | Omission 109 42 en →zh Major Omission 80 46 de →en | | | Minor Awkward 73 81 en →de Minor Awkward 166 144 | | | zh →en Minor Awkward 205 284 en →zh Minor Awkward | | | 115 142 | | +----------------------------------------------------+-------------------------------------------------+ | | 2014 fr →en 69.2 en →fr 93.6 | +----------------------------------------------------+-------------------------------------------------+ | | 2016 de →en 80.3 en →de 97.3 | +----------------------------------------------------+-------------------------------------------------+ | | 2021 en →de 99.6 en →zh 99.7 de →en 97.9 zh →en | | | 98.1 | +----------------------------------------------------+-------------------------------------------------+",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "Table 5: Selected MQM error count comparisons between PaLM WMT-dev random and SOTA. Omission is a subcategory of Accuracy errors, and Awkward is a subcategory of Style. Full details are provided in Appendix D.",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "tences with the largest BLEURT difference between the two systems. Table 14a in Appendix F shows an example where the k NN system correctly retrieves relevant translation examples in the football domain, guiding PaLM to produce a better translation than the random selection system. This contrasts with the example in Table 14b, where the retrieved source sentences are also from the relevant domain, but all have alignment errors, causing PaLM to generate hallucinated output. In general, random selection is also prone to landing on alignment errors, but as each prompt is selected independently, the odds that all examples will be errors are low. An informal analysis of k NN examples indicates that if one non-parallel prompt is selected, the others also tend to be of poor quality, perhaps due to corpus alignment errors that are concentrated in particular documents or topics. Since k NN matches only on the source side, it is not robust to this noise.",
+      "section": "6 Analysis"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "Example translations comparing PaLM and SOTA systems for German → English and English → Chinese are given in Appendix 6.2, in Table 15 and Table 16, respectively. We compared the translations of both systems and chose examples that are short, but include the most frequent patterns that we observed also in longer translations. In general, PaLM’s translations are less literal when compared to supervised NMT systems. Even though this is one of the strengths of PaLM, it occasionally misses some important information in the source or hallucinates facts not present in the source sentence. The supervised models on the other hand are faithful to the source;",
+      "section": "6.2 Example Translations"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "Table 6: The size of clean (lacking 15-gram target-side overlap with PaLM training data) versions of test sets for various WMT years and language pairs",
+      "section": "6.2 Example Translations"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "this reduces the risk of omission and addition errors, but occasionally leads to translations that are not natural in the target language (e.g. translating street names or using the wrong time format). These findings are in line with the MQM results presented in section 5.2.",
+      "section": "6.2 Example Translations"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "One major change with respect to Chowdhery et al. (2022) is our use of more recent WMT test sets, which are unlikely to overlap with PaLM’s training data.[9] We test this hypothesis using the technique from Chowdhery et al. (2022), which involves measuring high-order n -gram matches; specifically, we measure 15-gram overlap as tokenized by the mBERT tokenizer (Devlin et al., 2019).[10] For test sequences with fewer than 15 tokens, we consider them overlapping if the complete sequence is found as a subsequence of a training example. We report the degree of overlap by showing the percentage of original test examples that survive in the clean test set after removing overlap in Table 6. This confirms that the older French → English and German → English sets have substantial overlap with PaLM’s training data, while the newer test sets, whether into or out of English, have much smaller overlapping portions.",
+      "section": "6.3 Overlap of test and training data"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "Chowdhery et al. (2022) also measure the effect of test-set overlap on translation quality, comparing scores on the original test set to the clean set with overlapping examples removed. In section H we",
+      "section": "6.3 Overlap of test and training data"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "> 9Here we measure target-side overlap only; we assume there is no substantial parallel data in PaLM’s training corpus, and therefore no substantial parallel overlap.",
+      "section": "6.3 Overlap of test and training data"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "> 10We selected the mBERT tokenizer, as opposed to the PaLM’s sentence-piece tokenizer, because it decouples the measurement of overlap from the model under test.",
+      "section": "6.3 Overlap of test and training data"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "report similar scores for the older test sets, and extend the analysis to calibrate the effect of overlap on MT evaluation, by comparing to an overlap-free off-the-shelf system.",
+      "section": "6.3 Overlap of test and training data"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "We perform a careful assessment of the sentencelevel MT capabilities of PaLM, which we compare to SOTA and a current off the shelf (COTS) MT system for three high-resource languages—German, Chinese, and French—into and out of English, using the latest test sets from WMT. We chose to focus on a small set of high-resource language pairs in order to test the claims of the original PaLM paper, which are most striking for these pairs. The time and expense of performing high-quality human evaluations precluded a broader investigation.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "Comparing k NN and random strategies for selecting 5-shot translation examples to instantiate fixed prompt templates, we find that k NN’s potential advantage in identifying examples relevant to the source sentence is outweighed by its susceptibility to corpus noise. Choosing examples randomly from small, high-quality pools works well, and performance appears to be independent of the domain and translation style of the pool, suggesting that example quality is the most important factor.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "Using both the BLEURT metric and MQM human evaluations, we show that PaLM’s performance, while very impressive for a system never deliberately exposed to parallel text, still significantly lags that of competition-grade SOTA systems on recent WMT test sets, and to a lesser extent the performance of COTS systems as well. This contrasts with some of the findings of Chowdhery et al. (2022). As in that work, we find that performance into English is somewhat better than the reverse direction. Finally, we perform an extensive analysis of the characteristics of PaLM’s MT output, notably finding that in all languages we tested it tends to be creative and fluent but prone to omissions and other accuracy errors; broadly speaking, it matches the fluency but lags the accuracy of conventional NMT.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "In future work we look forward to testing PaLM on document-level translation tasks, unleashing its formidable capacity for leveraging long contexts. We would also like to explore prompt tuning methods that are more sophisticated than the hard-prompt setting we adopted for this paper, particularly to see if these might offer a way to tighten",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "up PaLM’s MT accuracy without destroying its impressive ability to generate highly-fluent text.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "As we use only a small number of language pairs, it is not clear how general our conclusions are; in particular, they pertain only to languages that are well represented in PaLM’s training corpus, and only to translation into and out of English. Our restriction to independent sentence-level translations may have caused us to underestimate PaLM’s true capabilities, since some of the accuracy problems we observed might be considered less severe in the context of whole-document translation where less literal translations are more typical. Our exploration of prompting barely scratches the surface of the many methods that have been proposed for adapting LLMs to particular tasks, and we may have missed a technique that produces higher-quality translations than we observed. Finally, the human evaluation we rely on to provide our most accurate results is necessarily subjective, and if we were to have carried out the evaluation with different raters and a different methodology, our conclusions",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "might well have been different.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0087",
+      "text": "Working with large language models comes with many ethical concerns that are discussed in detail in Brown et al. (2020) and Chowdhery et al. (2022). There, MT is often one task of many, while we focus on the question of proper example selection for few-shot prompting of MT, which adds a few specific concerns. Our conclusion that prompt quality is important could lead one to build a system with prompts drawn from a small set of trusted sources; indeed, our high-end set is one such example of this. In such a scenario, this small source will have an outsized impact on the output of the translation system, and one must be careful to manage issues of attribution and intellectual property. Furthermore, an editorial choice defining high-quality language can potentially reduce quality for groups and topics not typically discussed in this style (Gururangan et al., 2022). Finally, by highlighting the power of few-shot examples, one might be tempted to turn example selection over to the users of",
+      "section": "Ethical Considerations"
+    },
+    {
+      "chunk_id": "c0088",
+      "text": "a system. There, special steps must be taken to avoid exposing users to biased or toxic outputs, which may be triggered by unconstrained prompting (Gehman et al., 2020; Costa-jussà et al., 2022).",
+      "section": "Ethical Considerations"
+    }
+  ]
+}

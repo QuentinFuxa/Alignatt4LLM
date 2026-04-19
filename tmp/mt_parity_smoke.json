@@ -1,0 +1,74 @@
+{
+  "prompt": {
+    "source_text": "Hi I'm Si Yuan from Fudan University.",
+    "source_lang": "English",
+    "target_lang": "German",
+    "is_partial": false,
+    "assistant_prefill": "",
+    "variant_id": "alignatt_prefix",
+    "accessible_unit_count": 7,
+    "total_unit_count": 7,
+    "message_count": 2,
+    "continue_final_message": false
+  },
+  "backends": {
+    "gemma_transformers_alignatt": {
+      "draft_text": "Hallo, ich bin Si Yuan von der Fudan University.",
+      "acceptance_text": "Hallo, ich bin Si Yuan von der Fudan University.",
+      "generated_token_count": 12,
+      "accepted_token_count": 12,
+      "draft_semantic_token_count": 12,
+      "accepted_semantic_token_count": 12,
+      "num_cached_tokens": 0,
+      "prompt_num_tokens": 150,
+      "stop_reason": "<turn|>",
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "rewind_from_local_position": null,
+      "rewind_to_local_position": null,
+      "unsafe_reason": null,
+      "alignatt_not_implemented": false,
+      "provenance_summary": null,
+      "timings_ms": {
+        "prompt_render": 45.88559200055897,
+        "prompt_cache_restore": 449.55830299295485,
+        "draft_decode": 682.2048090398312,
+        "total": 1178.1180059770122
+      },
+      "load_ms": 4459.609663928859,
+      "translate_wallclock_ms": 1178.1423729844391,
+      "backend_name": "gemma_transformers_alignatt"
+    },
+    "gemma_vllm_alignatt": {
+      "draft_text": "Hallo, ich bin Si Yuan von der Fudan University.",
+      "acceptance_text": "Hallo, ich bin Si Yuan von der Fudan University.",
+      "generated_token_count": 12,
+      "accepted_token_count": 12,
+      "draft_semantic_token_count": 12,
+      "accepted_semantic_token_count": 12,
+      "num_cached_tokens": null,
+      "prompt_num_tokens": 150,
+      "stop_reason": "stop",
+      "blocked_source_local_position": null,
+      "blocked_source_unit_index": null,
+      "rewind_from_local_position": null,
+      "rewind_to_local_position": null,
+      "unsafe_reason": null,
+      "alignatt_not_implemented": false,
+      "provenance_summary": null,
+      "timings_ms": {
+        "prompt_render": 130.65212906803936,
+        "generate": 206.46080607548356,
+        "total": 337.74051105137914
+      },
+      "load_ms": 59490.80556689296,
+      "translate_wallclock_ms": 337.81369193457067,
+      "backend_name": "gemma_vllm_alignatt"
+    }
+  },
+  "agreement": {
+    "draft_text_equal": true,
+    "acceptance_text_equal": true,
+    "generated_token_count_delta": 0
+  }
+}

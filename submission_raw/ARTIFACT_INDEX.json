@@ -1,0 +1,778 @@
+{
+  "generated_at_utc": "2026-04-18T09:02:24+00:00",
+  "artifact_root": "submission/artifacts",
+  "results_root": "submission/results",
+  "materialization_mode": "copy",
+  "bundles": [
+    {
+      "track": "main",
+      "regime": "low",
+      "preset": "main_low_latency",
+      "chunk_ms": 750,
+      "source_language_code": "en",
+      "target_language_code": "de",
+      "source_output_dir": "outputs/iwslt26_testset_chunk750_borderp1_ende",
+      "submission_dir": "submission/artifacts/main/low/en-de",
+      "target_language": "German",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 6775,
+      "generated_at_utc": "2026-04-18T01:02:25+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 750,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "files": {
+        "manifest.json": {
+          "path": "submission/artifacts/main/low/en-de/manifest.json",
+          "bytes": 10623
+        },
+        "hypothesis.jsonl": {
+          "path": "submission/artifacts/main/low/en-de/hypothesis.jsonl",
+          "bytes": 949448
+        },
+        "stream_updates.jsonl": {
+          "path": "submission/artifacts/main/low/en-de/stream_updates.jsonl",
+          "bytes": 66801916
+        }
+      }
+    },
+    {
+      "track": "main",
+      "regime": "low",
+      "preset": "main_low_latency",
+      "chunk_ms": 750,
+      "source_language_code": "en",
+      "target_language_code": "it",
+      "source_output_dir": "outputs/iwslt26_testset_chunk750_borderp1_enit",
+      "submission_dir": "submission/artifacts/main/low/en-it",
+      "target_language": "Italian",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 7330,
+      "generated_at_utc": "2026-04-18T01:27:28+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 750,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "files": {
+        "manifest.json": {
+          "path": "submission/artifacts/main/low/en-it/manifest.json",
+          "bytes": 10625
+        },
+        "hypothesis.jsonl": {
+          "path": "submission/artifacts/main/low/en-it/hypothesis.jsonl",
+          "bytes": 1008650
+        },
+        "stream_updates.jsonl": {
+          "path": "submission/artifacts/main/low/en-it/stream_updates.jsonl",
+          "bytes": 70973324
+        }
+      }
+    },
+    {
+      "track": "main",
+      "regime": "low",
+      "preset": "main_low_latency",
+      "chunk_ms": 750,
+      "source_language_code": "en",
+      "target_language_code": "zh",
+      "source_output_dir": "outputs/iwslt26_testset_chunk750_borderp1_enzh",
+      "submission_dir": "submission/artifacts/main/low/en-zh",
+      "target_language": "Simplified Chinese",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 7254,
+      "generated_at_utc": "2026-04-18T01:51:05+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 750,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "files": {
+        "manifest.json": {
+          "path": "submission/artifacts/main/low/en-zh/manifest.json",
+          "bytes": 10644
+        },
+        "hypothesis.jsonl": {
+          "path": "submission/artifacts/main/low/en-zh/hypothesis.jsonl",
+          "bytes": 1785684
+        },
+        "stream_updates.jsonl": {
+          "path": "submission/artifacts/main/low/en-zh/stream_updates.jsonl",
+          "bytes": 66110661
+        }
+      }
+    },
+    {
+      "track": "main",
+      "regime": "high",
+      "preset": "main_high_latency",
+      "chunk_ms": 1100,
+      "source_language_code": "en",
+      "target_language_code": "de",
+      "source_output_dir": "outputs/iwslt26_testset_chunk1100_borderp1_ende",
+      "submission_dir": "submission/artifacts/main/high/en-de",
+      "target_language": "German",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 5151,
+      "generated_at_utc": "2026-04-18T03:34:08+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 1100,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "files": {
+        "manifest.json": {
+          "path": "submission/artifacts/main/high/en-de/manifest.json",
+          "bytes": 10631
+        },
+        "hypothesis.jsonl": {
+          "path": "submission/artifacts/main/high/en-de/hypothesis.jsonl",
+          "bytes": 935777
+        },
+        "stream_updates.jsonl": {
+          "path": "submission/artifacts/main/high/en-de/stream_updates.jsonl",
+          "bytes": 52988300
+        }
+      }
+    },
+    {
+      "track": "main",
+      "regime": "high",
+      "preset": "main_high_latency",
+      "chunk_ms": 1100,
+      "source_language_code": "en",
+      "target_language_code": "it",
+      "source_output_dir": "outputs/iwslt26_testset_chunk1100_borderp1_enit",
+      "submission_dir": "submission/artifacts/main/high/en-it",
+      "target_language": "Italian",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 5458,
+      "generated_at_utc": "2026-04-18T03:54:57+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 1100,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "files": {
+        "manifest.json": {
+          "path": "submission/artifacts/main/high/en-it/manifest.json",
+          "bytes": 10632
+        },
+        "hypothesis.jsonl": {
+          "path": "submission/artifacts/main/high/en-it/hypothesis.jsonl",
+          "bytes": 981923
+        },
+        "stream_updates.jsonl": {
+          "path": "submission/artifacts/main/high/en-it/stream_updates.jsonl",
+          "bytes": 54912050
+        }
+      }
+    },
+    {
+      "track": "main",
+      "regime": "high",
+      "preset": "main_high_latency",
+      "chunk_ms": 1100,
+      "source_language_code": "en",
+      "target_language_code": "zh",
+      "source_output_dir": "outputs/iwslt26_testset_chunk1100_borderp1_enzh",
+      "submission_dir": "submission/artifacts/main/high/en-zh",
+      "target_language": "Simplified Chinese",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 5550,
+      "generated_at_utc": "2026-04-18T04:15:49+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 1100,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "files": {
+        "manifest.json": {
+          "path": "submission/artifacts/main/high/en-zh/manifest.json",
+          "bytes": 10635
+        },
+        "hypothesis.jsonl": {
+          "path": "submission/artifacts/main/high/en-zh/hypothesis.jsonl",
+          "bytes": 1744335
+        },
+        "stream_updates.jsonl": {
+          "path": "submission/artifacts/main/high/en-zh/stream_updates.jsonl",
+          "bytes": 52535674
+        }
+      }
+    }
+  ],
+  "additive_bundles": [
+    {
+      "group": "chunk850",
+      "chunk_ms": 850,
+      "source_language_code": "en",
+      "target_language_code": "de",
+      "source_output_dir": "outputs/iwslt26_devset_chunk850_borderp1_ende",
+      "artifacts_dir": "submission/artifacts/additive/chunk850/en-de",
+      "results_dir": "submission/results/additive/chunk850/en-de",
+      "target_language": "German",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 5682,
+      "generated_at_utc": "2026-04-18T06:35:51+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 850,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "contract_scores": {
+        "BLEU": 28.76224644716858,
+        "CHRF": 62.14396185801901,
+        "XCOMETXL": 0.87515281854244,
+        "LongYAAL CU": 1997.816720205162,
+        "LongYAAL CA": 1628.8565344073315
+      },
+      "files": {
+        "artifacts": {
+          "manifest.json": {
+            "path": "submission/artifacts/additive/chunk850/en-de/manifest.json",
+            "bytes": 10588
+          },
+          "hypothesis.jsonl": {
+            "path": "submission/artifacts/additive/chunk850/en-de/hypothesis.jsonl",
+            "bytes": 851704
+          },
+          "stream_updates.jsonl": {
+            "path": "submission/artifacts/additive/chunk850/en-de/stream_updates.jsonl",
+            "bytes": 51433779
+          }
+        },
+        "results": {
+          "evaluation.json": {
+            "path": "submission/results/additive/chunk850/en-de/evaluation.json",
+            "bytes": 4604
+          },
+          "evaluation.report.txt": {
+            "path": "submission/results/additive/chunk850/en-de/evaluation.report.txt",
+            "bytes": 1949
+          },
+          "scores.tsv": {
+            "path": "submission/results/additive/chunk850/en-de/scores.tsv",
+            "bytes": 99
+          }
+        }
+      }
+    },
+    {
+      "group": "chunk850",
+      "chunk_ms": 850,
+      "source_language_code": "en",
+      "target_language_code": "it",
+      "source_output_dir": "outputs/iwslt26_devset_chunk850_borderp1_enit",
+      "artifacts_dir": "submission/artifacts/additive/chunk850/en-it",
+      "results_dir": "submission/results/additive/chunk850/en-it",
+      "target_language": "Italian",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 6003,
+      "generated_at_utc": "2026-04-18T06:57:29+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 850,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "contract_scores": {
+        "BLEU": 40.10172301013336,
+        "CHRF": 68.02394347176647,
+        "XCOMETXL": 0.8052145933795222,
+        "LongYAAL CU": 1983.6562148080845,
+        "LongYAAL CA": 1621.4195139312706
+      },
+      "files": {
+        "artifacts": {
+          "manifest.json": {
+            "path": "submission/artifacts/additive/chunk850/en-it/manifest.json",
+            "bytes": 10589
+          },
+          "hypothesis.jsonl": {
+            "path": "submission/artifacts/additive/chunk850/en-it/hypothesis.jsonl",
+            "bytes": 881778
+          },
+          "stream_updates.jsonl": {
+            "path": "submission/artifacts/additive/chunk850/en-it/stream_updates.jsonl",
+            "bytes": 53433630
+          }
+        },
+        "results": {
+          "evaluation.json": {
+            "path": "submission/results/additive/chunk850/en-it/evaluation.json",
+            "bytes": 4612
+          },
+          "evaluation.report.txt": {
+            "path": "submission/results/additive/chunk850/en-it/evaluation.report.txt",
+            "bytes": 1949
+          },
+          "scores.tsv": {
+            "path": "submission/results/additive/chunk850/en-it/scores.tsv",
+            "bytes": 99
+          }
+        }
+      }
+    },
+    {
+      "group": "chunk850",
+      "chunk_ms": 850,
+      "source_language_code": "en",
+      "target_language_code": "zh",
+      "source_output_dir": "outputs/iwslt26_devset_chunk850_borderp1_enzh",
+      "artifacts_dir": "submission/artifacts/additive/chunk850/en-zh",
+      "results_dir": "submission/results/additive/chunk850/en-zh",
+      "target_language": "Simplified Chinese",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 5965,
+      "generated_at_utc": "2026-04-18T07:17:57+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 850,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "contract_scores": {
+        "BLEU": 36.01014176172819,
+        "CHRF": 34.97434324718411,
+        "XCOMETXL": 0.743156321744016,
+        "LongYAAL CU": 1946.9588904842897,
+        "LongYAAL CA": 1766.782133752265
+      },
+      "files": {
+        "artifacts": {
+          "manifest.json": {
+            "path": "submission/artifacts/additive/chunk850/en-zh/manifest.json",
+            "bytes": 10600
+          },
+          "hypothesis.jsonl": {
+            "path": "submission/artifacts/additive/chunk850/en-zh/hypothesis.jsonl",
+            "bytes": 1577245
+          },
+          "stream_updates.jsonl": {
+            "path": "submission/artifacts/additive/chunk850/en-zh/stream_updates.jsonl",
+            "bytes": 50150042
+          }
+        },
+        "results": {
+          "evaluation.json": {
+            "path": "submission/results/additive/chunk850/en-zh/evaluation.json",
+            "bytes": 4607
+          },
+          "evaluation.report.txt": {
+            "path": "submission/results/additive/chunk850/en-zh/evaluation.report.txt",
+            "bytes": 1949
+          },
+          "scores.tsv": {
+            "path": "submission/results/additive/chunk850/en-zh/scores.tsv",
+            "bytes": 99
+          }
+        }
+      }
+    },
+    {
+      "group": "chunk1500",
+      "chunk_ms": 1500,
+      "source_language_code": "en",
+      "target_language_code": "de",
+      "source_output_dir": "outputs/iwslt26_devset_chunk1500_borderp1_ende",
+      "artifacts_dir": "submission/artifacts/additive/chunk1500/en-de",
+      "results_dir": "submission/results/additive/chunk1500/en-de",
+      "target_language": "German",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 3626,
+      "generated_at_utc": "2026-04-18T08:29:11+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 1500,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "contract_scores": {
+        "BLEU": 32.62961610148101,
+        "CHRF": 64.21278527472349,
+        "XCOMETXL": 0.901763004904473,
+        "LongYAAL CU": 3528.177767790984,
+        "LongYAAL CA": 3136.1366680008537
+      },
+      "files": {
+        "artifacts": {
+          "manifest.json": {
+            "path": "submission/artifacts/additive/chunk1500/en-de/manifest.json",
+            "bytes": 10584
+          },
+          "hypothesis.jsonl": {
+            "path": "submission/artifacts/additive/chunk1500/en-de/hypothesis.jsonl",
+            "bytes": 812377
+          },
+          "stream_updates.jsonl": {
+            "path": "submission/artifacts/additive/chunk1500/en-de/stream_updates.jsonl",
+            "bytes": 34785986
+          }
+        },
+        "results": {
+          "evaluation.json": {
+            "path": "submission/results/additive/chunk1500/en-de/evaluation.json",
+            "bytes": 4612
+          },
+          "evaluation.report.txt": {
+            "path": "submission/results/additive/chunk1500/en-de/evaluation.report.txt",
+            "bytes": 1951
+          },
+          "scores.tsv": {
+            "path": "submission/results/additive/chunk1500/en-de/scores.tsv",
+            "bytes": 99
+          }
+        }
+      }
+    },
+    {
+      "group": "chunk1500",
+      "chunk_ms": 1500,
+      "source_language_code": "en",
+      "target_language_code": "it",
+      "source_output_dir": "outputs/iwslt26_devset_chunk1500_borderp1_enit",
+      "artifacts_dir": "submission/artifacts/additive/chunk1500/en-it",
+      "results_dir": "submission/results/additive/chunk1500/en-it",
+      "target_language": "Italian",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 3811,
+      "generated_at_utc": "2026-04-18T08:44:02+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 1500,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "contract_scores": {
+        "BLEU": 44.46196273248502,
+        "CHRF": 70.05525532617207,
+        "XCOMETXL": 0.8406898339438101,
+        "LongYAAL CU": 3484.2919021617768,
+        "LongYAAL CA": 3096.020857119199
+      },
+      "files": {
+        "artifacts": {
+          "manifest.json": {
+            "path": "submission/artifacts/additive/chunk1500/en-it/manifest.json",
+            "bytes": 10591
+          },
+          "hypothesis.jsonl": {
+            "path": "submission/artifacts/additive/chunk1500/en-it/hypothesis.jsonl",
+            "bytes": 844537
+          },
+          "stream_updates.jsonl": {
+            "path": "submission/artifacts/additive/chunk1500/en-it/stream_updates.jsonl",
+            "bytes": 36162128
+          }
+        },
+        "results": {
+          "evaluation.json": {
+            "path": "submission/results/additive/chunk1500/en-it/evaluation.json",
+            "bytes": 4612
+          },
+          "evaluation.report.txt": {
+            "path": "submission/results/additive/chunk1500/en-it/evaluation.report.txt",
+            "bytes": 1951
+          },
+          "scores.tsv": {
+            "path": "submission/results/additive/chunk1500/en-it/scores.tsv",
+            "bytes": 99
+          }
+        }
+      }
+    },
+    {
+      "group": "chunk1500",
+      "chunk_ms": 1500,
+      "source_language_code": "en",
+      "target_language_code": "zh",
+      "source_output_dir": "outputs/iwslt26_devset_chunk1500_borderp1_enzh",
+      "artifacts_dir": "submission/artifacts/additive/chunk1500/en-zh",
+      "results_dir": "submission/results/additive/chunk1500/en-zh",
+      "target_language": "Simplified Chinese",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 3917,
+      "generated_at_utc": "2026-04-18T08:57:49+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 1500,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "contract_scores": {
+        "BLEU": 39.86372583231466,
+        "CHRF": 37.80526288059886,
+        "XCOMETXL": 0.7781448897229705,
+        "LongYAAL CU": 3271.9262099162374,
+        "LongYAAL CA": 3085.30204914265
+      },
+      "files": {
+        "artifacts": {
+          "manifest.json": {
+            "path": "submission/artifacts/additive/chunk1500/en-zh/manifest.json",
+            "bytes": 10598
+          },
+          "hypothesis.jsonl": {
+            "path": "submission/artifacts/additive/chunk1500/en-zh/hypothesis.jsonl",
+            "bytes": 1525227
+          },
+          "stream_updates.jsonl": {
+            "path": "submission/artifacts/additive/chunk1500/en-zh/stream_updates.jsonl",
+            "bytes": 34615619
+          }
+        },
+        "results": {
+          "evaluation.json": {
+            "path": "submission/results/additive/chunk1500/en-zh/evaluation.json",
+            "bytes": 4609
+          },
+          "evaluation.report.txt": {
+            "path": "submission/results/additive/chunk1500/en-zh/evaluation.report.txt",
+            "bytes": 1951
+          },
+          "scores.tsv": {
+            "path": "submission/results/additive/chunk1500/en-zh/scores.tsv",
+            "bytes": 99
+          }
+        }
+      }
+    },
+    {
+      "group": "chunk1900",
+      "chunk_ms": 1900,
+      "source_language_code": "en",
+      "target_language_code": "de",
+      "source_output_dir": "outputs/iwslt26_devset_chunk1900_borderp1_ende",
+      "artifacts_dir": "submission/artifacts/additive/chunk1900/en-de",
+      "results_dir": "submission/results/additive/chunk1900/en-de",
+      "target_language": "German",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 2837,
+      "generated_at_utc": "2026-04-18T07:33:40+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 1900,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "contract_scores": {
+        "BLEU": 33.986348443270295,
+        "CHRF": 64.8787024667855,
+        "XCOMETXL": 0.9128304259269878,
+        "LongYAAL CU": 4765.649882853626,
+        "LongYAAL CA": 4362.1984595390595
+      },
+      "files": {
+        "artifacts": {
+          "manifest.json": {
+            "path": "submission/artifacts/additive/chunk1900/en-de/manifest.json",
+            "bytes": 10588
+          },
+          "hypothesis.jsonl": {
+            "path": "submission/artifacts/additive/chunk1900/en-de/hypothesis.jsonl",
+            "bytes": 801443
+          },
+          "stream_updates.jsonl": {
+            "path": "submission/artifacts/additive/chunk1900/en-de/stream_updates.jsonl",
+            "bytes": 27780324
+          }
+        },
+        "results": {
+          "evaluation.json": {
+            "path": "submission/results/additive/chunk1900/en-de/evaluation.json",
+            "bytes": 5189
+          },
+          "evaluation.report.txt": {
+            "path": "submission/results/additive/chunk1900/en-de/evaluation.report.txt",
+            "bytes": 2457
+          },
+          "scores.tsv": {
+            "path": "submission/results/additive/chunk1900/en-de/scores.tsv",
+            "bytes": 99
+          }
+        }
+      }
+    },
+    {
+      "group": "chunk1900",
+      "chunk_ms": 1900,
+      "source_language_code": "en",
+      "target_language_code": "it",
+      "source_output_dir": "outputs/iwslt26_devset_chunk1900_borderp1_enit",
+      "artifacts_dir": "submission/artifacts/additive/chunk1900/en-it",
+      "results_dir": "submission/results/additive/chunk1900/en-it",
+      "target_language": "Italian",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 3009,
+      "generated_at_utc": "2026-04-18T07:46:45+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 1900,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "contract_scores": {
+        "BLEU": 45.37499870441995,
+        "CHRF": 70.69606176031209,
+        "XCOMETXL": 0.8515302486660951,
+        "LongYAAL CU": 4622.9252092938,
+        "LongYAAL CA": 4237.774829043344
+      },
+      "files": {
+        "artifacts": {
+          "manifest.json": {
+            "path": "submission/artifacts/additive/chunk1900/en-it/manifest.json",
+            "bytes": 10585
+          },
+          "hypothesis.jsonl": {
+            "path": "submission/artifacts/additive/chunk1900/en-it/hypothesis.jsonl",
+            "bytes": 836357
+          },
+          "stream_updates.jsonl": {
+            "path": "submission/artifacts/additive/chunk1900/en-it/stream_updates.jsonl",
+            "bytes": 29179893
+          }
+        },
+        "results": {
+          "evaluation.json": {
+            "path": "submission/results/additive/chunk1900/en-it/evaluation.json",
+            "bytes": 4605
+          },
+          "evaluation.report.txt": {
+            "path": "submission/results/additive/chunk1900/en-it/evaluation.report.txt",
+            "bytes": 1951
+          },
+          "scores.tsv": {
+            "path": "submission/results/additive/chunk1900/en-it/scores.tsv",
+            "bytes": 99
+          }
+        }
+      }
+    },
+    {
+      "group": "chunk1900",
+      "chunk_ms": 1900,
+      "source_language_code": "en",
+      "target_language_code": "zh",
+      "source_output_dir": "outputs/iwslt26_devset_chunk1900_borderp1_enzh",
+      "artifacts_dir": "submission/artifacts/additive/chunk1900/en-zh",
+      "results_dir": "submission/results/additive/chunk1900/en-zh",
+      "target_language": "Simplified Chinese",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "hypotheses": 21,
+      "stream_updates": 3114,
+      "generated_at_utc": "2026-04-18T07:58:54+00:00",
+      "runtime_config": {
+        "alignment_backend_name": "qwen_forced",
+        "mt_backend_name": "gemma_vllm_alignatt",
+        "chunk_ms": 1900,
+        "translation_alignatt_border_margin": 1,
+        "translation_alignatt_inaccessible_ms": 0.0,
+        "translation_alignatt_min_source_mass": 0.0
+      },
+      "contract_scores": {
+        "BLEU": 41.552728072673325,
+        "CHRF": 38.96911457911316,
+        "XCOMETXL": 0.7890601550371784,
+        "LongYAAL CU": 4219.926268997767,
+        "LongYAAL CA": 4023.1395027659614
+      },
+      "files": {
+        "artifacts": {
+          "manifest.json": {
+            "path": "submission/artifacts/additive/chunk1900/en-zh/manifest.json",
+            "bytes": 10604
+          },
+          "hypothesis.jsonl": {
+            "path": "submission/artifacts/additive/chunk1900/en-zh/hypothesis.jsonl",
+            "bytes": 1491884
+          },
+          "stream_updates.jsonl": {
+            "path": "submission/artifacts/additive/chunk1900/en-zh/stream_updates.jsonl",
+            "bytes": 28254597
+          }
+        },
+        "results": {
+          "evaluation.json": {
+            "path": "submission/results/additive/chunk1900/en-zh/evaluation.json",
+            "bytes": 4616
+          },
+          "evaluation.report.txt": {
+            "path": "submission/results/additive/chunk1900/en-zh/evaluation.report.txt",
+            "bytes": 1951
+          },
+          "scores.tsv": {
+            "path": "submission/results/additive/chunk1900/en-zh/scores.tsv",
+            "bytes": 99
+          }
+        }
+      }
+    }
+  ]
+}

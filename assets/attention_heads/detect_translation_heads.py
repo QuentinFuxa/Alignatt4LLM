@@ -1,33 +1,36 @@
 #!/usr/bin/env python3
-"""Detect token alignment heads in a translation LLM.
+"""Detect translation alignment heads with Gemma-style causal decoders.
 
 Implements the algorithm from "Token Alignment Heads: Unveiling Attention's
 Role in LLM Multilingual Translation" (ICLR 2026 submission).
 
 Pipeline:
-  1. Load a parallel corpus (MCIF dataset, EN-ZH by default).
+  1. Load a parallel corpus for a chosen translation direction.
   2. Use GPT-5-mini to annotate word-level alignments for each pair.
   3. Filter to high-quality anchor alignments.
-  4. Run the translation model (HyMT1.8B), collect attention maps.
+  4. Run the translation model, collect attention maps.
   5. Score every attention head with the paper's Translation Score (TS).
   6. Output:
      - word_alignments_<direction>.json   (GPT-5-mini word mappings)
      - translation_heads_<model>_<direction>.json  (head scores & ranked heads)
 
 Usage:
-  # Full pipeline (align + detect):
-  python detect_translation_heads.py --direction en-zh
+  # Full pipeline (align + detect) for Czech -> English:
+  python detect_translation_heads.py --direction cs-en \
+    --src-path /path/to/corpus.cs --tgt-path /path/to/corpus.en \
+    --dataset-name czeng2.0
 
   # Alignment only:
-  python detect_translation_heads.py --step align --direction en-zh
+  python detect_translation_heads.py --step align --direction cs-en \
+    --src-path /path/to/corpus.cs --tgt-path /path/to/corpus.en
 
   # Detection only (reuse existing alignments):
-  python detect_translation_heads.py --step detect --direction en-zh \
-    --alignment-file word_alignments_en-zh.json
+  python detect_translation_heads.py --step detect --direction cs-en \
+    --alignment-file word_alignments_cs-en.json
 
   # Different model / language pair:
   python detect_translation_heads.py --direction en-de \
-    --mt-model tencent/HY-MT1.5-7B
+    --model google/gemma-4-E4B-it
 """
 
 from __future__ import annotations
@@ -37,13 +40,12 @@ import json
 import os
 import random
 import re
-import sys
 import threading
 import time
 import unicodedata
 import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 
@@ -52,10 +54,10 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-REPO_ROOT = SCRIPT_DIR.parent
-DEFAULT_MT_MODEL = "tencent/HY-MT1.5-1.8B"
+REPO_ROOT = SCRIPT_DIR.parent.parent
+DEFAULT_MT_MODEL = "google/gemma-4-E4B-it"
 DEFAULT_ALIGNMENT_MODEL = "gpt-5-mini"
-DEFAULT_DIRECTION = "en-zh"
+DEFAULT_DIRECTION = "cs-en"
 PAPER_THRESHOLD = 0.1
 
 HYMT_PROMPTS = {
@@ -64,62 +66,105 @@ HYMT_PROMPTS = {
     "en-it": "Translate the following text into Italian, please only output the translated result without additional explanation:\n\n",
     "en-fr": "Translate the following text into French, please only output the translated result without additional explanation:\n\n",
     "cs-en": "Translate the following text into English, please only output the translated result without additional explanation:\n\n",
+    "en-cs": "Translate the following text into Czech, please only output the translated result without additional explanation:\n\n",
 }
 HYMT_PLACEHOLDER = "<｜hy_place▁holder▁no▁0｜>"
 
 LANGUAGE_NAMES = {
-    "en": "English", "zh": "Chinese", "de": "German",
-    "it": "Italian", "fr": "French", "cs": "Czech",
-    "ja": "Japanese", "ko": "Korean", "ar": "Arabic",
+    "en": "English",
+    "zh": "Chinese",
+    "de": "German",
+    "it": "Italian",
+    "fr": "French",
+    "cs": "Czech",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "ar": "Arabic",
 }
 
-# Default dataset paths (relative to REPO_ROOT)
-DATASET_PATHS = {
-    "en-zh": [
-        {
-            "name": "mcif",
-            "src": "inputs/en/mcif-long-trans/ref/en.txt",
-            "tgt": "inputs/en/mcif-long-trans/ref/zh.txt",
-        },
-    ],
-    "en-de": [
-        {
-            "name": "mcif",
-            "src": "inputs/en/mcif-long-trans/ref/en.txt",
-            "tgt": "inputs/en/mcif-long-trans/ref/de.txt",
-        },
-    ],
-    "en-it": [
-        {
-            "name": "mcif",
-            "src": "inputs/en/mcif-long-trans/ref/en.txt",
-            "tgt": "inputs/en/mcif-long-trans/ref/it.txt",
-        },
-    ],
+# No corpus is baked into the repo on purpose: the detector should run on
+# challenge-legal parallel text chosen explicitly by the caller, not silently
+# on stale or evaluation data.
+DATASET_PATHS: dict[str, list[dict[str, str]]] = {}
+
+CORPUS_HINTS = {
+    "cs-en": (
+        "For IWSLT 2026 Czech->English, pass challenge-legal parallel Czech-English "
+        "text explicitly. Prefer CzEng 2.0 as the primary corpus, optionally "
+        "supplemented with Europarl and VoxPopuli cs->en translated data. "
+        "Keep the official 2026 dev set for validation rather than head discovery."
+    ),
 }
 
-# Stopwords / weak anchors for filtering
-EN_STOPWORDS = {
-    "a", "an", "the", "of", "to", "for", "and", "or", "is", "are", "be", "am",
-    "in", "on", "at", "with", "by", "from", "that", "this", "these", "those",
-    "we", "our", "you", "your", "it", "its", "they", "their", "he", "she",
-    "i", "me", "my", "mine", "us", "them", "his", "her", "hers",
-    "as", "if", "then", "than", "into", "onto", "over", "under", "through",
-    "which", "who", "whom", "what", "when", "where", "why", "how", "not",
-    "no", "do", "does", "did", "done", "have", "has", "had", "having",
-    "will", "would", "should", "could", "may", "might", "can", "must",
-    "also", "very", "much", "more", "most", "such", "only", "just",
-    "there", "here", "because", "while", "during", "about",
+LANGUAGE_STOPWORDS = {
+    "en": {
+        "a", "an", "the", "of", "to", "for", "and", "or", "is", "are", "be", "am",
+        "in", "on", "at", "with", "by", "from", "that", "this", "these", "those",
+        "we", "our", "you", "your", "it", "its", "they", "their", "he", "she",
+        "i", "me", "my", "mine", "us", "them", "his", "her", "hers",
+        "as", "if", "then", "than", "into", "onto", "over", "under", "through",
+        "which", "who", "whom", "what", "when", "where", "why", "how", "not",
+        "no", "do", "does", "did", "done", "have", "has", "had", "having",
+        "will", "would", "should", "could", "may", "might", "can", "must",
+        "also", "very", "much", "more", "most", "such", "only", "just",
+        "there", "here", "because", "while", "during", "about",
+    },
+    "cs": {
+        "a", "aby", "ale", "ani", "bez", "by", "byl", "byla", "byli", "bylo",
+        "byly", "být", "co", "do", "ho", "i", "ja", "jak", "je", "jeho", "její",
+        "jejich", "jen", "jsme", "jsem", "jste", "jsou", "k", "kde", "kdo",
+        "která", "které", "který", "má", "mají", "máme", "mi", "mne", "mě", "na",
+        "nad", "ne", "nebo", "něco", "některé", "některý", "o", "od", "pak", "po",
+        "pod", "pro", "při", "s", "se", "si", "své", "ta", "tak", "tato", "te",
+        "ten", "tento", "to", "tohle", "tom", "tu", "tuto", "ty", "u", "už", "v",
+        "ve", "vy", "z", "za", "ze", "že",
+    },
+    "de": {
+        "aber", "als", "am", "an", "auch", "auf", "aus", "bei", "bin", "bis",
+        "bist", "da", "damit", "das", "dass", "dein", "deine", "dem", "den",
+        "der", "des", "die", "dies", "diese", "dieser", "doch", "du", "durch",
+        "ein", "eine", "einer", "eines", "er", "es", "für", "hat", "habe",
+        "haben", "hier", "ich", "ihr", "ihre", "im", "in", "ist", "ja", "mit",
+        "nach", "nicht", "noch", "nur", "oder", "sein", "seine", "sich", "sie",
+        "so", "um", "und", "uns", "unter", "vom", "von", "vor", "war", "was",
+        "weil", "wenn", "wer", "wie", "wir", "wird", "wo", "zu", "zum", "zur",
+    },
+    "it": {
+        "a", "ad", "al", "alla", "allo", "anche", "che", "chi", "con", "da",
+        "dal", "dalla", "dello", "dei", "del", "della", "di", "e", "era", "eri",
+        "fra", "gli", "ha", "hai", "hanno", "ho", "i", "il", "in", "io", "la",
+        "le", "lei", "lo", "loro", "ma", "mi", "nei", "nel", "nella", "noi",
+        "non", "o", "per", "più", "poi", "se", "sei", "si", "sia", "sono",
+        "su", "sul", "sulla", "tra", "tu", "un", "una", "uno", "vi",
+    },
 }
-EN_WEAK_ANCHOR_WORDS = {
-    "another", "aren't", "briefly", "current", "different", "each", "first",
-    "find", "hi", "i'll", "i'm", "introduce", "other", "question",
-    "questions", "second", "see", "some", "specific", "today", "two",
-    "usually", "we'll", "will",
-}
-ZH_WEAK_ANCHOR_TOKENS = {
-    "的", "了", "是", "在", "有", "和", "但", "将", "另", "托", "通常",
-    "可以", "一个", "一些", "每个", "所有", "首先", "因此", "当前", "其中",
+
+LANGUAGE_WEAK_ANCHORS = {
+    "en": {
+        "another", "aren't", "briefly", "current", "different", "each", "first",
+        "find", "hi", "i'll", "i'm", "introduce", "other", "question",
+        "questions", "second", "see", "some", "specific", "today", "two",
+        "usually", "we'll", "will",
+    },
+    "cs": {
+        "ano", "asi", "dnes", "jen", "jistě", "možná", "například", "nějaký",
+        "nějaké", "nějakou", "někdo", "některé", "některý", "otázka", "otázky",
+        "podobně", "potom", "prostě", "první", "příklad", "spíš", "také",
+        "teď", "tedy", "trochu", "už", "vlastně",
+    },
+    "de": {
+        "aktuell", "also", "andere", "beispiel", "einige", "erste", "erstens",
+        "frage", "fragen", "heute", "kurz", "meistens", "noch", "spezifisch",
+        "weitere", "zweite", "zweitens",
+    },
+    "it": {
+        "alcuni", "altra", "altre", "altro", "brevemente", "domanda", "domande",
+        "oggi", "primo", "secondo", "solito", "specifico",
+    },
+    "zh": {
+        "的", "了", "是", "在", "有", "和", "但", "将", "另", "托", "通常",
+        "可以", "一个", "一些", "每个", "所有", "首先", "因此", "当前", "其中",
+    },
 }
 HAN_RE = re.compile(r"[\u4e00-\u9fff]")
 ASCII_ALNUM_RE = re.compile(r"[A-Za-z0-9]")
@@ -215,21 +260,24 @@ def load_parallel_corpus(
     direction: str,
     src_path: str | None = None,
     tgt_path: str | None = None,
+    dataset_name: str | None = None,
     max_pairs: int = 0,
 ) -> list[dict]:
     """Load parallel sentence pairs.
 
-    If src_path/tgt_path are given, use those.  Otherwise, look up default
+    If src_path/tgt_path are given, use those. Otherwise, look up default
     dataset paths for the given direction.
     """
     if src_path and tgt_path:
-        sources = [{"name": "custom", "src": src_path, "tgt": tgt_path}]
+        sources = [{"name": dataset_name or "custom", "src": src_path, "tgt": tgt_path}]
     elif direction in DATASET_PATHS:
         sources = DATASET_PATHS[direction]
     else:
+        hint = CORPUS_HINTS.get(direction)
+        suffix = f" {hint}" if hint else ""
         raise ValueError(
             f"No default dataset for direction {direction!r}. "
-            f"Provide --src-path and --tgt-path explicitly."
+            f"Provide --src-path and --tgt-path explicitly.{suffix}"
         )
 
     pairs: list[dict] = []
@@ -596,6 +644,14 @@ def _normalize_anchor_token(token: str) -> str:
     return token.strip().strip("\"'`\u201c\u201d\u2018\u2019()[]{}<>.,:;!?").lower()
 
 
+def _normalized_anchor_tokens(text: str) -> list[str]:
+    return [
+        token
+        for token in (_normalize_anchor_token(part) for part in text.split())
+        if token
+    ]
+
+
 def _has_anchor_signal(text: str) -> bool:
     upper_chars = [ch for ch in text if ch.isupper()]
     return (
@@ -614,32 +670,29 @@ def _is_punct_only(text: str) -> bool:
     return not (ASCII_ALNUM_RE.search(text) or HAN_RE.search(text) or GREEK_RE.search(text))
 
 
-def _source_is_function_only(source_text: str) -> bool:
-    parts = [_normalize_anchor_token(t) for t in source_text.split()]
-    parts = [t for t in parts if t]
+def _span_is_function_only(text: str, lang_code: str) -> bool:
+    stopwords = LANGUAGE_STOPWORDS.get(lang_code, set())
+    if not stopwords:
+        return False
+    parts = _normalized_anchor_tokens(text)
     if not parts:
         return True
     if any(_has_anchor_signal(t) for t in parts):
         return False
-    return all(t in EN_STOPWORDS for t in parts)
+    return all(t in stopwords for t in parts)
 
 
-def _source_is_weak_anchor(source_text: str) -> bool:
-    parts = [_normalize_anchor_token(t) for t in source_text.split()]
-    parts = [t for t in parts if t]
+def _span_is_weak_anchor(text: str, lang_code: str) -> bool:
+    weak_anchors = LANGUAGE_WEAK_ANCHORS.get(lang_code, set())
+    stopwords = LANGUAGE_STOPWORDS.get(lang_code, set())
+    parts = _normalized_anchor_tokens(text)
     if not parts:
         return True
     if any(_has_anchor_signal(t) for t in parts):
         return False
-    return all(t in EN_WEAK_ANCHOR_WORDS or t in EN_STOPWORDS for t in parts)
-
-
-def _target_is_weak_anchor(target_text: str) -> bool:
-    parts = [_normalize_anchor_token(t) for t in target_text.split()]
-    parts = [t for t in parts if t]
-    if not parts:
-        return True
-    return all(t in ZH_WEAK_ANCHOR_TOKENS for t in parts)
+    if weak_anchors:
+        return all(t in weak_anchors or t in stopwords for t in parts)
+    return bool(stopwords) and all(t in stopwords for t in parts)
 
 
 def keep_anchor_alignment(alignment: dict, direction: str) -> bool:
@@ -649,6 +702,7 @@ def keep_anchor_alignment(alignment: dict, direction: str) -> bool:
     terms, numbers, and other high-signal alignments that serve as reliable
     position anchors for scoring attention heads.
     """
+    src_lang, tgt_lang = direction.split("-", 1)
     src_text = alignment.get("source_text", "").strip()
     tgt_text = alignment.get("target_text", "").strip()
     if not src_text or not tgt_text:
@@ -669,13 +723,13 @@ def keep_anchor_alignment(alignment: dict, direction: str) -> bool:
         return False
 
     # Reject function words
-    if _source_is_function_only(src_text):
+    if _span_is_function_only(src_text, src_lang):
         return False
 
     # Reject weak anchors
-    if _source_is_weak_anchor(src_text):
+    if _span_is_weak_anchor(src_text, src_lang):
         return False
-    if direction.endswith("-zh") and _target_is_weak_anchor(tgt_text):
+    if _span_is_weak_anchor(tgt_text, tgt_lang):
         return False
 
     # Short token checks
@@ -795,7 +849,7 @@ def build_translation_prompt(
             add_generation_prompt=True,
         )
 
-    # Default: HyMT-style prompt
+    # Default: legacy text-only prompt
     if direction not in HYMT_PROMPTS:
         raise ValueError(
             f"No prompt template for direction {direction!r} and model {model_name!r}. "
@@ -1058,6 +1112,7 @@ def detect_heads(
     return {
         "model": model_name,
         "direction": direction,
+        "datasets": sorted({row.get("dataset", "unknown") for row in rows}),
         "num_layers": num_layers,
         "num_heads": num_heads,
         "used_pairs": used_pairs,
@@ -1216,9 +1271,11 @@ def save_word_alignments_json(rows: list[dict], output_path: Path) -> None:
             continue
         clean.append({
             "pair_id": row["pair_id"],
+            "dataset": row.get("dataset"),
             "source_text": row["source_text"],
             "target_text": row["target_text"],
             "direction": row["direction"],
+            "alignment_model": row.get("llm_model"),
             "source_words": [w["text"] for w in row["source_words"]],
             "target_words": [w["text"] for w in row["target_words"]],
             "alignments": [
@@ -1278,7 +1335,7 @@ def make_safe_model_name(model_name: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Detect token alignment heads in translation LLMs",
+        description="Detect token alignment heads in Gemma-style translation decoders",
     )
     parser.add_argument(
         "--step", choices=["align", "detect", "all"], default="all",
@@ -1286,10 +1343,10 @@ def main():
     )
     parser.add_argument(
         "--direction", default=DEFAULT_DIRECTION,
-        help=f"Translation direction, e.g. en-zh (default: {DEFAULT_DIRECTION})",
+        help=f"Translation direction, e.g. cs-en (default: {DEFAULT_DIRECTION})",
     )
     parser.add_argument(
-        "--mt-model", default=DEFAULT_MT_MODEL,
+        "--model", "--mt-model", dest="mt_model", default=DEFAULT_MT_MODEL,
         help=f"Translation model to analyze (default: {DEFAULT_MT_MODEL})",
     )
     parser.add_argument(
@@ -1303,6 +1360,10 @@ def main():
     parser.add_argument(
         "--tgt-path", default=None,
         help="Custom target text file (one sentence per line)",
+    )
+    parser.add_argument(
+        "--dataset-name", default=None,
+        help="Optional dataset label stored in outputs (e.g. czeng2.0, europarl, voxpopuli)",
     )
     parser.add_argument(
         "--alignment-file", default=None,
@@ -1390,6 +1451,7 @@ def main():
                 args.direction,
                 src_path=args.src_path,
                 tgt_path=args.tgt_path,
+                dataset_name=args.dataset_name,
                 max_pairs=args.max_pairs,
             )
             api_key = get_api_key()

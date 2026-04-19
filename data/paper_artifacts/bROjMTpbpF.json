@@ -1,0 +1,445 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "bROjMTpbpF",
+  "source_pdf": "test-set/pdf/bROjMTpbpF.pdf",
+  "title": "Cross-Lingual Generalization and Compression: From Language-Specific to Shared Neurons",
+  "authors": "Frederick Riemenschneider and Anette Frank Department of Computational Linguistics Heidelberg University, Germany {riemenschneider|frank}@cl.uni-heidelberg.de",
+  "abstract": "Multilingual language models (MLLMs) have demonstrated remarkable abilities to transfer knowledge across languages, despite being trained without explicit cross-lingual supervision. We analyze the parameter spaces of three MLLMs to study how their representations evolve during pre-training, observing patterns consistent with compression: models initially form language-specific representations, which gradually converge into cross-lingual abstractions as training progresses. Through probing experiments, we observe a clear transition from uniform language identification capabilities across layers to more specialized layer functions. For deeper analysis, we focus on neurons that encode distinct semantic concepts. By tracing their development during pre-training, we show how they gradually align across languages. Notably, we identify specific neurons that emerge as increasingly reliable predictors for the same concepts across languages. This alignment manifests concretely in generation: once an MLLM exhibits cross-lingual generalization according to our measures, we can select concept-specific neurons identified from, e.g., Spanish text and manipulate them to guide token predictions. Remarkably, rather than generating Spanish text, the model produces semantically coherent English text. This demonstrates that cross-lingually aligned neurons encode generalized semantic representations, independent of the original language encoding.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "How do multilingual language models achieve cross-lingual generalization? This question has puzzled researchers for years–particularly since standard pre-training objectives do not explicitly encourage cross-lingual alignment.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "Existing research has explored various potential explanations, ranging from linguistic similarity due to genetic or geographic relatedness (Lin et al.,",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "2019; Lauscher et al., 2020) and word order properties (Dufter and Schütze, 2020; Deshpande et al., 2022) to architectural features like shared subwords (Pires et al., 2019; Wu and Dredze, 2019, inter alia ). However, researchers found conflicting evidence that challenges these explanations, especially regarding the role of shared subwords (Artetxe et al., 2020; K et al., 2020, inter alia ).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "In this paper, we aim to derive explanations at a deeper level, by exploring the connection between cross-lingual generalization and signals of compression. We build on the theory that the limited capacity of language models forces them to discover efficient, shared representations encoded in specific neurons across languages, rather than maintaining separate, language-dependent encodings.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "To gain deeper insights into the development of cross-lingual representations, we focus on the pretraining process itself rather than just analyzing the final model state. For our analysis, we use models from the BLOOM family (BigScience Workshop, 2022) at different scales (BLOOM-560M and BLOOM-7B1), which are state-of-the-art multilingual decoder models that provide open access to training checkpoints, though their number is limited. Additionally, we introduce our own decoderonly model where we collect checkpoints at much finer intervals and maintain precise control over the training data and languages, allowing us to build a detailed picture of how cross-lingual representations are shaped during training.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "While much prior work has focused on zero-shot cross-lingual transfer performance, recent research has shown such transfer to be unreliable (Rajaee and Monz, 2024). We therefore take a more mechanistic approach and analyze the models themselves rather than their zero-shot transfer capabilities. We start our analysis by probing model-internal representations for language identity prediction, to build initial intuitions, which reveals clear shifts in performance across pre-training checkpoints. We",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "13470 then examine how semantic concepts (like house or earthquake) are represented in individual neurons across different languages, following the neuron analysis approach of Suau et al. (2022).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "Our analysis reveals increasing cross-lingual alignment during pre-training, with specific neurons emerging as shared concept experts across languages. We complement these observations with an information-theoretic perspective on compression and demonstrate their practical implications through controlled text generation experiments, showing how MLLMs evolve from languagespecific to generalized neural representations during the pre-training process. To summarize, our contributions are:",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "(i.) We provide empirical evidence for the compression hypothesis in MLLMs by tracking how representations evolve from languagespecific to cross-lingual throughout training, using mechanistic interpretability methods and special probing tasks.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "(ii.) To our knowledge, we are the first to analyze the development of cross-lingual semantic generalization during pre-training, by identifying specific neurons that encode the same concepts across different languages. Our analysis reveals how semantic information concentrates in middle layers and evolves into generalized concept representations shared across languages at later training stages.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "(iii.) We demonstrate how our findings have a visible effect on text generation through controlled neuron manipulation experiments, illustrating that the model’s internal representations encode shared conceptual knowledge beyond specific language boundaries.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "We release our MLLM with comprehensive training checkpoints, along with code and data.[1]",
+      "section": null
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "Studying Cross-Lingual Generalization. Since the early development of MLLMs, researchers have investigated their remarkable effectiveness, primarily through the lens of zero-shot cross-lingual transfer performance. Explanatory factors for the identified cross-lingual generalization capabilities can roughly be divided into linguistic aspects , such as genetic and geographic relatedness and word order",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "> 1https://github.com/Heidelberg-NLP/ cross-lingual-generalization.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "(Lin et al., 2019; Lauscher et al., 2020; Dufter and Schütze, 2020; Deshpande et al., 2022, inter alia ), and architectural considerations like model depth and number of parameters (Dufter and Schütze, 2020; K et al., 2020, inter alia ). The role of lexical overlap between languages has been a particular point of debate in the literature (Pires et al., 2019; Wu and Dredze, 2019; Artetxe et al., 2020; Dufter and Schütze, 2020; K et al., 2020, inter alia ). For a comprehensive overview of these developments, we refer to Philippy et al. (2023).",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "Compression in Language Models. The information bottleneck method, introduced by Tishby et al. (1999), provides a theoretical framework for analyzing information flow in neural networks. Tishby and Zaslavsky (2015) apply this framework to deep learning, showing that neural networks must learn to efficiently represent task-relevant information while “forgetting” irrelevant input details. Building on these insights, Voita et al. (2019) analyze how representations evolve bottom-up in Transformers. Shwartz-Ziv and Tishby (2017) identify two distinct phases in neural network training: an initial fitting phase followed by a compression phase , the latter being causally linked to the network’s generalization capabilities.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "In the multilingual context, the compression hypothesis has been acknowledged, but to date remains underexplored: Chi et al. (2021) explicitly reference the information bottleneck method while deferring its investigation, and Dufter and Schütze (2020) observe that overparameterization may actually hinder multilingual performance. In our work, we systematically investigate how compression manifests in multilingual models during pretraining, hypothesizing that restricted model capacity forces the development of shared cross-lingual representations, rather than maintaining separate language-specific ones.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Mechanistic Interpretability. Mechanistic interpretability seeks to reverse engineer neural networks to understand their internal functioning. Even in work not focused on MLLMs, multilingual phenomena have emerged as peripheral findings: Gurnee et al. (2023) identify neurons that respond to French texts through sparse probing, while Bricken et al. (2023) discover Arabic script and Hebrew features via sparse autoencoders.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "Current work has begun to explicitly address multilinguality: Wendler et al. (2024) show that LLAMA 2 models (Touvron et al., 2023), consistent",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "with their English-dominated training data, process other languages using English as internal pivot. Recently, research has developed specialized methods to identify language-specific neurons: Tang et al. (2024) propose LAPE (Language Activation Probability Entropy), while Kojima et al. (2024) build on Suau et al.’s (2022) methodology, which we introduce below. However, these investigations focus solely on identifying neurons responsible for languagespecific processing, rather than examining, as we do, whether semantic concepts share neural representations across languages.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "Closest to our work is Blevins et al. (2022), who analyze XLM-R (Conneau et al., 2020) checkpoints for its performance in linguistic tasks such as PoS tagging or dependency parsing across different languages. Yet, unlike their work, we examine decoder-only models and investigate the pretraining process at a more fundamental level.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "Most prior work studies MLLMs through zero-shot cross-lingual transfer. In this setting, “a model that is fine-tuned on one language can be applied to others without any further training” (Tunstall et al., 2022). This approach has become the standard for evaluating multilingual models (Hu et al., 2020).",
+      "section": "3 Conceptualizing Cross-Lingual Generalization"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "Often, zero-shot cross-lingual transfer (often abbreviated to just “ cross-lingual transfer ”) is treated as synonymous with cross-lingual generalization . This conflation is problematic for two reasons. First, despite its name suggesting otherwise, in zero-shot cross-lingual transfer, models do undergo fine-tuning, potentially obscuring more subtle phenomena (Papadimitriou et al., 2023). Second, these evaluations are vulnerable to dataset artifacts like word overlap and answer position bias (Rajaee and Monz, 2024), and may instead reflect surface-level patterns, rather than linguistic generalization.",
+      "section": "3 Conceptualizing Cross-Lingual Generalization"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "We therefore argue for a clear distinction between zero-shot cross-lingual transfer as a specific evaluation method and cross-lingual generalization as the fundamental ability of models to form crosslingual abstractions. Our work investigates the latter by analyzing internal representations directly, without any fine-tuning. We hypothesize that crosslingual generalization emerges through compression during pre-training. We assume that once a model’s capacity constraints prevent pure memorization, it develops more space-efficient represen-",
+      "section": "3 Conceptualizing Cross-Lingual Generalization"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "tations by abstracting away language-specific features from the encoded content. Our experiments support this hypothesis: we observe the emergence of cross-lingual concept neurons that respond to the same concepts across different languages.",
+      "section": "3 Conceptualizing Cross-Lingual Generalization"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "To study cross-lingual generalization during pretraining, we require access to model checkpoints throughout the pre-training process. We therefore focus our analysis on the BLOOM family (BigScience Workshop, 2022), the only recent collection of MLLMs to offer publicly available training checkpoints. Due to computational resource constraints, we conduct our most detailed analysis on BLOOM-560M. However, we confirm our key findings on BLOOM-7B1, demonstrating that our results generalize to larger models.[2]",
+      "section": "4 Model Details"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "In addition, to allow for a more fine-grained analysis of training dynamics than BLOOM’s checkpoint frequency allows, we pre-trained our own model based on the XGLM architecture (Lin et al., 2022), using a reduced dimension (d_model = 512 instead of 1024), resulting in approx. 257M parameters. We trained on 16 languages spanning diverse language families and scripts (Germanic, Italic, Bantoid, and Slavic), collecting checkpoints at powers of two and regular 5000-step intervals.",
+      "section": "4 Model Details"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "Motivation. To investigate the relationship between cross-lingual generalization and the model’s representations, we examine to what extent language-specific information is encoded across layers and training stages, focusing on how the MLLM’s internal organization of languages develops during training. In a first step, we probe each model layer’s ability to identify which language is being processed, examining how language-specific information is distributed across the model’s layers. This initial probing experiment serves as a foundation for understanding how language representations develop both through the model’s layers and throughout its training process.",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "> 2 Two checkpoints each from BLOOM-560M and BLOOM-7B1 were excluded from our analysis, as they appear to be corrupted (cf. https://huggingface.co/ bigscience/bloom-560m-intermediate/discussions/2 and https://huggingface.co/bigscience/ bloom-7b1-intermediate/discussions).",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "Figure 1: Language identity probing classification accuracy across layers of the BLOOM-560M model at different training stages. Higher accuracy indicates that language-specific information is more easily extractable from the hidden states at that layer. Error bars show standard deviation across three random seeds.",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "Experiment Setup. For a given language l , we sample {s[l] 0[, s] 1[l][, ..., s] n[l][}][sentences][from][the][OS-] CAR corpus (Ortiz Suárez et al., 2019). Each sentence s[l] i[is tokenized into a sequence of tokens] [ t[l] i, 0[, t][l] i, 1[, ..., t][l] i,Ti− 1[]][.][For each tokenized sentence,] the model M produces hidden representations: h[l] i, 0[, h][l] i, 1[, ..., h][l] i,Ti− 1[=][ M][(][t][l] i, 0[, t][l] i, 1[, ..., t][l] i,Ti− 1[)][.] From these sequences of hidden states, we randomly sample one token position per sentence and extract the hidden representation at that position. For instance, for sentence s[l] i[, we might select po-] sition p[l] i[to][obtain][h][l] i,p[l] i[.][We][then][train][a][logistic] regression classifier on these sampled hidden states, aiming to predict which language l the hidden state originated from. By analyzing classification performance across layers, we investigate how the representation of languages evolves throughout the MLLM’s architecture,",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "and how languages are organized. For implementation details see Appendix B.",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "Results. We present analysis results for BLOOM-560M at pre-training steps 1000 and 400 000 in Figure 1. At step 1000, the model already demonstrates strong language identification capabilities, with a slight performance increase after the first layer followed by small, monotonic improvements across subsequent layers. At step 400 000, by contrast, we observe markedly different behavior: performance in earlier layers is substantially weaker, starting at 57% accuracy in the first layer, increasing until layer 5, then declining until layer 14. From layer 15 onwards, performance recovers, eventually matching the levels observed in the earlier checkpoint.",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "The precise layer-wise accuracy trajectory appears to be architecture-dependent, with decoder-",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "only models showing this distinctive pattern (see results for BLOOM-7B1 and our toy model, as well as comparisons with encoder-only models XLM-R (Conneau et al., 2020) and MBERT (Devlin et al., 2019) in Appendix B). However, we observe a fundamental organization that is shared across different model families: language-specific information diminishes in the middle layers, while the final layers maintain strong identification capabilities.",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "Complementing our detailed analysis of individual checkpoints in Figure 1, Figure 2 tracks three key statistics throughout training: the first layer accuracy, the mean probing accuracy averaged across all layers, and the corresponding standard deviation between layer-wise accuracies. During early training (steps 1000 to 10 000), we observe uniformly high language identification performance across layers, reflected in high mean accuracy and low between-layer variance. Beyond step 100 000, layer-averaged accuracy decreases (especially in the first layer), while standard deviation increases, indicating greater differentiation between layers.",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "These findings reveal a fundamental shift in how language information is processed throughout pretraining: the model initially develops strong language identification capabilities, but subsequently this ability diminishes. We hypothesize that different layers develop distinct functional roles during training: while final layers maintain high language identification accuracy necessary for next-token prediction, middle layers develop representations that tend to be more language-agnostic. These observations can be argued to provide initial evidence for a compression effect that manifests during pretraining, characterized by a shift from languagespecific to more generalized representations.",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Figure 2: Language identification probing accuracy throughout training of BLOOM-560M. For each checkpoint we show: (1) mean accuracy across layers, (2) standard deviation across layers (indicating how much accuracy varies between layers), and (3) first layer accuracy, which exhibits the most significant changes during training. Results averaged over three random seeds.",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "In what follows, we build on this hypothesis and investigate whether cross-lingual generalization can be explained as a result of compression that occurs in a multilingual model’s representation space after an initial phase of memorization.",
+      "section": "5 Probing Language Identity Across Layers and Checkpoints"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "Research Question. We now examine how individual concepts are represented in MLLMs by tracing their evolution during pre-training, examining their relationships across languages. We hypothesize that MLLMs first develop language-specific representations of concepts (e.g., separate encodings for “house”, “casa”, or “Haus”), which, as training progresses, merge into unified abstractions (e.g., the concept of a dwelling). We expect that these abstracted representations can be “projected” into language-specific instantiations during generation, offering a more space-efficient organization than separate representations for each language.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "Experiment Setup. To identify concept-specific “expert” neurons (e.g., those specialized in representing dwelling), we adopt the methodology of Suau et al. (2022). Each concept c in language l is represented by a dataset { x[c,l] i[, b][c,l] i[}] i[N] =1[,][where] the total of N = N[+][are][di-] c,l c,l[+][ N] c,l[−][sentences] vided into positive samples that contain the concept ( b[c,l] i = 1) and negative ones that do not ( b[c,l] i = 0). A neuron demonstrates expertise for concept c if it selectively activates for positive examples, while remaining inactive for negative ones.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "We evaluate how well an MLP neuron m ’s activation pattern (excluding attention neurons) predicts concept c by analyzing the neuron’s outputs z[c,l] m[=][{][z] m,i[c,l][}] i[N] =1[in][response][to][sentences][{][x][c,l] i[}]",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "and use these activations as concept prediction scores , that indicate the presence of concept c in a given input for language l .[3] We measure a neuron’s predictive power through Average Precision AP[c,l] m[=][AP][(][z][c,l] m[,][ b][c,l][)][,][which][quantifies][the][area] under the precision-recall curve.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "Data. We follow Suau et al. (2022) in constructing our concept dataset from ONESEC (Scarlini et al., 2019), which provides Wikipedia sentences annotated with WORDNET senses (Miller, 1994). From this corpus, we sample 200 WORDNET senses as target concepts, ensuring 100 ≤ Nc,[+] eng[≤] 1000 positive samples and Nc,[−] eng[= 1000][ negative] samples per concept. We translate the resulting English dataset N eng using the NLLB 1.3B model (Costa-jussà et al., 2022) to create parallel versions in the languages we use in our analysis. Details on the dataset construction process are given in Appendix C.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "General Neuron Alignment. Using our multilingual corpus derived from ONESEC and the concept prediction score introduced above, we compute, for each language l and concept c , an expert score vector e[c,l] ∈ R[M] , where M is the number of neurons and each element e[c,l] m[=][ AP][c,l] m[represents the] expertise of neuron m for concept c in language l . To investigate whether the same neurons specialize in representing the same concepts across languages, we analyze the cross-lingual alignment of these expert scores. Specifically, we compute the Pearson correlation coefficient between expert score vectors e[c,l][1] and e[c,l][2] for each concept across different language pairs ( l 1 , l 2).",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "Given the large number of pairwise correlations across concepts and languages, we need a way to summarize these results concisely. We therefore apply Fisher’s Z transformation to the correlation coefficients, compute their average, and transform the result back. We emphasize that this averaged score cannot be interpreted as a statistical correlation, but it still serves as a meaningful indicator of the degree of neuron alignment between languages.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "The resulting matrices for BLOOM-560M at training steps 1000 and 400 000 are shown in Figure 3, with values averaged across all concepts. Figure 4 provides a view of this alignment throughout the training process, showing the averaged scores across both concepts and language pairs. For addi-",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "> 3A fixed-size sentence representation is obtained via maxpooling.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "Figure 3: Expert neuron alignment across languages in BLOOM-560M at different training stages, measured by Pearson correlation coefficients averaged across concepts using Fisher’s Z transformation.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "Figure 4: (1) Correlation Coefficient, (2) Neuron Overlap Proportion of top 500 neurons, and (3) MI throughout training, averaged across concepts and languages for BLOOM-560M.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "tional matrices and results for BLOOM-7B1 and our toy model see Appendix D.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "Early in training, the alignment between languages is relatively weak, but it strengthens substantially by step 400 000. The correlation matrix reveals dependencies that are partially attributable to script families. We observe small but distinct clusters of related languages sharing the same script (e.g., Assamese and Bengali, Hindi and Marathi), and a broader positive alignment across languages using the Latin alphabet. Most notably, there appears to be a strong distinction between Latin-script and non-Latin-script languages, though this pattern is not absolute. The Dravidian languages (Kannada, Malayalam, Tamil, Telugu) represent a case of a language family exhibiting high similarities despite using distinct scripts, reinforcing previous findings that subword overlap alone cannot explain",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "cross-lingual generalization. A deeper analysis of these relationships remains for future investigation.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "Information-Theoretic Perspective. Beyond examining correlations across neurons, we adopt an information-theoretic approach by analyzing the Mutual Information (MI) between neural representations across languages. MI quantifies how much knowledge of a concept’s representation in one language informs its representation in another language. Specifically, MI measures compression efficiency by indicating to what degree a concept’s representation in one language is redundant, and thus predictable, given its representation in another language. We compute MI for continuous data using entropy estimation based on k -nearest neighbors distances, following the methods of Kraskov et al. (2004) and Ross (2014), as implemented in scikit-learn (Pedregosa et al., 2011). The evolution of MI (Figure 4) closely mirrors the correlation-derived alignment scores, reinforcing our findings through an information-theoretic lens.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "Neuron Overlap. Finally, we analyze the concrete overlap between the most concept-selective neurons across languages. For each concept c and language l , we identify the set S[c,l] of the top k neurons with the highest expertise scores e[c,l] . We quantify the cross-lingual overlap between languages l 1 and l 2 using the overlap proportion Ol[c] 1 ,l 2[=][|][S][c,l][1][∩] k[S][c,l][2][|] . This directly measures the degree of neuron sharing between languages, suggesting compression, as shared neurons indicate a more compact representation of concepts.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "Figure 4 shows the resulting overlap for k = 500, averaged across languages and concepts. The evolution of the overlap aligns with both the correlation-derived and mutual information measures. Remarkably, among the more than 200 million MLP parameters analyzed, we find that approx.[1] 6[of] the top 500 concept-selective neurons are shared between any pair of languages. This substantial overlap, despite the model’s vast capacity, suggests significant cross-lingual representation sharing.",
+      "section": "6 Tracing Concepts in Neurons"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "As shown in Section 5, early layers partially lose their language identity information during pretraining. We now return to this observation and examine how it relates to the distribution of concepts across a model’s layers. Specifically, we investigate where concept-specific neurons are located, and how their distribution evolves during training.",
+      "section": "7 Revisiting Layer Distributions"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "Layer-Wise Distribution of Expert Neurons. First, we explore where the previously identified top k expert neurons are located across layers. By examining the layer distribution of these neurons, averaged across all languages and concepts, we obtain a language-agnostic view of where conceptspecific information is concentrated in the model.",
+      "section": "7 Revisiting Layer Distributions"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "Our analysis in Figure 5 reveals how the concentration of concept information across layers evolves throughout training. In the randomly initialized model, the first layer contains the highest concentration of expert neurons. This is intuitive, as the untrained model can only use surface-level word overlap to “identify” concepts. This first-layer dominance intensifies during early training (step 1000), suggesting that the model initially relies heavily on these lexical cues.",
+      "section": "7 Revisiting Layer Distributions"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "At step 100 000 we observe a fundamental reordering of concept information across layers, which stabilizes and shows only marginal changes in later checkpoints. This new distribution reveals three distinct regions: After initial concentration in the first layers, there is a notable drop reaching its lowest point at layer 10. This same layer marks the beginning of the first of two concentration peaks. The final layer (24) shows a particularly low proportion, likely due to its role in token generation.",
+      "section": "7 Revisiting Layer Distributions"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "Layer-Wise Cross-Lingual Semantic Overlap. Building on these insights, we now analyze the cross-lingual alignment of concept representations",
+      "section": "7 Revisiting Layer Distributions"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "Figure 5: Layer-wise distribution of BLOOM-560M’s top 500 expert neurons, averaged across languages and concepts.",
+      "section": "7 Revisiting Layer Distributions"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "for different layers . For each layer ℓ , we compute the average pairwise overlap between top k expert neurons by comparing the sets Sℓ[c,l] across languages, measuring the proportion of shared neuℓ ∩Sℓ[c,l][2] | rons between languages l 1 and l 2 as[|][S][c,l][1] k . The results in Figure 6 complement our previous findings (Figure 5). While the early layers showed high concept specificity, likely due to subword overlap, this does not lead to strong cross-lingual alignment. Instead, substantial cross-lingual overlap develops in the middle layers (10-17), particularly in later checkpoints, suggesting that genuine semantic generalization occurs in this region. This indicates that while subword similarity provides a useful initial bias for the model, actual crosslingual semantic representations emerge in the middle layers. The increasing alignment in later checkpoints supports the compression hypothesis, suggesting that the model learns to abstract away from language-specific features.",
+      "section": "7 Revisiting Layer Distributions"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "The decrease in overlap in the final layers aligns with their specialization for language-specific token generation. By comparing Figure 6 and Figure 5, we can disentangle the effect of subword overlap from true cross-lingual generalization. We confirm the same trends for BLOOM-7B1 in Figures 16 and 17.",
+      "section": "7 Revisiting Layer Distributions"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "Until now, we have examined probing performance and neuron behavior to understand neuron alignment in MLLMs. We now investigate whether these findings are reflected in BLOOM-560M’s text generation capabilities. To test the crosslingual semantic properties of concept-specific expert neurons, we adapt the neuron manipulation technique from Suau et al. (2022). For a given",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "+------------+------------+-------------------------------------------------------+ | Checkpoint | Concept | Language Generation | +------------+------------+-------------------------------------------------------+ | 10 000 | earthquake | Spanish Posteriormente se quem se | | | | hizo sentir en el segundo momento | | | | una intensidad máxima de unos 40 | | | | minutos y la presencia de varios | | | | volcanes. [...] Simplifed Chinese | | | | 去年,大连市高岭土场镇发现30余处安全隐患。 | | | | 经市安全气象台和地质灾害防御站队员检查,发 | | | | 现大量高空存在安全隐患, [...] Spanish Por | | | | todo lo que he leído sobre este | | | | nuevo reto, me ha encantado y he | | | | querido brotar las historias | | | | [...] Simplifed Chinese | | | | 你越长大越幸福,幸福带给你的就是一生的幸 | | | | 福。你越长大越幸福,幸福带给你的就是一生的 幸福。[...] | +------------+------------+-------------------------------------------------------+ | | joy | | +------------+------------+-------------------------------------------------------+ | 400 000 | earthquake | Spanish Strong earthquakes | | | |",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "occurred in Japan on Saturday. | | | | Five large earthquakes occurred | | | | in central Japan on Saturday, and | | | | the epicities affected areas | | | | [...] Simplifed Chinese There is | | | | no obvious risk to the city and | | | | infrastructure in the past 12 | | | | hours. Numerary records for GTC | | | | were occurring at 8.4 degrees | | | | (58.8, 18.3) [...] Spanish The | | | | queer, introvert, positive and | | | | wonderful ever. In a happy, happy | | | | way for you. Embrace this away | | | | from the point of. Simple joy to | | | | everybody. [...] Simplifed | | | | Chinese Been on the monitor for | | | | an hour now, absolutely amazing | | | | work. The photo imagery, the | | | | quality of the work and the POCs | | | | are over an hour and we are | | | | pleased with our work. [...] | +------------+------------+-------------------------------------------------------+ | | joy | | +------------+------------+-------------------------------------------------------+",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "Table 1: Example text generations from BLOOM-560M when activating top 500 expert neurons derived from Spanish and Simplified Chinese concepts, shown at training checkpoints 10 000 and 400 000.",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "Figure 6: Cross-lingual overlap of BLOOM-560M’s top 500 expert neurons per layer, showing the averaged proportion of shared neurons between language pairs.",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "concept (e.g., earthquake), we identify its top 500 expert neurons using data from one language (e.g., Spanish) and manipulate their activations. Specifically, we compute the median activation value of these neurons across all samples containing the concept ( b[c,l] i = 1), and set their activations to these values. We then generate text by prompting the model with only a beginning-of-sequence token, using nucleus sampling ( p = 0 . 9) and temperature ( t = 0 . 8) across 100 random seeds. Full details are in Appendix E.",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "Setting neurons to their median values biases the model’s representations toward the target con-",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "cept. This allows us to examine whether conceptspecific neurons, identified in one language, encode semantic information that generalizes across languages (or whether such neurons remain languagespecific, such that neurons derived from the concept earthquake in Spanish texts lead to earthquakerelated content in Spanish). Importantly, our manipulation is limited to modifying expert neurons. We provide neither language-specific nor conceptrelated tokens, thus giving the model freedom in choosing language and content of its generations.",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "Example generations are shown in Table 1. Initially, the model produces incoherent text with excessive punctuation. By step 10 000, it generates concept-relevant text in the language from which the expert neurons were derived (e.g., Spanish text about earthquakes). However, at step 400 000, while the generated text remains concept-relevant, most generations are in English, even though the manipulated expert neurons were determined using exclusively non-English data.",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "To quantify these observations, we analyze the language of the generated text using LANGDETECT (Shuyo, 2010). We classify 100 generations per checkpoint for all 200 concepts. For this analysis, we focus on neurons derived from Spanish data. The language distributions for steps 10 000",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "Figure 7: Relative frequency distribution of the top 10 detected languages when manipulating neurons derived from Spanish data, as classified using LANGDETECT.",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "and 400 000 are presented in Figure 7. We show distributions across all steps alongside results for neurons derived from Chinese and Swahili data in Appendix E.",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "At step 1000, the model is too underdeveloped to generate meaningful text, producing mainly punctuation marks that LANGDETECT fails to classify. By step 10 000, language-specific representations become most prominent–the model primarily generates Spanish text, though with a substantial presence of English. Interestingly, we also observe significant Portuguese generation, likely due to its proximity to Spanish. The notable presence of Chinese text can be attributed to its prominence in BLOOM’s pre-training corpus, where it represents the second most common language after English.",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "This shift from generating text in the concept’s source language to producing content in other languages supports our core hypothesis about the model’s learning trajectory: Early training builds language-specific representations that gradually transform into compressed cross-lingual representations. Our generation experiments present direct evidence of this generalization effect in MLLMs.",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "While cross-lingual generalization succeeds in our experiments, its nature raises important questions. Concept knowledge successfully transfers across languages, but this transfer is biased toward high-resource languages: We observe that the model tends to express concepts in English and Chinese, regardless of the language from which these concepts were learned. This bias is particularly pronounced for neurons derived from low-resource languages like Swahili (Figure 20), which never generate in their source language. We also observe spillover within language families, such as Portuguese generation from Spanish-derived neurons. This suggests that the model uses shared neurons to form a common understanding of concepts that can be accessed across languages. However, the key question that remains is whether models can re-",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "liably draw upon such shared representations when they generate text in specific languages–especially those underrepresented in the training data.",
+      "section": "8 Steering Text Generation"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "We investigate cross-lingual generalization from a compression perspective, complementing prior and concurrent work by analyzing the pre-training process of MLLMs. Our linear probing experiments reveal a decrease in language identification performance in certain layers during pre-training, pointing to changes in how the model utilizes its parameter space. By identifying and comparing expert neurons across languages, we demonstrate that multilingual models progressively align representations across languages, ultimately sharing a substantial portion of expert neurons.",
+      "section": "9 Conclusion"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "Our analysis of expert neuron distributions reveals a systematic processing pattern: The model combines token-level features from early layers with abstracted semantic content in middle layers. Notably, the proportion of shared neurons increases significantly in middle layers, indicating this is where semantic generalization primarily occurs. Generation experiments provide behavioral evidence of this phenomenon, showing the evolution from language-specific to abstracted concepts, as demonstrated by English generation from Spanish-derived concept neurons.",
+      "section": "9 Conclusion"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "Future work could build on our insights to improve multilingual models. While we focused on shared representations, examining where languages maintain distinct encodings could provide supplementary understanding. Beyond obvious languagespecific elements, culturally embedded concepts may require protection from the high-resource language bias we uncover. Our research offers insights for developing models that appropriately balance cross-lingual generalization with the preservation of linguistic and cultural diversity.",
+      "section": "9 Conclusion"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "Our analysis spans multiple model scales (from our small toy model to BLOOM-7B1) but does not include the largest MLLMs due to the computational demands of calculating expert neuron scores across multiple languages, concepts, and training checkpoints. Nevertheless, the observed trends appear consistent and suggest broader applicability.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "We analyze the BLOOM family, which is currently the only state-of-the-art MLLM family with publicly available checkpoints. However, in both BLOOM-560M and BLOOM-7B1, some checkpoints appear to be corrupted and were excluded from our analysis. To validate our findings despite these limitations, we conduct parallel experiments with our custom toy model.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "Our analysis focuses specifically on individual semantic concepts, leaving other phenomena for future work: relationships between concepts (e.g., hierarchical categories or attribute sharing), syntactic phenomena shared across languages (such as agreement and word order), and specific patterns between individual language pairs.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "We do not foresee immediate ethical concerns for our research, as we primarily conduct analytical studies. BLOOM is a considerably diverse language model family with a relatively high number of underrepresented languages. While we demonstrate biases toward high-resource languages in MLLMs, potentially disadvantaging speakers of lower-resourced languages, our analysis aims to make these biases transparent. Our toy model, though potentially inheriting biases from the MC4 corpus, serves exclusively for controlled observation of MLLMs and has minimal dual-use potential.",
+      "section": "Ethics Statement"
+    }
+  ]
+}

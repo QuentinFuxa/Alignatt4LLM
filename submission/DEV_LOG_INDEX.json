@@ -1,0 +1,154 @@
+{
+  "bundles": [
+    {
+      "regime": "low",
+      "preset": "main_low_latency",
+      "chunk_ms": 850,
+      "source_language_code": "en",
+      "target_language_code": "de",
+      "target_language": "German",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "scores": {
+        "BLEU": 28.76224644716858,
+        "CHRF": 62.14396185801901,
+        "XCOMETXL": 0.87515281854244,
+        "LongYAAL CU": 1997.816720205162,
+        "LongYAAL CA": 1628.8565344073315
+      },
+      "files": {
+        "manifest.json": "submission/dev_logs/low/en-de/manifest.json",
+        "hypothesis.jsonl": "submission/dev_logs/low/en-de/hypothesis.jsonl",
+        "stream_updates.jsonl": "submission/dev_logs/low/en-de/stream_updates.jsonl",
+        "evaluation.json": "submission/dev_logs/low/en-de/evaluation.json",
+        "evaluation.report.txt": "submission/dev_logs/low/en-de/evaluation.report.txt",
+        "scores.tsv": "submission/dev_logs/low/en-de/scores.tsv"
+      }
+    },
+    {
+      "regime": "low",
+      "preset": "main_low_latency",
+      "chunk_ms": 850,
+      "source_language_code": "en",
+      "target_language_code": "it",
+      "target_language": "Italian",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "scores": {
+        "BLEU": 40.10172301013336,
+        "CHRF": 68.02394347176647,
+        "XCOMETXL": 0.8052145933795222,
+        "LongYAAL CU": 1983.6562148080845,
+        "LongYAAL CA": 1621.4195139312706
+      },
+      "files": {
+        "manifest.json": "submission/dev_logs/low/en-it/manifest.json",
+        "hypothesis.jsonl": "submission/dev_logs/low/en-it/hypothesis.jsonl",
+        "stream_updates.jsonl": "submission/dev_logs/low/en-it/stream_updates.jsonl",
+        "evaluation.json": "submission/dev_logs/low/en-it/evaluation.json",
+        "evaluation.report.txt": "submission/dev_logs/low/en-it/evaluation.report.txt",
+        "scores.tsv": "submission/dev_logs/low/en-it/scores.tsv"
+      }
+    },
+    {
+      "regime": "low",
+      "preset": "main_low_latency",
+      "chunk_ms": 850,
+      "source_language_code": "en",
+      "target_language_code": "zh",
+      "target_language": "Simplified Chinese",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "scores": {
+        "BLEU": 36.01014176172819,
+        "CHRF": 34.97434324718411,
+        "XCOMETXL": 0.743156321744016,
+        "LongYAAL CU": 1946.9588904842897,
+        "LongYAAL CA": 1766.782133752265
+      },
+      "files": {
+        "manifest.json": "submission/dev_logs/low/en-zh/manifest.json",
+        "hypothesis.jsonl": "submission/dev_logs/low/en-zh/hypothesis.jsonl",
+        "stream_updates.jsonl": "submission/dev_logs/low/en-zh/stream_updates.jsonl",
+        "evaluation.json": "submission/dev_logs/low/en-zh/evaluation.json",
+        "evaluation.report.txt": "submission/dev_logs/low/en-zh/evaluation.report.txt",
+        "scores.tsv": "submission/dev_logs/low/en-zh/scores.tsv"
+      }
+    },
+    {
+      "regime": "high",
+      "preset": "main_high_latency",
+      "chunk_ms": 1500,
+      "source_language_code": "en",
+      "target_language_code": "de",
+      "target_language": "German",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "scores": {
+        "BLEU": 32.62961610148101,
+        "CHRF": 64.21278527472349,
+        "XCOMETXL": 0.901763004904473,
+        "LongYAAL CU": 3528.177767790984,
+        "LongYAAL CA": 3136.1366680008537
+      },
+      "files": {
+        "manifest.json": "submission/dev_logs/high/en-de/manifest.json",
+        "hypothesis.jsonl": "submission/dev_logs/high/en-de/hypothesis.jsonl",
+        "stream_updates.jsonl": "submission/dev_logs/high/en-de/stream_updates.jsonl",
+        "evaluation.json": "submission/dev_logs/high/en-de/evaluation.json",
+        "evaluation.report.txt": "submission/dev_logs/high/en-de/evaluation.report.txt",
+        "scores.tsv": "submission/dev_logs/high/en-de/scores.tsv"
+      }
+    },
+    {
+      "regime": "high",
+      "preset": "main_high_latency",
+      "chunk_ms": 1500,
+      "source_language_code": "en",
+      "target_language_code": "it",
+      "target_language": "Italian",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "scores": {
+        "BLEU": 44.46196273248502,
+        "CHRF": 70.05525532617207,
+        "XCOMETXL": 0.8406898339438101,
+        "LongYAAL CU": 3484.2919021617768,
+        "LongYAAL CA": 3096.020857119199
+      },
+      "files": {
+        "manifest.json": "submission/dev_logs/high/en-it/manifest.json",
+        "hypothesis.jsonl": "submission/dev_logs/high/en-it/hypothesis.jsonl",
+        "stream_updates.jsonl": "submission/dev_logs/high/en-it/stream_updates.jsonl",
+        "evaluation.json": "submission/dev_logs/high/en-it/evaluation.json",
+        "evaluation.report.txt": "submission/dev_logs/high/en-it/evaluation.report.txt",
+        "scores.tsv": "submission/dev_logs/high/en-it/scores.tsv"
+      }
+    },
+    {
+      "regime": "high",
+      "preset": "main_high_latency",
+      "chunk_ms": 1500,
+      "source_language_code": "en",
+      "target_language_code": "zh",
+      "target_language": "Simplified Chinese",
+      "num_inputs": 21,
+      "num_audios": 21,
+      "scores": {
+        "BLEU": 39.86372583231466,
+        "CHRF": 37.80526288059886,
+        "XCOMETXL": 0.7781448897229705,
+        "LongYAAL CU": 3271.9262099162374,
+        "LongYAAL CA": 3085.30204914265
+      },
+      "files": {
+        "manifest.json": "submission/dev_logs/high/en-zh/manifest.json",
+        "hypothesis.jsonl": "submission/dev_logs/high/en-zh/hypothesis.jsonl",
+        "stream_updates.jsonl": "submission/dev_logs/high/en-zh/stream_updates.jsonl",
+        "evaluation.json": "submission/dev_logs/high/en-zh/evaluation.json",
+        "evaluation.report.txt": "submission/dev_logs/high/en-zh/evaluation.report.txt",
+        "scores.tsv": "submission/dev_logs/high/en-zh/scores.tsv"
+      }
+    }
+  ]
+}

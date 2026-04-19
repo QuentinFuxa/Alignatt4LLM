@@ -1,0 +1,5 @@
+.venv-inference
+__pycache__
+*.pyc
+.pytest_cache
+configs/generated

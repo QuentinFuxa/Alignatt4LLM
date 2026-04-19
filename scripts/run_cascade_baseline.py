@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+
+from cascade.artifacts import DEFAULT_OUTPUT_DIR, DEFAULT_WAV_PATH
+from qwen3asr_gemma_cascade_core import run_baseline
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Run the cascade baseline and persist outputs/cascade_v1 artifacts."
+            " Target language is parameterisable (en->de, en->it, en->zh)."
+        ),
+    )
+    parser.add_argument("--wav-path", default=DEFAULT_WAV_PATH, help="Input WAV file.")
+    parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR, help="Artifact directory.")
+    parser.add_argument("--chunk-ms", default=960, type=int, help="Streaming chunk size in milliseconds.")
+    parser.add_argument(
+        "--min-start-seconds",
+        default=None,
+        type=float,
+        help="Temporary override for qwen3asr_gemma_cascade_core.config.min_start_seconds.",
+    )
+    parser.add_argument(
+        "--target-lang",
+        default=None,
+        choices=["German", "Italian", "Chinese"],
+        help=(
+            "Target language label. Drives the assistant prompt scaffolding and"
+            " automatically selects the matching en->{de,it,zh} AlignAtt heads."
+        ),
+    )
+    args = parser.parse_args()
+    return args
+
+
+def main() -> None:
+    args = parse_args()
+    runtime_overrides = {}
+    if args.min_start_seconds is not None:
+        runtime_overrides["min_start_seconds"] = float(args.min_start_seconds)
+    if args.target_lang is not None:
+        runtime_overrides["target_lang"] = args.target_lang
+    run_baseline(
+        wav_path=args.wav_path,
+        output_dir=args.output_dir,
+        chunk_ms=args.chunk_ms,
+        runtime_overrides=(runtime_overrides or None),
+    )
+
+
+if __name__ == "__main__":
+    main()

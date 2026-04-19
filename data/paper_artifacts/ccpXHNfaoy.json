@@ -1,0 +1,490 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "ccpXHNfaoy",
+  "source_pdf": "test-set/pdf/ccpXHNfaoy.pdf",
+  "title": "Distilling Script Knowledge from Large Language Models for Constrained Language Planning",
+  "authors": "Siyu Yuan[♡] , Jiangjie Chen[♠][∗] , Ziquan Fu[♣] , Xuyang Ge[†][♠] , Soham Shah[♢] , Charles Robert Jankowski[♢] , Yanghua Xiao[♠¶] , Deqing Yang[♡∗] \n\n> ♡ School of Data Science, Fudan University\n\n> ♠ Shanghai Key Laboratory of Data Science, School of Computer Science, Fudan University\n\n> ♣ System Inc. ♢ Brain Technologies, Inc.\n\n> ¶ Fudan-Aishu Cognitive Intelligence Joint Research Center syyuan21@m.fudan.edu.cn, jjchen19@fudan.edu.cn frank@system.com, {sshah,cjankowski}@brain.im {xyge20,shawyh,yangdeqing}@fudan.edu.cn",
+  "abstract": "In everyday life, humans often plan their actions by following step-by-step instructions in the form of goal-oriented scripts. Previous work has exploited language models (LMs) to plan for abstract goals of stereotypical activities ( e.g. , “ make a cake ”), but leaves more specific goals with multi-facet constraints understudied ( e.g. , “ make a cake for diabetics ”). In this paper, we define the task of constrained language planning for the first time. We propose an overgenerate-then-filter approach to improve large language models (LLMs) on this task, and use it to distill a novel constrained language planning dataset, CoScript, which consists of 55,000 scripts. Empirical results demonstrate that our method significantly improves the constrained language planning ability of LLMs, especially on constraint faithfulness. Furthermore, CoScript is demonstrated to be quite effective in endowing smaller LMs with constrained language planning ability.[1] \n\n \n\nFigure 1: A list of steps InstructGPT generates to plan for the goal “ make a cake for diabetics ”. InstructGPT mistakenly adds sugar to the cake, which is unfit for diabetic patients. This example shows that InstructGPT sometimes cannot effectively and faithfully script for a specific goal with fine-grained constraints.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "To accomplish everyday goals, humans usually plan their actions in accordance with step-by-step instructions. Such instructions are discovered as goal-oriented scripts (Schank and Abelson, 1975, 2013), involving a set of prototypical event sequences to achieve goals. For the example in Figure 1, to achieve the goal ( make a cake ), one usually has to follow certain steps of instructions, e.g. , gather ingredients , preheat the oven , etc. The planning for such step-by-step scripts chains up reasoning toward complex goals (Abelson, 1976; Wei et al., 2022). Therefore, the automation of planning envisions more intelligent and reasonable AI",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "> ∗ Corresponding authors. > † Work done while at Brain Technologies, Inc. > 1Resources of this paper can be found at https:// github.com/siyuyuan/coscript.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "systems in various domains, such as executable robotic systems (Kovalchuk et al., 2021; Huang et al., 2022) and reasoning systems for problemsolving (Wei et al., 2022; Wang et al., 2022).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "Recent studies have identified that language models (LMs) can be used to plan scripts (Sancheti and Rudinger, 2022). Previous work (Huang et al., 2022) has shown that large language models (LLMs), such as GPT-3 (Brown et al., 2020) InstructGPT (Ouyang et al., 2022) and PaLM (Chowdhery et al., 2022), can effectively decompose goals into procedural steps in a zero/few-shot manner. To train specialized models, researchers have proposed datasets for the automatic understanding and generation of script knowledge (Schank and Abelson, 1975; Regneri et al., 2010; Wanzare et al., 2016; Lyu et al., 2021; Sak-",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "aguchi et al., 2021). However, previous work mainly focuses on planning for the abstract goals of stereotypical activities (Abelson, 1976). Planning for goals with specific constraints ( e.g. , for diabetics ) still remains under-studied.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "In this paper, we define the problem of constrained language planning , which imposes different constraints on the goals of planning. An abstract goal , for example, make a cake , can be inherited by different real-life specific goals with multi-faceted constraints . A cake can be made for 1) different ingredients ( e.g. , chocolate or vanilla ); 2) various tools ( e.g. , with a microwave or an oven ); or 3) different purposes ( e.g. , for a wedding or a birthday party ). A good planner should write scripts that are reasonable and faithful to constraints. However, LLMs sometimes do not plan faithfully toward the constraints. As showcased in Figure 1, InstructGPT suggests adding sugar to the cake for diabetic patients. Also, due to a shortage of datasets for constrained language planning, the ability of smaller but specialized models to plan with specific constraints has been underexplored.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "In this paper, we aim to evaluate and improve the constrained language planning ability of LLMs, while distilling a dataset from LLMs to train specialized models. Our empirical study finds that LLMs tend to plan fluently but unfaithfully to the constraints. Thus, we employ an over-generatethen-filter approach (Wiegreffe et al., 2022) to satisfy the quality of the generated scripts to constraints. The main idea is to select high-quality ones from multiple generated scripts. Then, we use LLMs ( e.g. , InstructGPT) with this approach to generate a dataset for constrained language planning, which inherits the idea of symbolic knowledge distillation from models (West et al., 2022). We thus arrive at a Co nstrained Script dataset, i.e. , CoScript, which consists of 55,000 high-quality scripts with specific goals and steps. Experiments show that, when trained on CoScript, smaller models such as T5 (Raffel et al., 2020) can achieve good performance, even surpassing that of LLMs.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "Our contributions are summarized as follows: 1) To our knowledge, we are the first to establish the constrained language planning problem, which advances language planning toward more specific goals. 2) We evaluate the few-shot constrained language planning ability of LLMs and develop an over-generate-then-filter method for LLMs, resulting in a 26% increase in accuracy. 3) Based",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "on our method, we use LLMs to generate a highquality script dataset (CoScript) for constrained language planning. By leveraging the CoScript, we endow specialized and smaller models with constrained language planning ability, which achieves comparable performance to that of LLMs.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "Language Planning Language planning aims to decompose a goal into sequences of steps (Kaplan and Baldauf, 1997), which is widely used in robotics (Kaiser et al., 2014; Paxton et al., 2019; Berg et al., 2022) and procedural text generation (Goldfarb-Tarrant et al., 2020; Hu et al., 2022). Early studies approach language planning with syntactic parsing for the context (Koller and Stone, 2007; Garoufi and Koller, 2010). Recently, researchers have investigated the planning capability of language models in various domains (Olmo et al., 2021; Valmeekam et al., 2022). However, they mainly focus on generating scripts for stereotypical activities toward abstract goals. For example, Huang et al. (2022) proposes to plan for the general-typed tasks for embodied agents, while Yang et al. (2021) edits actions for abstract goals to video retrieval. In contrast, we explore planning for specific goals ( e.g. , “ make a cake for diabetics ”). Collins et al. (2022) has benchmarked LLMs for planning with",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "included/excluded objects, but they merely study this problem in a limited scope (only dozens of cases) without further in-depth analysis.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "Scripts A structure describing a sequence of events in a particular scenario is script (Schank and Abelson, 1975), consisting of two types: 1) Narrative script : a narrative chain of events describing a particular scenario derived from narrative texts such as recipes (Fang et al., 2022) or stories (Tandon et al., 2020); 2) Goal-oriented script (Regneri et al., 2010; Wanzare et al., 2016): an appropriate sequence of steps as instructions to achieve a goal. In this work, the steps for achieving a given goal in language planning can be categorized into the second class. Many datasets for goal-oriented scripts have been proposed to improve the language planning ability of LMs (Sakaguchi et al., 2021; Lyu et al., 2021). However, they mainly consist of abstract goals with prototypical instructions and thus are not built to train LMs for planning with more specific goals.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "+----------------------------------------------------+---+ | Constraint Type 1: Modifer Defnition: A word, an | | | adjective or a phrase that modifes or constrains | | | an abstract goal. Ex.1: Make a chocolate cake. | | +----------------------------------------------------+---+ | Ex.2: Make a pink cake. | | +----------------------------------------------------+---+ | Constraint Type 2: Method Defnition: A tool or | | | specifed mode that controls the pro- | | +----------------------------------------------------+---+ | cess for achieving the goal. Ex.1: Make a cake | | | with an oven . Ex.2: Make a cake by using cake mix | | | . | | +----------------------------------------------------+---+ | Constraint Type 3: Intent Defnition: An additional | | | purpose or demand when com- pleting the goal. | | +----------------------------------------------------+---+ | Ex.1: Make a cake for wedding . | | +----------------------------------------------------+---+ | Ex.2: Make a cake for diabetics",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "| . | +----------------------------------------------------+---+",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "Table 1: Three types of constraints and their definitions that are used to prompt for new instances of specific goals. In the examples ( Ex. ), upon the abstract goal, we give two instances for each type of constraint by combining the goal with constraints into specific goals. The constraint within each example is highlighted .",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "In-Context Learning With the great success of LLMs (Brown et al., 2020; Ouyang et al., 2022; Chowdhery et al., 2022), in-context learning (Brown et al., 2020; Min et al., 2022) has established its great task-solving potentials with a textual task instruction and a few examples. Moreover, when being used for dataset construction, the data samples that LLMs generate can sometimes outperform crowd-sourced human-authored data in factuality and fluency (Lu et al., 2022a; Min et al., 2022). This shows a promising alternative to costly large-scale crowd-sourcing to construct datasets using LLMs (Wiegreffe et al., 2022; Liu et al., 2022a; West et al., 2022). Inspired by these studies, in our work, we adopt the in-context learning for LLMs not only for better language planning, but also as a reliable crowd-worker to scale up the planning data into a reusable dataset to train smaller models.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "Before diving into technical details, we first clarify some important terms used in the paper.",
+      "section": "3 Definitions"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Scripts A goal-oriented script is a list of steps ( S = {s 1 , s 2 , · · · , s| S |} ) that fulfill a certain goal ( G ) ( e.g. , “ make a cake ”) (Suddendorf and Corballis, 2007; Schank and Abelson, 2013). The language planning task is defined as M : G → S , where M is the planning model.",
+      "section": "3 Definitions"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "Goals Different from previous studies that focus mostly on abstract goals with prototypical scripts,",
+      "section": "3 Definitions"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "Figure 2: The workflow of using InstructGPT to generate specific goals (Step 1) and planning for the goals with the over-generate-then-filter framework (Step 2-3).",
+      "section": "3 Definitions"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "we define a taxonomic structure of goals by extending the derivatives of abstract goals. We define a specific goal that inherits from an abstract one but with new information as a constraint to limit the scope. An abstract goal , denoted as Ga , refers to stereotypical activities, e.g. , “ make a cake ”. A specific goal , denoted as Gc , is derived from the corresponding Ga with various constraints, e.g. , “ make a chocolate cake ”.",
+      "section": "3 Definitions"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "Constraints and Constrained Language Planning To enrich the semantics of specific goals, we define three types of constraints , i.e. , modifier , method and intent , as shown in Table 1. They express different angles of extending an abstract goal and can be further instantiated and concreted. Constrained language planning denotes generating a constraint-faithful script S : S = M ( Gc ) toward specific goals ( Gc ) with various constraints ( C ).",
+      "section": "3 Definitions"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "In this section, we evaluate and enhance the constraint language planning ability of LLMs. The overall workflow is illustrated in Figure 2. We first extend the specific goals Gc from the abstract ones Ga using a human-in-the-loop acquisition approach with LLMs ( § 4.2, Step 1), and propose an over-generate-then-filter framework to",
+      "section": "4 Constrained Language Planning with LLMs"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "I: Specific Goal Generation /* Task prompt */ Create possible Specific Goals according to the Abstract Goal when the Constraint Type is Modifier . /* Examples */ Abstract Goal : Say Goodbye in Different Language Constraint : French; Specific Goal : Say Goodbye in French Constraint : English; Specific Goal : Say Goodbye in English /* Auto completion of constraints and specific goals */ Abstract Goal : Make a cake Constraint : Chocolate; Specific Goal: Make a chocolate cake Constraint: Vanilla ; Specific Goal: Make a vanilla cake",
+      "section": "4 Constrained Language Planning with LLMs"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "II: Script Generation /* Task prompt */ List the steps of making a cake based on Constraint and Specific Goal. /* Examples */ Goal : Make a cake Steps : 1. Gather your ingredients. 2. ... Goal : Make a cupcake Steps : 1. Decide on a pattern. 2. ... /* Auto-completion of script for a specific goal */ Constraint : Chocolate; Specific Goal : Make a chocolate cake Steps : 1. Gather ingredients. ... 4. Add the cocoa powder...",
+      "section": "4 Constrained Language Planning with LLMs"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "Table 2: Examples of prompt for InstructGPT for specific goal generation and script generation via in-context learning. Generated texts are highlighted .",
+      "section": "4 Constrained Language Planning with LLMs"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "obtain scripts ( § 4.3, Step 2-3). Then, we reveal that LLMs ( e.g. , GPT-3 (Brown et al., 2020), InstructGPT (Ouyang et al., 2022)) are prone to be unfaithful to the constraints in Gc , and our approach can alleviate this problem ( § 4.4). We use text-davinci-002 as the default InstructGPT variant, which has ≥ 175B parameters.[2]",
+      "section": "4 Constrained Language Planning with LLMs"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "We deploy LLMs for constrained language planning via in-context learning (Brown et al., 2020; Ouyang et al., 2022). Given a task input ( X ), we first write a task prompt ( T ) describing the task, and then provide several examples ( E = {Ei}[|] i[E] =1[|][,] where Ei = ( Xi, Yi ) are used for few-shot learning). An LLM generates output ( Y ) by completing the prompt ( Y = M ( T, E, X )). The whole process does not require any gradient update, allowing LLMs to generate new specific goals and scripts without massive training data.",
+      "section": "4.1 In-Context Learning for LLMs"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "> 2 Code names and approximated parameters of GPT-3 models are based on https://blog.eleuther.ai/ gpt3-model-sizes/ and https://beta.openai. com/docs/models. Note that OpenAI does not release detailed information about later versions of GPT-3, and thus for brevity, we default its size to 175B.",
+      "section": "4.1 In-Context Learning for LLMs"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "Data Source for Examples We adopt wikiHow (Koupaee and Wang, 2018), a data source of instructional articles on various topics, as the initial dataset for providing examples. The articles are titled as “ how to ...? ”, describing abstract goals, and consist of steps to achieve them. We use the titles ( Ga ) and steps ( S ) as examples.",
+      "section": "4.1 In-Context Learning for LLMs"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "Since no dataset of specific goals exists to support our study, we have to acquire these goals first. As elaborated in Table 1, we extend the abstract goals with multi-faceted constraints for human-in-theloop data acquisition using InstructGPT.",
+      "section": "4.2 Acquisition of Specific Goals"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "First, we manually prepare a pool of examples that derive specific goals from an abstract one with constraints.[3] Each example is attached to a constraint type ( i.e. , modifier, method or intent), and contains more than one constraint and specific goal so that InstructGPT is prompted to generate multiple Gc for one Ga . Next, given an abstract goal from wikiHow, we enumerate each constraint type to ensure data diversity. Then, we sample several examples of the constraint type from the pool. Finally, we input the task prompt, examples and the Ga into InstructGPT for the completion of Gc .",
+      "section": "4.2 Acquisition of Specific Goals"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "An example in Table 2 (I) shows InstructGPT generates constraints “ chocolate ” and “ vanilla ” for Ga (“ make a cake ”) given the constraint type modifier and some examples, and completes the specific goals (“ make a chocolate cake ” and “ make a vanilla cake ”).",
+      "section": "4.2 Acquisition of Specific Goals"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "After getting specific goals with constraints, we can test the ability of LLMs to fulfill them.",
+      "section": "4.3 Acquisition of Scripts"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "Planning with InstructGPT We first write a task prompt T . Given the Gc , we back-trace its Ga and extract the verbs (“ make ”) and nouns (“ cake ”) from Ga . Then we use the verbs and nouns as keywords to retrieve two similar goals as examples E from the wikiHow dataset. Finally, the task prompt T , examples E and Gc with constraint C are fed into InstructGPT. As shown in Table 2 (II), we adopt the scripts, i.e. , “ make a cake ” and “ make a cupcake ” to prompt InstructGPT to generate a script for “ make a chocolate cake ”.",
+      "section": "4.3 Acquisition of Scripts"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "Over-Generation and Filtering Using the above-mentioned approach, generated scripts by > 3Complete examples can be found in Appendix B.1.",
+      "section": "4.3 Acquisition of Scripts"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "InstructGPT are reasonable and fluent. However, they sometimes are not faithful to the constraints under closer examination ( § 4.4). Previous studies have shown that the output quality of LLMs falls in high variance (Wiegreffe et al., 2022), leading to bad performance. Thus, we adopt the idea of over-generate-then-filter to improve generation quality, which is shown to be effective in previous work (Wiegreffe et al., 2022; Liu et al., 2022a). We over-generate K sampled from InstructGPT.[4]",
+      "section": "4.3 Acquisition of Scripts"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Next, a filter model is developed to select the faithful scripts. Due to the diverse expressions of language, we rely not on rules and patterns ( i.e. , constraint words must appear in the script), but on the semantic similarity between goals and scripts for filtering. For example, “ decorating the cake with candles ” could be a faithful step to make a cake “ for a birthday party ”. Motivated by this, we first collect a set of goals, consisting of the target goal ( Gc[+][) as a positive sample and others (][{G] c[−][}][)] generated from the same abstract goal ( Ga ) as negative samples. In the previous case, the negatives include “ make a cake in the microwave ” and “ make a cake for a wedding ”. We convert scripts and goals into InstructGPT embeddings (text-embedding-ada002) and calculate cosine similarity as similarity scores to measure semantic similarity. Additionally, we reward the script that explicitly contains the keywords of the target constraint. We only keep the script if",
+      "section": "4.3 Acquisition of Scripts"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "Gc[+][scores the highest in the goal set.]",
+      "section": "4.3 Acquisition of Scripts"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "We randomly collect 100 abstract goals ( e.g. , “ make a cake ”) from wikiHow and conduct manual evaluations on the generated specific goals and their scripts. We compare our methods with instruction tuning methods, T0 (Sanh et al., 2022) and FlanT5 (Chung et al., 2022), vanilla GPT-3 (Ouyang et al., 2022) with different sizes, Codex (Chen et al., 2021) and InstructGPT (Ouyang et al., 2022) with different sizes. We also add “ Let’s think step by step ” before each answer for script generation, which is a simple but effective trick to improve zero-shot reasoning for LLMs (Kojima et al., 2022). For a retrieval baseline, we directly use the goals to search and retrieve the most relevant scripts from",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "> 4In practice, K = 2 is sufficient, as shown in Appendix B.3. Intuitively, the reason this approach works is that the generation accuracy can be improved from 1 − p to 1 − p[K] (at least one is correct), where p is the probability that InstructGPT generates a wrong script.",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "+--+------------------+-------------+-------------+-------------+-------------+ | | Model | Modifer | Method | Intent | All | +--+------------------+-------------+-------------+-------------+-------------+ | | Retrieval | 26.67 | 38.89 | 35.71 | 34.00 | +--+------------------+-------------+-------------+-------------+-------------+ | | T0 (11B) | 30.00 | 21.12 | 25.00 | 24.00 | +--+------------------+-------------+-------------+-------------+-------------+ | | Flan-T5 (11B) | 50.00 | 42.25 | 31.25 | 42.00 | +--+------------------+-------------+-------------+-------------+-------------+ | | GPT-3 (1.3B) | 13.33 | 12.96 | 18.75 | 14.00 | +--+------------------+-------------+-------------+-------------+-------------+ | | GPT-3 (6.7B) | 23.33 | 7.40 | 25.00 | 15.00 | +--+------------------+-------------+-------------+-------------+-------------+ | | GPT-3 (175B) | 30.00 | 22.22 | 25.00 | 25.00 | +--+------------------+-------------+-------------+-------------+-------------+ | | Codex",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "(175B) | 46.67 | 55.56 | 18.75 | 47.00 | +--+------------------+-------------+-------------+-------------+-------------+ | | InstructGPT | 20.00 | 22.22 | 28.57 | 22.00 | | | (1.3B) | | | | | +--+------------------+-------------+-------------+-------------+-------------+ | | InstructGPT | 60.00 73.33 | 42.25 74.08 | 43.75 42.86 | 47.00 69.00 | | | (6.7B) | 70.00 | 75.92 | 50.00 | 68.00 | | | InstructGPT | | | | | | | (175B) + “let’s | | | | | | | think step...” | | | | | +--+------------------+-------------+-------------+-------------+-------------+ | | + Our Method | 96.67 | 98.15 | 92.86 | 95.00 | +--+------------------+-------------+-------------+-------------+-------------+ | | w/ fsim = SBERT | 86.66 73.33 | 74.89 78.73 | 81.25 75.00 | 78.00 75.00 | | | w/ fsim = SimCSE | 93.33 | 94.44 | 87.50 | 93.00 | | | w/ fsim = None | | | | | +--+------------------+-------------+-------------+-------------+-------------+",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "Table 3: Accuracy (%) of generated scripts for different constraint types by manual evaluation. f sim denotes the choice for similarity function during filtering, i.e. , replacing InstructGPT embedding with that of SimCSE (Gao et al., 2021) and Sentence-BERT (Reimers and Gurevych, 2019). f sim = None denotes we only reserve the scripts that contain constraint words.",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "the wikiHow website[5] as results.",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "Are specific goals generated by LLMs of high quality? We ask InstructGPT to generate 300 (3 × ) specific goals for 3 constraint types based on the 100 abstract goals from wikiHow. For evaluation, we recruit annotators on Amazon Mechanical Turk to check whether these goals are correct. Each case is examined by three annotators, who reach an inter-rater agreement at Fleiss’s κ = 0 . 86 (Fleiss et al., 1981). InstructGPT achieves 98.00% accuracy, indicating that LLMs can derive specific goals of rather high quality.",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "To Can LLMs write scripts for specific goals? answer this question, we first let InstructGPT generate scripts for the 100 abstract goals from wikiHow and ask three annotators to check the correctness of the scripts (with Fleiss’s κ = 0 . 79). The correctness is decided by both the fulfillment of the goal and the completeness of the semantics. InstructGPT achieves 97.00% accuracy, proving that LLMs can plan for abstract goals very well. However, it is not the case for specific goals. We sample 100 specific goals from 300 generated ones (mentioned above) and evaluate the scripts generated from baselines and our method.",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "Table 3 reports the overall accuracy of the results. > 5https://www.wikihow.com/Main-Page",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "Figure 3: Errors of the generated scripts by human evaluation. The axis of the radar chart is in log-scale . Notably, ours reduces to virtually one dot in the graphic because it does not have many errors (0-1%). SE and FE denote semantic completeness and faithfulness error.",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "We find that: 1) Overall, all baselines achieve unsatisfactory results on planning for specific goals, with InstructGPT outperforming others. Especially, the scripts with intent -type constraints have the worst accuracy, and adding “ let’s think step-by-step ” does not help much; 2) The retrieval from wikiHow does not lead to the desired script; 3) With our method, InstructGPT can generate scripts of higher quality by a large margin; 4) Replacing the similarity function with embeddings from other pretrained models results in performance drops.",
+      "section": "4.4 Evaluation"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "in this task? To respond to the motivations of our methods, we conduct detailed analyses to investigate why LLMs fail. We evaluate the model planning performance in two aspects: 1) Semantic completeness (SE): whether the steps in the script are missing, repeated or in the wrong order; 2) Faithfulness to the constraints (FE): whether the script is faithful to the constraints and the steps are coherent (related) within the script. We define six types of errors upon the two, i.e. , i) SE: missing, repeated step(s) and wrong order and ii) FE: no constraint, unrelated step(s) or incoherent step(s).[6] Annotators are asked to review 100 scripts generated by InstructGPT and mark the error types.[7] Results in Figure 3 show that: 1) The semantic completeness in generated scripts is acceptable, but the faithfulness to the constraints can not be guaran-",
+      "section": "What types of errors do LLMs usually make"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "> 6The detailed definitions can be found in Appendix B.4. > 7The case study of how InstructGPT fails at planning for specific goals is shown in Appendix B.5.",
+      "section": "What types of errors do LLMs usually make"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "Figure 4: The heat-map depicts the human-evaluated script accuracy of different methods in different topic categories for specific goals.",
+      "section": "What types of errors do LLMs usually make"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "teed; 2) Our method greatly improves the planning quality both in semantic completeness and faithfulness.",
+      "section": "What types of errors do LLMs usually make"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "fail? By far, we already know that LLMs fail at specific goals, especially for intent-type constraints. We dig into more fine-grained topic categories of constraints defined in wikiHow. The heat map in Figure 4 shows that the planning performance of InstructGPTs varies considerably for goals of different categories, and the planning accuracy for each category improves greatly with our method.",
+      "section": "What kinds of goals do InstructGPT typically"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "Since LLMs are costly to deploy, it is essential to enable language planning ability for smaller, specialized models. Creating datasets is an inevitable step to this end. However, previous datasets do not enable planning for specific goals (Sakaguchi et al., 2021; Lyu et al., 2021), and manual dataset annotation is expensive and highly demanding. Thus, we follow the idea of symbolic knowledge distillation (West et al., 2022) to distill constrained language planning datasets from LLMs.",
+      "section": "5 Script Distillation from LLMs"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "We now apply our method for building a first-of-itskind Co nstrained Script dataset of language planning, named as CoScript. Experiments in § 4 show that LLMs can generate high-quality specific goals and scripts with our over-generating-thenfilter framework. We now scale up the experiments",
+      "section": "5.1 CoScript: A Dataset for Constrained Language Planning"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "+-------------------+----------------------+----------------------+----------------------+------------------+ | Dataset proScript | # Size 6,414 112,111 | # UT 8,826 158,117 | AvgGc # 0 0.42 4.13 | AvgS # 5.45 5.93 | | wikiHow CoScript | 55,000 | 76,317 | | 5.96 | +-------------------+----------------------+----------------------+----------------------+------------------+",
+      "section": "5.1 CoScript: A Dataset for Constrained Language Planning"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "Table 4: Statistics of CoScript and previous script datasets proScript and wikiHow, w.r.t. data size, number of unique tokens ( # UT ), the average number of specific goals for each abstract ones ( Avg Gc # ), and the average number of steps in scripts ( AvgS # ).",
+      "section": "5.1 CoScript: A Dataset for Constrained Language Planning"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "for a large-scale dataset. We collect 14,945 article titles as seed abstract goals and retrieve 34,260 similar goals with scripts from wikiHow as examples to prompt InstructGPT (175B) for data generation. Following § 4, dataset construction process consists of three steps, as in Figure 2: 1) We first enumerate constraint types with examples for InstructGPT and obtain specific goals (after de-duplication) based on the seed abstract goals. 2) Then, InstructGPT over-generates K scripts for the specific goals and 3) our filter framework selects the faithful scripts as the final data.[8]",
+      "section": "5.1 CoScript: A Dataset for Constrained Language Planning"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "In total, we generate 55,000 specific goals with corresponding scripts. We randomly choose 2,000 data as the validation set and 3,000 data as the test set. To ensure the quality of the validation and test set, we ask crowd-sourced workers to find and revise the incorrect samples. By collecting the annotation data for error identification of these 5,000 samples, we estimate to achieve 97.80% accuracy for specific goals and 94.98% for constrained script generation, consistent with the results in Table 3.",
+      "section": "5.1 CoScript: A Dataset for Constrained Language Planning"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "Script Diversity Analysis As shown in Table 4, despite the larger scale of wikiHow, CoScript has more specific goals than wikiHow and thus is valuable for the constrained language planning task. Besides, previous studies (Fu et al., 2021; Narayan et al., 2022) find that the texts generated by LMs may be too repetitive and less diverse. For this concern, we compare our CoScript with a recent goal-oriented script dataset proScript (Sakaguchi et al., 2021) created by crowd-sourcing. As reported in Table 4, 1) CoScript is much larger than proScript, with more scripts and a higher number of steps per script; 2) CoScript exhibits high lexical diversity, with more unique words than human-written proScript.",
+      "section": "5.2 Dataset Analysis"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "> 8Details about hyper-parameters and costs can be found in Appendix C.1.",
+      "section": "5.2 Dataset Analysis"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "Figure 5: Statistics of constraint types in CoScript dataset, with representative topic categories or the first words for each constraint type.",
+      "section": "5.2 Dataset Analysis"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "Constraint Analysis Figure 5 shows the constraint distribution of CoScript. We compute the proportions of constraint types with their representative categories obtained from Probase (Wu et al., 2012), and the initial words of constraint instances. We find CoScript shows high heterogeneity and pluralism in the generated specific goals. Interestingly, InstructGPT tends to start with the word “ if ” or “ when ” for hypothetical constraints ( e.g. , “ if someone is lactose intolerant ” for “ make a cake ”), suggesting the potential for future research on counterfactual reasoning in language planning. We also analyze the domain distribution of CoScript in the Appendix C.2",
+      "section": "5.2 Dataset Analysis"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "With CoScript, we can train smaller but specialized models for constrained language planning.",
+      "section": "6 Constrained Language Planning with Specialized Models"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Baselines We use GPT-2 (causal LM) (Radford et al., 2019) and T5 (encoder-decoder LM) (Raffel et al., 2020) as baselines. Given goals, the models are trained to generate a list of steps S for planning. Moreover, we adopt the idea of retrievalaugmented text generation (Lewis et al., 2020) and add retrieved examples in the input to improve generation quality.",
+      "section": "6.1 Experimental setup"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "Metrics We use BLEU (Papineni et al., 2002), ROUGE-L (Lin, 2004) and BERTScore (Zhang et al., 2020) as automatic metrics to measure semantic completeness. We also train a binary classification model to decide whether the generated texts are faithful to the constraints. Specifically, we",
+      "section": "6.1 Experimental setup"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "+------------------------------+---------------------------------+-----------------------------------+ | Model GPT-2 GPT-2 (large) T5 | Faithful ROUGE BLEU Trained on | BERTScore 80.74 83.63 79.02 82.27 | | (base) T5 (large) T5 (3B) | wikiHow 64.93 20.28 17.91 62.20 | 81.01 | | | 23.74 24.69 86.13 20.30 15.48 | | | | 85.13 22.95 20.60 77.90 20.72 | | | | 16.95 | | +------------------------------+---------------------------------+-----------------------------------+ | GPT-2 | Trained on CoScript 74.60 28.09 | 84.72 | | | 26.75 | | +------------------------------+---------------------------------+-----------------------------------+ | GPT-2 (large) +retrieval T5 | 76.73 30.60 30.22 76.30 32.78 | 85.77 86.41 83.14 83.48 | | (base) T5 (large) | 32.92 91.53 26.53 22.06 91.87 | | | | 29.40 29.14 | | +------------------------------+---------------------------------+-----------------------------------+ | +retrieval | 86.03 35.91 36.10 | 87.39 |",
+      "section": "6.1 Experimental setup"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "+------------------------------+---------------------------------+-----------------------------------+ | T5 (3B) +retrieval | 93.00 45.68 43.83 92.53 46.54 | 90.18 90.84 | | | 47.62 | | +------------------------------+---------------------------------+-----------------------------------+",
+      "section": "6.1 Experimental setup"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "Table 5: Overall script generation performance for models trained on different training sets. Note that the test set is the same for all models.",
+      "section": "6.1 Experimental setup"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "+--------------------+---------------------+--------------------+--------------------+-----------------+ | Model T5 (large) | Modifer 91.54 87.39 | Method 92.57 85.86 | Intent 90.21 84.44 | All 91.81 86.03 | | +retrieval GPT-2 | 78.78 77.33 | 78.77 78.28 | 69.48 70.97 | 76.73 76.30 | | (large) +retrieval | | | | | +--------------------+---------------------+--------------------+--------------------+-----------------+",
+      "section": "6.1 Experimental setup"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "Table 6: Faithfulness scores of specialized models for each constraint type on the test set of CoScript.",
+      "section": "6.1 Experimental setup"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "collect 50,000 data from CoScript as positive samples, and shuffle the goals and scripts to construct 50,000 negative ones. Then, we fine-tune a DeBERTa (v3 large) model (Khashabi et al., 2020) for classification, achieving 91.53% accuracy on the test set.",
+      "section": "6.1 Experimental setup"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "Training Data To gain a fine-grained perspective on planning toward specific goals, we train LMs on both wikiHow (D[wi] tr[)][and][CoScript] (D[co] tr[),][and][test][them][on][CoScript][test][set] (D[co] te[).][Both datasets share][ similar][ scripts, but the] goals in wikiHow are mostly abstract ones. For wikiHow, we also randomly collect 50,000 goals with scripts as D[wi] tr[.]",
+      "section": "6.1 Experimental setup"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "The comparison for models trained on wikiHow and CoScript are shown in Table 5. In general, LMs trained on CoScript outperform that on wikiHow. T5 outperforms GPT-2 in faithfulness, possibly due to its encoder-decoder framework being better at handling input information. However, GPT-2 outperforms T5 on other text generation metrics for scripts. This could be because CoScript",
+      "section": "6.2 Results"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "Figure 6: The faithfulness curves when altering the proportions of CoScript ( α ) and wikiHow (1 − α ) in a fixed-size training set.",
+      "section": "6.2 Results"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "+--+----------------+--------------+-------------+-------------+--------------+--------------+ | | Model | Size | Modifer | Method | Intent | All | +--+----------------+--------------+-------------+-------------+--------------+--------------+ | | GPT-3 | 175B | 30.00 | 22.22 | 25.00 | 25.00 | +--+----------------+--------------+-------------+-------------+--------------+--------------+ | | Codex | 175B 175B 3B | 46.67 73.33 | 55.56 74.08 | 18.75 42.86 | 47.00 69.00 | | | InstructGPT T5 | 3B | 20.00 63.33 | 12.96 55.55 | 6.25 43.75 | 14.00 56.00 | | | (wikiHow) T5 | | | | | | | | (CoScript) | | | | | | +--+----------------+--------------+-------------+-------------+--------------+--------------+ | | +retrieval | 3B | 76.66 | 66.66 | 75.00 | 71.00 | +--+----------------+--------------+-------------+-------------+--------------+--------------+",
+      "section": "6.2 Results"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "Table 7: Accuracy (%) of scripts generated by different models. We fine-tune a T5 (3B) on wikiHow and CoScript while deploying LLMs via few-shot in-context learning.",
+      "section": "6.2 Results"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "is distilled from InstructGPT, leading to a biased data distribution that favors decoder-only causal language models, e.g. , the GPT family.",
+      "section": "6.2 Results"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "Based on Table 5, we find that augmenting models with retrieved examples can improve semantic completeness. However, the constraint faithfulness could be undermined as models tend to mimic the retrieved examples. To further understand the role of retrieval augmentation, we conduct a manual evaluation that based on 100 random samples generated by T5 (3B) with and without retrieval augmentation. We discover that 57% of T5’s results are correct, and the number goes up to 70% with retrieval augmentation. Thus, although we observe a slight drop in faithfulness score (93 . 00 → 92 . 53 from Table 5), retrieval augmentation still brings much improvement over the base model.",
+      "section": "6.2 Results"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "Faithfulness of Constraints of Different Types Will LLMs’ planning preferences for constraint types pass to the specialized models? We find the results in Table 6 are consistent with that of LLMs (Table 3). Specialized models are also the worst at specific goals with intent-typed constraints.",
+      "section": "6.2 Results"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "CoScript vs. wikiHow We mix two datasets together with a hyper-parameter α to control the proportion of two datasets, where the new training",
+      "section": "6.2 Results"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "set D tr = α D[co] tr[+(1][−][α][)][D][wi] tr[.][By altering][ α][ (con-] stant data size), the faithfulness curves in Figure 6 shows that adding more data from CoScript consistently improves model performance in constraint faithfulness. Thus, training on CoScript contributes to more faithful planners.",
+      "section": "6.2 Results"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "Specialized Models vs. LLMs We further finetune a T5 (3B) on CoScript and wikiHow to generate scripts for the specific goals in § 4.4, which are held out from the training set. Table 7 shows that T5 fine-tuned on CoScript with retrieval augmentation can generate scripts of higher quality than most LLMs in Table 3, indicating that smaller models can surpass larger models when properly trained on suitable datasets.",
+      "section": "6.2 Results"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "In this paper, we define planning toward specific goals with constraints. We propose a better prompting method for LLMs, and distill a novel dataset from LLMs (CoScript) to improve the constrained language planning ability of specialized models. Experiments show that our method improves the planning quality of LLMs for specific goals, and smaller models trained on CoScript even outperform LLMs. We hope the CoScript dataset will be a valuable resource to advance the research on language planning with more complex and diverse goals and constraints.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "The proposed method for improving LLMs is a post-hoc re-ranking approach, and we do not improve LLMs themselves due to the difficulty of fine-tuning LLMs. Besides, we improve the ability of constrained language planning for smaller models from the perspective of building task-related datasets, but do not consider investigating the model itself, other than adopting retrieval augmentation. In addition, because automatic metrics for generated text are limited, the automatic evaluation of this paper may result in an overestimation or underestimation of the mentioned methods, though we attempt to mitigate this by incorporating a moderate amount of human evaluation. Despite the advanced planning capabilities of newer language models, our work remains significantly valuable to the knowledge distillation of these LLMs into smaller and more cost-effective models.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0087",
+      "text": "We also discover several limitations of the proposed CoScript datasets. First, the specific goal",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0088",
+      "text": "explored in this work only inherits from an abstract one with one extra constraint. However, in real-life situations, complex planning may involve multiple constraints, which we do not investigate in this work. Another limitation of CoScript is that our dataset is generated from InstructGPT, and thus the data distributions may be biased to favor causal language models. This is a common issue with machine-generated datasets, which we address by manually curating CoScript’s validation and test sets. Furthermore, there are still some incorrect samples (about 5%) in the training data without manual correction due to the limits of budget and time. Last but not least, we only consider whether the script can be executed at the human level. The script execution for robots (Huang et al., 2022; Lu et al., 2022b) is unstudied in our work, and there still exist huge gaps in transferring complex human language to one that is understandable and executable by robots.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0089",
+      "text": "Use of Human Annotations We protect the privacy rights of crowd-sourced workers and pay them above the local minimum wage. We use Amazon Mechanical Turk (AMT) and require 300 annotators to be located in the U.S. as a proxy for English competency. We pay at a rate of $6/hour for 20 samples. We acknowledge that constructing datasets from large language models may suffer from toxic language and cause severe risks for social society (Ousidhoum et al., 2021; Baldini et al., 2022). Therefore, we ask the annotators to discard the offensive and harmful data when reviewing the CoScript. However, there may still be prejudicial data in our final dataset that goes unnoticed.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0090",
+      "text": "wikiHow Source The content available on wikiHow is shared under a Creative Commons License (CC-BY-NC-SA)[9] , which permits others to share, copy, distribute, and adapt the content for noncommercial purposes. In our research, we use wikiHow as an initial dataset for providing examples to construct our dataset. Our dataset is released on GitHub and is only used to advance academic research on language planning with more complex and diverse goals and constraints. Therefore, we emphasize that our usage aligns with the requirements under the license.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0091",
+      "text": "> 9https://creativecommons.org/licenses/by-nc-sa/3.0/",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0092",
+      "text": "Covered Domains in CoScript CoScript is derived from wikiHow and encompasses 19 daily life goal categories (as illustrated in Figure 8). These categories cover a wide range of practical topics of everyday life. However, as shown in Figure 8, we emphasize that sensitive and high-risk domains, including medical, legal, and high-stakes financial advice, are excluded from the dataset to minimize potential risks related to inaccurate or misleading information. We encourage researchers and developers to leverage this dataset to build models that accurately understand and respond to user queries on various non-sensitive, non-critical topics.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0093",
+      "text": "Factuality, Toxicity and Biases We recognize that the factuality of generated content is crucial, especially in high-stakes scenarios. Therefore, annotators are asked to verify the consistency between generated scripts and goals with constraints for validation and test sets. They also assess and revise the content to minimize hallucinations, factual errors, and any inappropriate or misleading information.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0094",
+      "text": "Previous work found that LLMs may generate toxic contents (Cao et al., 2022; Liu et al., 2022b). We highlight that our dataset is not intended for safety-critical applications or as a substitute for expert advice in such domains. Annotators are specifically instructed to discard offensive and harmful data during the review of the validation and test sets in CoScript. However, despite these precautions, there may still be some prejudicial data that goes unnoticed in our final dataset.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0095",
+      "text": "We thank the anonymous reviewers for their valuable comments, and Wei Shi and Shuang Li from Fudan University for their useful suggestions for the manuscript. This work is supported by the Chinese NSF Major Research Plan (No.92270121), Shanghai Science and Technology Innovation Action Plan (No.21511100401) and the Science and Technology Commission of Shanghai Municipality Grant (No. 22511105902).",
+      "section": "Acknowledgement"
+    }
+  ]
+}

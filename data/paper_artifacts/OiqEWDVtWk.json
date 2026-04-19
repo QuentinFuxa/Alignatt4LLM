@@ -1,0 +1,390 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "OiqEWDVtWk",
+  "source_pdf": "test-set/pdf/OiqEWDVtWk.pdf",
+  "title": "Attention as a Guide for Simultaneous Speech Translation",
+  "authors": "Sara Papi[32] , Matteo Negri[3] , Marco Turchi[△] 3 Fondazione Bruno Kessler 2 University of Trento △ Independent Researcher \n\n{spapi,negri}@fbk.eu, marco.turchi@gmail.com",
+  "abstract": "In simultaneous speech translation (SimulST), effective policies that determine when to write partial translations are crucial to reach high output quality with low latency. Towards this objective, we propose EDATT ( E ncoderD ecoder Att ention), an adaptive policy that exploits the attention patterns between audio source and target textual translation to guide an offlinetrained ST model during simultaneous inference. EDATT exploits the attention scores modeling the audio-translation relation to decide whether to emit a partial hypothesis or wait for more audio input. This is done under the assumption that, if attention is focused towards the most recently received speech segments, the information they provide can be insufficient to generate the hypothesis (indicating that the system has to wait for additional audio input). Results on en → {de, es} show that EDATT yields better results compared to the SimulST state of the art, with gains respectively up to 7 and 4 BLEU points for the two languages, and with a reduction in computational-aware latency up to 1.4 s and 0.7 s compared to existing SimulST policies applied to offline-trained models.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "In simultaneous speech translation (SimulST), systems have to generate translations incrementally while concurrently receiving audio input. This requirement poses a significant challenge since the need of generating high-quality outputs has to be balanced with the need to minimize their latency, i.e. the time elapsed (lagging) between when a word is uttered and when it is actually translated by the system.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "In direct SimulST systems (Bérard et al., 2016; Weiss et al., 2017),[1] the balance between output",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "1In this paper, we focus on direct models that exhibit lower latency and better performance compared to traditional cascade architectures composed of separate automatic speech recognition and machine translation components (Ansari et al., 2020; Anastasopoulos et al., 2021, 2022).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "quality and latency is managed by a decision policy , which is the strategy for determining, at each time step, whether to emit a partial translation or to wait for additional audio input. Decision policies can be divided into two categories: fixed and adaptive . Fixed policies are usually based on simple heuristics (Ma et al., 2019), while adaptive policies take into account the actual input content to make the decisions (Zheng et al., 2020). Recent works (Liu et al., 2021b; Zaidi et al., 2021, 2022; Zhang and Feng, 2022) proved the superiority of adaptive policies over fixed ones. However, a major limitation of these policies is that they require training ad-hoc and complex SimulST architectures, which results in high computational costs.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "Computational costs are also inflated by the common practice of simulating the simultaneous test conditions by providing partial input during training to avoid the quality drops caused by the mismatch between training and test conditions (Ren et al., 2020; Ma et al., 2020b, 2021; Han et al., 2020; Zeng et al., 2021; Liu et al., 2021a; Zaidi et al., 2021, 2022). This practice is independent of the decision policy adopted, and typically requires dedicated trainings for each latency regime. To mitigate this issue, offline-trained ST systems have been employed for simultaneous inference (Liu et al., 2020; Chen et al., 2021; Nguyen et al., 2021) and, along this direction, Papi et al. (2022a) demonstrated that dedicated trainings simulating the inference conditions are not necessary since offline-trained systems outperform those specifically trained for SimulST. The effectiveness of using offline-trained ST models for simultaneous inference has been also confirmed by the last IWSLT 2022",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "evaluation campaign (Anastasopoulos et al., 2022), where the winning submission to the SimulST task (Polák et al., 2022) is an offline model exploiting the Local Agreement policy by Liu et al. (2020). However, despite its good results, this policy relies on a strategy (the generation of",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "two consecutive hypotheses prior to starting the emission) that has a significant impact on latency. This raises the need for effective policies that i) are adaptive, ii) are directly applicable to offline ST models, and iii) achieve low latency at low computational costs.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "Towards these objectives, we propose EDATT ( E ncoderD ecoder Att ention),[2] a novel adaptive policy for SimulST that leverages the encoderdecoder attention patterns of an offline-trained ST model to decide when to emit partial translations. In a nutshell, our idea is that the next word of the partial hypothesis at a given time step is safely emitted only if the system does not attend to the most recent audio frames, meaning that the information received up to that time step is sufficient to generate that word. Building on this idea, our contributions are summarized as follows:",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "• We introduce EDATT, a novel adaptive decision policy for SimulST, which guides offlinetrained ST models during simultaneous inference by looking at the attention patterns dynamically computed from the audio input over time;",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "• We show that EDATT outperforms the Local Agreement policy applied to the same offline ST models at almost all latency regimes, with computational-aware average lagging (AL_CA) reductions up to 1.4 s for German and 0.7 s for Spanish on MuST-C (Cattoni et al., 2021);",
+      "section": null
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "• We show that EDATT also outperforms the state-of-the-art CAAT architecture (Liu et al., 2021b), especially in terms of AL_CA, with gains of up to 7.0 BLEU for German and 4.0 BLEU for Spanish.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "In terms of architectural choices, Transformer (Vaswani et al., 2017) and its derivatives (Gulati et al., 2020; Chang et al., 2020; Papi et al., 2021; Burchi and Vielzeuf, 2021; Kim et al., 2022; Andrusenko et al., 2022) are the de-facto standard both in offline and simultaneous ST (Ansari et al., 2020; Anastasopoulos et al., 2021, 2022).",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "A generic Transformer model is composed of an encoder, whose role is to map the input speech",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "> 2Code, outputs and offline ST models used for our experiments are released under Apache License 2.0 at: https: //github.com/hlt-mt/fbk-fairseq.",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "sequence X = [ x 1 , ..., xn ] into an internal representation, and a decoder, whose role is to generate the output textual sequence Y = [ y 1 , ..., ym ] by exploiting the internal representation in an autoregressive manner (Graves, 2013), that is by consuming the previously generated output as additional input when generating the next one.",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "The encoder and the decoder are composed of a stack of identical blocks, whose components may vary depending on the particular Transformerbased architecture, although they all share the same dot-product attention mechanism (Chan et al., 2016). In general, the attention is a function that maps a query matrix Q and a pair of key-value matrices ( K , V ) to an output matrix (Bahdanau et al., 2016). The output is obtained as a weighted sum of V , whose weights are computed through a compatibility function between Q and K that, in the case of the scaled dot-product attention used in the original Transformer formulation, is:",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "where dk is the dimension of K . The attention A is computed on h heads in parallel, each applying learned linear projections W[Q] , W[K] , and W[V] to the Q , K , and V matrices. These representations are then concatenated and projected using another learned matrix W[O] , resulting in the final output:",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Multihead( Q, K, V ) = Concat(head1 , head2 , ..., head h ) WO where head i = A ( QWi[Q][, KW][ K] i[, V W][ V] i[)][.]",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "In the encoder layers, Q , K , and V are computed from the same speech input sequence X , realizing the so-called self -attention A self( X ). Differently, in the decoder layer, two types of attention are computed sequentially: self-attention, and encoder-decoder (or cross) attention. In the encoder-decoder attention, Q comes from the previous decoder layer (or directly from the previously generated output Y , in the case of the first decoder layer) while K and V come from the output of the encoder, hence the matrix can be expressed as A cross( X , Y ). In this work, we only exploit the encoder-decoder attention matrix to guide the model during simultaneous inference. Therefore, we use the notation A instead of A cross for simplicity, and henceforth refer to this matrix as the encoder-decoder representation of a specific decoder layer d considering the attention head h .",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "We propose to exploit the information contained in the encoder-decoder attention matrix of an offline ST model during inference to determine whether to wait for additional audio input or emit a partial translation. The use of attention as the core mechanism of our policy is motivated by related works in machine translation (MT) and language modeling, which prove that attention scores can encode syntactic dependencies (Raganato and Tiedemann, 2018; Htut et al., 2019) and language representations (Lamarre et al., 2022), as well as align source and target tokens (Tang et al., 2018; Zenkel et al., 2019; Garg et al., 2019; Chen et al., 2020). We posit (and demonstrate in Section 5) that this encoderdecoder attention relationship between source audio and target tokens also exists in offline ST models, and can be used to guide them during simultaneous inference.",
+      "section": "3 EDATT policy"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "Our approach builds on the following hypothesis (see Figure 1): at each time step, if the attention is focused towards the end of the input audio sequence (1), the system will probably need more information to correctly produce the current output candidate. On the contrary (2), if the attention concentrates on early audio frames (far enough from the last received ones), the current output candidate can be safely emitted because the early encoded information is sufficient. Accordingly, the model will continue to emit the next token of the partial hypothesis until the above condition is verified, that is until its encoder-decoder attention scores do not focus towards the end of the received speech segment. The rationale is that if the encoder-decoder attention of the predicted token points to the most recent speech information – i.e. attention scores are higher towards the last audio frames received – this information could be incomplete and therefore still insufficient to generate that",
+      "section": "3 EDATT policy"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "token.",
+      "section": "3 EDATT policy"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "More formally, at each time step t , EDATT determines whether to emit the next token yj , given the previously generated tokens Y j− 1 = [ y 1 , ..., yj− 1] and the partial audio input sequence X t , by looking at the sum of the last λ encoder-decoder attention weights of the vector Aj ( X t, Y j− 1). Specifically, yj is emitted if:",
+      "section": "3 EDATT policy"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "where α is a hyperparameter that controls the",
+      "section": "3 EDATT policy"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "(1) When the first speech segment is received, the partial hypothesis “ Ich werde ” is emitted since the attention is not concentrated towards the end of the segment while “ reden. ” is not since the attention is all concentrated on the last frames.",
+      "section": "3 EDATT policy"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "(2) When the second speech segment is received, the new partial hypothesis “ über Klima sprechen. ” is emitted since the attention is not concentrated towards the end of the segment.",
+      "section": "3 EDATT policy"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "Figure 1: Example of the EDATT policy. Links indicate where the attention weights point to.",
+      "section": "3 EDATT policy"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "quality-latency trade-off: lower values of α increase the latency, as they reduce the possibility to satisfy Equation 1 (i.e. the sum of the last λ encoder-decoder attention weights will likely exceed α ), and vice versa. When Equation 1 is satisfied, yj is emitted and the same process is repeated for yj +1, and so on. The process continues until we reach the token yj + w for which Equation 1 is no longer verified. At that point, the emission is stopped and the total number of tokens emitted at time step t is w .",
+      "section": "3 EDATT policy"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "To be comparable with previous works (Ren et al., 2020; Ma et al., 2020b; Zeng et al., 2021; Liu et al., 2021b; Papi et al., 2022a; Zhang and Feng, 2022), we train our models on MuST-C en → {de, es} (Cattoni et al., 2021). The choice of the two target languages is also motivated by their different word ordering: Subject-Object-Verb (SOV) for German and Subject-Verb-Object (SVO) for Spanish. This opens the possibility of validating our approach on target-language word orderings that are respectively different and similar with respect to the English (i.e. SVO) source audio. We also perform data augmentation by applying sequencelevel knowledge distillation (Kim and Rush, 2016; Gaido et al., 2021b, 2022a) as in (Liu et al., 2021b; Papi et al., 2022a), for which the transcripts of",
+      "section": "4.1 Data"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "MuST-C en → {de, es} are translated with an MT model (more details can be found in Appendix A) and used together with the gold reference during training. Data statistics are given in Appendix B.",
+      "section": "4.1 Data"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "For our experiments, we use the bug-free implementation by Papi et al. (2023) of the Conformerbased encoder-decoder model for ST (Guo et al., 2021). The offline model is made of 12 Conformer encoder layers (Gulati et al., 2020) and 6 Transformer decoder layers ( dmax = 6) with a total of ∼ 115M parameters. Each encoder/decoder layer has 8 attention heads ( hmax = 8). The input is represented as 80 audio features extracted every 10 ms with sample window of 25 and processed by two 1D convolutional layers with stride 2 to reduce its length by a factor of 4 (Wang et al., 2020). Utterance-level Cepstral Mean and Variance Normalization (CMVN) and SpecAugment (Park et al., 2019) are applied during training. Detailed settings are described in Appendix A.",
+      "section": "4.2 Architecture and Training Setup"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "We use the SimulEval tool (Ma et al., 2020a) to simulate simultaneous conditions and evaluate all the models. For our policy, we vary α of Equation 1 in the range [0 . 6 , 0 . 4 , 0 . 2 , 0 . 1 , 0 . 05 , 0 . 03] and set the size of the speech segment to 800 ms . During inference, the features are computed on the fly and CMVN normalization is based on the global mean and variance estimated on the MuST-C training set. All inferences are performed on a single NVIDIA K80 GPU with 12GB memory as in the IWSLT Simultaneous evaluation campaigns.",
+      "section": "4.3 Inference and Evaluation"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "We use sacreBLEU (Post, 2018)[3] to evaluate translation quality, and Average Lagging (Ma et al., 2019) – or AL – to evaluate latency, as in the default SimulEval evaluation setup. As suggested by Ma et al. (2020b), for our comparisons with other approaches we also report computational-aware average lagging (AL_CA), which measures the real elapsed time instead of the ideal one considered by AL, thus giving a more realistic latency measure when the system operates in real time. Its computation is also provided by SimulEval.",
+      "section": "4.3 Inference and Evaluation"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "We conduct experimental comparisons with the state-of-the-art architecture for SimulST (CAAT) > 3BLEU+case.mixed+smooth.exp+tok.13a+version.1.5.1",
+      "section": "4.4 Terms of Comparison"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "and, respectively, the current best (Local Agreement) and the most widely used (Wait-k) policies that can be directly applied to our offline ST systems for simultaneous inference. In detail:",
+      "section": "4.4 Terms of Comparison"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "Cross Attention Augmented Transformer (CAAT) – the state-of-the-art architecture for SimulST (Liu et al., 2021b), winner of the IWSLT 2021 SimulST task (Anastasopoulos et al., 2021). Inspired by the Recurrent Neural Network Transducer (Graves, 2012), it is made of three Transformer stacks: the encoder, the predictor, and the joiner. These three elements are jointly trained to optimize translation quality while keeping latency under control. We train and evaluate the CAAT model using the code provided by the authors,[4] and on the same data used for our offline ST model.",
+      "section": "4.4 Terms of Comparison"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "Local Agreement (LA) – the state-of-the-art decision policy introduced by Liu et al. (2020), and used by the winning system at IWSLT 2022 (Anastasopoulos et al., 2022). It consists in generating a partial hypothesis from scratch each time a new speech segment is added, and emitting it – or part of it – if it coincides with one of those generated in the previous l time steps, where l is a hyperparameter. Since Liu et al. (2020) empirically found that considering only the most recent previously generated tokens ( l = 1) as memory works better, we adopt the same strategy to apply this policy.",
+      "section": "4.4 Terms of Comparison"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Wait-k – the simplest and most widely used decision policy in SimulST (Ren et al., 2020; Ma et al., 2020b; Zeng et al., 2021). It consists in waiting for a fixed number of words ( k ) before starting to emit the translation, and then proceeding by alternating waiting and writing operations. Since in SimulST the information about the number of words is not explicitly contained in the audio input, a word detection strategy is used to determine this information. Detection strategies can be fixed, when it is assumed that each word has a pre-defined fixed duration, or adaptive, when the information about the number of words is inferred from the audio content. Following Papi et al. (2022a), we adopt a CTC-based adaptive word detection strategy to detect the number of words. In addition, to be comparable with the other approaches, we employ beam search to generate each token.",
+      "section": "4.4 Terms of Comparison"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "> 4https://github.com/danliu2/caat",
+      "section": "4.4 Terms of Comparison"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "Figure 2: Encoder-decoder attention scores on a random sample of the MuST-C en → de dev set, before (a) and after (b) the filtering of the last frame from the attention matrix.",
+      "section": "4.4 Terms of Comparison"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "To validate our hypothesis and study the feasibility of our method, we start by exploring the encoderdecoder attention matrices of the offline trained models. We proceed as follows: first, by visualizing the attention weights, we check for the existence of patterns that could be exploited during simultaneous inference. Then, we analyze the performance of the EDATT policy to discover the best value of λ , the decoder layer d , and the attention head h from which to extract the attention scores that better balance the quality-latency trade-off.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "Do attention patterns exist also in ST? To answer this question, we conducted an analysis of the encoder-decoder matrices obtained from the MuST-C en-de dev set. Through the visualization of attention weights, we observed a consistent phenomenon across our two language directions (en → {de, es}): the attention weights concentrate on the last frame, regardless of the input length, as shown in Figure 2a. This behaviour has already been observed in prior works on attention analysis, showing that attention often concentrates on the initial or final token (Clark et al., 2019; Kovaleva et al., 2019; Kobayashi et al., 2020; Ferrando et al., 2022), with up to 97% of attention weights being allocated to these positions. As this might hinder the possibility to effectively visualize attention patterns, similarly to (Vig and Belinkov, 2019), we filtered out the last frame from the attention matrix and then re-normalized it. In this way, as shown in Figure 2b, we obtained a clear pseudo-diagonal",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "pattern compared to the previous unfiltered representation. Such correspondence emerging from the",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "encoder-decoder attention scores after the removal of the last frame indicates a relationship between the source audio frames and target translation texts that can be exploited by our adaptive attentionbased policy during simultaneous inference.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "Figure 3: Effect of λ on MuST-C en → {de, es} dev set. We visualize the results with AL ≤ 2 . 5 s .",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "What is the optimal value of λ ? To find the best number of frames ( λ ) on which to apply Equation 1, we analyse the behavior of EDATT by varying α and setting λ ∈ [2 , 4 , 6 , 8].[5] For this analysis, we extract the attention scores from the 5[th] decoder layer ( d = 5) by averaging across the matrices obtained from each attention head ( h = [1 , ..., 8]) in accordance with the findings of (Garg et al., 2019) about the layer that best represents word alignment.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "> 5We do not report the experiments with λ = 1 since we found that it consistently degrades translation quality. We also experimented with different ways to determine λ , such as using a percentage instead of a fixed number, but none of them yielded significant differences.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "Figure 4: SimulST results on MuST-C dev set en → {de, es} for each decoder layer d . We visualize the results with AL ≤ 2 . 5 s .",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "We perform the analysis on the MuST-C dev set for both language pairs, and present the results in Figure 3. As we can see, as the value of λ increases, the curves shift towards the right, indicating an increase in latency. This means that, consistently across languages, considering too many frames towards the end ( λ ≥ 6) affects latency with little effect on quality. Since λ = 2 yields the lowest latency (AL ≈ 1 . 2 s ) in both languages, and especially in Spanish, we select this value for the following experiments. This outcome is noteworthy as it demonstrates that, at least in our settings, the same optimal value of λ applies to diverse target languages with different word ordering. However, this might not hold for different source and/or target languages, advocating for future explorations as discussed in the Limitations section.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "What is the best layer? After determining the optimal value of λ , we proceed to analyze the EDATT performance by varying the decoder layer from which the encoder-decoder attention is extracted. We conduct this study by using λ = 2, as previously determined to be the optimal value for both languages. In Figure 4, we present the SimulST results (in terms of AL-BLEU curves) for each decoder layer d = [1 , ..., 6].[6] As we can see, on both languages, Layers 1 and 2 consistently perform worse than the other layers. Also, Layer 3 achieves inferior quality compared to Layers ≥ 4, especially at medium-high latency (AL ≥ 1.2 s ) despite performing better than Layers 1 and 2.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "> 6We also tried to make the average of the encoder-decoder attention matrices of each layer but this led to worse results.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "+----------------------------------+---------------------------------+-----------------------------------+ | Head | en→de | en→es | +----------------------------------+---------------------------------+-----------------------------------+ | | 1.2s 1.6s 2s | 1.2s 1.6s 2s | +----------------------------------+---------------------------------+-----------------------------------+ | Head 1 Head 2 Head 3 Head 4 Head | 17.6 19.2 20.5 19.0 21.9 23.4 - | 27.6 30.8 32.1 - 31.9 33.9 27.2 | | 5 Head 6 Head 7 Head 8 | 22.3 23.9 - 21.5 23.3 19.2 22.2 | 29.8 31.1 - 28.4 30.7 - 30.9 32.5 | | | 23.8 18.7 21.2 22.7 - 21.9 23.5 | - 32.0 33.3 - 30.8 32.6 - 31.7 | | | 19.2 20.7 21.6 | 33.9 | +----------------------------------+---------------------------------+-----------------------------------+ | Average | 20.3 22.8 24.0 | 28.6 32.4 34.1 | +----------------------------------+---------------------------------+-----------------------------------+",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "Table 1: BLEU scores on MuST-C dev set en → {de, es} for each attention head h of Layer 4. Latency (AL) is reported in seconds. “-” means that the BLEU value is not available or calculable. The last row represents the numerical values of Layer 4 curves of Figure 4 obtained by averaging across all 8 heads.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "This aligns with the findings of Garg et al. (2019), which observed inferior performance by the first three layers in the alignment task for MT models. Concerning Layer 6, both graphs show that the curves cannot achieve lower latency, starting at around 1.5 s of AL. This phenomenon is also valid for Layer 5 compared to Layer 4, although being much less pronounced. We also observe that Layer 5 achieves the best performance at higher latency on both languages. However, since Layers 5 and 6 never achieve low latency (AL never approaches 1.2 s ), we can conclude that the optimal choice for the simultaneous scenario is Layer 4. This is in line with Lamarre et al. (2022), which indicates the middle layers as the best choice to provide accurate predictions for language representations. As a consequence, we will use d = 4 for the subsequent experiments with EDATT.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "Would a single attention head encode more useful information? According to prior research examining the usefulness of selecting a single or a set of attention heads to perform natural language processing and translation tasks (Jo and Myaeng, 2020; Behnke and Heafield, 2020; Gong et al., 2021), we also investigate the behavior of the EDATT policy by varying the attention head h from which the encoder-decoder attention matrix A is extracted. In Table 1,[7] we present the results obtained from each attention head h = [1 , ..., 8].[8] Firstly, we observe",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "7A tabular format is used instead of AL-BLEU curves as many parts of the curves are indistinguishable from each other. AL = 1.2 s is the first latency measure reported because it is the minimum value spanned by the head-wise curves, and AL = 2 s is the last one since increasing latency above this value does not significantly improve translation quality (BLEU).",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "> 8Since obtaining a specific latency in seconds is not possible with this method, we interpolate the previous and succes-",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "Figure 5: Comparison with the SimulST systems described in Section 4.4 on MuST-C en → {de, es} tst-COMMON. Solid curves represent AL, dashed curves represent AL_CA.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "that many heads are unable to achieve low latency, particularly for Spanish. Furthermore, there is no consensus on the optimal head among languages or at different latencies (e.g. Head 6 is the best in Spanish at 1.6 s , but it does not achieve lower latency). However, we notice that the average across all heads (last row) has an overall better performance compared to the encoder-decoder matrices extracted from each individual head, and this holds true for both languages. Consequently, we choose to compute the average over the attention heads to apply our EDATT policy in order to achieve a better quality-latency trade-off for SimulST.",
+      "section": "5 Attention Analysis"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "For the comparison of EDATT with the SimulST systems described in Section 4.4, we report in Figure 5 both AL (solid curves) and AL_CA (dashed curves) as latency measures to give a more realistic evaluation of the performance of the systems in real time, as recommended in (Ma et al., 2020b; Papi et al., 2022a). Results with other metrics, DAL (Cherry and Foster, 2019) and LAAL (Papi et al., 2022b), are provided in Appendix C for completeness. Numeric values for all the plots are presented in Section D. For our policy, we extract the encoderdecoder attention matrix from Layer 4 ( d = 4), average the weights across heads, and set λ = 2 as it was found to be the optimal setting on the MuST-C dev set for both languages, as previously discussed in Section 5.",
+      "section": "6.1 Comparison with Other Approaches"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "sive points to estimate the BLEU value, when needed.",
+      "section": "6.1 Comparison with Other Approaches"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "Quality-latency curves for en → de and en → es show similar trends. The EDATT policy achieves better overall results compared to the LA and waitk policies applied to offline ST models. EDATT consistently outperforms the wait-k policy, with gains ranging from 1.0 to 2.5 BLEU for German and 1.0 to 3 for Spanish, when considering both ideal (AL) and computationally aware (AL_CA) latency measures. Additionally, it is able to achieve lower latency, as the starting point of the wait-k policy is always around 1.5 s , while EDATT starts at 1.0 s . In comparison to the LA policy, we observe an AL_CA reduction of up to 1.4 s for German and 0.7 s for Spanish. Moreover, the computational overhead of EDATT is consistently lower, 0.9 s on average between languages, against 1.3 s of LA. Therefore, the computational cost of our policy is 30% lower compared to the LA policy. Additionally, EDATT outperforms LA at almost every latency, with gains up to 2.0 BLEU for German and 3.0 for Spanish.",
+      "section": "6.1 Comparison with Other Approaches"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "Compared with CAAT, when ideal latency is considered (solid curves), we notice that EDATT achieves higher quality at medium-high latency (AL ≥ 1.2 s ), with BLEU gains up to 5.0 points for German and 2.0 for Spanish. When AL < 1.2 s , instead, there is a decrease in performance with BLEU drops ranging from 1.5 to 4.0 for German and 1.0 to 2.5 for Spanish. However, when considering the realistic computational-aware latency measure AL_CA (dashed curves), we observe that the EDATT curves are always to the left of those of the CAAT system, indicating that our policy always outperforms it with BLEU gains up to 6.0 points",
+      "section": "6.1 Comparison with Other Approaches"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "for German and 2.0 for Spanish.",
+      "section": "6.1 Comparison with Other Approaches"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "In light of this, we can conclude that EDATT achieves new state-of-the-art results in terms of computational-aware metrics, while also being superior at medium-high latency when considering the less realistic computational-unaware measure.",
+      "section": "6.1 Comparison with Other Approaches"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "To further investigate the computational efficiency of EDATT, we conducted experiments on all the systems described in Section 4.4 using a highly accelerated GPU, an NVIDIA A40 with 48GB memory, during simultaneous inference.",
+      "section": "6.2 Effects of Accelerated Hardware"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Figure 6 reports the results in terms of qualitylatency trade-off. When comparing the curves with the computationally aware ones in Figure 5 (dashed), it can be observed that the LA policy seems to benefit more from the use of expensive accelerated hardware, with a latency reduction of 0.5-1 s . However, this reduction is not sufficient to reach a latency lower than 2 s with this policy. Considering the other systems, both wait-k and CAAT curves show a slight left shift (by less than 0.5 s ), similar to EDATT.[9]",
+      "section": "6.2 Effects of Accelerated Hardware"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "In conclusion, our policy proved to be superior even when using accelerated and expensive hardware, further strengthening the previously discussed findings. Moreover, these results indicate that there are no significant differences between the systems when using less or more accelerated GPU hardware and advocate for the wider use of computationally aware metrics in future research.",
+      "section": "6.2 Effects of Accelerated Hardware"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "The first policy for SimulST was proposed by Ren et al. (2020) and is derived from the wait-k policy (Ma et al., 2019) developed for simultaneous text-to-text translation. Most of subsequent studies have also adopted the wait-k policy (Ma et al., 2020b; Han et al., 2020; Chen et al., 2021; Zeng et al., 2021; Karakanta et al., 2021; Nguyen et al., 2021; Papi et al., 2022a). In parallel, several strategies have been developed to directly learn the best policy during training by means of ad-hoc architectures (Ma et al., 2021; Liu et al., 2021a,b; Chang and Lee, 2022) and training procedures aimed at",
+      "section": "7 Related Works"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "> 9Despite the benefits in terms of quality-latency tradeoff, the significantly higher costs of the A40 GPU over the K80 GPU (4.1 vs 0.9 USD/h in Amazon Web Services, https://aws.amazon.com/it/ec2/ pricing/on-demand/) makes unlikely that such a GPU will soon be of widespread use for simultaneous inference.",
+      "section": "7 Related Works"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "Figure 6: Effect of using NVIDIA A40 GPU on MuSTC en → {de, es} tst-COMMON considering all the systems of Section 4.4. Results are computationally aware.",
+      "section": "7 Related Works"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "reducing latency (Liu et al., 2021a,b; Zaidi et al., 2021, 2022; Chang and Lee, 2022; Zhang and Feng, 2022; Omachi et al., 2022). The latter adaptive policies obtained better performance according to the most recent results observed in (Anastasopoulos et al., 2021, 2022). We define our policy as adaptive as well, as it relies on the encoder-decoder attention mechanism, whose dynamics are influenced by the audio input that increases incrementally over time. However, EDATT completely differs from prior works on adaptive policies that exploit attention (Zaidi et al., 2021, 2022; Chang and Lee, 2022; Zhang and Feng, 2022) because is the first policy that does not require influencing the behaviour of the attention weights through dedicated training strategies, therefore being directly applicable to offline-trained ST models. By doing so, we realize i) an adaptive policy, ii) directly applicable to offline-trained ST models, iii) which achieves low latency at low computational costs.",
+      "section": "7 Related Works"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "After investigating the encoder-decoder attention behavior of offline ST models, we presented EDATT, a novel adaptive decision policy for SimulST that guides an offline ST model to wait or to emit a partial hypothesis by looking at its encoder-decoder attention weights. Comparisons with state-of-the-art SimulST architectures and decision policies reveal that, at lower computational costs, EDATT outperforms the others at almost every latency, with translation quality gains of up to 7.0 BLEU for en → de and 4.0 BLEU for en → es. Moreover, it is also capable of achieving a",
+      "section": "8 Conclusions"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "computational-aware latency of less than 2 s with a reduction of 0.7-1.4 s compared to existing decision policies applied to the same offline ST systems.",
+      "section": "8 Conclusions"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "The authors thank Marco Gaido for his valuable support during the paper writing. We acknowledge the support of the PNRR project FAIR - Future AI Research (PE00000013), under the NRRP MUR program funded by the NextGenerationEU, and of the project “AI@TN” funded by the Autonomous Province of Trento, Italy.",
+      "section": "Acknowledgments"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "Although applicable to any offline ST models, the EDATT policy and its behavior have been analysed on models applying CTC compression. Thus, the audio input undergoes a transformation that does not only reduce its dimension but also compresses it into more meaningful units, similar to words or subwords. As a consequence, the hyper-parameters regarding the number of frames to which apply the policy ( λ ) can vary and depend on the specific ST model. This would require having a validation set on which to search the best value of λ before directly testing. Moreover, the EDATT policy has been tested on Western European languages and, even if there is no reason suggesting that this cannot be applied (after a proper hyper-parameter search) to other languages, its usage on non-Western European target languages and on a source language different from English has not been verified in this work and is left for future endeavours.",
+      "section": "Limitations"
+    }
+  ]
+}

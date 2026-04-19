@@ -1,0 +1,425 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "tMntHtJyGX",
+  "source_pdf": "test-set/pdf/tMntHtJyGX.pdf",
+  "title": "Temporal Knowledge Graph Forecasting Without Knowledge Using In-Context Learning",
+  "authors": "Dong-Ho Lee,[∗] Kian Ahrabian[∗] , Woojeong Jin, Fred Morstatter, Jay Pujara \n\nDepartment of Computer Science and Information Sciences Institute University of Southern California \n\n{dongho.lee,ahrabian,woojeong.jin}@usc.edu, {fredmors,jpujara}@isi.edu",
+  "abstract": "Which team will win the Super Bowl in 2023? \n\nTemporal knowledge graph (TKG) forecasting benchmarks challenge models to predict future facts using knowledge of past facts. In this paper, we develop an approach to use in-context learning (ICL) with large language models (LLMs) for TKG forecasting. Our extensive evaluation compares diverse baselines, including both simple heuristics and state-of-the-art (SOTA) supervised models, against pre-trained LLMs across several popular benchmarks and experimental settings. We observe that naive LLMs perform on par with SOTA models, which employ carefully designed architectures and supervised training for the forecasting task, falling within the (-3.6%, +1.5%) Hits@1 margin relative to the median performance. To better understand the strengths of LLMs for forecasting, we explore different approaches for selecting historical facts, constructing prompts, controlling information propagation, and parsing outputs into a probability distribution. A surprising finding from our experiments is that LLM performance endures ( ± 0.4% Hit@1) even when semantic information is removed by mapping entities/relations to arbitrary numbers, suggesting that prior semantic knowledge is unnecessary; rather, LLMs can leverage the symbolic patterns in the context to achieve such a strong performance. Our analysis also reveals that ICL enables LLMs to learn irregular patterns from the historical context, going beyond frequency and recency biases[1] .",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "Knowledge Graphs (KGs) are prevalent resources for representing real-world facts in a structured way. While traditionally, KGs have been utilized for representing static snapshots of “current” knowledge, recently, temporal KGs (TKGs) have gained popularity to preserve the complex temporal dynamics",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "> ∗ Authors contributed equally. > 1https://github.com/usc-isi-i2/isi-tkg-icl",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "2000: [Superbowl, Champion, St Louis] 2001: [Superbowl, Champion, Baltimore] 2002: [Superbowl, Champion, New England] 2003: [Superbowl, Champion, Tampa Bay] ... 2019: [Superbowl, Champion, New England] 2020: [Superbowl, Champion, Kansas City] 2021: [Superbowl, Champion, Tampa Bay] 2022: [Superbowl, Champion, Los Angeles] 2023: [Superbowl, Champion,",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "+--+----------------------+------------------+----------------------+-----------------+ | | Model | # Params. | Prediction | G.T Rank | +--+----------------------+------------------+----------------------+-----------------+ | | EleutherAI gpt-j-6b | 6B 20B 350M 1.3B | Los Angeles Kansas | 3 1 >5 >5 >5 >5 | | | EleutherAI gpt- | 6.7B 175B - | City Carolina | predict future | | | neox-20b OpenAI | | Indianapolis New | events. | | | text-ada-001 OpenAI | | England TBD Sorry, I | | | | text-babbage-001 | | cannot | | | | OpenAI text- | | | | | | curie-001 OpenAI | | | | | | text-davinci-003 | | | | | | OpenAI gpt-3.5-turbo | | | | +--+----------------------+------------------+----------------------+-----------------+",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "Table 1: Model predictions for an example structured prompt . Given a structured prompt ( top ), large language models forecast the missing fact using next token prediction ( bottom ). G.T Rank indicates the rank of the ground truth response (“ Kansas City ”) within the token probability distribution.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "of knowledge (Leblay and Chekol, 2018; GarcíaDurán et al., 2018; Goel et al., 2020; Lacroix et al., 2020). Recent endeavors in the area of TKGs have been focused on predicting future missing links ( i.e., forecasting), given a query quadruple q = ( si, pj, ? , tT ) and a set of associated historical facts Eq = { ( s, p, o, t ) |t < tT } ⊆E (Gastinger et al., 2022). An illustrative example of this task is the question “ Which team will win the Super ” Bowl in 2023? that can be expressed as q = ( Super bowl , Champion , ?, 2023) and Eq = {( Super bowl , Champion , Los Angeles , 2022), ( Super bowl , Champion , Tampa Bay , 2021), ...} (See Table 1). The ultimate objective is to identify the most suitable entity among all the football teams E ( e.g., St Louis , Baltimore ) to fill the missing field.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "Prior research on TKG forecasting has been primarily focused on developing supervised ap-",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "proaches such as employing graph neural networks to model interrelationships among entities and relations (Jin et al., 2020; Li et al., 2021; Han et al., 2021b,a), using reinforcement learning techniques (Sun et al., 2021), and utilizing logical rules (Zhu et al., 2021; Liu et al., 2022). However, these techniques have prominent limitations, including the need for large amounts of training data that include thorough historical information for the entities. Additionally, model selection is a computationally expensive challenge as the stateof-the-art approach differs for each dataset.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "In this paper, we develop a TKG forecasting approach by casting the task as an in-context learning (ICL) problem using large language models (LLMs). ICL refers to the capability of LLMs to learn and perform an unseen task efficiently when provided with a few examples of input-label pairs in the prompt (Brown et al., 2020). Prior works on ICL usually leverage few-shot demonstrations, where a uniform number of examples are provided for each label to solve a classification task (Min et al., 2022; Wei et al., 2023). In contrast, our work investigates what the model learns from irregular patterns of historical facts in the context. We design a three-stage pipeline to control (1) the background knowledge selected for context, (2) the prompting strategy for forecasting, and (3) decoding the output into a prediction. The first stage uses the prediction query to retrieve a set of relevant past facts from the TKG that can be used as context (Section 3.1). The second stage transforms these",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "contextual facts into a lexical prompt representing the prediction task (Section 3.3). The third stage decodes the output of the LLM into a probability distribution over the entities and generates a response to the prediction query (Section 3.4). Our experimental evaluation performs competitively across a diverse collection of TKG benchmarks without requiring the time-consuming supervised training, or custom-designed architectures.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "We present extensive experimental results on common TKG benchmark datasets such as WIKI (Leblay and Chekol, 2018), YAGO (Mahdisoltani et al., 2014), and ICEWS (García-Durán et al., 2018; Jin et al., 2020). Our findings are as follows: (1) LLMs demonstrate the ability to make predictions about future facts using ICL without requiring any additional training. Moreover, these models show comparable performance to supervised approaches, falling within the (-3.6%,",
+      "section": null
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "+1.5%) Hits@1 margin, relative to the median approach for each dataset; (2) LLMs perform almost identically when we replace entities’ and relations’ lexical names with numerically mapped indices, suggesting that the prior semantic knowledge is not a critical factor for achieving such a high performance; and (3) LLMs outperform the best heuristic rule-based baseline on each dataset ( i.e., the most frequent or the most recent, given the historical context) by (+10%, +28%) Hits@1 relative margin, indicating that they do not simply select the output using frequency or recency biases in ICL (Zhao et al., 2021).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "In-Context Learning. ICL is an emergent capability of LLMs that aims to induce a state in the model to perform a task by utilizing contextual input-label examples, without requiring changes to its internal parameters (Brown et al., 2020). Formally, in ICL for classification, a prompt is constructed by linearizing a few input-output pair examples ( x i, y i ) from the training data. Subsequently, when a new test input text x test is provided, ICL generates the output y test ∼P LLM( y test | x 1 , y 1 , . . . , x k, y k, x test) where ∼ refers to decoding strategy.",
+      "section": "2 Problem Formulation"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "Temporal Knowledge Graph Forecasting. Formally, a TKG, G = ( V, R, E, T ), is comprised of a set of entities V , relations R , facts E , and timestamps T . Moreover, since time is sequential, G can be split into a sequence of time-stamped snapshots, G = {G 1 , G 2 , . . . , Gt, . . .} , where each snapshot, Gt = ( V, R, Et ), contains the facts at a specific point in time t . Each fact f ∈Et is a quadruple ( s, p, o, t ) where s, o ∈V , p ∈R , and t ∈T . The TKG forecasting task involves predicting a temporally conditioned missing entity in the future given a query quadruple, (? , p, o, t ) or ( s, p, ? , t ), and previous graph snapshots G 1: t− 1 = {G 1 , G 2 , . . . , Gt− 1 } . Here, the prediction typically involves ranking each entity’s assigned score.",
+      "section": "2 Problem Formulation"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "In this work, we focus on 1) modeling appropriate history Eq for a given query quadruple q , 2) converting {Eq, q} into a prompt θq , and 3) employing ICL to get prediction y q ∼P LLM( y q | θq ) in a zero-shot manner. Here, the history Eq is modeled on the facts from the previous graph snapshots",
+      "section": "3 In-context Learning for Temporal Knowledge Graph Forecasting"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "G 1: t− 1 = {G 1 , G 2 , . . . , Gt− 1 } , and we employ token probabilities for y q to get ranked scores of candidate entities in a zero-shot manner. In the rest of this section, we study history modeling strategies (Sec 3.1), response generation approaches (Sec 3.2), prompt construction templates (Sec 3.3), and common prediction settings (Sec 3.4).",
+      "section": "3 In-context Learning for Temporal Knowledge Graph Forecasting"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "To model the history Eq , we filter facts that the known entity or relation in the query q has been involved in. Specifically, given the query quadruple q = ( s, p, ? , t ) under the object entity prediction setting, we experiment with two different aspects of historical facts:",
+      "section": "3.1 History Modeling"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Entity vs. Pair. Entity includes past facts that contain s , e.g., all historical facts related to Superbowl . In contrast, Pair includes past facts that contain both s and p , e.g., a list of ( Superbowl, Champion, Year ) as shown in Table 1.",
+      "section": "3.1 History Modeling"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "Unidirectional vs. Bidirectional. Unidirectional includes past facts F wherein s (Entity) or ( s, p ) (Pair) is in the same position as it is in q ( e.g., Unidirectional & Pair – s and p served as subject and predicate in f ∈F ). Bidirectional includes past facts F wherein s (Entity) or ( s, p ) (Pair) appear in any valid position ( e.g., Bidirectional & Entity – s served as subject or object in f ∈F ). As an example of the Bidirectional setting, given q = ( Superbowl , Champion , ?, 2023), we include f = ( Kupp , Played , Superbowl , 2022) because s ( i.e., Superbowl ) is present as the object in f . Moreover, in the Bidirectional setting, to preserve the semantics of the facts in the Eq , we transform the facts where s appears as an object by 1) swapping the object and subject and 2) replacing the relation with its uniquely defined inverse relation ( e.g., ( fs, fp, fo, ft ) → ( fo, fp[−][1][, f][s][, f][t][)][).]",
+      "section": "3.1 History Modeling"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "Given a prompt θq , we pass it to an LLM to obtain the next token probabilities. Then, we use the obtained probabilities to get a ranked list of entities. However, obtaining scores for entities based on these probabilities is challenging as they may be composed of several tokens. To address this challenge, we utilize a mapped numerical label as an indirect logit to estimate their probabilities (Lin et al., 2022).",
+      "section": "3.2 Response Generation"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "+--+--------------+-----------------------------------+ | | Category | Prompt | +--+--------------+-----------------------------------+ | | | 2000: [Superbowl, Champion, 0. St | | | | Louis] | +--+--------------+-----------------------------------+ | | Lexical L(·) | 2001: [Superbowl, Champion, 1. | | | | Baltimore] ... | +--+--------------+-----------------------------------+ | | | 2023: [Superbowl, Champion, | +--+--------------+-----------------------------------+ | | | 2000: [0, 0, 0. 0] | +--+--------------+-----------------------------------+ | | Index I(·) | 2001: [0, 0, 1. 1] ... 2023: [0, | | | | 0, | +--+--------------+-----------------------------------+",
+      "section": "3.2 Response Generation"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "Table 2: Prompt Example.",
+      "section": "3.2 Response Generation"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "Given the history Eq and query q , we construct a prompt using a pre-defined template θ . Specifically, given the query quadruple q = ( s, p, ? , t ) under the object entity prediction setting, we present two versions of the template θ with varying levels of information. Our assumption is that each entity or relation has an indexed I ( · ) ( e.g., 0) and a lexical L ( · ) ( e.g., Superbowl ) form (See Table 2).",
+      "section": "3.3 Prompt Construction"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "Index. Index displays every fact, ( fs, fp, fo, ft ) ∈E using the “ ft :[ I ( fs ) , I ( fp ) , nfo. I ( fo )]” template where fs, fo ∈V , fp ∈R , ft ∈T , nfo denotes an incrementally assigned numerical label ( i.e., indirect logit), and I is a mapping from entities to unique indices. For example, in Table 1, we can use the following mappings are for the entities and relations, respectively: { Superbowl → 0, St Louis → 1, Baltimore → 2} and { Champion → 0}. The query q is then represented as “ t :[ I ( s ), I ( p ),”, concatenated to the end of the prompt. For subject entity prediction, we follow the same procedure from the other side.",
+      "section": "3.3 Prompt Construction"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "Lexical. Lexical follows the same process as Index but uses lexical form L ( · ) of entity and relation. Each fact in ( fs, fp, fo, ft ) ∈E is represented as “ ft :[ L ( fs ) , L ( fp ) , nfo . L ( fo )]” and the query q is represented as “ t :[ L ( s ) , L ( p ) , ”, concatenated to the end of the prompt.",
+      "section": "3.3 Prompt Construction"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "All the historical facts in the dataset are split into three subsets, D train, D valid, and D test, based on the chronological order with train < valid < test. Given this split, during the evaluation phase, the TKG forecasting task requires models to predict over D test under the following two settings:",
+      "section": "3.4 Prediction Setting"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "Single Step. In this setting, for each test query, the model is provided with ground truth facts from past timestamps in the test period. Hence, after making predictions for a test query in a specific",
+      "section": "3.4 Prediction Setting"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "+-------------------------------------------------+----------------------------------------------------+ | Dataset # Ents # Rels | # of Facts Interval Train Valid Test | +-------------------------------------------------+----------------------------------------------------+ | WIKI 12,554 24 YAGO 10,623 10 ICEWS14 6,869 230 | 539,286 67,538 63,110 1 year 161,540 19,523 20,026 | | ICEWS18 23,033 256 ACLED-CD22 243 6 | 1 year 74,845 8,514 7,371 1 day 373,018 45,995 | | | 49,995 1 day 1,788 216 222 1 day | +-------------------------------------------------+----------------------------------------------------+",
+      "section": "3.4 Prediction Setting"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "Table 3: Data statistics. Each dataset consists of entities, relations, and historical facts, with the facts within the same time interval identified by the same timestamp. The facts are divided into three subsets based on time, where train < valid < test.",
+      "section": "3.4 Prediction Setting"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "timestamp, the ground truth fact for that query is added to the history before moving to the test queries in the next timestamp.",
+      "section": "3.4 Prediction Setting"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "Multi Step. In this setting, the model is not provided with ground truth facts from past timestamps in the test period and has to rely on its noisy predictions. Hence, after making predictions for a test query in a specific timestamp, instead of the ground truth fact for that query, we add the predicted response to the history before moving to the test queries in the next timestamp. This setting is considered more difficult as the model is forced to rely on its own noisy predictions, which can lead to greater uncertainty with each successive timestamp.",
+      "section": "3.4 Prediction Setting"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "+--+--------------+--------------------+----------------+-------------------+ | | Model Family | Model Name | # Params | Instruction-tuned | +--+--------------+--------------------+----------------+-------------------+ | | GPT2 | gpt2 | 124M | ✗ | +--+--------------+--------------------+----------------+-------------------+ | | | gpt2-medium | 355M 774M 1.5B | ✗ ✗ ✗ | | | | gpt2-large gpt2-xl | | | +--+--------------+--------------------+----------------+-------------------+ | | GPT-J | gpt-j-6b | 6B | ✗ | +--+--------------+--------------------+----------------+-------------------+ | | GPT-NeoX | gpt-neox-20b | 20B | ✗ | +--+--------------+--------------------+----------------+-------------------+ | | InstructGPT | gpt-3.5-turbo | - | ✓ | +--+--------------+--------------------+----------------+-------------------+",
+      "section": "4 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "Table 4: Language Models used in the paper. Exact model size of gpt-3.5-turbo is unknown.",
+      "section": "4 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "We evaluate the models on well-known metrics for link prediction: Hits@ k , with k = 1 , 3 , 10. Following (Gastinger et al., 2022), we report our results in two evaluation settings: 1) Raw retrieves the sorted scores of candidate entities for a given query quadruple and calculates the rank of the correct entity; and 2) Time-aware filter also retrieves the sorted scores but removes the entities that are valid predictions before calculating the rank, preventing them from being considered errors. To illustrate, if the test query is (NBA, Clinch Playoff, ?, 2023) and the true answer is Los Angeles Lakers, there may exist other valid predictions such as (NBA, Clinch Playoff, Milwaukee Bucks, 2023) or (NBA, Clinch Playoff, Boston Celtics, 2023). In such cases, the time-aware filter removes these valid predictions, allowing for accurate determination of the rank of the “Los Angeles Lakers.” In this paper, we present performance with the time-aware filter.",
+      "section": "4.2 Evaluation"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "4.3 Models.",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "For our experiments, we use the WIKI (Leblay and Chekol, 2018), YAGO (Mahdisoltani et al., 2014), ICEWS14 (García-Durán et al., 2018), and ICEWS18 (Jin et al., 2020) benchmark datasets with the unified splits introduced in previous studies (Gastinger et al., 2022). Additionally, we extract a new temporal forecasting dataset from the Armed Conflict Location & Event Data Project (ACLED) project[2] which provides factual data of crises in a particular region. We specifically focus on incidents of combat and violence against civilians in Cabo Delgado from January 1900 to March 2022, using data from October 2021 to March 2022 as our test set. This dataset aims to investigate whether LLMs leverage prior semantic knowledge to make predictions and how effective they are when deployed in real-world applications. Table 3 presents the statistics of these datasets.",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "> 2https://data.humdata.org/organization/acled",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "As shown in Table 4, we perform experiments on four language model families. Among those, three are open-sourced: GPT2 (Radford et al., 2019), GPT-J (Wang, 2021), and GPT-NeoX (Black et al., 2022). All models employ the GPT-2 byte level BPE tokenizer (Radford et al., 2019) with nearly identical vocabulary size. In addition, we use the gpt-3.5-turbo model to analyze the performance of the instruction-tuned models. However, we do not directly compare this model to other models in terms of size since the actual model size is unknown. As for the TKG baselines, ( i.e., RE-Net (Jin et al., 2020), RE-GCN (Li et al., 2021), TANGO (Han et al., 2021b), xERTE (Han et al., 2021a), TimeTraveler (Sun et al., 2021), CyGNet (Zhu et al., 2021), and TLogic (Liu et al., 2022)), we report the numbers presented in prior research (Gastinger et al., 2022). Appendix A.4 provides more details on baseline models.",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "+--------------+-------------+-------------+--------------+-------------+-------------+-------------+--------------+ | Single-Step | | YAGO H@3 | WIKI H@1 H@3 | ICEWS14 | H@10 | ICEWS18 H@1 | ACLED-CD22 | | Train | | H@10 | H@10 | | | H@3 H@10 | H@1 H@3 H@10 | +--------------+-------------+-------------+--------------+-------------+-------------+-------------+--------------+ | | H@1 | | | H@1 H@3 | | | | +--------------+-------------+-------------+--------------+-------------+-------------+-------------+--------------+ | RE-GCN ✓ | 0.787 0.842 | 0.842 0.884 | 0.747 0.817 | 0.313 0.473 | 0.626 0.570 | 0.223 0.367 | 0.446 0.545 | | xERTE ✓ | 0.740 0.590 | 0.902 0.912 | 0.846 0.703 | 0.330 0.454 | 0.602 0.550 | 0.525 0.209 | 0.608 0.320 | | TLogic ✓ | 0.845 | 0.789 0.791 | 0.785 0.801 | 0.332 0.476 | 0.575 | 0.335 0.462 | 0.445 0.497 | | TANGO ✓ | | 0.646 0.677 | 0.786 0.860 | 0.272 0.408 | | 0.204 0.336 | 0.009 0.045 | | Timetraveler | | 0.908 0.912 | 0.870 0.483 | 0.319 0.454 | | 0.480",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "0.191 | 0.094 0.327 | | ✓ | | | 0.514 0.527 | | | 0.318 0.462 | 0.482 0.599 | | | | | 0.751 0.820 | | | 0.212 0.325 | 0.240 0.315 | | | | | 0.830 | | | 0.439 | 0.457 | +--------------+-------------+-------------+--------------+-------------+-------------+-------------+--------------+ | GPT-NeoX | 0.784 0.787 | 0.891 0.927 | 0.694 0.804 | 0.324 0.460 | 0.565 0.482 | 0.192 0.313 | 0.324 0.492 | | (Entity) ✗ | | 0.892 0.926 | 0.844 0.721 | 0.297 0.408 | | 0.414 0.196 | 0.604 0.317 | | GPT-NeoX | | | 0.812 0.847 | | | 0.307 0.402 | 0.440 0.566 | | (Pair) ✗ | | | | | | | | +--------------+-------------+-------------+--------------+-------------+-------------+-------------+--------------+ | Multi-Step | | YAGO H@3 | WIKI H@1 H@3 | ICEWS14 | H@10 | ICEWS18 H@1 | ACLED-CD22 | | Train | | H@10 | H@10 | | | H@3 H@10 | H@1 H@3 H@10 | +--------------+-------------+-------------+--------------+-------------+-------------+-------------+--------------+ | | H@1 | | | H@1 H@3 | | | |",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "+--------------+-------------+-------------+--------------+-------------+-------------+-------------+--------------+ | RE-GCN ✓ RE- | 0.717 0.534 | 0.776 0.817 | 0.594 0.648 | 0.278 0.421 | 0.575 0.549 | 0.195 0.326 | 0.421 0.464 | | Net ✓ CyGNet | 0.613 0.631 | 0.613 0.662 | 0.678 0.472 | 0.278 0.408 | 0.545 0.531 | 0.475 0.184 | 0.502 0.238 | | ✓ TLogic ✓ | | 0.742 0.834 | 0.507 0.530 | 0.266 0.402 | | 0.314 0.461 | 0.445 0.563 | | | | 0.706 0.715 | 0.525 0.624 | 0.265 0.395 | | 0.166 0.295 | 0.408 0.500 | | | | | 0.675 0.613 | | | 0.444 0.155 | 0.588 0.009 | | | | | 0.663 0.682 | | | 0.272 0.412 | 0.045 0.094 | +--------------+-------------+-------------+--------------+-------------+-------------+-------------+--------------+ | GPT-NeoX | 0.686 0.688 | 0.793 0.840 | 0.543 0.622 | 0.247 0.363 | 0.471 0.395 | 0.136 0.224 | 0.319 0.417 | | (Entity) ✗ | | 0.793 0.839 | 0.655 0.570 | 0.236 0.324 | | 0.321 0.155 | 0.500 0.289 | | GPT-NeoX | | | 0.625 0.652 | | | 0.245 0.331 | 0.410 0.464",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "| | (Pair) ✗ | | | | | | | | +--------------+-------------+-------------+--------------+-------------+-------------+-------------+--------------+",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "Table 5: Performance (Hits@K) comparison between supervised models and ICL for single-step (top) and multistep (bottom) prediction. The first group in each table consists of supervised models, whereas the second group consists of ICL models, i.e., GPT-NeoX with a history length of 100. The best model for each dataset in the first group is shown in bold , and the second best is underlined.",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "+----------------+------------------+------------------+---------------+-----------------+-----------------+ | group is shown | in bold, and the | ond best is | | | | | | sec | underlined . | | | | +----------------+------------------+------------------+---------------+-----------------+-----------------+ | Single-Step | ICEWS14 H@1 H@3 | ICEWS18 H@1 H@3 | Multi-Step | ICEWS14 H@1 H@3 | ICEWS18 H@1 H@3 | | | H@10 | H@10 0.141 0.265 | | H@10 | H@10 | | | | 0.409 0.120 | | | | | | | 0.242 0.403 | | | | | | | 0.192 0.313 | | | | | | | 0.414 0.196 | | | | | | | 0.307 0.402 | | | | +----------------+------------------+------------------+---------------+-----------------+-----------------+ | frequency | 0.243 0.387 | | frequency | 0.222 0.349 | 0.121 0.207 | | recency | 0.532 0.228 | | recency | 0.460 0.151 | 0.307 0.074 | | | 0.387 0.536 | | | 0.268 0.423 | 0.149 0.266 | +----------------+------------------+------------------+---------------+-----------------+-----------------+ | GPT-NeoX |",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "0.324 0.460 | | GPT-NeoX | 0.247 0.363 | 0.136 0.224 | | (Entity) GPT- | 0.565 0.297 | | (Entity) GPT- | 0.471 0.236 | 0.321 0.155 | | NeoX (Pair) | 0.408 0.482 | | NeoX (Pair) | 0.324 0.395 | 0.245 0.331 | +----------------+------------------+------------------+---------------+-----------------+-----------------+ | | (a) Single-step | | | (b) Multi-step | | +----------------+------------------+------------------+---------------+-----------------+-----------------+",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "Table 6: Performance (Hits@K) with rule-based predictions. The best model for each dataset is shown in bold . 4.4 ICL Implementation Details.",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "We implement our frameworks using PyTorch (Paszke et al., 2019) and Huggingface (Wolf et al., 2020). We first collate the facts f ∈Dtest based on the identical test query to eliminate any repeated inference. To illustrate, suppose there exist two facts in the test set denoted as ( s, p, a, t ) and ( s, p, b, t ) in the object prediction scenario. We consolidate these facts into ( s, p, [ a, b ] , t ) and forecast only one for ( s, p, ? , t ). Subsequently, we proceed to generate an output for each test query with history by utilizing the model, obtaining the probability for the first generated token in a greedy approach, and sorting the probability. The outputs are deterministic for every iteration. We retain the numerical tokens corresponding to the numerical label n that was targeted, selected from the top 100 probability tokens for each test query. To facilitate multi-step prediction, we incorporate the topk predictions of each test query as supplementary reference history. In this",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "paper, we present results with k = 1. It is important to acknowledge that the prediction may contain minimal or no numerical tokens as a result of inadequate in-context learning. This can lead to problems when evaluating rank-based metrics. To mitigate this, we have established a protocol where",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "the rank of the actual value within the predictions is assigned a value of 100, which is considered incorrect according to our evaluation metric. For instruction-tuned model, we use the manual curated system instructions in Appendix A.3.",
+      "section": "4.1 Datasets"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "In this section, we present a multifaceted performance analysis of ICL under Index & Unidirection prompt strategy for both Entity and Pair history.",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "Q1: How well does ICL fare against the supervised learning approaches? We present a comparative analysis of the top-performing ICL model against established supervised learning methodologies for TKG reasoning, which are mostly based on graph representation learning. As evident from the results in Table 5, GPT-NeoX with a history length of 100 shows comparable performance to supervised learning approaches, without any fine-tuning on any TKG training dataset.",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "Q2: How do frequency and recency biases affect ICL’s predictions? To determine the extent to which LLMs engage in pattern analysis, beyond simply relying on frequency and recency biases,",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "Figure 1: Performance (Hit@1) with and without time, and with shuffling",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "we run a comparative analysis between GPT-NeoX and heuristic-rules ( i.e., frequency & recency) on the ICEWS14 dataset, with history length set to 100. frequency identifies the target that appears most frequently in the provided history while recency selects the target associated with the most recent fact in the provided history. The reason for our focus on ICEWS is that each quadruple represents a single distinct event in time. In contrast, the process of constructing YAGO and WIKI involves converting durations to two timestamps to display events across the timeline. This step has resulted in recency heuristics outperforming all of the existing models, showcasing the shortcoming of existing TKG benchmarks (See Appendix A.5). The experimental results presented in Table 6 demonstrate that ICL exhibits superior performance to rule-based baselines. This finding suggests that ICL does not solely rely on specific biases to make predictions, but rather it actually learns more sophisticated",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "patterns from historical data.",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "Q3: How does ICL use the sequential and temporal information of events? To assess the ability of LLMs to comprehend the temporal information of historical events, we compare the performance of prompts with and without timestamps. Specifically, we utilize the original prompt format, “ ft :[ I ( fs ) , I ( fr ) , nfo. I ( fo )]”, and the time-removed prompt format, “[ I ( fs ) , I ( fr ) , nfo. I ( fo )]”, make the comparison (See Appendix A.2). Additionally, we shuffle the historical facts in the time-removed prompt format to see how the model is affected by the corruption of sequential information. Figure 1 shows that the absence of time reference can lead to a deterioration in performance, while the random arrangement of historical events may further exacerbate this decline in performance. This observation implies that the model has the capability to forecast the subsequent event by comprehending the sequential order of events.",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "+-------------------------------------------+---------------+ | Single-Step Prompt | ICEWS14 H@1 | +-------------------------------------------+---------------+ | gpt-3.5-turbo index gpt-3.5-turbo lexical | 0.1615 0.1858 | +-------------------------------------------+---------------+",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "Table 7: Performance (Hits@1) between index and lexical for gpt-3.5-turbo.",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "Q4: How does instruction-tuning affect ICL’s performance? To investigate the impact of instruction-tuning on ICL, we employ the gpt3.5-turbo model with manually curated system instruction detailed in Appendix 4.4. Since the size of this model is not publicly disclosed, it is challenging to make direct comparisons with other models featured in this paper. Moreover, since this model does not provide output probabilities, we are only able to report the Hit@1 metric.",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "Table 7 showcases that the performance of the lexical prompts exceeds that of the index prompts by 0.024, suggesting that instruction-tuned models can make better use of semantic priors. This behavior is different from the other foundation LLMs, where the performance gap between the two prompt types was insignificant (See Figure 4 (a)).",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "Q5: How does history length affect ICL’s performance? To evaluate the impact of the history length provided in the prompt, we conduct a set of experiments using varying history lengths. For this purpose, we use the best performing prompt format for each benchmark, i.e., Entity for WIKI, YAGO, ICEWS18, and Pair for ICEWS14. Our results, as shown in Figure 2, indicate a consistent improvement in performance as the history length increases. This suggests that the models learn better as additional historical facts are presented. This observation is connected to few-shot learning in other domains, where performance improves as the number of examples per label increases. However, in our case, the historical patterns presented in the prompt do not explicitly depict the input-label mapping but rather aid in inferring the next step.",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "Q6: What is the relation between ICL’s perfor-",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "mance and model size? Here, we analyze the connection between model size and performance. Our results, as presented in Figure 3, conform to the expected trend of better performance with larger models. This finding aligns with prior works showing the scaling law of in-context learning performance. Our findings are still noteworthy since they",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "Figure 2: Performance (Hit@1) adheres to the scaling law based on the history length. show how scaling model size can facilitate more powerful pattern inference for forecasting tasks.",
+      "section": "5.1 In-context learning for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "To determine the most effective prompt variation, we run a set of experiments on all prompt variations, using GPT-J (Wang, 2021) and under the singlestep setting. Comprehensive results for prompt variations can be found in Appendix A.5.",
+      "section": "5.2 Prompt Construction for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "Index vs. Lexical Our first analysis compares the performance of index and lexical prompts. This investigation aims to determine whether the model relies solely on input-label mappings or if it also incorporates semantic priors from pre-training to make predictions. Our results (Figure 4 (a)) show that the performance is almost similar ( ± 4 e − 3 on average) across the datasets. This finding is aligned with previous studies indicating that foundation models depend more on input-label mappings and are minimally impacted by semantic priors (Wei et al., 2023).",
+      "section": "5.2 Prompt Construction for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Unidirectional vs. Bidirectional We next analyze how the relation direction in the history modeling impacts the performance. This analysis aims to ascertain whether including historical facts, where the query entity or pair appears in any position, can improve performance by offering a diverse array of historical facts. Our results (Figure 4 (b)) show that there is a slight decrease in performance when Bidirectional history is employed, with a significant drop in performance observed particularly in the ICEWS benchmarks. These observations may be attributed to the considerably more significant number of entities placed in both subject and object positions in ICEWS benchmarks than YAGO and WIKI benchmarks (See Appendix A.5). This finding highlights the necessity of having robust constraints on the historical data for ICL to comprehend the existing pattern better.",
+      "section": "5.2 Prompt Construction for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "Figure 3: Performance (Hit@1) adheres to the scaling law based on the model size.",
+      "section": "5.2 Prompt Construction for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "Entity vs. Pair Finally, we examine the impact of the history retrieval query on performance. Our hypothesis posits that when the query is limited to a single entity, we can incorporate more diverse historical facts. Conversely, when the query is a pair, we can acquire a more focused set of historical facts related to the query. Our results (Figure 4 (c)) indicate that the performance of the model is dependent on the type of data being processed. Specifically, the WIKI and ICEWS18 benchmarks perform better when the query is focused on the entity, as a broader range of historical facts is available. In contrast, the ICEWS14 benchmark performs better when the query is focused on pairs, as the historical facts present a more focused pattern.",
+      "section": "5.2 Prompt Construction for TKG Forecasting"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "Event Forecasting. Forecasting is a complex task that plays a crucial role in decision-making and safety across various domains (Hendrycks et al., 2021). To tackle this challenging task, researchers have explored various approaches, including statistical and judgmental forecasting (Webby and O’Connor, 1996; Armstrong, 2001; Zou et al., 2022). Statistical forecasting involves leveraging probabilistic models (Hyndman and Khandakar, 2008) or neural networks (Li et al., 2018; Sen et al., 2019) to predict trends over time-series data. While this method works well when there are many past observations and minimal distribution shifts, it is limited to numerical data and may not capture the underlying causal factors and dependencies that affect the outcome. On the other hand, judgmental forecasting involves utilizing diverse sources of information, such as news articles and external knowledge bases, to reason and predict future events. Recent works have leveraged language models to enhance",
+      "section": "6 Related Works"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "reasoning capabilities when analyzing unstructured text data to answer forecasting inquiries (Zou et al., 2022; Jin et al., 2021).",
+      "section": "6 Related Works"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "Figure 4: Performance (Hit@1) Analysis on Prompt Variation. The comparable performance exhibited by both the Index and Lexical models indicates that these models rely heavily on learning patterns and are less influenced by semantic priors. Moreover, the Unidirectional model typically outperforms the Bidirectional model, suggesting that the robust constraints on historical data enable the model to comprehend observed patterns better. Finally, the performance of the Entity and Pair models varies depending on the dataset.",
+      "section": "6 Related Works"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "Temporal Knowledge Graph. Temporal knowledge graph (TKG) reasoning models are commonly employed in two distinct settings, namely interpolation and extrapolation , based on the facts available from t 0 to tn . (1) Interpolation aims to predict missing facts within this time range from t 0 to tn , and recent works have utilized embeddingbased algorithms to learn low-dimensional representations for entities and relations to score candidate facts (Leblay and Chekol, 2018; García-Durán et al., 2018; Goel et al., 2020; Lacroix et al., 2020); (2) Extrapolation aims to predict future facts beyond tn . Recent studies have treated TKGs as a sequence of snapshots, each containing facts corresponding to a timestamp ti , and proposed solutions by modeling multi-relational interactions among entities and relations over these snapshots using graph neural networks (Jin et al., 2020; Li et al., 2021; Han et al., 2021b,a), reinforcement learning (Sun et al., 2021) or logical rules (Zhu et al., 2021; Liu",
+      "section": "6 Related Works"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "et al., 2022). In our work, we focus on the extrapolation setting.",
+      "section": "6 Related Works"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "In-context Learning. In-context learning (ICL) has enabled LLMs to accomplish diverse tasks in a few-shot manner without needing parameter adjustments (Brown et al., 2020; Chowdhery et al., 2022). In order to effectively engage in ICL, models can leverage semantic prior knowledge to accurately predict labels following the structure of in-context exemplars (Min et al., 2022; Razeghi et al., 2022; Xie et al., 2022; Chan et al., 2022; Hahn and Goyal, 2023), and learn the input-label mappings from the in-context examples presented (Wei et al., 2023). To understand the mechanism of ICL, recent studies have explored the ICL capabilities of LLMs with regards to the impact of semantic prior knowl-",
+      "section": "6 Related Works"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "edge by examining their correlation with training examples (Min et al., 2022; Razeghi et al., 2022; Xie et al., 2022), data distribution (Chan et al., 2022), and language compositionality (Hahn and Goyal, 2023) in the pre-training corpus. Other recent works show that LLMs can actually learn input-label mappings from in-context examples by showing the transformer models trained on specific linear function class is actually predicting accurately on new unseen linear functions (Garg et al., 2022). More recently, there is a finding that largeenough models can still do ICL using input-label mappings when semantic prior knowledge is not available (Wei et al., 2023).",
+      "section": "6 Related Works"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "In this paper, we examined the forecasting capabilities of in-context learning in large language models. To this end, we experimented with temporal knowledge graph forecasting benchmarks. We presented a framework that converts relevant historical facts into prompts and generates ranked link predictions through token probabilities. Our experimental results demonstrated that without any finetuning and only through ICL, LLMs exhibit comparable performance to current supervised TKG methods that incorporate explicit modules to capture structural and temporal information. We also discovered that using numerical indices instead of entity/relation names does not significantly affect the performance, suggesting that prior semantic knowledge is not critical for overall performance. Additionally, our analysis indicated that ICL helps the model learn irregular patterns from historical facts, beyond simply making predictions based on the most common or the most recent facts in the given context.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "Together, our results and analyses",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "demonstrated that ICL can be a valuable tool for predicting future links using historical patterns, and also prompted further inquiry into the potential of ICL for additional capabilities.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "There are certain limitations to our experiments. First, computing resource constraints restrict our experiments to small-scale open-source models. Second, our methodologies have constraints regarding models where the tokenizer vocabulary comprises solely of single-digit numbers as tokens, such as LLAMA (Touvron et al., 2023). The performance of such models exhibits a similar trend in terms of scaling law concerning model size and history length, but these models demonstrate inferior performance compared to other models of the same model size. Third, our methodologies have certain limitations with respect to link prediction settings. While real-world forecasting can be performed in the transductive setting, where the answer can be an unseen history, our approach is constrained to the inductive setting, where the answer must be one of the histories observed. There are further directions that can be pursued. The first is to explore transductive extrapolation link prediction using LLMs.",
+      "section": "8 Limitations"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "The second is to analyze the effects of fine-tuning on the results. Lastly, there is the opportunity to investigate the new capabilities of ICL.",
+      "section": "8 Limitations"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "This work was funded in part by the Defense Advanced Research Projects Agency (DARPA) and Army Research Office (ARO) under Contract No. W911NF-21-C-0002 and Contract No. HR00112290106, and with support from the Keston Exploratory Research Award and Amazon.",
+      "section": "9 Acknowledgement"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "The views and conclusions contained herein are those of the authors and should not be interpreted as necessarily representing the official policies, either expressed or implied, of DARPA, ARO or the U.S. Government.",
+      "section": "9 Acknowledgement"
+    }
+  ]
+}

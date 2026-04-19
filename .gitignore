@@ -147,6 +147,22 @@ cython_debug/
 
 # Generated cascade artifacts
 outputs/
+logs/
+zip_downloaded/
+# Ephemeral research artefacts under tmp/. Named test clips and evidence
+# JSONs referenced from PLAN.md / DECISIONS.md are committed explicitly;
+# the patterns below cover caches and per-run diagnostics that should
+# never be versioned.
+tmp/vllm_compile_probe/
+tmp/vllm_audio_inputs/
+tmp/warmup_*
 
+acl-speech/*
 # Claude local loop state
 .claude/ralph-loop.local.md
+**/artifacts/*
+
+*.zip
+*.pdf
+*.jsonl
+*.wav

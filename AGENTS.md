@@ -16,19 +16,37 @@ For each change, examine the existing system and redesign it into the most elega
 - Avoid test bloat, hyper-granular assertion noise, and large test scaffolding for temporary or exploratory changes.
 - Do not hesitate to remove, replace, or redesign code that is poorly conceived. During this phase, strong cleanup and bold simplification are encouraged when they improve the system.d
 - What we want here, is, more generally, break alignatt for LLMs. Goal is to write a paper. That's a challenge, and that justify the investigation you should deep dive in. The more interessting and clever/replicable/solid/ implementaiton, the happier i am
-## qwen3asr_gemma_cascade.py notes
+- **Never emit `deleted_tokens` or `deleted_string`. Streaming output is append-only: once target text has been emitted, we forbid rewriting the past.**
 
-- The ASR part runs with `qwen_asr` (vLLM-backed), while Gemma uses Transformers+AlignAtt in this code path.
+## Runtime notes
+- The active runtime lives in `cascade/runtime.py`.
+- `qwen3asr_gemma_cascade_core.py` is only a temporary compatibility shim consumed by historical scripts under `scripts/`; no active code imports it.
+- We now have **vLLM on both sides** (ASR and MT). The recommended combination is `qwen_forced` ASR + `gemma_vllm_alignatt` MT. See `docs/RUNTIME_ARCHITECTURE.md` for the full matrix.
 - Use the repo environment `.venv-inference`.
+
+### Supported ASR / alignment backends
+
+- `qwen_forced` = `Qwen3-ASR-1.7B` + `Qwen3-ForcedAligner-0.6B` (vLLM) — **stable, default**
+- `gemma_onepass_qk_fast` = Gemma 4 ASR + audio AlignAtt `qk_fast` in one Transformers pass — stable, experimental
+- `gemma_vllm_qk_fast` = Gemma 4 ASR via vLLM + engine-native audio observer (worker_cls + tensor buffers, cudagraph=full by default) — experimental
+
+### Supported MT backends
+
+- `gemma_vllm_alignatt` = Gemma-4-E4B MT through vLLM + engine-native MT AlignAtt observer — **sole supported MT backend**
+
+MT now has one supported path. See `docs/MT_VLLM_BACKEND.md`.
+
+Everything else is historical or archived. `hybrid_*` and `gemma_two_pass` are no longer active backends. `eager` remains acceptable only for explicit calibration / debug tooling.
 
 ### Important assumptions that are now encoded in the code
 
-- `qwen_asr` is patched at runtime via `patch_qwen_asr_for_transformers5.py`.
+- `qwen_asr` is patched only when the Qwen backend is actually loaded, via `patch_qwen_asr_for_transformers5.py`.
 - Extra runtime monkey-patches are still required for this stack:
   - `Qwen3ASRConfig.get_text_config`
   - `_qwen3_asr_default_rope_init`
-- Models are loaded inside `load_models()`, not at import time, to avoid long startup/reload issues.
+- Models are loaded lazily through `LoadedModelBundle.load()`, not at import time, to avoid long startup/reload issues.
 - The script uses local Hugging Face snapshot paths instead of Hub model ids to avoid flaky network `HEAD`/`504` issues during startup.
+- Mutable streaming state now belongs to `CascadeSession`, not to module-level globals.
 
 ### Current stable settings
 
@@ -46,8 +64,8 @@ For each change, examine the existing system and redesign it into the most elega
 - First verify GPU is clean:
   - `nvidia-smi`
 - If old test processes are still alive (ASR vLLM engine):
-  - `pkill -f 'qwen3asr_gemma_cascade.py|VLLM::EngineCore'`
-- If local Hugging Face snapshot hashes changed, update the three snapshot paths in `qwen3asr_gemma_cascade_core.py`.
+  - `pkill -f 'run_simulstream_compare.py|run_simulstream_batch.py|VLLM::EngineCore'`
+- If local Hugging Face snapshot hashes changed, update the three snapshot paths in `cascade/runtime.py`.
 - If someone removes the runtime monkey-patches, the old `thinker_config` / RoPE crashes will likely come back.
 
 ### Confidence
@@ -63,7 +81,26 @@ For each change, examine the existing system and redesign it into the most elega
 - Reloading in memory the ASR and MT model takes 5 minutes. So please do not do that except if necessary. If the models are loaded in memory, reuse it. if you have to restart, please justify it.
 - Running the cascade is also expensive in wall-clock time even when the models are already hot in memory. Treat full streaming evaluations as costly experiments, not cheap probes.
 - Do not launch multiple audios or broad benchmark sweeps until the current objective has already been reached, or very nearly reached, on a single audio.
+- SimulStream is the canonical inference path.
+- The canonical single-audio validation loop is `run_simulstream_compare.py` on `tmp/alignatt_smoke18.wav`.
+- The two backend runs in that comparison must stay sequential and isolated: do not keep Qwen ASR + Gemma ASR + Gemma MT all resident together.
 - Preferred workflow:
   - first validate the idea on one audio
+  - first clip for this repo cleanup is `tmp/alignatt_smoke18.wav`
   - then iterate on that one audio until the mechanism behaves as intended
   - only then scale out to multiple audios or full benchmark runs
+
+- Simulstream is the recommanded framework to run inference.
+- Omnisteval the recommanted framwork to run evaluation.
+
+## Where to find things
+
+- `PLAN.md` — current plan (short; history archived).
+- `DECISIONS.md` — append-only session-level decision log.
+- `docs/RUNTIME_ARCHITECTURE.md` — ASR + MT axes, module map, session lifecycle.
+- `docs/MT_VLLM_BACKEND.md` — experimental `gemma_vllm_alignatt` design.
+- `docs/RESULTS.md` — consolidated quality/latency numbers and the `chunk_ms` calibration curve.
+- `docs/TROUBLESHOOTING.md` — GPU / vLLM gotchas (compile cache, utilization, trimming).
+- `docs/archive/` — historical design docs.
+- `docs/reference/` — upstream model cards + referenced papers/implementations.
+- `scripts/` — dated research scripts, preserved for reference only.

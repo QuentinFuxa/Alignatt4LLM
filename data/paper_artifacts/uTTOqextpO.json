@@ -1,0 +1,450 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "uTTOqextpO",
+  "source_pdf": "test-set/pdf/uTTOqextpO.pdf",
+  "title": "GlobalBench: A Benchmark for Global Progress in Natural Language Processing",
+  "authors": "Yueqi Song[1] , Catherine Cui[2] , Simran Khanuja[1] , Pengfei Liu[3] , Fahim Faisal[4] , Alissa Ostapenko[1] , Genta Indra Winata[5] , Alham Fikri Aji[6] , Samuel Cahyawijaya[5] , Yulia Tsvetkov[1][,][7] , Antonios Anastasopoulos[4] , Graham Neubig[1] 1Carnegie Mellon University 2Harvard University 3Shanghai Jiaotong University 4George Mason University 5The Hong Kong University of Science and Technology 6MBZUAI 7University of Washington",
+  "abstract": "Despite the major advances in NLP, significant disparities in NLP system performance across languages still exist. Arguably, these are due to uneven resource allocation and sub-optimal incentives to work on less resourced languages. To track and further incentivize the global development of equitable language technology, we introduce GlobalBench. Prior multilingual benchmarks are static and have focused on a limited number of tasks and languages. In contrast, GlobalBench is an ever-expanding collection that aims to dynamically track progress on all NLP datasets in all languages. Rather than solely measuring accuracy, GlobalBench also tracks the estimated perspeaker utility and equity of technology across all languages, providing a multi-faceted view of how language technology is serving people of the world. Furthermore, GlobalBench is designed to identify the most under-served languages, and rewards research efforts directed towards those languages. At present, the most under-served languages are the ones with a relatively high population, but nonetheless overlooked by composite multilingual benchmarks (like Punjabi, Portuguese, and Wu Chinese). Currently, GlobalBench covers 966 datasets in 190 languages and includes 1,128 system submissions spanning 62 languages.[1]",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "Advances in multilingual natural language processing (NLP) technologies (Dabre et al., 2020; Hedderich et al., 2021) have raised the enticing possibilities of NLP systems that benefit all people around the world. However, at the same time, studies into the state of multilingual NLP have demonstrated stark differences in the amount of resources available (Joshi et al., 2020; Yu et al., 2022) and performance of existing NLP systems (Blasi et al., 2022; Khanuja et al., 2023; Ahia et al., 2023).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "Why do these disparities exist? The causes of these disparities are multifarious, but Blasi et al. (2022) argue that one major factor is a problem of incentives and resource allocation. For instance, languages associated with larger economic might",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "> 1GlobalBench is available at https://github.com/ neulab/globalbench.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "Figure 1: GlobalBench Design : A leaderboard for each task is separately maintained. Each leaderboard contains a multi-faceted evaluation of submitted systems, along with a ranking of the most under-served languages. More details can be found in Section 2.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "(as measured by GDP of the countries where they are spoken) see more research and resource development, leading to more performant systems.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "In this paper, we propose GlobalBench, a new benchmark and leaderboard that is designed to specifically incentivize the global development of equitable language technologies that serve speakers of all languages throughout the world. GlobalBench follows the footsteps of other successful multilingual benchmarks such as XTREME (Hu et al., 2020) and XGLUE (Liang et al., 2020), which aggregate results of systems across several tasks to provide a general idea of progress being made in the field of multilingual NLP. However, these benchmarks, by design, are static and lack the goal to be an all-inclusive, ever-expanding collection of datasets. Additionally, they mainly focus on average accuracy over all languages in the dataset, and thus say little about the downstream utility and",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "Figure 2: GlobalBench’s Philosophy : First, we aim to inclusively gather datasets for all tasks and languages. Second, we present a multi-faceted evaluation of systems, going beyond average accuracies across languages, to keep track of the utility and equity of these systems. Third, GlobalBench ranks the most to least under-served languages on the leaderboard of each task, and rewards improvement in utility, which can be achieved through both dataset and model contributions. The lower the ranking of a language the better since a lower ranking indicates it is less under-served. In the above example, the addition of Dataset 3 improves the measured utility of L 3 in the NER leaderboard, and the addition of System 2 improves the measured utility of L 2 and L 3 for the NER leaderboard.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "equity of submitted systems across languages.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "Hence, in designing GlobalBench, we make a number of intentional design decisions to explicitly promote the improvement of language technology for all of the world’s citizens:",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "• Inclusive Dataset Selection : We aim to be able to evaluate all datasets in all languages for all tasks, making it possible to (in theory) cover any language for which a dataset exists.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "• Multi-Faceted Evaluation : As shown in Figure 1, GlobalBench explicitly considers perspeaker utility and equity (§2), measuring how close NLP systems have come to equitably covering all speakers in the world, instead of just those in our existing data.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "• Reward Data and Model Contributions : GlobalBench encourages improvements in the state-of-the-art (instead of just measuring the state-of-the-art itself), by identifying underserved languages and rewarding progress on them, both in terms of dataset and model contributions.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "In the remainder of this paper, we detail GlobalBench’s design principles (§2), how interested research community members can participate (§3), the currently covered tasks and systems (§4), analysis of the current state of NLP viewed through the lens of GlobalBench (§5), related work (§6) and our expectations for the path forward (§7).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "All in all, we believe that improving the quality and equity of language technologies for all speakers in the world is one of the paramount challenges of NLP today. In the famous mantra from Peter Drucker, what you cannot measure, you cannot improve ; GlobalBench is a first step in this direction.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "Philosophy : A working example of our guiding philosophy is shown in Figure 2. Our unique reward system incentivizes model builders to not only improve system performance, but also build datasets for new languages. To illustrate the former, let’s assume that there were NER datasets for L 2 and L 3 on GlobalBench, and now researchers build a new system for NER ( System 2) which is state-of-the-art for languages L 2 and L 3. This",
+      "section": "2 GlobalBench Design Principles"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "increases utility for both languages (Equation 3), which is attributed to System 2 on our NER leaderboard. For the latter, let’s change our assumption to that there was no NER dataset for L 3 before, but a pre-trained model ( System 2) supports this language. Hence, the introduction of Dataset 3 helps realize a sharp improvement in utility for L 3, which was previously immeasurable (hence, for all practical purposes, zero). Thus, the increase in utility for L 3 on the NER leaderboard is attributed to Dataset 3. Additionally, we rank the most to least under-served languages. To illustrate how this ranking helps, let’s consider the case for NER in Figure 2. Before the introduction of Dataset 3, L 3 was most under-served, followed by L 1. After inclusion of Dataset 3 in the leaderboard, the measured utility for L 3 increases. Now, even though the utility value of L 1 remains unchanged, L 1 might become the most under-served language following the increase in utility of L 3. This would act",
+      "section": "2 GlobalBench Design Principles"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "as a positive feedback for the community to direct their efforts towards languages needing most work (here, L 1, as specified by the most under-served languages rankings), and drive progress for global equity in a positive cause-effect feedback loop.",
+      "section": "2 GlobalBench Design Principles"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Design : GlobalBench maintains a separate leaderboard for each of the covered tasks, as shown in Figure 1. Each leaderboard details the constituent datasets, system submissions and the following evaluation metrics (further details in §2.2 and §2.3): a) Performance (F1, accuracy, BLEU, etc.); b) System-by-System Utility (linguistic and demographic); c) Global Average Utility (linguistic and demographic); d) Equity ; e) Most under-served Languages ; f) Score by Language . For more details about GlobalBench UI, please refer to §A.3.",
+      "section": "2 GlobalBench Design Principles"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "The first pillar of GlobalBench’s approach is that we attempt to be all-inclusive with respect to tasks, datasets, and languages. On the dataset front, GlobalBench currently includes 966 datasets spanning 190 languages. On the modeling front, it has 1,128 system outputs spanning 6 NLP tasks and 62 languages (note that not every dataset integrated within GlobalBench has system outputs submitted to the leaderboard at present). Overall, GlobalBench has support to accept dataset and system submissions for 17 NLP tasks in 6671 languages[2] ,",
+      "section": "2.1 Dataset Selection: Inclusivity"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "> 2The source of metadata of these languages is \"Ethnologue: Languages of the World.\"",
+      "section": "2.1 Dataset Selection: Inclusivity"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "managing to include the majority of the about 7000 spoken languages around the world (Austin and Sallabank, 2011). At present, named entity recognition is the task with the highest coverage of world speaker population (59.34%), but GlobalBench hopes to continually evolve with time.",
+      "section": "2.1 Dataset Selection: Inclusivity"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "Utility Blasi et al. (2022) introduce utility ul of a system for a task and language to be its performance normalized by the best possible performance (typically, human-level performance, but if it’s unattainable, we use the empirical maximum as an estimate) afforded by the task:",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "While the above helps estimate system performance relative to the ideal scenario, the final utility provided also depends on the systems’ demand , which is the second term used by Blasi et al. (2022) in their analysis. Demand dl is characterized by taking into consideration demographic and linguistic perspectives. Under the demographic perspective, the demand for a technology in a language is estimated to be proportional to the number of speakers of the language itself nl (dl ∝ nl). Under the linguistic perspective, the demand across languages is identical (dl ∝ 1). These two alternatives, as well as any intermediate combination of them, are parameterized through a single exponent τ :",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "where τ = 1 corresponds to a demographic notion of demand and τ = 0 to a linguistic one. Using the above, Blasi et al. (2022) define a global metric as follows:",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "In essence, M τ = 0 means that no user benefits from language technology and M τ = 1 corresponds to each language user enjoying perfect technology.",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "In GlobalBench, we provide the demographic weighted ( τ = 1) and the linguistic weighted ( τ = 0) utilities for all languages in each task. For each language, we take the maximum utility scores",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "Figure 3: Overview of Tasks : All tasks currently supported by GlobalBench are as shown above. This is expected to constantly evolve with time. Refer to Section 4 for details.",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "of all systems submitted to GlobalBench. To obtain task global averages, as shown in Table 2, we average across utility values for all languages.",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "Equity While utility paints the picture of how far from ideal we are in serving NLP technology to each user, equity helps measure how uniform the technologies we serve are, across languages. Khanuja et al. (2023) recently proposed that amongst other measures of statistical dispersion, the Gini coefficient (Dorfman, 1979) best captures this uniformity. Hence, we use the same as a measure of equity in our work. Intuitively, a lower value of G indicates that languages are closer to a uniform distribution. Considering either extremes, when all languages have the same performance, G = 0, and when there is support for only one language, G = 1. Formally, if performance of a language for a task is yi, (i = 1 ... n where n is the total number of languages), and is indexed in non-decreasing order (yi ≤ yi+1), then the Gini coefficient (G) can be calculated as:",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "For each task, we obtain equity values, calculated using the maximum performance of submitted systems for each language in a task. For languages that are not supported by any dataset, we assume",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "the system performance to be zero. The global equity values for each task are in Table 2.",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "Apart from the above, we keep track of system performances (F1/Accuracy/BLEU etc.). For each task, we take the system output with the highest performance among all system outputs with the same language, and provide a ranking of languages with the highest system performances. We also maintain a ranking of most under-served languages (sorted in increasing order of utility), for reasons detailed below.",
+      "section": "2.2 Multi-Faceted Evaluation: Utility and Equity"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "We can estimate current global progress in language technologies using the demographic and linguistic weighted global averages, and the global equity values. In GlobalBench, we also encourage development of systems that improve upon these metrics. We accomplish this in two ways:",
+      "section": "2.3 Incentivization: Reward Improvement"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "First, we identify areas with the greatest potential for improvement, i.e., we identify the most underserved languages . Blasi et al. (2022), demonstrates that a variety of values provide different prioritizations over demographicand linguisticweighted utility. Following the footsteps of Blasi et al. (2022), we chose a parameter of τ = 0 . 4 largely qualitatively, observing the results with different values and taking one that seemed to strike a reasonable balance between higherand lower-",
+      "section": "2.3 Incentivization: Reward Improvement"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "resource languages, such that some of each appeared near the top of the languages to prioritize. Languages farthest from the ideal τ -weighted utility are expected to be most under-served. Hence, (1 − τ -weighted utility ) of a language gives us this measure. We sort each of the 6671 languages supported in GlobalBench according to this measure. In the end, we obtain a ranking of languages with relatively high populations and relatively low scores, broken down by task.",
+      "section": "2.3 Incentivization: Reward Improvement"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "Second, a submission’s rank on our leaderboard is determined by how much it contributes to increasing the overall τ -weighted utility across languages. This can be achieved in two ways: i) Data Efforts : By contributing datasets for previously unsupported languages, their utility, which was previously immeasurable (hence, for all practical purposes, zero), sees a sharp rise; ii) Improved Systems : By submitting new systems which improve upon the state-of-the-art, we improve utility by definition (Equation 3).",
+      "section": "2.3 Incentivization: Reward Improvement"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "GlobalBench accepts open submissions of datasets and systems.",
+      "section": "3 Implementation and Participation Details for GlobalBench"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "For datasets that are already a part of GlobalBench, system results for them can be submitted to GlobalBench for evaluation. The submission process of system results is simple: one can submit system results to GlobalBench through github directly. Participants don’t need to separately submit anything else.",
+      "section": "3 Implementation and Participation Details for GlobalBench"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "In addition, if people want to submit new datasets to benchmark, one can follow the dataset submission process provided in our github repository.[3] After doing so, corresponding system results can be submitted as per the above instructions.",
+      "section": "3 Implementation and Participation Details for GlobalBench"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "In GlobalBench, we currently support 17 tasks that fall into 10 distinct categories. These tasks represent a diverse set of NLP technologies, ranging from those that are highly applicative and userfacing (question answering, machine translation etc.), to those that aren’t directly applied, but are nonetheless fundamental to NLP (language modeling, etc.). We briefly summarize the tasks and provide one example for each task in Figure 3, and we provide a more detailed description and a list of",
+      "section": "4 Datasets and Tasks"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "3 https://github.com/neulab/globalbench.",
+      "section": "4 Datasets and Tasks"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "all datasets that GlobalBench sees system submissions in §A.1. While we support 17 tasks covering 966 datasets, we don’t have system outputs for all as of now. We make a note of system outputs available for each task in Table 1, to inform our results and analyses.",
+      "section": "4 Datasets and Tasks"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "GlobalBench allows us to conduct a series of analyses to assess global progress in NLP technologies. While GlobalBench is intended to be evolving to gauge the continued improvements in performance of NLP systems, we examine the current state of systems that have been submitted, to demonstrate how GlobalBench can guide and incentivize future participation and improvement in language technology.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "5.1 How inclusive is GlobalBench?",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "The inclusive design of GlobalBench elucidated in Section 2 means that it can (in theory) support any NLP task and dataset. GlobalBench currently supports dataset submissions of 6671 languages and 17 tasks. GlobalBench now covers 966 datasets in 190 languages. We have 1,128 system outputs at the time of writing, spanning 6 NLP tasks: named entity recognition (NER), text pair classification, text classification, extractive QA, machine translation, and KG link tail prediction ; over a total of 62 languages. With the existing systems included in GlobalBench, we already cover 4.72% to 59.34% of the first languages of people in the world depending on the task, as detailed in Table 2. We focus on analyzing system submissions for these six tasks below.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "5.2 What is our Current Progress as Measured by GlobalBench?",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "Next, we discuss the current state of NLP progress through the lens of GlobalBench. To do so, we display the demographic- and linguistic-weighted global average scores in Table 2.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "Variance in estimated utility across tasks : In Table 2, we observe that NER has the highest estimated overall demographic and linguistic global average. Additionally, NER and MT have the highest language coverage (60 languages). This is because these tasks have been subject to extensive and impressive multilingual dataset development and evaluation efforts by authors of FLORES (Goyal et al., 2022), MasakhaNER (Adelani et al., 2021),",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "+---------------+------------------+----------+-----------+----------------+-----------------+ | Category | Task | | Number | of | Metric | +---------------+------------------+----------+-----------+----------------+-----------------+ | | | Datasets | Languages | System Outputs | | +---------------+------------------+----------+-----------+----------------+-----------------+ | Text | Text | 127 | 12 | 199 | Accuracy | | Classifcation | Classifcation | | | | | +---------------+------------------+----------+-----------+----------------+-----------------+ | | Named Entity | 78 | 60 | 450 | F1 | | | Recognition | | | | | +---------------+------------------+----------+-----------+----------------+-----------------+ | Sequence | Word | 1 | 1 | - | F1 | | Labeling | Segmentation | | | | | +---------------+------------------+----------+-----------+----------------+-----------------+ | | Chunking | 2 | 1 | - | F1 |",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "+---------------+------------------+----------+-----------+----------------+-----------------+ | Cloze | Generative | 10 21 | 1 2 | - - | CorrectCount | | | Multiple Choice | | | | Accuracy | +---------------+------------------+----------+-----------+----------------+-----------------+ | Text Pair | Text Pair | 57 | 30 | 96 | Accuracy | | Classifcation | Classifcation | | | | | +---------------+------------------+----------+-----------+----------------+-----------------+ | Span Text | Span Text | 4 | 1 | - | Accuracy | | Classifcation | Classifcation | | | | | +---------------+------------------+----------+-----------+----------------+-----------------+ | Text Editing | Grammatical | 10 | 1 | - | SeqCorrectCount | | | Error Correction | | | | | +---------------+------------------+----------+-----------+----------------+-----------------+ | | Extractive | 80 | 18 | 185 | F1 | +---------------+------------------+----------+-----------+----------------+-----------------+ | Question |",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "Multiple Choice | 72 | 2 | - | Acc. | | Answering | | | | | | +---------------+------------------+----------+-----------+----------------+-----------------+ | | Open Domain | 4 | 2 | - | ExactMatch | +---------------+------------------+----------+-----------+----------------+-----------------+ | | Machine | 242 | 60 | 170 | Bleu | | | Translation | | | | | +---------------+------------------+----------+-----------+----------------+-----------------+ | Conditional | Summarization | 251 | 55 | - | Bleu | | Generation | | | | | | +---------------+------------------+----------+-----------+----------------+-----------------+ | | Code Generation | 4 | 5 | - | Bleu | +---------------+------------------+----------+-----------+----------------+-----------------+ | KG Prediction | KG Prediction | 3 | 1 | 28 | Hits | +---------------+------------------+----------+-----------+----------------+-----------------+ | Language | Language | - | - | - | Perplexity | | Modeling | Modeling | | | | |",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "+---------------+------------------+----------+-----------+----------------+-----------------+",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "Table 1: Overall Statistics of supported tasks, datasets and system outputs. We currently have 1128 system outputs across 6 tasks and 62 languages. Refer to §5 for a detailed analysis.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "and NusaCrowd (Cahyawijaya et al., 2023), which are all included in GlobalBench. In contrast, the estimated demographic - and linguistic - weighted utility for tasks like KG link prediction or multiplechoice QA are low. These are tasks where intensive data creation efforts have traditionally focused on English. The multilingual datasets that do exist are less widely used and/or not yet included in GlobalBench. However, GlobalBench can help identify these coverage failures and improve accuracy (§5.3).",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "Linguistic vs. demographic utility : In addition, we observe that overall linguistic utility scores across all tasks are very low, and substantially lower than the corresponding demographic utility scores. For instance, the demographic utility score for NER is 0.4489, while the linguistic utility score for the same is only 0.0067. This makes clear that the systems submitted to GlobalBench are currently doing a better job of covering widely-spoken languages, but are doing less well at covering all of the languages in the world.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "Equity of systems across languages : Since we calculate the Gini coefficient accounting for all 6671 languages, all values are extremely high (nearing 1). Text classification and KG Prediction only have datasets for English, hence the Gini values almost equal 1. We also note that, despite NER",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "+--+------------------+---------------+---------------+---------------+---------------+ | | Task | Demo. Avg. ↑ | Ling. Avg. ↑ | Gini ↓ | % Pop. | +--+------------------+---------------+---------------+---------------+---------------+ | | NER | 0.4489 | 0.0067 | 0.9920 | 59.34% | +--+------------------+---------------+---------------+---------------+---------------+ | | Extractive QA | 0.3460 0.3465 | 0.0020 0.0019 | 0.9975 0.9976 | 44.46% 39.02% | | | Text Pair | | | | | | | Classif. | | | | | +--+------------------+---------------+---------------+---------------+---------------+ | | MT | 0.0485 | 0.0002 | 0.9987 | 10.58% | +--+------------------+---------------+---------------+---------------+---------------+ | | Text Classif. KG | 0.0477 0.0221 | 0.0001 0.0001 | 0.9997 0.9998 | 4.72% 4.72% | | | Prediction | | | | | +--+------------------+---------------+---------------+---------------+---------------+",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "Table 2: Demographic and linguistic global averages, equity values (Gini), and percentage of world population covered by current submissions of system results to GlobalBench. Only showing tasks with at least one system submission.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "and MT having the same language coverage, MT has a higher Gini value, indicating that amongst the languages supported, NER has a more uniform distribution of performance as compared to MT.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "Variation across languages per task : We also maintain a ranking of system performance for each language as described in §2.2. For each task, we take the highest performance amongst all systems, to represent the performance for a ( task, language ) pair. Next, we rank all system performances across languages for each task. For example, suppose we have 4 systems with performances P1, P2, P3, and P4 for task T1, where P1 and P2 are in language L1, and P3 and P4 are in language L2. If P 1 > P 2, then P1 is used to represent the performance of T1 in L1; similarly, if P 3 > P 4, then P3 is used to represent the performance of T1 in L2. We then rank the",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "Figure 4: Variations across languages for a task : Ranking of system performance for each language in NER (above) and KG Prediction (below).",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "Figure 5: A snaphsot capturing the increase in global averages for NER in the recent past, with the addition of new datasets.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "system performances of L1 and L2 under task T1, i.e., we compare P1 and P3 to see which language sees higher system performance. Figure 4a shows a chromatic visualization of system analysis across language populations for NER. GlobalBench supports 78 datasets and 60 languages for this task, and sees 450 system submissions of this task. Therefore, we can see high system performances for many languages. However, KG Link Tail Prediction does not have many submitted systems (28), with monolingual coverage and low performance, as shown in Figure 4b. For a more comprehensive set of chromatic analysis figures for each task with system outputs, please refer to Appendix §A.2.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "tively low. In the second datapoint, systems for African languages from the MasakhaNER dataset were added (Adelani et al., 2021), significantly raising the linguistic average. In the third datapoint, systems from the XTREME benchmark (Hu et al., 2020) were added, covering a more populous set of languages, significantly raising the demographic average.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "5.3.2 Where can we improve?",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "The variety of analysis in the previous section is, in a sense, backward-looking: it looks back at the progress that has already been made. In order to instead get a better idea of how we may improve our systems in the future, we use the methodology in Section 2.3 to identify most under-served languages in GlobalBench, which are the languages with relatively high populations and relatively low scores for each of the tasks. To display in GlobalBench, we choose a parameter of τ = 0 . 4, which allows us to moderate between considerations of serving all speakers in the world and serving all languages in the world.",
+      "section": "5 Results and Analysis"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Another major focus of GlobalBench is to measure and encourage improvement in the quality of language technology systems. 5.3.1 How have we improved?",
+      "section": "5.3 Measuring improvement with GlobalBench"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "GlobalBench keeps track of when each submission was made, making it possible to examine global progress in NLP over time. To give one example of this, in Figure 5 we show how dataset submissions have helped increase the global averages for NER in the recent past. [Switch to use publication date of datasets/systems to address reviewer3’s question B –YS] Specifically, the earliest time point only covered English datasets, leaving both averages rela-",
+      "section": "5.3 Measuring improvement with GlobalBench"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "We show the three most under-served languages for each task in Table 3.[4] From these statistics we observe some interesting trends. First, for tasks where the most widely spoken non-English lan-",
+      "section": "5.3 Measuring improvement with GlobalBench"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "> 4Note that for the purpose of these statistics, we use the source language for the machine translation task.",
+      "section": "5.3 Measuring improvement with GlobalBench"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "+--------------------------+---------+---------+---------+ | Task | Lang 1 | Lang 2 | Lang 3 | +--------------------------+---------+---------+---------+ | Named Entity Recognition | cmn | pnb | wuu | +--------------------------+---------+---------+---------+ | Extractive QA | por | jpn | urd | +--------------------------+---------+---------+---------+ | Text Pair Classifcation | ben | por | ind | +--------------------------+---------+---------+---------+ | Machine Translation Text | cmn cmn | spa spa | ara ara | | Classifcation | | | | +--------------------------+---------+---------+---------+ | KG Prediction | cmn | spa | ara | +--------------------------+---------+---------+---------+",
+      "section": "5.3 Measuring improvement with GlobalBench"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "Table 3: Most under-served languages for each task (by ISO 639-3 language code).",
+      "section": "5.3 Measuring improvement with GlobalBench"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "guages in the world, Mandarin Chinese (cmn), Spanish (spa), and Arabic (ara) are not covered, these are selected the most under-served languages. However, for the tasks with better language coverage such as NER, extractive QA, and text pair classification, the most under-served languages are ones with relatively high population that are nonetheless not covered well by existing multilingual datasets that have been included in GlobalBench. This indicates a need for more creation or incorporation of datasets for major languages such as Punjabi, Wu Chinese, and Portuguese, which have been overlooked by existing composite benchmarks.",
+      "section": "5.3 Measuring improvement with GlobalBench"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "From datasets to benchmarks Given the ubiquitous use of NLP technology in applications, it is imperative to track and maintain progress across a variety of NLP tasks. Evaluating and comparing systems on a single task can also be problematic; past work has identified issues with standard datasets (Artetxe et al., 2020; Gururangan et al., 2018). As the field has progressed, several benchmarks have been released to spur the development of generalizable NLU systems. GLUE (Wang et al., 2018) was one such benchmark with a collection of 9 diverse NLU tasks (sentiment analysis (Socher et al., 2013), natural language inference (Williams et al., 2018), etc.), contrary to prior benchmarks that focused on datasets for a single category of tasks (Conneau and Kiela, 2018). SuperGLUE (Wang et al., 2019) updates GLUE by introducing a new set of harder tasks like commonsense reasoning (Zhang et al., 2018) and question answering (Khashabi et al., 2018). The recently released BIG-bench (Srivastava et",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "al., 2022) consists of a diverse set of 204 tasks, aimed at specifically evaluating the capabilities and limitations of large LMs. Finally, Dynabench (Kiela et al., 2021) is a humanand-model-in-the-loop platform, for dynamic data",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "collection and benchmarking, which currently supports ten tasks. Notably, none of these benchmarks provide utility/equity measures, or a reward structure that incentivizes progress towards the most under-served languages.",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "Moving beyond English While the aforementioned benchmarks have driven progress in NLP for English, there have been several recent efforts made towards other languages as well. Multilingual composite benchmarks such as XTREME (Hu et al., 2020), XTREME-R (Ruder et al., 2021), and XGLUE (Liang et al., 2020) are a collection of datasets in a variety of tasks and languages. XTREME includes 9 tasks across 40 languages, XTREME-R includes 10 tasks across 50 languages with 198 datasets, and X-GLUE improves GLUE (Wang et al., 2018) by including 11 cross-lingual tasks. However, all of these are static and lack the goal to be an all-inclusive, ever-expanding collection of datasets. Beyond these, there have been directed efforts towards dataset curation, especially for the low [text] resource. MasakhaNER (Adelani et al., 2021) supports a large dataset for NER task of 10 African languages. IndoNLU (Wilie et al., 2020) is the first vast resource Indonesian benchmark, and the KLUE benchmark (Park et",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "al., 2021) focuses on 8 diverse tasks in Korean.",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "In sum, while all of the above efforts have been impactful, none have had the goal to track global progress made by us as a research community, and design a reward system that incentivizes both data and model work, especially for the under-served languages. With GlobalBench, we propose a first step to bridge this gap and move towards inclusive, multi-faceted measurement of progress.",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "In this paper, we introduce GlobalBench, an everexpanding collection of datasets and models spanning all tasks and languages within NLP. Our aim is for the community to move towards a common goal of building NLP technology that equitably serves all of the world’s citizens. To achieve this, we design a leaderboard resting upon three foundational principles: i) inclusivity : we track progress across all tasks and datasets for 6671 languages; ii) multi-faceted evaluation : our evaluation measures the per-speaker utility and equity of submitted systems, and also maintains a list of most under-served languages; iii) reward improvement : we reward data and modeling efforts that help improve utility",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "across languages, rather than simply maintaining the best-performing systems. Analysing the 1,128 system outputs already integrated within GlobalBench, reveals that NER has the highest utility at present, but is also least equitable. The combination of high demographic and low linguistic utility underscores that efforts have been mostly limited to populous languages. Finally, we identify that the most under-served languages vary across tasks, but are primarily the ones with relatively high speaker population, but nonetheless low coverage in our datasets. All in all, we believe that GlobalBench is one step towards measurable progress in improving the global quality and equity of languages technologies for all speakers in the world, and we hope the rest of the research community will join us in pursuit of this goal.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "GlobalBench is a broad-reaching effort that has the ambitious goal of measuring performance across all languages in the world. However, to even take the first steps towards this goal we needed to make a number of approximations, which are also inherent limitations of the current work.",
+      "section": "8 Limitations"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "Inclusivity vs. Comparability: Inclusivity across datasets doesn’t come without its downsides. With the goal of covering all datasets, we lose some measure of control to GlobalBench. When evaluating global progress of language technology for particular tasks, GlobalBench uses multilingual datasets that may come from distinct sources or have dissimilar genres, causing the difficulty of each dataset to vary. Since GlobalBench doesn’t take into consideration the differences in difficulty among datasets of different languages, distinct datasets across different languages might not be directly comparable. However, this is common practice for previous benchmarks such as XTREME (Hu et al., 2020) and Universal Dependencies (Nivre et al., 2016). Furthermore, we expect the law of averages to even out this issue as we keep collecting diverse datasets across domains for each language.",
+      "section": "8 Limitations"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "Languages vs. Language Varieties: In addition, while GlobalBench relies heavily on distinctions between languages, language boundaries are nebulous, and many dialects or language varieties exist. If datasets annotated with language varieties, as well as demographic information regarding the",
+      "section": "8 Limitations"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "number of speakers of these varieties existed, such information could be incorporated within GlobalBench at a future date. But the current results reported in this paper do not consider this information.",
+      "section": "8 Limitations"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "Reliance on Performance and Population-based Demand Measures: Currently, GlobalBench relies on standard performance measures such as accuracy, F1, and BLEU to approximate the utility that would be provided by a system to a potential user. However, in reality there is not so direct of a connection between model performance and whether it is actually serving speakers of a particular language well. In addition, we use the firstlanguage speaking population as an approximation for the demand for a language technology in a particular language. However, this disregards secondlanguage speakers, and cannot take into account the case where there may be differing demand for particular pieces of technology by speakers of different languages.",
+      "section": "8 Limitations"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "Possible Bad Actors: Bad actor is a common concern for benchmarks working on such incentives like GlobalBench. While there may be different varieties of bad actors – those who explicitly cheat, or those who don’t explicitly cheat but attempt to get a good score on the benchmark without solving the underlying problem. For the time being, we intend to manually identify and disqualify the former, and we believe that our multi-faceted and broad-spanning approach benchmarking approach may be a sufficient deterrent for the latter.",
+      "section": "8 Limitations"
+    },
+    {
+      "chunk_id": "c0087",
+      "text": "We gratefully acknowledge support from NSF CAREER Grant No. IIS2142739, the Alfred P. Sloan Foundation Fellowship, and NSF grants No. IIS2125201, IIS2203097, and NSF-FAI 2040926.",
+      "section": "Acknowledgements"
+    }
+  ]
+}

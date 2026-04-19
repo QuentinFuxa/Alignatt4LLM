@@ -1,0 +1,164 @@
+[
+  {
+    "run_index": 0,
+    "text": "Hi I'm Si Yuan from Fudan University I'm here to introduce our work Distinctness script knowledge from large language models for constrained language planning In everyday life humans often plan their actions by following a sequence of steps",
+    "generated_token_count": 44,
+    "capture": {
+      "captured_layer_count": 3,
+      "effective_head_count": 8,
+      "generated_token_count": 45,
+      "audio_span_length": 450,
+      "missing_heads": []
+    },
+    "capture_debug": {
+      "forward_call_count": 294,
+      "prompt_forward_call_count": 3,
+      "decode_forward_call_count": 135,
+      "layer_stats": {
+        "23": {
+          "selected_head_count": 3,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        },
+        "35": {
+          "selected_head_count": 2,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        },
+        "41": {
+          "selected_head_count": 3,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        }
+      }
+    },
+    "timings_ms": {
+      "prompt_build": 92.449,
+      "generate": 3149.014,
+      "capture_fetch": 15.397,
+      "qk_reconstruction": 13.894,
+      "word_aggregation": 0.253,
+      "total_backend": 3271.007
+    },
+    "worker_install": {
+      "prompt_length": 527,
+      "audio_prompt_start": 5,
+      "audio_prompt_length": 450,
+      "storage_mode": "tensor_buffers",
+      "warmup_triggered": true,
+      "warmup_compilation_time_s": 0.0
+    },
+    "enable_prefix_caching": false
+  },
+  {
+    "run_index": 1,
+    "text": "Hi I'm Si Yuan from Fudan University I'm here to introduce our work Distinctness script knowledge from large language models for constrained language planning In everyday life humans often plan their actions by following a sequence of steps",
+    "generated_token_count": 44,
+    "capture": {
+      "captured_layer_count": 3,
+      "effective_head_count": 8,
+      "generated_token_count": 45,
+      "audio_span_length": 450,
+      "missing_heads": []
+    },
+    "capture_debug": {
+      "forward_call_count": 138,
+      "prompt_forward_call_count": 3,
+      "decode_forward_call_count": 135,
+      "layer_stats": {
+        "23": {
+          "selected_head_count": 3,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        },
+        "35": {
+          "selected_head_count": 2,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        },
+        "41": {
+          "selected_head_count": 3,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        }
+      }
+    },
+    "timings_ms": {
+      "prompt_build": 14.022,
+      "generate": 554.329,
+      "capture_fetch": 11.45,
+      "qk_reconstruction": 13.289,
+      "word_aggregation": 0.244,
+      "total_backend": 593.334
+    },
+    "worker_install": {
+      "prompt_length": 527,
+      "audio_prompt_start": 5,
+      "audio_prompt_length": 450,
+      "storage_mode": "tensor_buffers",
+      "warmup_triggered": false,
+      "warmup_compilation_time_s": 0.0
+    },
+    "enable_prefix_caching": false
+  },
+  {
+    "run_index": 2,
+    "text": "Hi I'm Si Yuan from Fudan University I'm here to introduce our work Distinctness script knowledge from large language models for constrained language planning In everyday life humans often plan their actions by following a sequence of steps",
+    "generated_token_count": 44,
+    "capture": {
+      "captured_layer_count": 3,
+      "effective_head_count": 8,
+      "generated_token_count": 45,
+      "audio_span_length": 450,
+      "missing_heads": []
+    },
+    "capture_debug": {
+      "forward_call_count": 138,
+      "prompt_forward_call_count": 3,
+      "decode_forward_call_count": 135,
+      "layer_stats": {
+        "23": {
+          "selected_head_count": 3,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        },
+        "35": {
+          "selected_head_count": 2,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        },
+        "41": {
+          "selected_head_count": 3,
+          "prompt_audio_capture_count": 450,
+          "decode_q_count": 45,
+          "missing_prompt_audio_count": 0
+        }
+      }
+    },
+    "timings_ms": {
+      "prompt_build": 10.833,
+      "generate": 556.161,
+      "capture_fetch": 11.551,
+      "qk_reconstruction": 13.176,
+      "word_aggregation": 0.345,
+      "total_backend": 592.066
+    },
+    "worker_install": {
+      "prompt_length": 527,
+      "audio_prompt_start": 5,
+      "audio_prompt_length": 450,
+      "storage_mode": "tensor_buffers",
+      "warmup_triggered": false,
+      "warmup_compilation_time_s": 0.0
+    },
+    "enable_prefix_caching": false
+  }
+]

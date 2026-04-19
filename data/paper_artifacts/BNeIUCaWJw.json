@@ -1,0 +1,420 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "BNeIUCaWJw",
+  "source_pdf": "test-set/pdf/BNeIUCaWJw.pdf",
+  "title": "TOD-Flow: Modeling the Structure of Task-Oriented Dialogues",
+  "authors": "Sungryull Sohn[1][∗] Yiwei Lyu[2][∗] Anthony Zhe Liu[2] Lajanugen Logeswaran[1] Dong-Ki Kim[1] Dongsub Shim[1] Honglak Lee[1][,][2] 1LG AI Research 2University of Michigan, Ann Arbor",
+  "abstract": "Task-Oriented Dialogue (TOD) systems have become crucial components in interactive artificial intelligence applications. While recent advances have capitalized on pre-trained language models (PLMs), they exhibit limitations regarding transparency and controllability. To address these challenges, we propose a novel approach focusing on inferring the TOD-Flow graph from dialogue data annotated with dialog acts, uncovering the underlying task structure in the form of a graph. The inferred TOD-Flow graph can be easily integrated with any dialogue model to improve its prediction performance, transparency, and controllability. Our TOD-Flow graph learns what a model can, should, and should not predict, effectively reducing the search space and providing a rationale for the model’s prediction. We show that the proposed TODFlow graph better resembles human-annotated graphs compared to prior approaches. Furthermore, when combined with several dialogue policies and end-to-end dialogue models, we demonstrate that our approach significantly improves dialog act classification and end-to-end response generation performance in the MultiWOZ and SGD benchmarks. Code available at: https://github.com/srsohn/TOD-Flow",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "Task-Oriented Dialogue (TOD) systems have attracted significant attention due to their potential applications in personal assistants, customer support, and other interactive systems that necessitate human-like conversation (Balaraman et al., 2021; Zhang et al., 2020). Many of the recent advances in TOD have heavily leaned on pre-trained language models (PLMs) (He et al., 2022b; Wu et al., 2020) that are first pre-trained on a large corpus of data in an unsupervised manner, and then either fine-tuned (He et al., 2022b; Chen et al., 2019;",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "*Equal Contribution",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "Wang et al., 2020) or subjected to few-shot prompting (Hudeˇcek and Dušek, 2023; Labruna et al., 2023) to adapt them to specific dialogue domains. While these approaches have yielded commendable performance, they have limitations. Few-shot prompted models have been challenged by issues of transparency, controllability, and adaptability to specific domains, especially when working with only a few examples. The lack of understanding of their decision-making processes and finegrained control over their output is often inadequate, which can result in sub-optimal conversational experiences. On the other hand, fine-tuned models are confronted with their own unique challenges. While they offer improved performance by aligning the model with task-specific semantics, this approach typically requires large annotated datasets and resources which can be a limiting factor in practice. Furthermore, these models often lack transparency, making it challenging to understand the reasons behind their",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "decisions or predictions.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "Some prior works (Raghu et al., 2021; Laradji et al., 2023) introduced workflow-based dialog models to handle the challenges in existing TOD models. These methods aim to explicitly model the structure of dialog in a graph format. Grounding the dialog in the graph offers benefits in terms of 1) elucidating the reasoning of system’s decisions in terms of the relationships ( i.e ., transparency); 2) allow human manipulation of the dialogue model via graph modification ( i.e ., controllability) without retraining the dialog model. However, realworld dialogues were often unstructured, making it non-trivial to be modeled as a workflow, and the necessity of manually designing the domainspecific workflow or its elements limits its practical applicability.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "To tackle these challenges, we propose to learn the subtask graph (Sohn et al., 2018) from taskoriented dialog data. Intuitively, the subtask graph",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "Figure 1: (Left) Our TOD-Flow graph captures the causal dependency between dialog acts in terms of can, should, and should not relationships. (Right) Intuitively, given the TOD-Flow graph, we can predict the relevant and irrelevant dialog act or responses based on the current dialog state. Based on the predicted relevance, we can filter and rank the base model outputs to enhance the prediction performance in both dialog act classification and end-to-end response generation tasks.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "can predict the affordance ( i.e ., availability) of the action from the status of environment and agent ( i.e ., the progress of completing a task or the subtasks). The subtask graph framework has two major benefits: i) subtask graphs can be inferred from the demonstrations without any direct supervision ( e.g ., video (Jang et al., 2023) or transcript (Logeswaran et al., 2023)), ii) subtask graphs can be combined with the base prediction model to improve its prediction since the subtask graph does not decide what to predict but instead suggests the affordable candidates of prediction.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "Contributions. The main contribution of this work is generalizing the subtask graph framework into task-oriented dialog settings. To this end, we propose the TOD-Flow graph , which extends the subtask graph framework in three major aspects. First, we show that subtask graph can infer the relationship between dialog state and dialog acts without requiring any manual definition of nodes and edges in graphs. Second, in addition to the precondition (or can relationship), we present learning algorithms to model two novel relationships, should and should not , which provide more fine-grained control and improved prediction. For instance, a can relationship may represent that the system can make a payment only if the user confirms the payment. The should relationship may learn that if a user ask about the address of the hotel, the system should reply back. Conversely, a should not relationship may dictate that the system usually does not predict a farewell if the user’s last utterance",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "implies a question. Third, we demonstrate that the inferred TOD-Flow graphs can enhance any dialog policy or end-to-end dialog system, whether fine-tuned or prompted, without the necessity of retraining.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "Our main contribution, the TOD-Flow graph, is an extension of the subtask graph framework (Sohn et al., 2018, 2020), which describes the causal dependency structure of a compositional task τ consisting of a set of subtasks. In the context of task-oriented dialogue, dialog acts can be seen as subtasks. Each subtask has a precondition that must be satisfied before the subtask can be performed. Note that the precondition is not the only relationship between subtask, and in Section 3.2 we extend it by incorporating other types of relationships. Since precondition describes the causal relationship between subtasks, it imposes a constraint on the order in which subtasks can be performed ( e.g ., the system can make a payment only after the user confirms the payment). Formally, we define the precondition as a Boolean expression consisting of Boolean constants ( e.g ., True or False), Boolean variables and logical connectives ( e.g ., and (&), or ( | )). To illustrate, consider the",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "precondition of subtask C: f C = &(A , B), where the subtasks A and B must be completed before C is completed. It can be equivalently viewed as a Boolean function where inputs are Boolean variables indicating whether subtasks A and B are completed, and the output",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "represents whether the precondition f C is satisfied: f C(A = True , B = False) = True & False = False. Also, the boolean expression f C = &(A , B) can be viewed as a graph with vertices consisting of subtasks and logical operators V = { A , B , C , & } and edges E = { A → &, B → &, & → C } that represent preconditions. We will use these different views of the precondition ( i.e ., as a boolean expression, graph or function) interchangeably. The subtask graph visualizes the preconditions f 1 , . . . of the subtasks (see Figure 1 for examples). We note that the subtask graph has been adopted in various settings (Liu et al., 2022; Sohn et al., 2020, 2022) and subsumes other task graph formats (Andreas et al., 2017; Boutilier et al., 1995; Sakaguchi et al., 2021), flowchart (Raghu et al., 2021), and workflow (Laradji et al., 2023).",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "For dialogue turn t , let ut be the user input and rt be the corresponding system response. The user inputs and system responses are represented as a set of dialog acts that labels the raw language utterance at each turn according to its category of meaning: ut, rt ⊂A , where A is the set of dialog acts. Let dt be the database query result that can be obtained through querying the database. Then, the dialog data D is a set of dialog trajectories D[τ] = { ( u 0 , r 0 , d 0 , u 1 , . . . ) , . . .} . Given the dialog data D[τ] , the goal is to generate the TOD-Flow graph G that models the dependency between system acts, user acts, and database results in graph format.",
+      "section": "3.1 Problem Formulation"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "Challenges. There are two main challenges in tackling this task. First, the information in the dialogue is noisy due to annotation errors such as missing or ambiguous dialog acts, slots, and values. Second, these dialog annotations only provide partial information about the underlying relationships between subtasks. Thus, we need to infer whether each relationship is satisfied or not from the dialogue annotations. We describe how we overcome these challenges in Section 3.3.",
+      "section": "3.1 Problem Formulation"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "For each dialog act a , the TOD-Flow graph is defined in terms of three conditions: Can a , Shd a , and Shdnt a . Intuitively, Can a , Shd a and Shdnt a condia tion respectively defines whether the dialog act",
+      "section": "3.2 TOD-Flow Graph"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "+--------------+---------------------+-------------------------+ | Cond a[n] | Executed (a[n] = 1) | Not executed (a[n] = 0) | +--------------+---------------------+-------------------------+ | fShd n = 1 | True positive | False positive | +--------------+---------------------+-------------------------+ | fShd n = 0 | - | - | +--------------+---------------------+-------------------------+ | fShdnt n = 1 | False positive | True positive | +--------------+---------------------+-------------------------+ | fShdnt n = 0 | - | - | +--------------+---------------------+-------------------------+ | fCan n = 1 | True positive | - | +--------------+---------------------+-------------------------+ | fCan n = 0 | False negative | - | +--------------+---------------------+-------------------------+ | fBC n = 1 | True positive | False positive | +--------------+---------------------+-------------------------+ | fBC n = 0 | False negative | True negative |",
+      "section": "3.2 TOD-Flow Graph"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "+--------------+---------------------+-------------------------+",
+      "section": "3.2 TOD-Flow Graph"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "Table 1: Confusion matrix of the TOD-Flow graphs (Shd, Shdnt, Can) and the BC baseline with respect to the dialog act label a [ n ]. The empty cell ( − ) indicates that the label for each relationship is unavailable.",
+      "section": "3.2 TOD-Flow Graph"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "can , should , and should not be performed by the agent (user or system) at a given status. Similar to the precondition in subtask graph framework (see Section 2), each condition is defined as a Boolean expression. Also, it can be equivalently viewed as a Boolean function f[Can] , f[Shd] , f[Shdnt] : c �→{ 0 , 1 } or a graph (see Section 2), where c ∈{ 0 , 1 }[N][τ] is the subtask completion (or dialog state) vector indicating whether n[th] subtask has been achieved ( i.e ., c [ n ] = 1) or not ( i.e ., c [ n ] = 0).",
+      "section": "3.2 TOD-Flow Graph"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "Dataset. Given the dialogue data D = { ( ut, dt, rt ) } , we aim to build the graph inference dataset DG = { ( c t, a t ) } , from which we can infer the TOD-Flow graph f[Can] , f[Shd] , and f[Shdnt] . The action set a t is the set of dialog acts that were performed at turn t : a t = ut ∪ rt . The completion set c t is the set of dialog acts and database query that has ever been performed before turn t : c t = c t− 1 ∪ a t− 1 ∪{dt− 1 } .",
+      "section": "3.3 Learning TOD-Flow Graphs"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "Shd inference. When should condition is satisfied ( i.e ., fn[Shd][(][c][)][=1), the agent is required to per-] form the n[th] dialog act ( i.e ., a [ n ] = 1). When the should condition is not satisfied ( i.e ., fn[Shd][(][c][)][=0),] the should relationship has no effect on the policy. This relationship can be represented as the confusion matrix shown in the first two rows in Table 1. Accordingly, we maximize the true positive, while minimizing the false positive by maximizing the objective J Shd in Equation (1).",
+      "section": "3.3 Learning TOD-Flow Graphs"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "Figure 2: An illustration of our graph-conditioned dialog policy. We sample multiple predictions from base dialog policy π , then use our graph to filter, add and remove acts from each prediction following Algorithm 1. Then we obtain final prediction by selecting the graphconditioned prediction with the largest size.",
+      "section": "3.3 Learning TOD-Flow Graphs"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "Shdnt inference. Similar to Shd, when the shoudnot condition is satisfied, ( i.e ., fn[Shdnt] ( c ) = 1), the agent is required not to perform the n[th] dialog act ( i.e ., a [ n ] = 0), and agent has a freedom to execute the n[th] dialog act when the condition is not satisfied ( i.e ., fn[Shdnt] ( c ) = 0). Table 1 summarizes the relationship between Shdnt and a [ n ]. We learn fn[Shdnt] by maximizing the following objective:",
+      "section": "3.3 Learning TOD-Flow Graphs"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "Can inference. By definition of Can (or precondition), a dialog act can only be performed ( a n = 1) if its Can condition is satisfied ( i.e ., fn[Can][(][c][) = 1][):] a true positive case in Table 1. On the contrary, it is a contradiction if a dialog act a n is performed while its Can is not satisfied ( i.e ., fn[Can][(][c][) = 0][):][a] false negative case in Table 1. Thus, the f[Can] can be learned by maximizing the following objective:",
+      "section": "3.3 Learning TOD-Flow Graphs"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "However, different from Shd and Shdnt, inferring Can is nontrivial, because if we maximize J Can, we get the trivial precondition: always true ( i.e ., fn[Can][(][c][)][=][1][for][all][c][).][Previous][works][handled] this issue by either making additional assumptions (Hayes and Scassellati, 2016; Huang et al., 2019) or applying regularization (Jang et al., 2023).",
+      "section": "3.3 Learning TOD-Flow Graphs"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "However, these approaches unavoidably introduces noise in learning, and require careful hyperparameter tuning to balance between objective and regularization. Instead, inspired by the fact that Can and ¬ Shdnt ( i.e ., negation of Shdnt) applies to the policy in the same manner ( i.e ., the dialog act a can be performed if both fn[Can] = 1 and fn[¬][Shdnt] = 1), we propose to infer Can and Shdnt simultaneously as follows:",
+      "section": "Algorithm 1 TOD-flow Graph-conditioned Dialogue Model"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "where α determines the relative weight between Can and Shdnt in optimization. Intuitively, the agent can perform n[th] dialog act only if Can is satisfied and Shdnt is not satisfied.",
+      "section": "Algorithm 1 TOD-flow Graph-conditioned Dialogue Model"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "Baseline. As an ablation model, we consider the behavioral cloning (BC) (Michie et al., 1990) objective, which tries to mimic the demonstration behavior:",
+      "section": "Algorithm 1 TOD-flow Graph-conditioned Dialogue Model"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "The confusion matrix is shown at the bottom of Table 1.",
+      "section": "Algorithm 1 TOD-flow Graph-conditioned Dialogue Model"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "We can use any binary classification models to optimize the objectives (1), (4), and (5). We used the decision tree models in the experiment following the previous works (Boutilier et al., 1995; Huang et al., 2019; Sohn et al., 2020).",
+      "section": "Algorithm 1 TOD-flow Graph-conditioned Dialogue Model"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "We describe how the inferred TOD-flow graph G can enhance the prediction performance of any offthe-shelf dialogue policies and end-to-end dialog systems.",
+      "section": "4 Graph-conditioned Dialog Modeling"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "Figure 3: Comparing baselines and our method against human-drawn ground truth graph on a subpart of the RentalCars_1 domain of SGD. Dotted lines are negative edges (logical negations). Red edges are missing edges and blue edges are redundant edges compared to the ground truth. In this scenario, the system is allowed to ask for a slot if user has informed the intent of finding an available car and has not yet informed this slot and the system have not yet asked for the slot; and the system can only query for a car when all 4 slots are informed. Our method perfectly matches the ground truth, while both baselines have incorrect edges ( BC has 4 redundant edges and 2 missing edges, while MSG[2] has 11 missing edges).",
+      "section": "4 Graph-conditioned Dialog Modeling"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "The inferred TOD-flow graph (Shd and Can ∧ ¬ Shdnt) can propose the dialog acts that can, should, and should not be performed given the current dialog history (or completion set). Figure 2 and Algorithm 1 describes the entire process. Given a base dialogue policy π[DP] , we sample the system acts from the policy a ∼ π[DP] , and filter, add and remove acts from the sampled system acts according to the Can, Shd, and Shdnt, respectively.",
+      "section": "4.1 Graph-conditioned Dialog Policy"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "We can further improve the prediction performance if our baseline dialog model can be sampled multiple times with different results, as illustrated in Figure 2. We use the graph to condition each candidate result, then select the best one using a selection method such as most number of actions in set, candidate with least graph violations, etc. We empirically found that simply choosing the result with the most actions works best.",
+      "section": "4.1 Graph-conditioned Dialog Policy"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "End-to-end dialogue system directly reads and outputs the utterances in natural language form. Given the base end-to-end model π[e2e] , we sample multiple system utterances from the base model (mostly via beam-search alternates, see Appendix A.2.1 for details). Then, we use a few-shot prompted GPT-3.5-turbo model to annotate each generated candidate utterance with the dialog act (see Appendix A.2.3 for details). Finally, we use the inferred graph to choose the best utterance that has the least violation rate ( i.e ., portion of dialog acts that violates the inferred Can, Shd, and Shdnt conditions). Note that with this approach, all final responses still comes from the base end-to-end model, so the improvement is still upper-bounded by the capabilities of the model. Our graph simply presents a better candidate selection method.",
+      "section": "4.2 Graph-conditioned End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "+----------------------------------+-------------------------------+-------------------------------+ | Models | SGD (24 domains) FLAN-T5 GPT- | MultiWOZ (14 domains) FLAN-T5 | | | turbo | GPT-turbo | +----------------------------------+-------------------------------+-------------------------------+ | No Graph +BC +MSG2 (Jang et al., | 49.9% 78.8% 57.2% 71.8% 52.4% | 21.6% 40.8% 23.5% 38.2% 23.8% | | 2023) +TOD-Flow (ours) | 79.4% 83.1% 89.2% | 40.2% 35.0% 48.2% | +----------------------------------+-------------------------------+-------------------------------+",
+      "section": "4.2 Graph-conditioned End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Table 2: Average F-1 scores of next system action prediction experiment on two datasets (SGD and MultiWOZ) and two large language models (FLAN-T5 and GPT-turbo) as few-shot predictors. We can see that while BC often damages performance, TOD-Flow consistently improves performance by a significant amount.",
+      "section": "4.2 Graph-conditioned End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "We perform experiments to show that (1) the TODflow graph can be accurately predicted without any supervision, (2) our graph can improve the accuracy of dialog policy models, and (3) our graph can improve the quality of response generation in end-to-end dialog models.",
+      "section": "5 Experiments"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "We used two standard TOD benchmarks. SchemaGuided Dialogue (SGD) (Rastogi et al., 2020) has over 20k task-oriented simulated conversations based on human-designed schema. SGD covers a wide range of domains ( i.e ., different dialog acts and goals). We use 24 domains in SGD, and did not use the schema for experiment. MultiWOZ (Budzianowski et al., 2020) has 10k humanhuman conversations on 14 domains. Since MultiWOZ is collected from human-human conversations, the utterances are much more linguistically diverse than SGD. Also, different from SGD where the annotations are generated from the schema, annotations in MultiWOZ are labeled by human. Therefore, the annotations in MultiWOZ are often noisy ( i.e ., inconsistent, wrong, or missing), which present additional challenge compared to SGD.",
+      "section": "5.1 Dataset"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "For both datasets, we obtain train/test splits of the dialogs within each domain (see Appendix A.1.1 for details). The training set is used for 1) inferring TOD-Flow graph, 2) building demonstration for few-shot prompted models, and 3) finetuning the finetuning-based models. The test set is only used for evaluation. For graph inference, we map the dialog act of user, database, and system to completion c and dialog act a vectors as described in Section 3.3.",
+      "section": "5.1 Dataset"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "• BC learns to imitate the demonstration via behavioral cloning (see Section 3.3)",
+      "section": "We compare three graph inference algorithms:"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "• MSG[2] (Jang et al., 2023) learns the subtask graph by optimizing the J Can (see Equation (3)) with complexity regularization.",
+      "section": "We compare three graph inference algorithms:"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "• TOD-Flow (ours) is our TOD-Flow graph learning algorithm. For fair comparison, we used the scikit-learn decision tree model (Pedregosa et al., 2011) for all the graph inference algorithms.",
+      "section": "We compare three graph inference algorithms:"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "We first qualitatively compare the inferred graphs with the human-drawn graphs on RentalCars_1 domain in SGD dataset. We found that in general TOD-Flow produces graphs that agree with the human-drawn graphs much more often compared to baselines ( BC and MSG[2] ). Figure 3 illustrates the subpart of the inferred and human-drawn graph, where TOD-Flow inferred the graph perfectly matches the human-drawn graph, while the baselines missed important information (such as not requiring all 4 required slots to be informed before performing the query).",
+      "section": "5.3 TOD-Flow Graph Inference"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "Base Models. We use two instruction-tuned large language models (LLM) as baseline dialog policy: FLAN-T5-xxl (Chung et al., 2022) and GPT-turbo[1] . At each turn, we prompt the LLM with five demonstration dialogues from train split of the same domain followed by the dialogue history, and ask the model to predict next system dialog acts. See Appendix A.1.2 for more details on prompting the LLM.",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "> 1https://platform.openai.com/docs/models/gpt-3-5",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "+-----------------------------------+-------------------------------+-------------------------------+ | Can-Shdnt graph Shd graph Ranking | SGD (24 domains) FLAN-T5 GPT- | MultiWOZ (14 domains) FLAN-T5 | | method | turbo | GPT-turbo | +-----------------------------------+-------------------------------+-------------------------------+ | No graph ✗ ✗ Greedy | 49.9% 78.8% | 21.6% 40.8% | +-----------------------------------+-------------------------------+-------------------------------+ | Graph ✗ ✓ Compliance ablations ✓ | 70.4% 82.5% 65.6% 83.5% | 26.1% 41.6% 30.4% 44.5% | | ✗ Compliance | | | +-----------------------------------+-------------------------------+-------------------------------+ | Sampling & ranking ablations ✓ ✓ | 80.9% 88.5% 75.2% 88.1% 76.2% | 26.2% 45.5% 20.7% 45.0% 23.7% | | Greedy ✓ ✓ Majority ✓ ✓ Violation | 88.3% 75.8% 88.0% | 44.7% 23.2% 45.2% | | ✓ ✓ Uniform | | |",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "+-----------------------------------+-------------------------------+-------------------------------+ | Ours ✓ ✓ Compliance | 83.1% 89.2% | 35.0% 48.2% | +-----------------------------------+-------------------------------+-------------------------------+",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "Table 3: Ablation studies on graphs and ranking methods for next system action prediction. The numbers shown are average F-1 scores. We see that both Can-Shdnt and Shd graphs have significant contributions towards the performance and our Compliance ranking method outperforms greedy sampling or other ranking methods.",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "Evaluation Protocol. We sample 10 candidate predictions from the base models, which is filtered and ranked based on the graph (see Section 4.1) to choose the best prediction.",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "Metric. We measure F-1 score between the ground-truth and predicted system dialog acts at each turn and average over entire domains.",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "Results. Table 2 summarizes the F-1 score of each model on SGD and MultiWOZ. Overall, we observe that TOD-Flow consistently improves the prediction accuracy with a significant margin compared to other baselines BC and MSG[2] on all base models and all dataset. We also found that the improvements are bigger on FLAN-T5 compared to GPT-turbo. This indicates that the GPT-turbo already models the Can, Shd, and Shdnt to some extent, so that augmenting it with the graph provide less benefits. Since BC learns to mimic the exact behavior in demonstration, BC tends to dictate the base policy more aggressively and hurts the performance when combined with strong base model GPT-turbo. MSG[2] correctly models the precondition of dialog acts, but provides less benefit compared to TOD-Flow due to the conservative graph learning ( i.e ., complexity regularization) and lacking the ability to model Shd and Shdnt relations.",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "Ablations. To further justify our design choices, we performed ablation studies on two key components of TOD-Flow : the graphs and the ranking method after graph-conditioning. For filtering graphs, we examined the effect of Can-Shdnt and Shd graphs. Regarding the ranking method, we",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "compare the proposed ranking approach ( i.e ., Compliance) against various alternatives: • Greedy ranks by likelihood of base LLM.",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "• Compliance ranks predictions by larger number of actions complying with the graph ( i.e . rank by size in Figure 2).",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "• Majority chooses the majority prediction among the multi-sampled predictions. • Violation ranks predictions by least number of actions filtered, added, and removed in graph conditioning.",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "• Uniform randomly chooses one of the multisampled predictions.",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "The results are shown in Table 3, and TOD-Flow outperformed all ablations, showing the necessity of all graphs and ranking by largest set.",
+      "section": "5.4 Task 1: Dialog Policy Learning"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "Base Models. We use the three SOTA end-toend dialogue models finetuned on MultiWOZ: GALAXY (He et al., 2022b), HDNO (Wang et al., 2020), and HDSA (Chen et al., 2019) as base models. ‘ Note that for GALAXY, since we were unable to reproduce the official prediction using the official repository, we report the result with both official prediction (GALAXY) and the greedy ( i.e ., beam search with beam width=1) prediction we obtained by running the official repository (GALAXY[∗] ).",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "Evaluation protocol. From each model, we first sample five system response utterances: one from official prediction[2] (Nekvinda and Dušek, 2021) 2https://github.com/Tomiinek/MultiWOZ_Evaluation/tree/ master/predictions",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "+----------------------------------------------------+------------------------------------+ | Graph BLEU Info Succ | Score | +----------------------------------------------------+------------------------------------+ | HDSA | | +----------------------------------------------------+------------------------------------+ +----------------------------------------------------+------------------------------------+ | (no graph) 20.74 87.20 78.00 +BC 20.76 86.80 77.70 | 103.34 103.01 103.11 103.64 104.06 | | +MSG2 20.71 86.90 77.90 +TOD-Flow† 20.69 87.70 | | | 78.20 +TOD-Flow 20.51 88.10 79.00 | | +----------------------------------------------------+------------------------------------+ | HDNO | | +----------------------------------------------------+------------------------------------+ +----------------------------------------------------+------------------------------------+ | (no graph) 17.83 93.00 84.50 +BC 17.79 92.90 84.50 | 106.58 106.49 106.48 107.18 107.07 | | +MSG2 17.83 92.90",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "84.40 +TOD-Flow† 18.08 93.10 | | | 85.10 +TOD-Flow 17.97 93.20 85.00 | | +----------------------------------------------------+------------------------------------+ | GALAXY | | +----------------------------------------------------+------------------------------------+ +----------------------------------------------------+------------------------------------+ | (no graph) 19.92 92.00 82.80 +BC 19.85 91.80 82.50 | 107.32 107.00 105.84 107.71 107.90 | | +MSG2 19.69 91.30 81.00 +TOD-Flow† 19.86 92.40 | | | 83.30 +TOD-Flow 19.85 92.40 83.70 | | +----------------------------------------------------+------------------------------------+ | GALAXY∗ | | +----------------------------------------------------+------------------------------------+ +----------------------------------------------------+------------------------------------+ | (no graph) 18.88 90.70 80.70 +BC 18.88 90.20 80.40 | 104.58 104.18 103.85 105.29 105.82 | | +MSG2 18.70 89.80 80.50 +TOD-Flow† 19.04 91.10 | | | 81.40 +TOD-Flow",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "19.12 91.10 82.30 | | +----------------------------------------------------+------------------------------------+",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "Table 4: Results from the response generation experiment with Galaxy (He et al., 2022b), HDNO (Wang et al., 2020) and HDSA (Chen et al., 2019) as base models. The Score metric is computed by Score = BLEU +( Info + Succ )/2. TOD-Flow[†] stands for the ablation model that excludes Shd graph from our TOD-Flow . As we can see, our graphs consistently improves all metrics except BLEU for all models, and we improve the official scores by a significant amount for each model.",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "and four from the model downloaded from the official implementation (see appendix A.2.1 for details). The graph conditioning process follows Section 4.2. As an ablation, we also evaluated our method without conditioning on Shd graphs.",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Metric. We follow the standard evaluation metric using the official code (Nekvinda and Dušek, 2021), which computes three metrics on the MultiWOZ test set: BLEU (average BLEU (Papineni et al., 2002) scores between generated and ground truth response), Info (percentage of dialogs where the system presents an appropriate entity) and",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "Succ (percentage of dialogs where the task goals are achieved). The combined score is computed as Score = BLEU + ( Info + Succ ) / 2. See Appendix A.2.2 for details on computing these metrics. We report all four metrics of the compared methods.",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "Result. We show the results in Table 4. We found that TOD-Flow can consistently improve Info and Succ metrics for all the base end-to-end dialog models. BLEU score fluctuates because it depends a lot on the exact wording of each response, which our graphs have no control over. The combined score consistently improves by 0.72, 0.49, 0.58, and 1.24 for HDSA, HDNO, GALAXY, and GALAXY[∗] , respectively by conditioning with our TOD-Flow . Note that these score improvements are actually quite significant, as the difference between top and second top SOTA methods (GALAXY and HDNO) is only 0.74.",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "Next, we compare different graph generation methods: BC , MSG[2] , and TOD-Flow . Overall, TOD-Flow consistently outperforms other baselines, MSG[2] and BC . In fact, the MSG[2] and BC often underperforms the greedy prediction without graph conditioning ( i.e ., (no graph). Since the sampled predictions are in general much worse than the greedy prediction, unless the graph-based ranking is highly accurate, it often samples the prediction that is worse than greedy prediction. On the contrary, TOD-Flow is often able to accurately pick out the non-greedy better alternative to outperform the greedy predictions. We show one such example in Table 5. We also found that excluding Shd graphs ( i.e ., TOD-Flow[†] ) significantly reduced the improvement in all base models except HDNO. This shows that, while using only Can-Shdnt graphs also consistently improves performance of all base models, including Shd graphs can generally get even better results.",
+      "section": "5.5 Task 2: End-to-end Response Generation"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "Task-oriented Dialog Systems. There are two main classes of task-oriented dialog systems: pipeline systems and end-to-end systems. In pipeline approaches, the dialog system is segmented into various modules such as natural language understanding (NLU), dialog state tracking (DST), dialog policy and natural language generation (NLG) (Zhang et al., 2020). The NLU module first converts user language input into standardized dialog acts, slots and values. The DST module",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "+-------------------+-----------------------------------+-----------------------------+ | History | ... (A chat between USER and | | | | SYSTEM) USER: No, I’m not ready | | | | to book it yet. Thank you! | | +-------------------+-----------------------------------+-----------------------------+ | | Utterance | Actions | +-------------------+-----------------------------------+-----------------------------+ | | SYSTEM: The address is | SYSTEM inform addr | | | [value_address], postcode | | +-------------------+-----------------------------------+-----------------------------+ | GALAXY | [value_postcode], the phone | SYSTEM inform post | | | number is | | +-------------------+-----------------------------------+-----------------------------+ | | [value_phone] | SYSTEM inform phone | +-------------------+-----------------------------------+-----------------------------+ | GALAXY + TOD-Flow | SYSTEM: Is there anything else I | SYSTEM reqmore | | | can help you with? | |",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "+-------------------+-----------------------------------+-----------------------------+ | Ground truth | SYSTEM: Just let us know when you | SYSTEM reqmore SYSTEM offer | | | are ready and we will be happy to | booking | | | assist you. Have a great day | | +-------------------+-----------------------------------+-----------------------------+",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "Table 5: Qualitative comparison of generated responses of GALAXY and GALAXY+TOD-Flow on the fourth turn of dialogue SNG0772 in MultiWOZ. GALAXY ’s greedy-sampled response informs information such as phone number and postcode, which is out of context. Instead, our TOD-Flow chooses an alternate response that does not violate Can ( i.e ., SYSTEM inform phone) and complies with Shd ( i.e ., SYSTEM reqmore), and it turns out to be better and closer to the ground truth.",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "keeps track of the current dialog state in terms of the dialog acts, slots and values. Based on the current dialog state, the dialog policy module predicts the next action. Previous works have viewed the dialog policy task as a Markov Decision Process (MDP) (Kwan et al., 2023). Common approaches include reinforcement learning methods such as Q-learning, policy gradient (Lipton et al., 2017; Zhou et al., 2017; Gordon-Hall et al., 2020) with experience-replay (Malviya et al., 2022), or modelbased planning (Peng et al., 2018). Lastly, given the current dialog states and the predicted dialog acts, the NLG module generates a response in natural language. We integrate the TOD-Flow graph into the dialogue policy module to improve its action prediction performance by learning what a model can, should and should not predict.",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "On the other hand, end-to-end systems integrate all functionalities into one module. Many end-toend models employ a singular language model to execute all four steps (He et al., 2022a). Alternatively, other methods bypass certain steps, generating the final response directly (He et al., 2022b; Wang et al., 2022). Pipeline systems are more interpretable and modular, allowing independent updates for enhanced control. Ours work uses the TOD-Flow graph to enhance end-to-end model responses by selecting the best one based on alignment with learned Can, Shd and Shdnt conditions.",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "Graph-based Dialog Systems. There has also been previous works attempting to integrate graphs into task-oriented dialog systems. Most of them focused on using graphs to represent or select information from a knowledge base (Yang et al., 2020,",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "2021). TGDM (Choi et al., 2016) attempted to create a dialog policy through manually constucted graphs, while a followup work (Kwon et al., 2018) proposed a rule-based system for automatically inferring these graphs given a working dialog policy. Raghu et al. (2021) tackles the task-oriented dialogue problem where the system must ground dialog utterances to the manually-defined flowcharts describing the procedure and adapt to unseen ones during testing. Laradji et al. (2023) aims to discover the workflow, a sequence of dialog acts with their respective slot values, from unseen conversation. Our TOD-Flow graph is constructed from labeled dialogue data without any human supervision. And our graph models the relationship between dialog acts and slots; e.g ., what dialog act or updates in slot values can happen or not.",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "This work introduced a novel framework for improving the efficiency and predictive accuracy of task-oriented dialogues models. By leveraging the concept of subtask graph and generalizing it to a TOD-flow graph , we accurately inferred the latent task structure within a dialogue. As showcased through extensive experimentation with two public TOD datasets, the proposed technique has been proven to effectively generate accurate and human-interpretable graphs. Importantly, we have integrated these inferred graphs with a range of dialogue models, without necessitating retraining, resulting in a substantial enhancement in performance in both dialog act classification and end-toend response generation.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "Although our method can be directly used when there are multiple domains involved in a single dialog (by treating combination of domains as a single separate domain and creating graphs using dialogs that has the same combination of domains, similar to what we did for MultiWOZ), this approach is limited in that (1) we need to infer a graph for every combination of domains that is present (such as the multi-domain dialogs in SGD, where there are 24 different single-domains alone), and (2) we cannot easily generalize to unseen domain combinations (even if we have graphs for each individual domain). In the future, we would like to explore ways to directly combine graphs for individual domains into multi-domain graphs and thus address the two limitations above.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "We also relied on action annotations from the datasets to infer graphs, which limits the applicability of our approach. It would be interesting to extend our approach to unannotated raw dialogues.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "This work was supported in part by grants from LG AI Research.",
+      "section": "Acknowledgments"
+    }
+  ]
+}

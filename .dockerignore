@@ -1,0 +1,17 @@
+.git
+.claude
+.pytest_cache
+.venv-inference
+.venv-evaluation
+__pycache__
+outputs
+tmp
+test-set
+dev-set
+zip_downloaded
+docs/archive
+dedicated_audio_gemma_aligner
+submission
+submission_raw/artifacts
+submission_raw/results
+SimulStreaming

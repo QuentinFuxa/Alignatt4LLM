@@ -1,0 +1,43 @@
+{
+  "model": "/home/fuxa/.cache/huggingface/hub/models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c",
+  "sampling": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 64,
+    "max_new_tokens": 512,
+    "seed": 0
+  },
+  "prompt": "Transcribe the following speech segment in its original language. Follow these specific instructions for formatting the answer:\n* Only output the transcription, with no newlines.\n* When transcribing numbers, write the digits, i.e. write 1.7 and not one point seven, and write 3 instead of three.",
+  "results": [
+    {
+      "audio": "/home/fuxa/cascade_simultaneous/tmp/standalone_audio_cache/82d3984cc8d6e857d835ed6fdade97b4bf8f9e15.wav",
+      "raw_response": "Roses are red, violets are blue.<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Roses are red, violets are blue."
+      },
+      "parse_error": null,
+      "original_audio_arg": "https://ai.google.dev/gemma/docs/audio/roses-are.wav"
+    },
+    {
+      "audio": "/home/fuxa/cascade_simultaneous/tmp/alignatt_smoke18.wav",
+      "raw_response": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, Distinct Script Knowledge from Large Language Models for Constraint Language Planning. In everyday life, humans often plan their actions by following step-by-step<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Hi, I'm Si Yuan from Fudan University. I'm here to introduce our work, Distinct Script Knowledge from Large Language Models for Constraint Language Planning. In everyday life, humans often plan their actions by following step-by-step"
+      },
+      "parse_error": null,
+      "original_audio_arg": "tmp/alignatt_smoke18.wav"
+    },
+    {
+      "audio": "/home/fuxa/cascade_simultaneous/tmp/rxrToXvRyM_first18.wav",
+      "raw_response": "Hi, I'm Mara, and today we've been talking about our paper marked personas using natural language prompts to measure stereotypes in language models. This work is done in collaboration with Essindermush and Dandrowski. In recent years, many have documented the prevalence of social bias in stereotypes.<turn|>",
+      "parsed_response": {
+        "role": "assistant",
+        "content": "Hi, I'm Mara, and today we've been talking about our paper marked personas using natural language prompts to measure stereotypes in language models. This work is done in collaboration with Essindermush and Dandrowski. In recent years, many have documented the prevalence of social bias in stereotypes."
+      },
+      "parse_error": null,
+      "original_audio_arg": "tmp/rxrToXvRyM_first18.wav"
+    }
+  ]
+}

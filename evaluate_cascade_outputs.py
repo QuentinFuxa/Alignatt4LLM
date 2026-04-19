@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from huggingface_hub import snapshot_download
 import yaml
 
-from cascade_artifacts import (
+from cascade.artifacts import (
     DEFAULT_COMET_MODEL,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_SEGMENTATION_PATH,

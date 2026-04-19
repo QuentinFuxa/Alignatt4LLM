@@ -1,0 +1,465 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "lJJuRCeung",
+  "source_pdf": "test-set/pdf/lJJuRCeung.pdf",
+  "title": "for Long Input Summarization",
+  "authors": "Jason Phang[1][∗] Yao Zhao[2] Peter J. Liu[2] 1New York University, 2Google Research, Brain Team jasonphang@nyu.edu \n\n{yaozhaoyz, peterjliu}@google.com",
+  "abstract": "While large pretrained Transformer models have proven highly capable at tackling natural language tasks, handling long sequence inputs still poses a significant challenge. One such task is long input summarization, where inputs are longer than the maximum input context of most models. Through an extensive set of experiments, we investigate what model architectural changes and pretraining paradigms most efficiently adapt a pretrained Transformer for long input summarization. We find that a staggered, block-local Transformer with global encoder tokens strikes a good balance of performance and efficiency, and that an additional pretraining phase on long sequences meaningfully improves downstream summarization performance. Based on our findings, we introduce PEGASUS-X, an extension of the PEGASUS model with additional long input pretraining to handle inputs of up to 16K tokens, which achieves strong performance on long input summarization tasks comparable with much larger models.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "Large pretrained Transformer models have proven to be extremely capable at tackling natural language tasks (Devlin et al., 2018; Brown et al., 2020). However, handling long textual sequences continues to be a significant challenge for these models. Training models to handle long sequences is expensive in both computation and memory, and moreover requires training and evaluating on long sequence data, which is rarer and more costly to collect. Given the broad success of Transformer models on short-sequence language tasks, our goal is to investigate the best way to extend these models to handle longer input sequences.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "In this work, we focus on the task of long input summarization: summarizing long input documents into shorter text sequences. The inputs > ∗ Work done while at Google.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "Figure 1: Performance on SCROLLS (Shaham et al., 2022) summarization tasks. All models evaluated on up to 16K input tokens. PEGASUS-X outperforms other models at comparable model sizes. Scores (as of 08/08/22) shown are the average of the geometric mean of ROUGE-1/2/L.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "of such tasks are often significantly longer than the maximum input lengths of most standard Transformer models, and hence warrant both architecture modifications as well as new training regimes. For instance, to avoid the quadratic growth in memory consumption of attention in Transformers, many memory-efficient Transformer variants have been proposed (Tay et al., 2020, 2021). However, the manner in which these changes are incorporated into models has been inconsistent and ad-hoc, and there are few established best practices. For instance, some works directly fine-tune on long-input summarization tasks (Zaheer et al., 2020; Pang et al., 2022), while others first perform additional pretraining (Beltagy et al., 2020). Because of the high cost of training these models, there has yet to be a systematic study of how best to adapt models for long input sequences. Hence, it has been difficult to establish which model and training changes are necessary or complementary.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "To answer these questions, we conduct an extensive empirical investigation into the architectural changes, model configurations and pretraining",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "schemes to identify better approaches to training Transformer models for long input summarization. We evaluate a set of efficient Transformer variants, and propose a simple block-wise local Transformer architecture with staggered blocks and global tokens that strikes a good balance of performance and memory efficiency. We show that given a fixed token budget, pretraining on short sequences and then pre-adapting the model to an efficient Transformer architecture by training on longer sequences leads to better performance than only long input pretraining or no adaptation at all. We also investigate model design choices such as position encoding schemes, encoder-decoder layer distributions, and the impact of discrepancies between pretraining and fine-tuning architecture hyperparameters.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "Based on the findings from our empirical investigation, we adapt the pretrained PEGASUSLarge model (Zhang et al., 2020) to tackle long input summarization on up to 16K input tokens. The resulting model, which we call PEGASUS-X, attains top scores on long summarization tasks, outperforming much larger models like LongT5 (Guo et al., 2021). Moreover, impact on short input summarization performance is minimal. A smaller version which we call PEGASUS-XBase attains similar scores with much fewer parameters. Beyond summarization, we believe that many of our findings will be useful to the community for efficiently adapting Transformer models to handle ever longer input sequences for other tasks.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "We generally follow the recipe from PEGASUS (Zhang et al., 2020) for pretraining PEGASUSBasesized models. All experiments in our ablation study performed pretraining with C4 (Raffel et al., 2020) for 500k steps with 512 input tokens and 256 output tokens and a masking ratio of 45%, unless otherwise stated. For long input pretraining we extend the input length to 4096 tokens, and adjust the masking ratio from 45% to 5.625%, reducing the ratio by a factor of 8 to account for the 8x increase in input sequence length. We also filter for only documents longer than 10000 characters.",
+      "section": "2.1 Pretraining"
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "We evaluate models by fine-tuning on the arXiv (Cohan et al., 2018) and GovReport (Huang et al., 2021) long input summarization tasks. Where relevant, we also fine-tune on the shorter-context XSUM and CNN/DailyMail tasks. For each experiment, we report the best validation set scores based on the geometric average (RG) of ROUGE-1, ROUGE-2 and ROUGE-L scores (Lin, 2004) based on the rouge-score package.[1] Fine-tuning hyperparameters can be found in Appendix E. Unless otherwise stated, we directly switch to the efficient Transformer architectures between pretraining (on shorter context) and fine-tuning (on longer contexts), with no adaptation phase in between.",
+      "section": "2.2 Fine-tuning"
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "1. We evaluate a series of proposed efficient Transformer architectures as well as other model modifications, and report their efficacy and computational trade-offs when applied to long input summarization tasks.",
+      "section": "3.1 Encoder architectures"
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "2. Based on our findings, we propose a recipe for adapting a short-context, pretrained Transformer encoder-decoder to longer inputs, and apply it to PEGASUS to greatly improve its long-document summarization performance, with comparable short-input performance.",
+      "section": "3.1 Encoder architectures"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "Similar to Zhang et al. (2020), we perform the majority of our experiments with a PEGASUSBasesized model, before applying our findings to PEGASUS -sized model. Large",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "We first investigate whether using an efficient Transformer encoder allows models to incorporate longer input sequences while consuming reasonable amounts of device memory. We consider two encoder architectures that exemplify different approaches to efficient attention. Big Bird (Zaheer et al., 2020) uses sparse attention computation, combining sliding-window and random attention, and a set of global-attention tokens. Conversely, Performer (Choromanski et al., 2021) factorizes attention matrices via orthogonal random features. Both model also performed well on the LRA tasks (Tay et al., 2021). For this experiment, we perform both pretraining and fine-tuning with the same encoder architecture to avoid the issue of mismatch between pretraining and fine-tuning architectures.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "> 1https://github.com/google-research/ google-research/tree/master/rouge",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "+---------------+------------------+------------------+------------------+------------------+----------------+ | Encoder | XSUM R1 / R2 / | CNN/DM R1 / R2 / | arXiv R1 / R2 / | GovReport R1 / | Steps/s Mem | | | RL RG | RL RG | RL RG | R2 / RL RG | | +---------------+------------------+------------------+------------------+------------------+----------------+ | Transformer | 40.0 / 16.9 / | 39.5 / 19.0 / | - / - / - - 46.8 | - / - / - - 60.5 | - - 0.31 1.88 | | BigBird | 32.0 27.9 39.6 / | 28.6 27.8 39.3 / | / 19.6 / 28.0 | / 28.5 / 30.1 | 0.96 1.12 | | Performer | 16.7 / 31.7 27.6 | 18.2 / 28.1 27.2 | 29.5 39.0 / 13.2 | 37.3 55.8 / 20.2 | | | | 36.5 / 14.0 / | 37.4 / 17.4 / | / 23.8 23.1 | / 24.7 30.3 | | | | 28.7 24.5 | 26.9 26.0 | | | | +---------------+------------------+------------------+------------------+------------------+----------------+ | Local Global- | 38.5 / 15.7 / | 39.0 / 18.4 / | 46.5 / 19.7 / | 60.2 / 28.3 / | 1.00 1.00 0.87 | | Local | 30.6 26.4 38.7 / | 28.1 27.2",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "39.0 / | 27.9 29.5 47.6 / | 30.0 37.1 61.4 / | 1.08 | | | 16.2 / 31.2 26.9 | 18.6 / 28.2 27.3 | 20.2 / 28.5 30.1 | 29.3 / 30.6 38.0 | | +---------------+------------------+------------------+------------------+------------------+----------------+",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "Table 1: Comparison of different encoder architectures on short (XSUM, CNN/DM) and long (arXiv, GovReport) summarization tasks. Training steps per second and memory are computed based on arXiv, and normalized to Local Transformer performance.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "+-----------------------------------+-----------------------------------+-----------------------------------+ | Stagger Local Blocks Use Global | arXiv R1 / R2 / RL RG | GovReport R1 / R2 / RL RG | | In Decoder Encoder | | | +-----------------------------------+-----------------------------------+-----------------------------------+ | Global-Local � � Global-Local � | 48.1 / 20.3 / 28.5 30.3 47.0 / | 60.5 / 28.8 / 30.5 37.6 60.9 / | | Global-Local � Global-Local Local | 19.5 / 27.9 29.5 47.7 / 20.4 / | 28.9 / 30.2 37.6 61.3 / 29.4 / | | � - Local - | 28.6 30.3 46.7 / 19.5 / 27.9 29.4 | 30.8 38.1 59.5 / 27.8 / 29.4 36.5 | | | 46.8 / 19.7 / 28.0 29.6 46.5 / | 59.2 / 27.9 / 30.0 36.7 58.8 / | | | 19.2 / 27.5 29.1 | 27.5 / 28.9 36.0 | +-----------------------------------+-----------------------------------+-----------------------------------+",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "Table 2: Comparison of architectural tweaks to Local and GlobalLocal encoder. Staggering local blocks uses different blocks boundaries for different layers in block-local attention. Global information is incorporated in the decoder via an additional cross-attention before cross-attention over the encoded input.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "In addition, we also introduce two simple variants of local attention Transformer encoders. First, we use a simple block-local Transformer ( Local ), where encoder input tokens are divided into nonoverlapping blocks, and tokens can only attend to other tokens within the block. Second, we extend the local Transformer by adding a set of global tokens with learned embeddings, that can attend to and be attended from every encoder token ( GlobalLocal ). These components are similar to the sliding window attention and global token attention of Big Bird, ETC (Ainslie et al., 2020) and Longformer (Beltagy et al., 2020). However, we opt for the simpler block-local attention rather than sliding window attention, and compensate for the lack of overlapping blocks by staggering the local attention blocks, which we elaborate on in Section 3.2. As we show below, the performance is highly competitive despite its simplicity.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "Results on short and long summarization tasks are shown in Table 1, with the relative training steps per second and memory consumed per device for fine-tuning on arXiv shown in the right-most columns. Among the short tasks, the full-attention Transformer performs best, followed by BigBird. On the long tasks, Big Bird and Global-Local models perform best, but Big Bird consumes significantly more memory and trains much more slowly than the other architectures. Conversely, although",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "Performer has relatively low memory consumption and trains efficiently, it performs worst among the architectures tested by a noticeable margin.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "On the other hand, Local and Global-Local encoders strike a good balance of performance and efficiency. The simple local attention encoder, which uses block-local attention, attains performance close to that of Big Bird while being much faster and using much less memory. Global-Local trades off a small amount of speed and memory for better performance, outperforming Big Bird.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "Takeaways: Local attention is a strong baseline, and adding global tokens significantly improves performance. Both models are resource-efficient. 3.2",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "Given the good performance of both Local and Global-Local encoder variants, we next consider further architectural tweaks to these models.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "First, we introduce staggering of local attention blocks. In block-local attention, tokens can only attend to other tokens within the same block. If the input tokens are divided up into the same blocks in every layer, this means that no information is exchanged across blocks through the entire encoder. To address this pitfall, we stagger attention blocks by shifting the block boundaries by half a block every other layer. We show an example of this in Figure 2. In practice, we implement this by padding",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "Figure 2: In block-local attention (a), the same block boundaries are used across all layers, preventing information from being shared across blocks. Staggering the block boundaries (b) be shifting the boundaries every other layer allows for cross-block interactions with minimal additional computational cost or complexity.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "the hidden representations on either side by half a block and masking accordingly.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "Secondly, in the Global-Local model, the decoder only attends to the encoded token representations, and not the global token representations. We consider a variant where we supply the global token representations to the decoder and introduce a second cross-attention layer that attends only to the global tokens. Our goal is to allow the decoder to incorporate global information before performing cross-attention over the encoded sequence.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "Results are shown in Table 2. We find that staggering local blocks noticably improves performance in both Local and Global-Local models. Performance improves even with Global-Local models, which already allow for cross-block interactions via global tokens, indicating that both model improvements are complementary. Conversely, incorporating global token information in the decoder did not lead to much performance improvement, particularly once staggered local blocks were used.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "resources allow, but is not a high priority compared to other model improvements. For the remainder of the ablation experiments, we use a block size of 64 and 32 global tokens for consistency.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "Takeaways: Larger block sizes and/or number of global tokens leads to improved performance, although the effect saturates.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "3.4",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "We further investigate a of series architectural modifications to the encoder-decoder model, including the position encoding scheme (Table 8), scaling the encoder and decoder layers (Table 10) and using cross-attention in only a fraction of the decoder layers (Table 12). We find that the sinusoidal position encoding provide a good balance of performance and efficiency, and that a balanced encoder-decoder with full cross-attention generally performs the best. More details are provided in Appendix B.",
+      "section": "2 Experimental Setup"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "Takeaways: Staggering local attention blocks significantly improves performance, and is complementary to global tokens.",
+      "section": "3.5 Pretraining vs Fine-tuning Architectures"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "Next, we vary the block size and number of global tokens for the Global-Local encoder, with results shown in Table 3.[2] Broadly, we find that increasing either block size or global tokens leads to improved performance, with a corresponding increase in memory consumption and computation time. However, the effect size from going to larger block sizes is not large, and saturates with larger block sizes or number of global tokens. As such, increasing either of these hyperparameters is ideal if",
+      "section": "3.3 Global-Local: Block Size and Number of Global Tokens"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "> 2Experiments with very small block sizes or number global tokens ran into memory issues, because TPUs pad small dimensions of arrays to certain minimum lengths, leading to larger than expected memory consumption.",
+      "section": "3.3 Global-Local: Block Size and Number of Global Tokens"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Previous works using efficient Transformer encoders have generally taken the parameters of a full-attention Transformer pretrained on a shorter sequences and adapted them to efficient architectures, either directly during fine-tuning (Zaheer et al., 2020) or with an intermediate stage of additional pretraining (Beltagy et al., 2020). In this section, we investigate if such an approach is optimal, or if models benefit from being pretrained with efficient encoders from the beginning. Note that we still perform pretraining on a short sequences (512 tokens), even with an efficient encoder.",
+      "section": "3.3 Global-Local: Block Size and Number of Global Tokens"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "We consider both pretraining with a Transformer and pretraining with the efficient architecture for both Local and Global-Local models. We also vary the block size, as the main difference between a Transformer and Local Transformer is the block size (aside from staggering, a Local model with block size 512 is equivalent to a dense",
+      "section": "3.3 Global-Local: Block Size and Number of Global Tokens"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "+--------------------------+--------------------------------+-----------------------------------+ | Block Size Global Tokens | arXiv R1 / R2 / RL RG | GovReport R1 / R2 / RL RG Steps/s | | | | Mem | +--------------------------+--------------------------------+-----------------------------------+ | 16 32 64 128 | 47.1 / 20.0 / 28.3 29.9 46.8 / | 59.7 / 27.8 / 29.2 36.5 0.92 1.15 | | | 19.7 / 28.0 29.6 47.7 / 20.0 / | 60.8 / 28.6 / 30.0 37.4 0.75 1.54 | | | 28.2 30.0 | 60.7 / 28.8 / 30.2 37.5 0.58 1.70 | +--------------------------+--------------------------------+-----------------------------------+ | 64 32 64 128 | 47.7 / 20.3 / 28.5 30.2 47.4 / | 61.0 / 29.3 / 30.8 38.0 0.47 1.07 | | | 20.2 / 28.5 30.1 47.8 / 20.4 / | 60.9 / 29.1 / 30.7 37.9 0.94 1.10 | | | 28.6 30.3 | 60.9 / 29.0 / 30.3 37.7 0.85 1.26 | +--------------------------+--------------------------------+-----------------------------------+ | 128 32 64 128 | 46.9 / 19.7 / 28.0 29.6 47.4 / | 60.9 / 28.7 / 30.1 37.5 1.00 1.00",
+      "section": "3.3 Global-Local: Block Size and Number of Global Tokens"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "| | | 20.2 / 28.4 30.1 47.1 / 20.0 / | 60.9 / 28.9 / 30.8 37.8 0.96 1.05 | | | 28.3 29.9 | 61.0 / 28.9 / 30.6 37.8 0.90 1.15 | +--------------------------+--------------------------------+-----------------------------------+ | 256 32 64 128 | 47.3 / 20.2 / 28.3 30.0 47.2 / | 61.6 / 29.4 / 30.7 38.2 0.92 1.11 | | | 20.2 / 28.4 30.0 48.1 / 20.5 / | 59.2 / 28.6 / 30.5 37.2 0.88 1.16 | | | 28.6 30.4 | 61.7 / 29.3 / 30.8 38.2 0.83 1.26 | +--------------------------+--------------------------------+-----------------------------------+",
+      "section": "3.3 Global-Local: Block Size and Number of Global Tokens"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "Table 3: Varying the block size and number of global tokens in Global-Local encoders. Training steps per second and memory are computed based on arXiv, and normalized to the run with Block Size=128 and Global Tokens=32.",
+      "section": "3.3 Global-Local: Block Size and Number of Global Tokens"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "Transformer), and hence the difference in block size also corresponds to the extent to which the model needs to adapt between architectures. When adapting from a pretrained Transformer encoder to a Global-Local architecture, because the GlobalLocal model relies on newly introduced global token embeddings, we initialize them by randomly sampling tokens from the vocabulary embeddings.",
+      "section": "3.3 Global-Local: Block Size and Number of Global Tokens"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "Results are shown in Table 11. For Local models, pretraining with local attention using small block sizes tends to hurt performance, but at moderate block sizes (e.g. 64) there is little difference between the two approaches. In contrast, for Global-Local pretraining with the efficient architecture tends to perform better. We hypothesize that this difference arises because of the learned global embedding tokens, which are randomly initialized when adapting from a pretrained Transformer and hence may benefit from pretraining and being jointly trained with the local attention.",
+      "section": "3.3 Global-Local: Block Size and Number of Global Tokens"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "Takeaways: For moderate block sizes, either pretraining or adapting to a Local encoder performs about equally well, but pretraining with a GlobalLocal encoder performs slightly better.",
+      "section": "3.3 Global-Local: Block Size and Number of Global Tokens"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "Up to this point, we have only considered pretraining with short sequences. We might expect that pretraining with longer sequences ought to improve performance on downstream long input summarization. However, pretraining only on long sequences is computationally expensive and requires a large collection of long input documents, which are relatively rarer. Long documents may also contain",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "different information from short documents, hence limiting training to only long inputs mae reduce the diversity of training data. Different long context Transformers have taken different approaches to pretraining on long inputs. For instance, Longformer (Beltagy et al., 2020) performed several additional stages of increasingly longer-sequence pretraining to adapt the initial RoBERTa to long sequence inputs. On the other hand, LongT5 (Guo et al., 2021) is pretrained exclusively with long input sequences. Others (Zaheer et al., 2020; Ivgi et al., 2022) perform no long input pretraining at all. In this section, we investigate how the balance of short and long pretraining impact downstream performance, and try to find the best trade-off between pretraining cost and downstream performance.",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "We consider two setups for pretraining: shortinput pretraining , with 512 input tokens and 256 output tokens, and long-input pretraining , with 4096 input tokens and 256 output tokens. We describe the corresponding differences in data preprocessing in Section 2.1. We fix the number of input tokens seen during training, and vary configurations subject to this constraint. This constraint roughly proxies for the amount of compute consumed and corresponds to the number of input tokens seen during pretraining.[3]",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "We set our total input token budget at 131 billion tokens, which corresponds to 1 million steps with 512 input tokens, compared to the 500k steps in the above experiments. This larger budget ensures that when we only do long-input pretraining, the model",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "> 3If we instead fixed the number of training steps, longinput pretraining would consume far more compute for the same number of steps.",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "+----------------------+----------------------+---------------------+--------------------+---------------------+ | Pretraining Scheme | XSUM R1 / R2 / RL RG | CNN/DM R1 / R2 / RL | arXiv R1 / R2 / RL | GovReport R1 / R2 / | | Encoder | | RG | RG | RL RG | +----------------------+----------------------+---------------------+--------------------+---------------------+ | Short (50%) Local | 38.4 / 15.8 / 30.6 | 39.2 / 18.1 / 27.9 | 46.8 / 19.7 / 28.0 | 60.1 / 28.3 / 29.8 | | Global-Local Short | 26.5 39.4 / 16.5 / | 27.1 39.1 / 18.6 / | 29.6 47.7 / 20.4 / | 37.0 61.9 / 29.6 / | | (100%) Local Global- | 31.5 27.4 39.2 / | 28.3 27.4 39.2 / | 28.6 30.3 46.9 / | 30.8 38.4 60.1 / | | Local Short (75%) | 16.3 / 31.3 27.1 | 18.6 / 28.3 27.4 | 19.7 / 28.0 29.6 | 28.3 / 29.8 37.0 | | →Long (25%) Local | 39.9 / 17.0 / 31.9 | 39.8 / 18.6 / 28.3 | 48.1 / 20.5 / 28.7 | 61.9 / 29.6 / 30.8 | | Global-Local Short | 27.9 38.8 / 15.9 / | 27.6 39.1 / 18.2 / | 30.5 47.5 / 20.1 / | 38.4 60.6 / 28.9 / | |",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "(50%) →Long (50%) | 30.7 26.7 39.6 / | 28.0 27.1 39.8 / | 28.2 30.0 48.4 / | 30.6 37.7 61.8 / | | Local Global-Local | 16.8 / 31.7 27.6 | 18.8 / 28.5 27.7 | 20.7 / 28.8 30.7 | 29.8 / 31.1 38.5 | | Long (100%) Local | 38.4 / 15.7 / 30.5 | 39.4 / 18.1 / 27.9 | 47.7 / 20.2 / 28.3 | 60.9 / 29.1 / 30.7 | | Global-Local | 26.4 39.3 / 16.4 / | 27.1 39.4 / 18.3 / | 30.1 48.4 / 20.9 / | 37.9 61.7 / 30.0 / | | | 31.4 27.3 36.0 / | 28.1 27.3 38.4 / | 29.1 30.9 46.7 / | 31.2 38.7 59.8 / | | | 14.0 / 28.6 24.3 | 17.7 / 27.4 26.5 | 19.5 / 27.7 29.3 | 28.0 / 29.5 36.7 | | | 36.4 / 14.3 / 28.9 | 38.5 / 17.8 / 27.5 | 47.3 / 19.9 / 28.1 | 61.1 / 29.1 / 30.7 | | | 24.7 | 26.6 | 29.8 | 37.9 | +----------------------+----------------------+---------------------+--------------------+---------------------+",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "Table 4: Comparison of different pretraining formats, given a input token budget of 131B tokens, which corresponds to 1M steps with 512 input tokens. Short pretraining uses 512 input tokens, whereas long pretraining uses 4096 input tokens.",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "is still pretrained for a reasonable number of steps. We consider four pretraining configurations: • Short-input for 100% of tokens (1M steps)",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "• Short-input for 75% of tokens (98.3B, 750k steps), then long-input for 25% of tokens (32.8B, 31.25k steps)",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "• Short-input for 50% of tokens (62.5B, 500k steps), then long-input for 50% of tokens (62.5B, 62.5k steps) • Long-input for 100% of tokens (125k steps)",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "We compare the performance of the different pretraining scehemes in Table 4. We also include short-input pretraining for 500k steps for comparison. First, comparing short-input pretraining for 500k and 1M steps, we find that more pretraining still improves performance, indicating that our base models may still be undertrained at 500k steps. Second, long-input pretraining performs consistently worse than the other variants, which we attribute having fewer training steps, again highlighting the issue of potential undertraining. For the middle three configurations, on the long tasks, all three non-long-only variants atttain similar scores, with more long-input pretraining having slightly better performance, particularly on the ROUGE-2 and ROUGE-L scores. While the small absolute differences in scores make it hard to draw strong conclusions, we lean towards the conclusion that adding a short phase of long input pretraining can improve performance on long input summarization tasks.",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "Takeaways: Given a fixed compute budget, allocating some training steps to long-input training can improve performance, although the optimal allocation is difficult to determine. Exclusively long pretraining results in worse performance.",
+      "section": "3.6 Pretraining Schemes"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "Based on our findings, we settle on the following recipe for adapting PEGASUS models (Zhang et al., 2020) to long sequence summarization.",
+      "section": "4 PEGASUS-X"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "• We use a Global-Local architecture with block staggering, a large number of global tokens, and large block sizes during pretraining.",
+      "section": "4 PEGASUS-X"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "• We perform additional long input pretraining on 4096 token inputs for 300k steps. • We extend input sequences up to 16384 input tokens in fine-tuning, depending on the task.",
+      "section": "4 PEGASUS-X"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "We experiment with two model sizes: PEGASUS-X (PEGASUS e X tended) based on PEGASUSLarge, and PEGASUS-XBase based on a newly trained PEGASUSBase model which we call PEGASUSBase+.[4]",
+      "section": "4 PEGASUS-X"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "We initialize the weights of PEGASUS-X and PEGASUS-XBase with the pretrained weights of PEGASUSLarge and PEGASUSBase+ respectively. Only two new sets of parameters are introduced: global token embeddings, and a new LayerNorm for the global input representations in each Transformer layer. This is ∼ 1M more parameters for PEGASUS-XBase and 2M more for PEGASUS-X. We initialize the global token embeddings by randomly sampling tokens from the input embeddings, and we initialize the LayerNorm weights with the regular input LayerNorm weights.",
+      "section": "4 PEGASUS-X"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "The task- and model-specific hyperparameters for fine-tuning can be found in Appendix 15. For this section, we report ROUGE-Lsum[5] rather than ROUGE-L for consistency with the metrics reported in other papers and leaderboards.",
+      "section": "4 PEGASUS-X"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "> 4 See Appendix C. > 5https://github.com/google-research/",
+      "section": "4 PEGASUS-X"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "+----------------------------------+---------------+--------------+ | | PEGASUS-XBase | PEGASUS-X | +----------------------------------+---------------+--------------+ | # Parameters | 272M | 568M | +----------------------------------+---------------+--------------+ | # Global Tokens Block Size Batch | 128 512 512 | 128 512 1024 | | Size | | | +----------------------------------+---------------+--------------+ | Additional Pretraining | 300K steps | 300K steps | +----------------------------------+---------------+--------------+",
+      "section": "4 PEGASUS-X"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Long summarization tasks In Table 6, we compare the performance of PEGASUS models to those of PEGASUS-X on three long-input summarization tasks: arXiv, Big Patent and PubMed. In all three tasks, we see significant improvements in performance of PEGASUS-XBase over PEGASUSBase+, and PEGASUS-X over PEGASUS . To isoLarge late the impact of additional long input pretraining compared to only switching the architecture during fine-tuning, we also include evaluation on the PEGASUS models using the Global-Local architecture with no further pretraining, which we list in the table as PEGASUSBase+ + Global-Local.",
+      "section": "4.1 Results on Summarization Tasks"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "We also compare to reported results of Big Bird-PEGASUS[6] (Zaheer et al., 2020), LED (Beltagy et al., 2020), Top-Down Transformer (Pang et al., 2022) with both Average-Pool (AvgP) and Adaptive-Pool (AdaP) variants, BART-LS (Xiong et al., 2022a), LongT5-Large and XL, and SLED (Ivgi et al., 2022). LED, Top-Down and SLED are initialized with BARTLarge weights with no additional pretraining on long input sequences. BART-LS is concurrent work that also incorporates staggered block-local attention and addition long-sequence pretraining, in addition to pooling layers and different pretraining data.",
+      "section": "4.1 Results on Summarization Tasks"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "PEGASUS-X outperforms Big Bird-PEGASUS on all tasks, and Top-Down-AvgP on both compared tasks. Although Top-Down-AdaP outperforms PEGASUS-X, it uses a much more complex fine-tuning setup, using an importance tagger on reference summaries to construct token pooling weights, whereas PEGASUS-X only uses standard fine-tuning. Even so, PEGASUS-X still outperforms Top-Down-AdaP on PubMed. PEGASUS-X outperforms BART-LS on PubMed and slightly underperforms on arXiv; as mentioned above,",
+      "section": "4.1 Results on Summarization Tasks"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "google-research/blob/master/rouge/README. md#two-flavors-of-rouge-l > 6Big Bird-PEGASUS only has a context of 3072 tokens, likely due to the larger memory consumption of Big Bird.",
+      "section": "4.1 Results on Summarization Tasks"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "PEGASUS-X and BART-LS share many similarities, and we see the strong performance of BARTLS as confirmation of the efficacy of parts of our recipe for longer sequence models. PEGASUSX also outperforms LongT5 on both arXiv and PubMed, despite both compared LongT5 models having more parameters. However, we find that LongT5 performs much better on BigPatent, which is a largely extractive summarization task. We hypothesize that a larger hidden size may improve extraction over very long sequences.",
+      "section": "4.1 Results on Summarization Tasks"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "Short summarization tasks We show in Table 14 the performance of PEGASUS and PEGASUS-X models on shorter summarization tasks, where there is a slight regression in performance of both PEGASUS-X models compared to their PEGASUS equivalents. We hypothesize that long input pretraining might negatively impact the performance on shorter input tasks because of the data filtering for long documents, resulting in a potentially less diverse training data distribution.",
+      "section": "4.1 Results on Summarization Tasks"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "We report the performance of the PEGASUSX models on the summarization tasks in the recently introduced SCROLLS benchmark in Table 7. This includes GovReport (Huang et al., 2021), the ForeverDreaming subset of SummScreen (Chen et al., 2022), and QMSum (Zhong et al., 2021).",
+      "section": "4.2 SCROLLS Summarization Tasks"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "PEGASUS-X outperforms all other models on GovReport, setting the state of the art on the dataset.[7] It also performs comparably to both LongT5Large and Top-Down-AvgP on SummScreen/FD, although it underperforms LongT5 models and BART-LS on QMSum. Moreover, PEGASUS-XBase also performs competitively, outperforming both LongT5 models on GovReport, and only a small margin behind PEGASUS-X on all three tasks. PEGASUS-XBase also outperforms BARTLarge-SLED, a larger model with a similar 16K input length.",
+      "section": "4.2 SCROLLS Summarization Tasks"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "Many works such as Zaheer et al. (2020), Beltagy et al. (2020), Ivgi et al. (2022) have investigated extending short input models to longer sequences using efficient attention mechanisms. In closely comparable work, Guo et al. (2021) pretrained a T5 model on long sequences from scratch, incor-",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "+---------------------------+---------------------------+---------------------------+---------------------------+ | Model #Params | arXiv R1 / R2 / RLs RG | Big Patent R1 / R2 / RLs | PubMed R1 / R2 / RLs RG | | | | RG | | +---------------------------+---------------------------+---------------------------+---------------------------+ | PEGASUSBase 271M | 34.8 / 10.2 / 22.5* 20.0* | 43.5 / 20.4 / 31.8* 30.5* | 40.0 / 15.2 / 25.2* 24.8* | | PEGASUSBase+ 271M | 42.2 / 15.8 / 37.3 29.2 | 51.2 / 32.6 / 41.0 40.9 | 44.1 / 18.3 / 40.1 31.9 | | PEGASUSBase+ + Global- | 47.6 / 20.2 / 42.4 34.4 | 58.1 / 39.5 / 47.2 47.7 | 47.3 / 21.4 / 43.0 35.2 | | Local 272M PEGASUS-XBase | 49.4 / 21.6 / 44.0 36.1 | 61.3 / 42.6 / 50.1 50.8 | 49.6 / 23.6 / 45.2 37.5 | | 272M | | | | +---------------------------+---------------------------+---------------------------+---------------------------+ | PEGASUSLarge 567M | 44.7 / 17.2 / 25.7* 27.0* | 53.4 / 32.9 / 42.1* 42.0* | 45.1 / 19.6 / 27.4* 28.9* | | PEGASUS-X",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "568M | 50.0 / 21.8 / 44.6 36.5 | 64.8 / 47.5 / 54.3 55.1 | 51.0 / 24.7 / 46.6 38.9 | +---------------------------+---------------------------+---------------------------+---------------------------+ | BART-LS 460M Longformer | 50.2 / 22.1 / 45.4 36.9 | –.- / –.- / –.- –.- –.- / | 50.3 / 24.3 / 46.3 38.4 | | Encoder-Decoder 464M Top- | 46.6 / 19.6 / 41.8 33.7 | –.- / –.- –.- –.- / –.- / | –.- / –.- / –.- –.- 48.3 | | Down (AvgP) 464M Top-Down | 48.7 / 20.7 / 43.9 35.4 | –.- –.- –.- / –.- / –.- | / 21.4 / 44.2 35.7 51.1 / | | (AdaP) 464M Big Bird- | 51.0 / 21.9 / 45.6 37.1 | –.- 60.6 / 42.5 / 50.1 | 23.3 / 46.5 38.1 46.3 / | | Pegasus 567M LongT5Large | 46.6 / 19.0 / 41.8 33.3 | 50.5 70.4 / 56.8 / 62.7 | 20.7 / 42.3 34.4 50.0 / | | 770M LongT5XL 3B | 48.3 / 21.6 / 44.1 35.8 | 63.1 76.9 / 66.1 / 70.8 | 24.7 / 46.5 38.6 50.2 / | | | 48.4 / 21.9 / 44.3 36.1 | 71.1 | 24.8 / 46.7 38.7 |",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "+---------------------------+---------------------------+---------------------------+---------------------------+",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "Table 6: Comparison on long summarization tasks (Test sets). Results for other models are taken from their respective papers. *: PEGASUS (Zhang et al., 2020) only reports ROUGE-L and not ROUGE-LSum.",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "+---------------------------+---------------------------+-------------------------+---------------------------+ | Model #Params | GovReport R1 / R2 / RL RG | SummScreen/FD R1 / R2 / | QMSum R1 / R2 / RL RG | | | | RL RG | | +---------------------------+---------------------------+-------------------------+---------------------------+ | PEGASUS-XBase 272M | 59.3 / 29.3 / 30.9 37.7 | 35.0 / 8.9 / 20.4 18.5 | 32.9 / 9.8 / 21.4 19.0 | | PEGASUS-X 568M | 60.3 / 30.0 / 31.5 38.5 | 35.7 / 9.1 / 20.6 18.8 | 33.2 / 9.6 / 21.6 19.0 | +---------------------------+---------------------------+-------------------------+---------------------------+ | BARTLarge-SLED 406M BART- | 58.0 / 26.9 / 27.6 35.1 | 33.8 / 8.0 / 18.5 17.1 | 32.1 / 10.2 / 21.0 19.0 | | LS 460M Top-Down-AvgP | 59.4 / 29.8 / 30.8 37.9 | 37.7 / 10.2 / 21.5 20.2 | 35.1 / 12.0 / 23.3 21.4 | | 464M Top-Down-AdaP 464M | –.- / –.- / –.- –.- –.- / | 35.8 / 8.9 /30.6* 21.4* | –.- / –.- / –.- –.- –.- / | | LongT5Large 770M LongT5XL | –.- /",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "–.- –.- 54.2 / 27.8 | 36.8 / 9.2 /31.1* 21.9* | –.- / –.- –.- 35.1 / 12.0 | | 3B UL2 20B | / 29.8 35.5 54.7 / 28.2 / | 35.6 / 9.2 / 21.2 19.1 | / 23.3 21.4 34.9 / 11.8 / | | | 30.2 36.0 53.6 / 26.1 / | 35.8 / 9.6 / 21.1 19.4 | 23.5 21.3 31.1 / 8.5 / | | | 28.8 34.3 | 32.9 / 7.8 / 19.4 17.1 | 20.4 17.5 | +---------------------------+---------------------------+-------------------------+---------------------------+",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "Table 7: Comparison on SCROLLS benchmark (Summarization tasks, Test sets). Results for SLED, BART-LS, LongT5 and UL2 models are taken from the SCROLLS benchmark leaderboard. *: Top-Down (Pang et al., 2022) reports much higher scores for ROUGE-L on SummScreen/FD than any other model, and may have been computed with a variant of ROUGE-L that involves splitting on sentences rather than newlines.",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "porating sliding window attention and global representations. However, pretraining only on long sequences significantly increases the pretraining time, and as we show in Section 3.6, pretraining first on short inputs and then subsequently on long inputs is much more cost efficient.",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "In concurrent work released shortly before this submission deadline, Xiong et al. (2022a) also investigated extending short input Transformer models for long input tasks. While they focus on BART rather than PEGASUS, they similarly find that global tokens, staggered block-local attention, and extended pretraining greatly improve performance, lending further support to our findings. Their final model also incorporates pooling layers and is trained on different data.",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "A broader treatment of related work can be found in Appendix A.",
+      "section": "5 Pertinent Related Work"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "In this work, we investigate a range of proposed improvements to Transformer models to effectively and economically handle long inputs in summarization tasks. Through extensive ablation experiments, we find a simple but effective recipe for extending short-input models to tackle long-input summarization. Based on our findings, we introduce PEGASUS-X, an extended version of PEGASUS with a modified architecture and additional longsequence pretraining. We show that PEGASUS-X sets the state of the art on two long input summarization tasks (GovReport and PubMed) and performs competitively on many others, even despite being much smaller than some compared models. Our findings can be extended to models in other domains beyond summarization, both for pretraining long input models from scratch as well as extending already pretrained short sequence models.",
+      "section": "6 Conclusion"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "One limitation of our work is that evaluation of long-document summarization models is challenging, and while we evaluate on the widely used benchmarks for long-document summarization models, we highlight here the difficulties of measuring the capabilities of such models. In addition to the widely accepted issues with automatic evaluation of model-generated summaries with metrics such as ROUGE, long-document summarization brings about new challenges. In particular, there are relatively fewer long-document summarization tasks available to evaluate models on, and many of them (e.g. arXiv, Pub Med, SummScreen) are constructed by repurposing existing data and proxies for summaries (e.g. abstracts) rather than explicitly written summaries. As such, the available datasets for summarization reflect the data that is easy to repurpose into summarization rather than practical downstream summarization settings; in other words, the available evaluation datasets may not match the distribution of",
+      "section": "Challenges of Evaluating Long-Document Summarization Models"
+    },
+    {
+      "chunk_id": "c0087",
+      "text": "data or settings where such models are realistically used.",
+      "section": "Challenges of Evaluating Long-Document Summarization Models"
+    },
+    {
+      "chunk_id": "c0088",
+      "text": "On scoring generations, human evaluation should ideally be conducted to measure the quality of model-generated summaries. However, the much longer input texts also means that human evaluation of summaries becomes much more expensive and onerous, as raters would need to read the whole input before judging the quality of the summary.",
+      "section": "Challenges of Evaluating Long-Document Summarization Models"
+    },
+    {
+      "chunk_id": "c0089",
+      "text": "More discussion on the challenges of evaluating long-document summarization models can be found in Wang et al. (2022).",
+      "section": "Challenges of Evaluating Long-Document Summarization Models"
+    },
+    {
+      "chunk_id": "c0090",
+      "text": "We have confined our study to summarization tasks, as it matches our goal of investigating the ability for models to process large input contexts, with less focus on generating long outputs. We acknowledge that our ablation studies and experiments are focused solely on summarization tasks, and that our findings may not directly apply or extend to other long-input language tasks.",
+      "section": "Findings May Not Generalize to Other Tasks"
+    }
+  ]
+}
