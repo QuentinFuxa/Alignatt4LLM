@@ -95,11 +95,15 @@ Bundle caching: `CascadeAlignAttProcessor._bundle_key(config)` includes `alignme
 
 ## ASR-side commit path (current code)
 
-The current worktree exposes a single ASR commit behaviour:
+The current worktree exposes a small ASR commit surface:
 
-- **`punctuation_lcp` + EOS flush.** The runtime commits when the longest common prefix of two consecutive ASR hypotheses contains sentence-terminal punctuation, and `finalize_stream()` flushes the trailing tail even without a final punctuation cue.
+- **`asr_commit_mode="auto"` (default).** Resolves to backend-appropriate behaviour:
+  - `qwen_forced` -> `punctuation_lcp` + EOS flush
+  - `gemma_*` ASR backends -> `alignatt_frontier` + EOS flush
+- **`punctuation_lcp`.** Commit when the longest common prefix of two consecutive ASR hypotheses contains sentence-terminal punctuation.
+- **`alignatt_frontier`.** Commit the longest stable word prefix whose aligned word end-times are at least `asr_alignatt_frontier_margin_ms` behind the current audio frontier.
 
-Historical `alignatt_frontier` / `stable_and_accessible` ASR commit experiments are still documented in [`DECISIONS.md`](../DECISIONS.md) and [`RESULTS.md`](RESULTS.md), but they are not current runtime knobs and should be treated as archived calibration rather than active submission surfaces.
+`stable_and_accessible` remains historical only and should be treated as archived calibration rather than a current runtime surface.
 
 ## ASR -> MT contract (shipped)
 
@@ -109,8 +113,8 @@ The shipped runtime intentionally separates **source conditioning** from
 - MT conditions on the **full live ASR tail** for the current sentence.
 - Before prompting MT, the runtime strips only unstable trailing
   sentence-final punctuation from that live tail.
-- `punctuation_lcp` still matters for **committed sentence history** and EOS
-  flush, but it does **not** gate the partial MT call.
+- The active ASR commit rule still matters for **committed sentence history** and
+  EOS flush, but it does **not** gate the partial MT call.
 - AlignAtt is the sole runtime mechanism that limits how much new target text
   may be accepted and emitted from each partial MT draft.
 

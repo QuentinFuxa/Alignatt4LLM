@@ -2,15 +2,17 @@
 
 This doc consolidates the end-to-end results produced in the 2026-04-16 Phase 0 → Phase 6 push. All numbers come from `run_simulstream_batch.py` using the real `CascadeAlignAttProcessor` path — no research-harness shortcuts. All evaluations go through `evaluate_cascade_outputs.py` (OmniSTEval + XCOMET-XL).
 
-Important: the current worktree exposes a smaller runtime surface than some of the historical runs recorded below. In particular, public `asr_commit_mode`, `alignatt_frontier`, `stable_and_accessible`, and `partial_followup_max_new_tokens` are no longer shipped knobs in the simplified runtime. Treat each archived run's `manifest.json` as the exact provenance of that run.
+Important: the current worktree still keeps the historical result tables below, but the live runtime surface has changed since those runs. `asr_commit_mode` is public again with a small surface (`auto`, `punctuation_lcp`, `alignatt_frontier`), while `stable_and_accessible` and `partial_followup_max_new_tokens` remain archived. Treat each run's `manifest.json` as the exact provenance when comparing historical and current outputs.
 
 ## Current worktree surface vs historical calibration
 
 - Current shipped pair:
   - `alignment_backend_name = "qwen_forced"`
   - `mt_backend_name        = "gemma_vllm_alignatt"`
-- Current simplified runtime:
-  - fixed ASR commit path = `punctuation_lcp` + EOS flush
+- Current runtime defaults:
+  - `asr_commit_mode = "auto"`
+  - `qwen_forced` resolves to `punctuation_lcp` + EOS flush
+  - `gemma_*` ASR backends resolve to `alignatt_frontier` + EOS flush
   - partial MT conditioning = full live ASR tail, with unstable trailing sentence punctuation stripped
   - target emission limit = MT-side AlignAtt acceptance on that full MT-visible source prefix
   - `run_simulstream_batch.py` defaults to `chunk_ms=800`, `max_history_utterances=0`
@@ -61,7 +63,7 @@ behind the audio frontier) AND *stable* (identical at the same position
 in the last K consecutive ASR hypotheses). `alignatt_frontier` is the
 K=2 special case; `asr_stability_k` controls K for K ≥ 2.
 
-This section is historical reference only: the current simplified worktree no longer exposes these ASR commit modes as public runtime knobs.
+This section is historical reference only: the tables below include wider commit-mode experiments than the small current runtime surface.
 
 Same clip / configuration (`ccpXHNfaoy.wav`, chunk_ms=450,
 margin = 500 ms, `qwen_forced` + `gemma_vllm_alignatt`):

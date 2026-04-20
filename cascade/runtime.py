@@ -12,7 +12,11 @@ import wave
 
 import numpy as np
 
-from cascade.alignment.base import AlignmentBackend, WordAlignment
+from cascade.alignment.base import AlignmentBackend, AlignmentResult, WordAlignment
+from cascade.alignment.gemma_alignatt_stream import (
+    GemmaAlignAttStream,
+    StreamStepDelta,
+)
 from cascade.artifacts import (
     DEFAULT_OUTPUT_DIR,
     DEFAULT_WAV_PATH,
@@ -191,12 +195,6 @@ class CascadeRuntimeConfig:
     gemma_vllm_enable_prefix_caching: bool = False
     gemma_vllm_cudagraph_mode: str | None = "full"
     gemma_vllm_gpu_memory_utilization: float = 0.5
-    # Ablation knob for the ASR-side same-SHA A/B control. When True
-    # (gemma_vllm_qk_fast only) and no streaming prefix is requested, the
-    # backend still invokes llm.generate(prompt_token_ids=..., multi_modal_data=...)
-    # with an empty prefix instead of llm.chat(). This isolates the input-path
-    # change from the prefix-prefill decode-delta effect.
-    gemma_vllm_force_generate_api: bool = False
     # vLLM-specific config for the experimental gemma_vllm_alignatt MT backend.
     # Prefix caching stays off by default (observer-safety requirement); the MT
     # backend reuses the Gemma max_model_len so prompt budgeting is identical
@@ -207,18 +205,18 @@ class CascadeRuntimeConfig:
     mt_vllm_enable_prefix_caching: bool = False
     mt_vllm_cudagraph_mode: str | None = "full"
     mt_vllm_gpu_memory_utilization: float = 0.5
-    # Qwen-style prompt-prefix streaming for the Gemma ASR backend.
-    # When enabled (gemma_vllm_qk_fast only), the previously decoded text
-    # (minus asr_streaming_rollback_words tail words) is injected as an
-    # assistant-turn prefix so the model only decodes the text delta.
-    # The state is per-utterance and resets on sentence commit.
-    asr_streaming_prefix_enabled: bool = False
-    # Word-level rollback is used (not token-level) so the rolled-back
-    # prefix always ends at a clean word boundary. This preserves the
-    # `len(words) == len(remove_punctuation(text).split())` invariant
-    # that `find_end_time` relies on for sentence commits.
-    asr_streaming_rollback_words: int = 2
-    asr_streaming_unfixed_chunks: int = 2
+    # AlignAtt streaming ASR knobs (gemma_vllm_qk_fast only). See
+    # ``cascade/alignment/gemma_alignatt_stream.py``. Token-level commits
+    # use a frontier gate counted in audio frames (20 ms each by default),
+    # mirroring the simul_whisper token-level policy: when a generated
+    # token's attention argmax is within ``asr_alignatt_frame_threshold``
+    # frames of the current audio end, we stop committing on this chunk
+    # and leave the rest for a future step. ``asr_alignatt_rewind_threshold``
+    # guards against attention collapse — if a token's argmax jumps back
+    # more than that many frames from the previous commit, we abort the
+    # chunk instead of corrupting the committed state.
+    asr_alignatt_frame_threshold: int = 4
+    asr_alignatt_rewind_threshold: int = 200
     # Extra-context injection (IWSLT 2026 Speech-to-Text with Extra Context
     # sub-track). Default off so every non-context path keeps current
     # behaviour exactly. When a paper artifact is configured, the session
@@ -246,24 +244,6 @@ class CascadeRuntimeConfig:
             raise ValueError(
                 f"Unknown mt_backend_name: {self.mt_backend_name!r}"
             )
-        if (
-            self.asr_streaming_prefix_enabled
-            and self.alignment_backend_name != "gemma_vllm_qk_fast"
-        ):
-            raise ValueError(
-                "asr_streaming_prefix_enabled=True is only supported with "
-                "alignment_backend_name='gemma_vllm_qk_fast' "
-                f"(got {self.alignment_backend_name!r})."
-            )
-        if (
-            self.gemma_vllm_force_generate_api
-            and self.alignment_backend_name != "gemma_vllm_qk_fast"
-        ):
-            raise ValueError(
-                "gemma_vllm_force_generate_api=True is only meaningful with "
-                "alignment_backend_name='gemma_vllm_qk_fast' "
-                f"(got {self.alignment_backend_name!r})."
-            )
         if self.paper_context_mode not in VALID_CONTEXT_MODES:
             raise ValueError(
                 f"paper_context_mode must be one of {VALID_CONTEXT_MODES}, "
@@ -277,6 +257,16 @@ class CascadeRuntimeConfig:
                 "paper_context_mode is enabled but paper_context_path is None; "
                 "either set paper_context_path to a PaperArtifact JSON file or "
                 "set paper_context_mode='off'."
+            )
+        if int(self.asr_alignatt_frame_threshold) < 1:
+            raise ValueError(
+                "asr_alignatt_frame_threshold must be >= 1, got "
+                f"{self.asr_alignatt_frame_threshold!r}."
+            )
+        if int(self.asr_alignatt_rewind_threshold) < 1:
+            raise ValueError(
+                "asr_alignatt_rewind_threshold must be >= 1, got "
+                f"{self.asr_alignatt_rewind_threshold!r}."
             )
 
     def apply_overrides(self, **overrides) -> None:
@@ -316,7 +306,6 @@ class CascadeRuntimeConfig:
                 self.gemma_vllm_cudagraph_mode,
                 float(self.asr_gpu_memory_utilization),
                 int(self.gemma_max_model_len),
-                bool(self.asr_streaming_prefix_enabled),
             )
         return (name,)
 
@@ -398,6 +387,26 @@ def find_end_time(word_alignments, position: int, text: str):
     return word_alignments[-n_words_right - 1].end_time
 
 
+def split_text_at_word_boundary(text: str, n_words: int) -> tuple[str, str]:
+    """Split ``text`` after the ``n_words``-th lexical word."""
+    if n_words <= 0:
+        return "", text.strip()
+    tokens = text.split()
+    committed_tokens: list[str] = []
+    committed_word_count = 0
+    last_committed_idx = -1
+    for idx, token in enumerate(tokens):
+        if remove_punctuation(token).strip():
+            committed_word_count += 1
+        committed_tokens.append(token)
+        last_committed_idx = idx
+        if committed_word_count == n_words:
+            break
+    if committed_word_count < n_words:
+        return text, ""
+    return " ".join(committed_tokens), " ".join(tokens[last_committed_idx + 1 :])
+
+
 def n_utterances(text: str) -> int:
     n_utt = text.count(". ") + text.count("! ") + text.count("? ")
     if text.endswith((".", "!", "?")):
@@ -406,13 +415,7 @@ def n_utterances(text: str) -> int:
 
 
 def normalize_partial_asr_hypothesis(text: str) -> str:
-    """Expose the live ASR tail the way the shipped MT path expects it.
-
-    Sentence-finalized history is managed separately by ``punctuation_lcp +
-    EOS flush``. For the still-live tail we keep the full ASR prefix, but we
-    strip unstable trailing sentence-final punctuation before building the MT
-    prompt. MT-side AlignAtt then decides how much target text is safe to emit.
-    """
+    """Expose the still-live ASR tail the way the MT path expects it."""
     text = text.rstrip()
     while text.endswith((".", "!", "?")):
         text = text[:-1].rstrip()
@@ -916,15 +919,12 @@ class CascadeSession:
         self.state = CascadeState()
         self.mt_prompt_cache = PromptCacheState()
         self.translation_units = TranslationUnitManager(self)
-        # Step 5: Qwen-style prompt-prefix streaming state. The session
-        # carries the previous *full* ASR hypothesis (text + words) across
-        # chunks so the next backend call can reuse it as an assistant-side
-        # prefix, decoding only the text delta. Resets on utterance commit
-        # and on clear().
-        self._asr_streaming_last_text: str = ""
-        self._asr_streaming_last_words: tuple[WordAlignment, ...] = ()
-        self._asr_streaming_chunk_count: int = 0
-        self._asr_streaming_committed_segment_count: int = len(self.state.utt_sources)
+        # The Gemma AlignAtt stream owns the committed-token list and the
+        # audio-window policy for the gemma_vllm_qk_fast backend. Other
+        # backends (qwen_forced, gemma_onepass_qk_fast) keep using the
+        # punctuation-LCP commit path and never touch this field.
+        self._gemma_align_att_stream: "GemmaAlignAttStream | None" = None
+        self._asr_stream_trace: list[dict[str, Any]] = []
 
     def load_models(self) -> None:
         self.bundle.load()
@@ -934,17 +934,20 @@ class CascadeSession:
         self.state = CascadeState(speech_id=speech_id)
         self.mt_prompt_cache = PromptCacheState()
         self.translation_units = TranslationUnitManager(self)
-        self._reset_asr_streaming_state(reset_backend=True)
+        self._asr_stream_trace = []
+        self._reset_alignatt_stream()
 
-    def _reset_asr_streaming_state(self, *, reset_backend: bool) -> None:
-        self._asr_streaming_last_text = ""
-        self._asr_streaming_last_words = ()
-        self._asr_streaming_chunk_count = 0
-        self._asr_streaming_committed_segment_count = len(self.state.utt_sources)
-        if reset_backend:
-            alignment_backend = getattr(self.bundle, "alignment_backend", None)
-            if alignment_backend is not None:
-                alignment_backend.reset_streaming_state()
+    def _reset_alignatt_stream(self) -> None:
+        """Drop the Gemma AlignAtt streaming state (new utterance).
+
+        The backend's alignment caches are reset too so that per-chunk
+        generation does not inherit prefix-cached state from a previous
+        utterance.
+        """
+        self._gemma_align_att_stream = None
+        alignment_backend = getattr(self.bundle, "alignment_backend", None)
+        if alignment_backend is not None:
+            alignment_backend.reset_streaming_state()
 
     def current_audio_seconds(self) -> float:
         return len(self.state.source) / SAMPLE_RATE
@@ -962,6 +965,9 @@ class CascadeSession:
         if partial_segment:
             committed_segments.append(partial_segment)
         return " ".join(committed_segments).strip()
+
+    def asr_stream_trace(self) -> list[dict[str, Any]]:
+        return [dict(row) for row in self._asr_stream_trace]
 
     def build_translation_messages(
         self,
@@ -1062,34 +1068,48 @@ class CascadeSession:
         )
 
     def transcribe_audio(self, *, is_final_chunk: bool = False) -> str | None:
-        """Run ASR on the currently-uncommitted audio tail and apply the commit rule.
-
-        ``is_final_chunk=True`` (used by ``finalize_stream``) switches the
-        punctuation-LCP commit rule to an **EOS flush** that emits the whole
-        current hypothesis even without a sentence-final punctuation cue.
-        Without it, the last 1–2 trailing words of every clip stay "partial"
-        and never make it into the public hypothesis.
-        """
+        """Run ASR on the current live audio tail and apply the commit rule."""
         alignment_backend = self.bundle.ensure_alignment_backend()
         audio = np.array(
             self.state.source[self.state.utt_timestamps[-1] :], dtype=np.float32
         )
-
-        if (
-            self.config.asr_streaming_prefix_enabled
-            and len(self.state.utt_sources) != self._asr_streaming_committed_segment_count
-        ):
-            self._reset_asr_streaming_state(reset_backend=True)
-
-        prefix_text, prefix_words = self._compute_streaming_prefix(alignment_backend)
-
-        result = alignment_backend.transcribe_and_align(
-            audio,
-            sample_rate=SAMPLE_RATE,
-            language=self.config.source_lang,
-            streaming_prefix_text=prefix_text,
-            streaming_prefix_words=prefix_words,
+        if self.config.alignment_backend_name == "gemma_vllm_qk_fast":
+            return self._drive_alignatt_stream(
+                alignment_backend=alignment_backend,
+                audio=audio,
+                is_final_chunk=is_final_chunk,
+            )
+        return self._transcribe_non_streaming(
+            alignment_backend=alignment_backend,
+            audio=audio,
+            is_final_chunk=is_final_chunk,
         )
+
+    def _transcribe_non_streaming(
+        self,
+        *,
+        alignment_backend: AlignmentBackend,
+        audio: np.ndarray,
+        is_final_chunk: bool,
+    ) -> str | None:
+        """Non-streaming ASR path for qwen_forced and gemma_onepass_qk_fast.
+
+        The full utterance tail is re-transcribed from scratch on every
+        chunk and committed with the legacy punctuation-LCP rule. This
+        path does not use a streaming prefix or a sliding audio window;
+        utterances longer than the backend's audio cap will raise.
+        """
+        try:
+            result = alignment_backend.transcribe_and_align(
+                audio,
+                sample_rate=SAMPLE_RATE,
+                language=self.config.source_lang,
+            )
+        except Exception as exc:
+            raise type(exc)(
+                f"{exc} | cascade_context="
+                f"audio_tail_s={len(audio) / SAMPLE_RATE:.3f}"
+            ) from exc
         if result is None:
             return None
 
@@ -1097,39 +1117,152 @@ class CascadeSession:
         self.state.asr_hypotheses.append(asr_hypo)
         self.state.partial_word_timestamps_ms = normalize_word_timestamps_ms(result.words)
 
-        if self.config.asr_streaming_prefix_enabled:
-            self._asr_streaming_last_text = asr_hypo
-            self._asr_streaming_last_words = tuple(result.words)
-            self._asr_streaming_chunk_count += 1
-
         asr_segment = longest_common_prefix(
             self.state.asr_hypotheses[-2],
             self.state.asr_hypotheses[-1],
         )
-        if os.environ.get("CASCADE_ASR_STREAMING_DEBUG"):
-            audio_s = (len(self.state.source) - self.state.utt_timestamps[-1]) / SAMPLE_RATE
-            print(
-                f"[asr-stream] chunk={self._asr_streaming_chunk_count} "
-                f"audio_slice_s={audio_s:.2f} "
-                f"prefix_words={len(prefix_words)} "
-                f"hypo_words={len(result.words)} n_utt={n_utterances(asr_segment)} "
-                f"hypo[-60:]={asr_hypo[-60:]!r} "
-                f"lcp[-60:]={asr_segment[-60:]!r}",
-                flush=True,
-            )
-
-        committed = self._try_commit_punctuation_lcp(
+        commit_info = self._try_commit_punctuation_lcp(
             asr_hypo=asr_hypo,
             result=result,
             lcp_text=asr_segment,
             is_final_chunk=is_final_chunk,
         )
-        if committed is _COMMIT_ABORT:
+        self._append_trace_row(
+            audio_tail_s=float(len(audio)) / float(SAMPLE_RATE),
+            audio_window_s=float(len(audio)) / float(SAMPLE_RATE),
+            hypothesis_text=asr_hypo,
+            lcp_text=asr_segment,
+            commit_mode="punct_lcp",
+            commit_info=commit_info,
+            is_final_chunk=is_final_chunk,
+        )
+        if commit_info is _COMMIT_ABORT:
             return asr_hypo.strip()
+        if self.state.utt_sources[1:]:
+            return self.render_public_asr_text()
+        return self.current_live_asr_tail_text()
+
+    def _drive_alignatt_stream(
+        self,
+        *,
+        alignment_backend: AlignmentBackend,
+        audio: np.ndarray,
+        is_final_chunk: bool,
+    ) -> str | None:
+        """Adapter from ``GemmaAlignAttStream`` to the runtime's state model.
+
+        The stream owns the token-level commit policy and the sliding
+        audio window. Its committed-token list is the single source of
+        truth for what the decoder has seen; we only translate that into
+        ``state.asr_hypotheses`` / ``state.utt_sources`` so the rest of
+        the runtime (MT, emission, artifacts) keeps working unchanged.
+        """
+        if self._gemma_align_att_stream is None:
+            self._gemma_align_att_stream = GemmaAlignAttStream(
+                backend=alignment_backend,
+                language=self.config.source_lang,
+                frame_threshold=int(self.config.asr_alignatt_frame_threshold),
+                rewind_threshold=int(self.config.asr_alignatt_rewind_threshold),
+            )
+        stream = self._gemma_align_att_stream
+
+        delta = stream.step(audio, is_final_chunk=is_final_chunk)
+
+        committed_text = stream.committed_text
+        partial_text = committed_text + delta.partial_tail_text
+        asr_hypo = partial_text.strip()
+        self.state.asr_hypotheses.append(asr_hypo)
+        # AlignAtt commits at the token level; we do not expose per-word
+        # timestamps for the partial region. The source frontier falls
+        # back to the "all but last word accessible" default, which is
+        # correct for a live tail that has not yet cleared the frontier
+        # gate.
+        self.state.partial_word_timestamps_ms = []
+
+        lcp_text = longest_common_prefix(
+            self.state.asr_hypotheses[-2],
+            self.state.asr_hypotheses[-1],
+        )
+
+        commit_info = self._emit_alignatt_segment(
+            stream=stream,
+            delta=delta,
+            is_final_chunk=is_final_chunk,
+        )
+
+        self._append_trace_row(
+            audio_tail_s=float(len(audio)) / float(SAMPLE_RATE),
+            audio_window_s=float(delta.audio_window_content_frames)
+            * float(alignment_backend.audio_ms_per_token)
+            / 1000.0,
+            hypothesis_text=asr_hypo,
+            lcp_text=lcp_text,
+            commit_mode="alignatt_token_frontier",
+            commit_info=commit_info,
+            is_final_chunk=is_final_chunk,
+            extra={
+                "alignatt_generated_count": int(
+                    delta.diagnostics.get("generated_count", 0)
+                ),
+                "alignatt_accepted_count": int(
+                    delta.diagnostics.get("accepted_count", 0)
+                ),
+                "alignatt_aborted_by_rewind": bool(
+                    delta.diagnostics.get("aborted_by_rewind", False)
+                ),
+                "alignatt_forced_prefix_token_count": int(
+                    delta.diagnostics.get("forced_prefix_token_count", 0)
+                ),
+                "alignatt_out_of_window_cumulative": int(
+                    delta.diagnostics.get("out_of_window_cumulative", 0)
+                ),
+                "alignatt_window_start_frame_abs": int(
+                    delta.audio_window_start_frame_abs
+                ),
+            },
+        )
 
         if self.state.utt_sources[1:]:
             return self.render_public_asr_text()
         return self.current_live_asr_tail_text()
+
+    def _emit_alignatt_segment(
+        self,
+        *,
+        stream: GemmaAlignAttStream,
+        delta: StreamStepDelta,
+        is_final_chunk: bool,
+    ) -> dict[str, Any] | None:
+        """Close an utterance segment when a sentence boundary lands, or at EOS.
+
+        The token-level frontier decides *what* has been committed; this
+        helper decides *when* to expose that commit as a cascade-visible
+        utterance boundary. The rule is deliberately minimal:
+
+        - at EOS: flush whatever has been committed;
+        - otherwise: only emit when the most-recent committed token ends
+          in sentence-final punctuation (``.``, ``!``, ``?``). This is
+          the same boundary signal the MT pipeline has always used.
+
+        No LCP, no gap search, no word-aggregation invariant. The decision
+        is a pure function of the stream's own committed tokens.
+        """
+        committed_text = stream.committed_text
+        if not committed_text.strip():
+            return None
+
+        if not is_final_chunk:
+            last_char = committed_text.rstrip()[-1:] if committed_text.strip() else ""
+            if last_char not in {".", "!", "?"}:
+                return None
+
+        end_time_s = stream.last_committed_end_seconds()
+        segment_text = committed_text.strip()
+        return self._apply_commit(
+            committed_text=segment_text,
+            remainder_text="",
+            end_time_s=end_time_s,
+        )
 
     def _try_commit_punctuation_lcp(
         self,
@@ -1138,7 +1271,7 @@ class CascadeSession:
         result: "AlignmentResult",
         lcp_text: str,
         is_final_chunk: bool = False,
-    ) -> "object":
+    ) -> dict[str, Any] | object | None:
         if is_final_chunk:
             # EOS flush: commit the whole current hypothesis, even without
             # sentence-final punctuation. No more audio is coming, so waiting
@@ -1147,12 +1280,11 @@ class CascadeSession:
             if not asr_hypo.strip() or not words:
                 return None
             last_word_end = float(words[-1].end_time) if words else 0.0
-            self._apply_commit(
+            return self._apply_commit(
                 committed_text=asr_hypo.strip(),
                 remainder_text="",
                 end_time_s=last_word_end,
             )
-            return None
 
         if n_utterances(lcp_text) < 1:
             return None
@@ -1168,16 +1300,20 @@ class CascadeSession:
         if end_time is None:
             return _COMMIT_ABORT
 
-        self._apply_commit(
+        remainder_text = asr_hypo[rightest_punct_idx + 1 :].strip()
+        return self._apply_commit(
             committed_text=lcp_text[: rightest_punct_idx + 1],
-            remainder_text=asr_hypo[rightest_punct_idx + 1 :].strip(),
+            remainder_text=remainder_text,
             end_time_s=float(end_time),
         )
-        return None
 
     def _apply_commit(
-        self, *, committed_text: str, remainder_text: str, end_time_s: float
-    ) -> None:
+        self,
+        *,
+        committed_text: str,
+        remainder_text: str,
+        end_time_s: float,
+    ) -> dict[str, Any]:
         utt_end_time = int(end_time_s * SAMPLE_RATE) + self.state.utt_timestamps[-1]
         utt_end_time = min(utt_end_time, len(self.state.source))
         self.state.utt_timestamps.append(utt_end_time)
@@ -1189,55 +1325,63 @@ class CascadeSession:
             if n_words_right > 0
             else []
         )
-        if self.config.asr_streaming_prefix_enabled:
-            self._reset_asr_streaming_state(reset_backend=True)
+        if self.config.alignment_backend_name == "gemma_vllm_qk_fast":
+            # AlignAtt stream state is utterance-scoped; reset on commit.
+            self._reset_alignatt_stream()
+        return {
+            "committed_text": committed_text,
+            "committed_word_count": len(remove_punctuation(committed_text).split()),
+            "remainder_text": remainder_text,
+            "remainder_word_count": n_words_right,
+            "end_time_s": float(end_time_s),
+        }
 
-    def _compute_streaming_prefix(
+    def _append_trace_row(
         self,
-        alignment_backend: AlignmentBackend,
-    ) -> tuple[str, tuple[WordAlignment, ...]]:
-        """Build the Qwen-style rolled-back assistant prefix for streaming.
-
-        Uses word-level rollback so the prefix always ends at a clean word
-        boundary. This preserves the word-count invariant that
-        :func:`find_end_time` relies on for sentence commits, which
-        token-level rollback broke when the rolled-back boundary landed
-        mid-word and the continuation's word aggregation produced a
-        fragment word that did not match the full text's split.
-        """
-        del alignment_backend
-        if not self.config.asr_streaming_prefix_enabled:
-            return "", ()
-        if self._asr_streaming_chunk_count < self.config.asr_streaming_unfixed_chunks:
-            return "", ()
-        last_text = self._asr_streaming_last_text
-        last_words = self._asr_streaming_last_words
-        if not last_text or not last_words:
-            return "", ()
-        rollback = max(0, int(self.config.asr_streaming_rollback_words))
-        keep_count = len(last_words) - rollback
-        if keep_count <= 0:
-            return "", ()
-        kept_words = last_words[:keep_count]
-        cursor = 0
-        last_end_pos = 0
-        for word in kept_words:
-            candidate = word.text
-            if not candidate:
-                continue
-            idx = last_text.find(candidate, cursor)
-            if idx < 0:
-                return "", ()
-            cursor = idx + len(candidate)
-            last_end_pos = cursor
-        # Include trailing punctuation immediately after the last kept
-        # word so sentence-terminal markers are preserved in the prefix.
-        while last_end_pos < len(last_text) and last_text[last_end_pos] in ".,!?;:":
-            last_end_pos += 1
-        prefix_text = last_text[:last_end_pos]
-        if not prefix_text:
-            return "", ()
-        return prefix_text, tuple(kept_words)
+        *,
+        audio_tail_s: float,
+        audio_window_s: float,
+        hypothesis_text: str,
+        lcp_text: str,
+        commit_mode: str,
+        commit_info: dict[str, Any] | object | None,
+        is_final_chunk: bool,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        committed_payload = (
+            commit_info
+            if isinstance(commit_info, dict)
+            else {"committed_text": "", "committed_word_count": 0, "end_time_s": None}
+        )
+        public_asr_text = self.render_public_asr_text()
+        row: dict[str, Any] = {
+            "update_idx": len(self._asr_stream_trace),
+            "chunk_idx": len(self._asr_stream_trace),
+            "audio_processed_s": self.current_audio_seconds(),
+            "audio_tail_s": float(audio_tail_s),
+            "audio_window_s": float(audio_window_s),
+            "hypothesis_text": hypothesis_text,
+            "hypothesis_word_count": len(remove_punctuation(hypothesis_text).split()),
+            "lcp_text": lcp_text,
+            "lcp_word_count": len(remove_punctuation(lcp_text).split()),
+            "commit_mode": commit_mode,
+            "committed_text": committed_payload["committed_text"],
+            "committed_word_count": int(committed_payload["committed_word_count"]),
+            "commit_end_time_s": (
+                None
+                if committed_payload["end_time_s"] is None
+                else float(committed_payload["end_time_s"])
+            ),
+            "predicted_boundary_count_so_far": len(self.state.utt_sources) - 1,
+            "committed_segment_count": len(self.state.utt_sources) - 1,
+            "public_asr_text": public_asr_text,
+            "public_asr_word_count": len(remove_punctuation(public_asr_text).split()),
+            "public_asr_char_count": len(public_asr_text),
+            "is_final_chunk": bool(is_final_chunk),
+        }
+        if extra:
+            row.update(extra)
+        self._asr_stream_trace.append(row)
 
     def render_translation(self) -> tuple[str, MTBackendResult | None]:
         return self.translation_units.render_translation()
@@ -1278,11 +1422,9 @@ class CascadeSession:
         )
 
     def finalize_stream(self) -> SessionProcessingResult:
-        # is_final_chunk=True lets the punctuation-LCP commit rule flush the
-        # tail even without a sentence-final punctuation cue. Without it the
-        # last 1–2 trailing words of every clip stay "partial" and never make
-        # it into the hypothesis. Env flag CASCADE_DISABLE_EOS_FLUSH=1 lets
-        # the A/B compare the fix.
+        # is_final_chunk=True lets the active ASR commit policy flush the
+        # remaining live tail at EOS. Without it the last punctuation-less or
+        # frontier-gated words would never make it into the public hypothesis.
         eos_flush = os.environ.get("CASCADE_DISABLE_EOS_FLUSH", "") != "1"
         final_asr = (
             self.transcribe_audio(is_final_chunk=eos_flush)

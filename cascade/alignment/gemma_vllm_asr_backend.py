@@ -23,7 +23,6 @@ from functools import partial
 from types import MethodType, SimpleNamespace
 from typing import Any, Sequence
 import os
-import wave
 
 import numpy as np
 import torch
@@ -34,8 +33,10 @@ from cascade.alignment.base import (
     AlignmentResult,
     WordAlignment,
 )
+from cascade.alignment.gemma_alignatt_stream import AlignAttStepRaw
 from cascade.mt.base import AlignAttHead, compute_alignatt_source_argmaxes
 from cascade.alignment.gemma_transformers_asr_backend import (
+    AudioSpan,
     GEMMA_AUDIO_MAX_SECONDS_DEFAULT,
     GEMMA_AUDIO_MS_PER_TOKEN_DEFAULT,
     GEMMA_AUDIO_TOKEN_ID_DEFAULT,
@@ -55,6 +56,101 @@ from cascade.alignment.gemma_transformers_asr_backend import (
 # behind this explicit local-only switch.
 os.environ.setdefault("VLLM_ALLOW_INSECURE_SERIALIZATION", "1")
 _ALIGNATT_TENSOR_OBSERVER_BOOTSTRAP_ENV = "ALIGNATT_VLLM_TENSOR_OBSERVER_BOOTSTRAP"
+
+# Single verbatim-transcription instruction shared by the non-streaming
+# full-utterance path and the streaming AlignAtt path. We deliberately
+# removed the four-regime instruction matrix: regime-specific wording
+# could leak into the transcript and then recirculate through the forced
+# prefix, which is the exact desync AlignAtt streaming must avoid.
+GEMMA_ASR_INSTRUCTION = (
+    "Provide a verbatim, word-for-word transcription of the audio. "
+    "Only output the transcription, with no newlines."
+)
+GEMMA_VLLM_SAMPLING_MODE_SHIPPING = "shipping"
+GEMMA_VLLM_SAMPLING_MODE_HF_MODEL_CARD = "hf_model_card"
+GEMMA_VLLM_SAMPLING_MODES = (
+    GEMMA_VLLM_SAMPLING_MODE_SHIPPING,
+    GEMMA_VLLM_SAMPLING_MODE_HF_MODEL_CARD,
+)
+
+
+@dataclass(frozen=True)
+class _GemmaASRPromptLayout:
+    user_only_token_ids: tuple[int, ...]
+    prefix_token_ids: tuple[int, ...]
+    prompt_token_ids: tuple[int, ...]
+    audio_span: AudioSpan
+    audio_placeholder_token_count: int
+
+    @property
+    def audio_token_count(self) -> int:
+        return int(self.audio_span.length)
+
+    @property
+    def non_audio_prompt_tokens(self) -> int:
+        return int(len(self.user_only_token_ids) - self.audio_placeholder_token_count)
+
+    @property
+    def prompt_token_count(self) -> int:
+        return int(
+            self.non_audio_prompt_tokens
+            + len(self.prefix_token_ids)
+            + self.audio_token_count
+        )
+
+
+def build_gemma_vllm_sampling_params(
+    *,
+    runtime_config: SimpleNamespace,
+    max_new_tokens: int,
+):
+    from vllm import SamplingParams
+
+    sampling_mode = str(
+        getattr(
+            runtime_config,
+            "gemma_vllm_sampling_mode",
+            GEMMA_VLLM_SAMPLING_MODE_SHIPPING,
+        )
+        or GEMMA_VLLM_SAMPLING_MODE_SHIPPING
+    )
+    if sampling_mode == GEMMA_VLLM_SAMPLING_MODE_SHIPPING:
+        return SamplingParams(
+            temperature=0.0,
+            max_tokens=int(max_new_tokens),
+            repetition_penalty=float(
+                getattr(runtime_config, "repetition_penalty", 1.0)
+            ),
+            skip_special_tokens=True,
+        ), {
+            "sampling_mode": sampling_mode,
+            "temperature": 0.0,
+            "top_p": None,
+            "top_k": None,
+            "repetition_penalty": float(
+                getattr(runtime_config, "repetition_penalty", 1.0)
+            ),
+        }
+    if sampling_mode == GEMMA_VLLM_SAMPLING_MODE_HF_MODEL_CARD:
+        # Match the public Gemma 4 model-card recommendation for ASR probes.
+        return SamplingParams(
+            temperature=1.0,
+            top_p=0.95,
+            top_k=64,
+            max_tokens=int(max_new_tokens),
+            repetition_penalty=1.0,
+            skip_special_tokens=True,
+        ), {
+            "sampling_mode": sampling_mode,
+            "temperature": 1.0,
+            "top_p": 0.95,
+            "top_k": 64,
+            "repetition_penalty": 1.0,
+        }
+    raise ValueError(
+        f"Unknown Gemma vLLM sampling mode {sampling_mode!r}; expected one of "
+        f"{GEMMA_VLLM_SAMPLING_MODES}."
+    )
 
 
 def _resolve_vllm_gemma_decoder_layers(model) -> Sequence[object]:
@@ -1152,13 +1248,22 @@ class GemmaVLLMASRBackend(AlignmentBackend):
         self.audio_token_id = int(audio_token_id)
         self.audio_ms_per_token = float(audio_ms_per_token)
         self.max_audio_seconds = float(max_audio_seconds)
+        # Gemma's audio encoder is trained at 16 kHz. This attribute
+        # lets the stream and helpers avoid hardcoding the sample rate
+        # in multiple places.
+        self.sample_rate = 16000
+        self.max_model_len = int(getattr(runtime_config, "gemma_max_model_len", 1024))
+        # Keep a small reserve below the nominal decoder limit, analogous to
+        # SimulStreaming's `max_text_len - margin` trimming: vLLM multimodal
+        # execution adds a small amount of backend-managed prompt overhead that
+        # is not perfectly reflected by the local tokenizer count alone.
+        self.prompt_budget_reserve_tokens = 32
         self.llm = None
         self.processor = None
         self.tokenizer = None
         self.alignatt_heads: list[AlignAttHead] = []
         self.word_end_offset_s = 0.0
         self.allowed_local_media_path = str(Path.cwd().resolve())
-        self._tmp_audio_dir = Path.cwd() / "tmp" / "vllm_audio_inputs"
         self.max_audio_tokens = 0
         self.worker_mode = str(
             getattr(runtime_config, "gemma_vllm_worker_mode", "custom_tensor")
@@ -1200,15 +1305,33 @@ class GemmaVLLMASRBackend(AlignmentBackend):
         self.enable_prefix_caching = bool(
             getattr(runtime_config, "gemma_vllm_enable_prefix_caching", False)
         )
-        self.force_generate_api = bool(
-            getattr(runtime_config, "gemma_vllm_force_generate_api", False)
-        )
         self._prompt_observer_cache: dict[str, _PromptObserverCacheEntry] = {}
         self._last_generated_token_ids: list[int] | None = None
 
     def reset_caches(self) -> None:
         self._prompt_observer_cache.clear()
         self._last_generated_token_ids = None
+
+    def decode_single_token(self, token_id: int) -> str:
+        """Return the surface string for a single decoder token ID.
+
+        Token-level commit records keep the exact subword piece so that
+        concatenating ``text`` over committed tokens reproduces the
+        model's decoded output verbatim (including spacing). Skipping
+        special tokens here avoids meta-markers bleeding into the
+        transcript; AlignAtt already handles ordering.
+        """
+        if self.tokenizer is None:
+            raise RuntimeError("Gemma vLLM backend is not loaded.")
+        return self.tokenizer.decode([int(token_id)], skip_special_tokens=True)
+
+    def decode_token_ids(self, token_ids: Sequence[int]) -> str:
+        if self.tokenizer is None:
+            raise RuntimeError("Gemma vLLM backend is not loaded.")
+        return self.tokenizer.decode(
+            [int(t) for t in token_ids],
+            skip_special_tokens=True,
+        )
 
     def _build_compilation_config(self) -> dict[str, Any] | None:
         compilation_config: dict[str, Any] = {}
@@ -1302,9 +1425,7 @@ class GemmaVLLMASRBackend(AlignmentBackend):
                     model=self.model_name,
                     trust_remote_code=True,
                     dtype="bfloat16",
-                    max_model_len=int(
-                        getattr(self.runtime_config, "gemma_max_model_len", 1024)
-                    ),
+                    max_model_len=int(self.max_model_len),
                     gpu_memory_utilization=float(
                         getattr(
                             self.runtime_config,
@@ -1366,89 +1487,104 @@ class GemmaVLLMASRBackend(AlignmentBackend):
             )
         return duration_s
 
-    @staticmethod
-    def _render_asr_instruction(language: str) -> str:
-        # Prompt structure taken verbatim from Google's official Gemma audio
-        # guidance ("Transcribe ... in {LANGUAGE} into {LANGUAGE} text"). The
-        # earlier vague "in its original language" phrasing was letting the
-        # model drift into re-emitting the instruction under streaming
-        # prefix-prefill.
-        lang_label = language or "the original language"
-        return (
-            f"Transcribe the following speech segment in {lang_label} into "
-            f"{lang_label} text.\n\n"
-            "Follow these specific instructions for formatting the answer:\n"
-            "* Only output the transcription, with no newlines.\n"
-            "* When transcribing numbers, write the digits, i.e. write 1.7 "
-            "and not one point seven, and write 3 instead of three."
+    def _build_prompt_layout(
+        self,
+        audio_sample_count: int,
+        *,
+        forced_prefix_token_ids: Sequence[int] = (),
+    ) -> _GemmaASRPromptLayout:
+        """Build the one-and-only Gemma ASR prompt layout.
+
+        The user turn is rendered once via the chat template with
+        ``add_generation_prompt=True`` (so the ``<start_of_turn>model``
+        preamble is included). Optionally ``forced_prefix_token_ids``
+        are appended verbatim: these are real decoder token IDs for
+        already-committed AlignAtt words. We never re-tokenize text at
+        step time — the stream owns the IDs and hands them in directly.
+        """
+        if self.processor is None or self.tokenizer is None:
+            raise RuntimeError("Gemma vLLM backend is not loaded.")
+
+        processor_messages: list[dict[str, Any]] = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "audio", "audio": np.asarray([], dtype=np.float32)},
+                    {"type": "text", "text": GEMMA_ASR_INSTRUCTION},
+                ],
+            }
+        ]
+        prompt_text = self.processor.apply_chat_template(
+            processor_messages,
+            add_generation_prompt=True,
+            tokenize=False,
+        )
+        user_only_token_ids = tuple(
+            int(token_id)
+            for token_id in self.tokenizer.encode(
+                prompt_text,
+                add_special_tokens=False,
+            )
+        )
+        audio_placeholder_span = detect_audio_span(
+            user_only_token_ids,
+            audio_token_id=self.audio_token_id,
+            audio_ms_per_token=self.audio_ms_per_token,
+        )
+        if audio_placeholder_span is None:
+            raise RuntimeError(
+                "Could not detect the audio placeholder span in the Gemma prompt."
+            )
+        audio_placeholder_token_count = int(audio_placeholder_span.length)
+        if audio_placeholder_token_count <= 0:
+            raise RuntimeError("Gemma audio placeholder span must contain at least one token.")
+        duration_ms = float(audio_sample_count) * 1000.0 / float(self.sample_rate)
+        dynamic_audio_tokens = max(
+            1,
+            int(np.ceil(duration_ms / float(self.audio_ms_per_token))),
+        )
+        max_audio_seq_length = int(
+            getattr(self.processor, "audio_seq_length", 0) or dynamic_audio_tokens
+        )
+        audio_token_count = min(dynamic_audio_tokens, max_audio_seq_length)
+        audio_span = AudioSpan(
+            prompt_start=int(audio_placeholder_span.prompt_start),
+            prompt_end=int(audio_placeholder_span.prompt_start) + int(audio_token_count),
+            ms_per_token=float(self.audio_ms_per_token),
+        )
+        prefix_token_ids = tuple(int(t) for t in forced_prefix_token_ids)
+        return _GemmaASRPromptLayout(
+            user_only_token_ids=user_only_token_ids,
+            prefix_token_ids=prefix_token_ids,
+            prompt_token_ids=user_only_token_ids + prefix_token_ids,
+            audio_span=audio_span,
+            audio_placeholder_token_count=audio_placeholder_token_count,
         )
 
-    def _render_processor_messages(
+    def can_fit_step(
         self,
-        audio: np.ndarray,
         *,
+        audio_window_samples: int,
+        forced_prefix_token_count: int,
         language: str,
-        assistant_prefix: str = "",
-    ) -> list[dict[str, Any]]:
-        messages: list[dict[str, Any]] = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "audio", "audio": np.asarray(audio, dtype=np.float32)},
-                    {"type": "text", "text": self._render_asr_instruction(language)},
-                ],
-            }
-        ]
-        if assistant_prefix:
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": [{"type": "text", "text": assistant_prefix}],
-                }
-            )
-        return messages
+    ) -> bool:
+        """Return True iff the AlignAtt streaming step fits under the prompt budget.
 
-    def _render_vllm_messages(
-        self,
-        *,
-        audio_file_url: str,
-        language: str,
-        assistant_prefix: str = "",
-    ) -> list[dict[str, Any]]:
-        messages: list[dict[str, Any]] = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "audio_url", "audio_url": {"url": audio_file_url}},
-                    {"type": "text", "text": self._render_asr_instruction(language)},
-                ],
-            }
-        ]
-        if assistant_prefix:
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": [{"type": "text", "text": assistant_prefix}],
-                }
-            )
-        return messages
-
-    def _write_temp_audio_file(
-        self,
-        audio: np.ndarray,
-        *,
-        sample_rate: int,
-    ) -> Path:
-        self._tmp_audio_dir.mkdir(parents=True, exist_ok=True)
-        payload = np.clip(np.asarray(audio, dtype=np.float32), -1.0, 1.0)
-        pcm16 = (payload * 32767.0).astype(np.int16)
-        temp_path = self._tmp_audio_dir / "current_request.wav"
-        with wave.open(str(temp_path), "wb") as wav:
-            wav.setnchannels(1)
-            wav.setsampwidth(2)
-            wav.setframerate(int(sample_rate))
-            wav.writeframes(pcm16.tobytes())
-        return temp_path
+        The stream-side contract is: over-budget is a hard fail for the
+        step (we skip and return an empty delta). We never silently trim
+        audio out from under the forced prefix, since that is exactly
+        the desync class the redesign is trying to remove.
+        """
+        layout = self._build_prompt_layout(int(audio_window_samples))
+        non_audio_prompt_tokens = int(layout.non_audio_prompt_tokens)
+        audio_token_count = int(layout.audio_token_count)
+        total_prompt_tokens = (
+            non_audio_prompt_tokens
+            + int(forced_prefix_token_count)
+            + audio_token_count
+        )
+        budget = int(self.max_model_len) - int(self.prompt_budget_reserve_tokens)
+        return total_prompt_tokens <= budget
 
     def _build_compact_observer_tokens(
         self,
@@ -1655,72 +1791,46 @@ class GemmaVLLMASRBackend(AlignmentBackend):
             )
         return payloads[0]
 
-    def transcribe_and_align(
+    def _run_alignatt_inference(
         self,
         audio: np.ndarray,
         *,
-        sample_rate: int,
-        language: str,
-        streaming_prefix_text: str = "",
-        streaming_prefix_words: tuple[WordAlignment, ...] = (),
-    ) -> AlignmentResult | None:
+        forced_prefix_token_ids: Sequence[int],
+        max_new_tokens: int,
+    ) -> dict[str, Any] | None:
+        """Shared ``generate + observer + reconstruct`` primitive.
+
+        Returns a dict with:
+          - ``prompt_layout``: the :class:`_GemmaASRPromptLayout`,
+          - ``generated_ids``: trimmed generated token IDs,
+          - ``aligned_audio_positions``: one argmax per generated token
+            (relative to the audio window),
+          - ``content_frame_len``: number of real audio frames in the
+            window (before any encoder-side padding),
+          - ``raw_completion_text``: untrimmed decoded string,
+          - ``finish_reason``: vLLM finish reason,
+          - ``diagnostics``: timing + capture diagnostics.
+
+        Returns ``None`` when the model produced an empty completion
+        (this is an ordinary empty step, not a failure).
+        """
         if self.llm is None or self.processor is None or self.tokenizer is None:
             raise RuntimeError("Gemma vLLM backend is not loaded. Call load() first.")
         if not self.alignatt_heads:
             raise RuntimeError(
-                "No calibrated AlignAtt heads are loaded for the experimental vLLM backend."
+                "No calibrated AlignAtt heads are loaded for the vLLM backend."
             )
 
-        from vllm import SamplingParams
-
-        audio = np.asarray(audio, dtype=np.float32)
-        audio_duration_s = self._enforce_audio_cap(audio, sample_rate=sample_rate)
-
-        use_streaming_prefix = bool(streaming_prefix_text)
-        # Ablation control for PLAN.md step 1: when force_generate_api is
-        # set, use the llm.generate(prompt_token_ids, multi_modal_data)
-        # call shape even with an empty prefix. This isolates the API path
-        # change from the prefix-prefill decode-delta effect.
-        use_generate_api = use_streaming_prefix or self.force_generate_api
+        audio = np.ascontiguousarray(np.asarray(audio, dtype=np.float32))
+        self._enforce_audio_cap(audio, sample_rate=self.sample_rate)
 
         prompt_build_start = perf_counter()
-        # Replicate Qwen3-ASR's streaming_transcribe pattern for the
-        # streaming path: tokenize the *user-only* turn through the chat
-        # template (add_generation_prompt=True), then append the previously
-        # decoded text as a raw token suffix. The vLLM call becomes
-        # llm.generate(prompt_token_ids=...) instead of llm.chat() with
-        # continue_final_message=True. This matches how Qwen3-ASR's
-        # streaming_transcribe() drives its own vLLM backend and avoids
-        # the chat-template edge cases that surfaced on Gemma.
-        processor_messages = self._render_processor_messages(
-            audio,
-            language=language,
-            assistant_prefix="",
+        prompt_layout = self._build_prompt_layout(
+            int(len(audio)),
+            forced_prefix_token_ids=forced_prefix_token_ids,
         )
-        prompt_inputs = self.processor.apply_chat_template(
-            processor_messages,
-            add_generation_prompt=True,
-            tokenize=True,
-            return_dict=True,
-            return_tensors="pt",
-        )
-        user_only_token_ids = [
-            int(token_id) for token_id in prompt_inputs["input_ids"][0].tolist()
-        ]
-        audio_span = detect_audio_span(
-            user_only_token_ids,
-            audio_token_id=self.audio_token_id,
-            audio_ms_per_token=self.audio_ms_per_token,
-        )
-        if audio_span is None:
-            raise RuntimeError("Could not detect the audio token span in the Gemma prompt.")
-        if use_streaming_prefix:
-            prefix_token_ids = self.tokenizer.encode(
-                streaming_prefix_text, add_special_tokens=False
-            )
-            prompt_token_ids = list(user_only_token_ids) + list(prefix_token_ids)
-        else:
-            prompt_token_ids = user_only_token_ids
+        audio_span = prompt_layout.audio_span
+        prompt_token_ids = [int(t) for t in prompt_layout.prompt_token_ids]
         prompt_build_ms = (perf_counter() - prompt_build_start) * 1000.0
 
         install_result = self._install_observer(
@@ -1729,7 +1839,7 @@ class GemmaVLLMASRBackend(AlignmentBackend):
                 for head in self.alignatt_heads
             ],
             audio_prompt_positions=list(range(audio_span.prompt_start, audio_span.prompt_end)),
-            prompt_length=len(prompt_token_ids),
+            prompt_length=int(prompt_layout.prompt_token_count),
         )
         prompt_observer_cache_key = _compute_prompt_observer_cache_key(
             prompt_token_ids=prompt_token_ids,
@@ -1742,43 +1852,17 @@ class GemmaVLLMASRBackend(AlignmentBackend):
             ],
         )
 
-        sampling_params = SamplingParams(
-            temperature=0.0,
-            max_tokens=self.max_new_tokens,
-            repetition_penalty=float(
-                getattr(self.runtime_config, "repetition_penalty", 1.0)
-            ),
-            skip_special_tokens=True,
+        sampling_params, sampling_diagnostics = build_gemma_vllm_sampling_params(
+            runtime_config=self.runtime_config,
+            max_new_tokens=int(max_new_tokens),
         )
 
         generate_start = perf_counter()
-        if use_generate_api:
-            # Qwen3-ASR-style call: prompt_token_ids (user turn tokens,
-            # optionally + tokenized text suffix) + raw audio via
-            # multi_modal_data.
-            inp = {
-                "prompt_token_ids": prompt_token_ids,
-                "multi_modal_data": {
-                    "audio": [np.asarray(audio, dtype=np.float32)]
-                },
-            }
-            outputs = self.llm.generate(
-                [inp],
-                sampling_params=sampling_params,
-                use_tqdm=False,
-            )
-        else:
-            temp_audio_path = self._write_temp_audio_file(audio, sample_rate=sample_rate)
-            vllm_messages = self._render_vllm_messages(
-                audio_file_url=temp_audio_path.resolve().as_uri(),
-                language=language,
-                assistant_prefix="",
-            )
-            outputs = self.llm.chat(
-                vllm_messages,
-                sampling_params=sampling_params,
-                use_tqdm=False,
-            )
+        inp = {
+            "prompt_token_ids": prompt_token_ids,
+            "multi_modal_data": {"audio": [audio]},
+        }
+        outputs = self.llm.generate([inp], sampling_params=sampling_params, use_tqdm=False)
         generate_ms = (perf_counter() - generate_start) * 1000.0
         if not outputs or not outputs[0].outputs:
             raise RuntimeError("vLLM Gemma ASR produced no completion output.")
@@ -1788,11 +1872,9 @@ class GemmaVLLMASRBackend(AlignmentBackend):
         raw_completion_text = str(completion.text)
         text = raw_completion_text.strip()
         generated_ids = self._trim_trailing_non_text_token_ids(
-            [int(token_id) for token_id in completion.token_ids],
+            [int(t) for t in completion.token_ids],
             text=text,
         )
-        if not text:
-            return None
 
         fetch_start = perf_counter()
         capture_payload = self._fetch_observer_payload()
@@ -1820,23 +1902,138 @@ class GemmaVLLMASRBackend(AlignmentBackend):
         )
         reconstruction_ms = (perf_counter() - reconstruction_start) * 1000.0
 
+        if not text or not generated_ids:
+            return None
+
         effective_token_count = min(len(generated_ids), len(aligned_audio_positions))
         if effective_token_count <= 0:
             capture_debug = None if capture_payload is None else capture_payload.get("debug")
             raise RuntimeError(
-                "The experimental vLLM observer did not recover any generated-token "
-                f"alignment rows. capture={reconstruction_diagnostics!r} "
+                "The vLLM observer did not recover any generated-token alignment "
+                f"rows. capture={reconstruction_diagnostics!r} "
                 f"capture_debug={capture_debug!r} "
-                f"request_prompt_tokens={len(output.prompt_token_ids or [])} "
-                f"local_prompt_tokens={len(prompt_token_ids)} "
                 f"finish_reason={completion.finish_reason!r} "
                 f"generated_token_ids={len(generated_ids)}"
             )
         generated_ids = generated_ids[:effective_token_count]
         aligned_audio_positions = aligned_audio_positions[:effective_token_count]
 
-        decode_drift = self._compute_decode_drift(generated_ids)
         self._last_generated_token_ids = list(generated_ids)
+
+        diagnostics = {
+            "backend": self.name,
+            "observer_backend": "vllm_qk_fast_experimental",
+            "prompt_budget": {
+                "max_model_len": int(self.max_model_len),
+                "prompt_reserve_tokens": int(self.prompt_budget_reserve_tokens),
+                "prompt_token_count": int(prompt_layout.prompt_token_count),
+                "non_audio_prompt_tokens": int(prompt_layout.non_audio_prompt_tokens),
+                "audio_prompt_tokens": int(prompt_layout.audio_token_count),
+                "prefix_prompt_tokens": int(len(prompt_layout.prefix_token_ids)),
+            },
+            "sampling": sampling_diagnostics,
+            "selected_head_count": len(self.alignatt_heads),
+            "audio_span_length": int(audio_span.length),
+            "generated_token_count": len(generated_ids),
+            "monotonicity": monotonicity_score(aligned_audio_positions),
+            "finish_reason": completion.finish_reason,
+            "capture": reconstruction_diagnostics,
+            "capture_debug": (
+                None if capture_payload is None else capture_payload.get("debug")
+            ),
+            "prompt_observer_cache": {
+                **prompt_observer_cache_diagnostics,
+                "cache_size": len(self._prompt_observer_cache),
+                "stored": prompt_cache_entry is not None,
+            },
+            "worker_install": install_result,
+            "timings_ms": {
+                "prompt_build": round(prompt_build_ms, 3),
+                "generate": round(generate_ms, 3),
+                "capture_fetch": round(capture_fetch_ms, 3),
+                "qk_reconstruction": round(reconstruction_ms, 3),
+            },
+        }
+
+        return {
+            "prompt_layout": prompt_layout,
+            "generated_ids": generated_ids,
+            "aligned_audio_positions": aligned_audio_positions,
+            "content_frame_len": int(audio_span.length),
+            "raw_completion_text": raw_completion_text,
+            "finish_reason": completion.finish_reason,
+            "diagnostics": diagnostics,
+        }
+
+    def alignatt_step(
+        self,
+        *,
+        audio_window: np.ndarray,
+        forced_prefix_token_ids: Sequence[int],
+        language: str,
+        max_new_tokens: int,
+    ) -> AlignAttStepRaw | None:
+        """One AlignAtt streaming step: generate + capture attention.
+
+        The stream hands in ``audio_window`` (the trailing slice of the
+        live utterance) and ``forced_prefix_token_ids`` (the committed
+        tokens whose alignments still fall inside the window). We never
+        re-tokenize text here; IDs are already known at commit time.
+        """
+        result = self._run_alignatt_inference(
+            np.asarray(audio_window, dtype=np.float32),
+            forced_prefix_token_ids=forced_prefix_token_ids,
+            max_new_tokens=int(max_new_tokens),
+        )
+        if result is None:
+            return None
+        return AlignAttStepRaw(
+            generated_token_ids=tuple(int(t) for t in result["generated_ids"]),
+            per_token_audio_frame_argmax=tuple(
+                int(a) for a in result["aligned_audio_positions"]
+            ),
+            content_frame_len=int(result["content_frame_len"]),
+            diagnostics=dict(result["diagnostics"]),
+        )
+
+    def transcribe_and_align(
+        self,
+        audio: np.ndarray,
+        *,
+        sample_rate: int,
+        language: str,
+        streaming_prefix_text: str = "",
+        streaming_prefix_words: tuple[WordAlignment, ...] = (),
+    ) -> AlignmentResult | None:
+        """Non-streaming full-utterance ASR + alignment.
+
+        Streaming is driven by :class:`GemmaAlignAttStream` and does not
+        go through this method. We keep ``transcribe_and_align`` for
+        offline/full-audio harnesses. Non-empty ``streaming_prefix_text``
+        is rejected to keep the two paths strictly separate.
+        """
+        if streaming_prefix_text:
+            raise NotImplementedError(
+                "GemmaVLLMASRBackend.transcribe_and_align does not accept a "
+                "streaming prefix. Use GemmaAlignAttStream for the streaming "
+                "AlignAtt path."
+            )
+
+        audio = np.asarray(audio, dtype=np.float32)
+        audio_duration_s = self._enforce_audio_cap(audio, sample_rate=sample_rate)
+
+        result = self._run_alignatt_inference(
+            audio,
+            forced_prefix_token_ids=(),
+            max_new_tokens=self.max_new_tokens,
+        )
+        if result is None:
+            return None
+
+        generated_ids = result["generated_ids"]
+        aligned_audio_positions = result["aligned_audio_positions"]
+        raw_completion_text = result["raw_completion_text"]
+        text = raw_completion_text.strip()
 
         token_end_times_s = [
             audio_position_to_end_seconds(
@@ -1870,81 +2067,16 @@ class GemmaVLLMASRBackend(AlignmentBackend):
             aligned_source_positions=aligned_audio_positions,
         )
 
-        if use_streaming_prefix:
-            full_text = streaming_prefix_text + raw_completion_text.rstrip()
-            full_words = tuple(streaming_prefix_words) + tuple(words)
-        else:
-            full_text = text
-            full_words = tuple(words)
-
-        diagnostics = {
-            "backend": self.name,
-            "observer_backend": "vllm_qk_fast_experimental",
-            "streaming_prefix": {
-                "enabled": use_streaming_prefix,
-                "prefix_chars": len(streaming_prefix_text),
-                "prefix_word_count": len(streaming_prefix_words),
-                "continuation_chars": len(text),
-                "continuation_word_count": len(words),
-            },
-            "executor_backend": self.executor_backend,
-            "worker_mode": self.worker_mode,
-            "patch_mode": self.patch_mode,
-            "enforce_eager": self.enforce_eager,
-            "compilation_mode": self.compilation_mode,
-            "cudagraph_mode": self.cudagraph_mode,
-            "compile_cache_dir": self.compile_cache_dir,
-            "disable_compile_cache": self.disable_compile_cache,
-            "enable_prefix_caching": self.enable_prefix_caching,
-            "force_generate_api": self.force_generate_api,
-            "invocation_path": "generate" if use_generate_api else "chat",
-            "selected_head_count": len(self.alignatt_heads),
-            "prompt_token_count": len(prompt_token_ids),
-            "request_prompt_token_count": (
-                None
-                if output.prompt_token_ids is None
-                else len(output.prompt_token_ids)
-            ),
-            "prompt_token_ids_match_vllm_output": (
-                None
-                if output.prompt_token_ids is None
-                else list(output.prompt_token_ids) == prompt_token_ids
-            ),
-            "audio_span_length": audio_span.length,
-            "generated_token_count": len(generated_ids),
-            "monotonicity": monotonicity_score(aligned_audio_positions),
-            "finish_reason": completion.finish_reason,
-            "capture": reconstruction_diagnostics,
-            "capture_debug": (
-                None if capture_payload is None else capture_payload.get("debug")
-            ),
-            "prompt_observer_cache": {
-                **prompt_observer_cache_diagnostics,
-                "cache_size": len(self._prompt_observer_cache),
-                "stored": prompt_cache_entry is not None,
-            },
-            "decode_drift": decode_drift,
-            "worker_install": install_result,
-            "timings_ms": {
-                "prompt_build": round(prompt_build_ms, 3),
-                "generate": round(generate_ms, 3),
-                "capture_fetch": round(capture_fetch_ms, 3),
-                "qk_reconstruction": round(reconstruction_ms, 3),
-                "word_aggregation": round(word_aggregation_ms, 3),
-                "total_backend": round(
-                    prompt_build_ms
-                    + generate_ms
-                    + capture_fetch_ms
-                    + reconstruction_ms
-                    + word_aggregation_ms,
-                    3,
-                ),
-            },
+        diagnostics = dict(result["diagnostics"])
+        diagnostics["timings_ms"] = {
+            **diagnostics.get("timings_ms", {}),
+            "word_aggregation": round(word_aggregation_ms, 3),
         }
+        diagnostics["invocation_path"] = "generate"
 
         return AlignmentResult(
-            text=full_text,
-            words=full_words,
+            text=text,
+            words=tuple(words),
             audio_duration_s=audio_duration_s,
             observer_tokens=observer_tokens,
             diagnostics=diagnostics,

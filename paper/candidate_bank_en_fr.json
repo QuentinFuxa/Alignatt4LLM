@@ -1,0 +1,152 @@
+[
+  {
+    "id": "refl_01",
+    "family": "reflexive_clitic",
+    "source_text": "the model gives itself more context before it answers the question"
+  },
+  {
+    "id": "refl_02",
+    "family": "reflexive_clitic",
+    "source_text": "the system allows itself one more revision before it emits the answer"
+  },
+  {
+    "id": "refl_03",
+    "family": "reflexive_clitic",
+    "source_text": "the policy gives itself a wider margin before it commits the next word"
+  },
+  {
+    "id": "refl_04",
+    "family": "reflexive_clitic",
+    "source_text": "the decoder gives itself more evidence before it finalizes the phrase"
+  },
+  {
+    "id": "refl_05",
+    "family": "reflexive_clitic",
+    "source_text": "the runtime gives itself a short pause before it accepts the risky token"
+  },
+  {
+    "id": "refl_06",
+    "family": "reflexive_clitic",
+    "source_text": "the translator gives itself more room before it rewrites the ending"
+  },
+  {
+    "id": "refl_07",
+    "family": "reflexive_clitic",
+    "source_text": "the observer keeps itself active while the engine continues the draft"
+  },
+  {
+    "id": "refl_08",
+    "family": "reflexive_clitic",
+    "source_text": "the aligner gives itself a little more signal before it trusts the prefix"
+  },
+  {
+    "id": "refl_09",
+    "family": "reflexive_clitic",
+    "source_text": "the method gives itself one more word before it commits the translation"
+  },
+  {
+    "id": "refl_10",
+    "family": "reflexive_clitic",
+    "source_text": "the model keeps itself conservative while it follows the live source"
+  },
+  {
+    "id": "adj_01",
+    "family": "postnominal_adjective",
+    "source_text": "we keep only a simple and exact reconstruction of the draft to source block"
+  },
+  {
+    "id": "adj_02",
+    "family": "postnominal_adjective",
+    "source_text": "we build only a compact and faithful replay of the relevant attention rows"
+  },
+  {
+    "id": "adj_03",
+    "family": "postnominal_adjective",
+    "source_text": "the method uses a small and stable set of translation alignment heads"
+  },
+  {
+    "id": "adj_04",
+    "family": "postnominal_adjective",
+    "source_text": "the policy relies on a strict and monotone source side frontier"
+  },
+  {
+    "id": "adj_05",
+    "family": "postnominal_adjective",
+    "source_text": "the observer returns a compact and engine native capture of query and key tensors"
+  },
+  {
+    "id": "adj_06",
+    "family": "postnominal_adjective",
+    "source_text": "the paper reports a clear and reproducible comparison of the three capture seams"
+  },
+  {
+    "id": "adj_07",
+    "family": "postnominal_adjective",
+    "source_text": "the runtime exposes a single and role agnostic AlignAtt substrate"
+  },
+  {
+    "id": "adj_08",
+    "family": "postnominal_adjective",
+    "source_text": "the benchmark isolates a clean and measurable overhead from attention capture"
+  },
+  {
+    "id": "adj_09",
+    "family": "postnominal_adjective",
+    "source_text": "the translation uses a natural and visibly reordered French phrasing"
+  },
+  {
+    "id": "adj_10",
+    "family": "postnominal_adjective",
+    "source_text": "the figure highlights a sparse and multilingual family of alignment heads"
+  },
+  {
+    "id": "adv_01",
+    "family": "adverbial_reordering",
+    "source_text": "we carefully keep only the attention rows that the policy actually consumes"
+  },
+  {
+    "id": "adv_02",
+    "family": "adverbial_reordering",
+    "source_text": "we deliberately retain only the prompt keys that the replay really needs"
+  },
+  {
+    "id": "adv_03",
+    "family": "adverbial_reordering",
+    "source_text": "we selectively reconstruct only the source slice that drives the acceptance rule"
+  },
+  {
+    "id": "adv_04",
+    "family": "adverbial_reordering",
+    "source_text": "we explicitly compare only the seams that expose a real capture path"
+  },
+  {
+    "id": "adv_05",
+    "family": "adverbial_reordering",
+    "source_text": "we now measure directly how much faster the engine native observer runs"
+  },
+  {
+    "id": "adv_06",
+    "family": "adverbial_reordering",
+    "source_text": "we intentionally show only the words that remain safe under the frontier"
+  },
+  {
+    "id": "adv_07",
+    "family": "adverbial_reordering",
+    "source_text": "we consistently preserve only the accepted prefix while the draft keeps growing"
+  },
+  {
+    "id": "adv_08",
+    "family": "adverbial_reordering",
+    "source_text": "we separately benchmark the eager path before we compare it with qk fast"
+  },
+  {
+    "id": "adv_09",
+    "family": "adverbial_reordering",
+    "source_text": "we visually separate the prompt from the source before we inspect the draft"
+  },
+  {
+    "id": "adv_10",
+    "family": "adverbial_reordering",
+    "source_text": "we intentionally place the accepted prefix before we continue the translation"
+  }
+]

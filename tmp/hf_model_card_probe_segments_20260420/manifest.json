@@ -1,0 +1,22 @@
+[
+  {
+    "name": "seg14",
+    "offset_s": 100.884,
+    "duration_s": 5.759,
+    "reference": "We sample 100 specific goals and evaluate the scripts generated from large language models.",
+    "wav_path": "/home/fuxa/cascade_simultaneous/tmp/hf_model_card_probe_segments_20260420/seg14.wav",
+    "ref_path": "/home/fuxa/cascade_simultaneous/tmp/hf_model_card_probe_segments_20260420/seg14.txt",
+    "sample_rate": 16000,
+    "frame_count": 92144
+  },
+  {
+    "name": "seg44",
+    "offset_s": 339.134,
+    "duration_s": 8.048,
+    "reference": "We use large language models to generate a high-quality script dataset, CoScript, for constrained language planning.",
+    "wav_path": "/home/fuxa/cascade_simultaneous/tmp/hf_model_card_probe_segments_20260420/seg44.wav",
+    "ref_path": "/home/fuxa/cascade_simultaneous/tmp/hf_model_card_probe_segments_20260420/seg44.txt",
+    "sample_rate": 16000,
+    "frame_count": 128768
+  }
+]

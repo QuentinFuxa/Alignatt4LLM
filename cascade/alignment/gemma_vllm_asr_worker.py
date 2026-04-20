@@ -22,6 +22,7 @@ from vllm.config.compilation import CompilationMode
 from vllm.logger import init_logger
 from vllm.v1.worker.gpu_worker import Worker as VLLMGPUWorker
 
+from cascade.vllm_compat import compilation_time_seconds, ensure_compilation_times
 from cascade.alignment.gemma_vllm_asr_backend import (
     _decode_tensor_observer_bootstrap_from_env,
     _configure_audio_qk_tensor_observer_on_model,
@@ -87,16 +88,18 @@ class GemmaVLLMASRWorker(VLLMGPUWorker):
         with self._temporarily_disable_compile_and_cudagraph():
             return super().determine_available_memory()
 
-    def compile_or_warm_up_model(self) -> float:
+    def compile_or_warm_up_model(self):
         if not self._alignatt_observer_prepared:
             logger.info(
                 "Deferring compile/warmup until prepare_audio_observer arms the "
                 "Gemma AlignAtt observer."
             )
-            return 0.0
+            return ensure_compilation_times(0.0)
         if self._alignatt_observer_warm:
-            return self.vllm_config.compilation_config.compilation_time
-        warmup_time = super().compile_or_warm_up_model()
+            return ensure_compilation_times(
+                self.vllm_config.compilation_config.compilation_time
+            )
+        warmup_time = ensure_compilation_times(super().compile_or_warm_up_model())
         self._alignatt_observer_warm = True
         return warmup_time
 
@@ -133,20 +136,20 @@ class GemmaVLLMASRWorker(VLLMGPUWorker):
         )
         self._alignatt_observer_prepared = True
         if not self._alignatt_observer_warm:
-            warmup_time = super().compile_or_warm_up_model()
+            warmup_time = ensure_compilation_times(super().compile_or_warm_up_model())
             self._alignatt_observer_warm = True
             self._verify_observer_integrity("post-warmup")
             result = {
                 **result,
                 "warmup_triggered": True,
-                "warmup_compilation_time_s": float(warmup_time),
+                "warmup_compilation_time_s": compilation_time_seconds(warmup_time),
                 "observer_intact_after_warmup": True,
             }
         else:
             result = {
                 **result,
                 "warmup_triggered": False,
-                "warmup_compilation_time_s": float(
+                "warmup_compilation_time_s": compilation_time_seconds(
                     self.vllm_config.compilation_config.compilation_time
                 ),
             }

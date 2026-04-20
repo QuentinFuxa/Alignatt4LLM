@@ -314,9 +314,8 @@ def run_batch_inference(
         "gemma_audio_alignment_heads_path", "gemma_audio_align_probe_mode",
         "translation_emit_policy", "translation_max_tail_rewrite_words",
         "temperature", "repetition_penalty",
-        "asr_streaming_prefix_enabled", "asr_streaming_rollback_words",
-        "asr_streaming_unfixed_chunks",
-        "gemma_vllm_force_generate_api",
+        "asr_alignatt_frame_threshold",
+        "asr_alignatt_rewind_threshold",
         "paper_context_path", "paper_context_mode", "paper_context_top_k",
         "paper_context_max_chars", "paper_context_history_window_words",
         "mt_vllm_enforce_eager", "mt_vllm_cudagraph_mode",
@@ -397,6 +396,25 @@ def parse_args() -> argparse.Namespace:
         default="qwen_forced",
         choices=("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast"),
     )
+    parser.add_argument(
+        "--asr-alignatt-frame-threshold",
+        default=4,
+        type=int,
+        help=(
+            "AlignAtt token-level frontier gate in audio frames (simul_whisper "
+            "§4). Lower = more aggressive commit, higher = safer."
+        ),
+    )
+    parser.add_argument(
+        "--asr-alignatt-rewind-threshold",
+        default=200,
+        type=int,
+        help=(
+            "Attention-collapse guard: abort the chunk if a generated token's "
+            "argmax rewinds more than this many frames before the running "
+            "reference."
+        ),
+    )
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
     parser.add_argument("--max-history-utterances", default=0, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
@@ -433,22 +451,6 @@ def parse_args() -> argparse.Namespace:
             "prompt prefix (system + task instructions) across partial MT "
             "calls within an utterance. Source tokens live after the stable "
             "prefix, so the observer still captures their K on every prefill."
-        ),
-    )
-    parser.add_argument(
-        "--asr-streaming-prefix-enabled",
-        action="store_true",
-        help="Experimental Qwen-style prompt-prefix streaming for gemma_vllm_qk_fast.",
-    )
-    parser.add_argument("--asr-streaming-rollback-words", default=2, type=int)
-    parser.add_argument("--asr-streaming-unfixed-chunks", default=2, type=int)
-    parser.add_argument(
-        "--gemma-vllm-force-generate-api",
-        action="store_true",
-        help=(
-            "Ablation control for PLAN.md step 1: force gemma_vllm_qk_fast to use "
-            "llm.generate(prompt_token_ids, multi_modal_data) even without a "
-            "streaming prefix. Isolates the API path change from prefix-prefill."
         ),
     )
     parser.add_argument(
@@ -509,10 +511,8 @@ def main() -> None:
         translation_alignatt_inaccessible_ms=args.translation_alignatt_inaccessible_ms,
         translation_alignatt_argmax_mass_threshold=args.translation_alignatt_argmax_mass_threshold,
         mt_vllm_enable_prefix_caching=args.mt_vllm_enable_prefix_caching,
-        asr_streaming_prefix_enabled=args.asr_streaming_prefix_enabled,
-        asr_streaming_rollback_words=args.asr_streaming_rollback_words,
-        asr_streaming_unfixed_chunks=args.asr_streaming_unfixed_chunks,
-        gemma_vllm_force_generate_api=args.gemma_vllm_force_generate_api,
+        asr_alignatt_frame_threshold=args.asr_alignatt_frame_threshold,
+        asr_alignatt_rewind_threshold=args.asr_alignatt_rewind_threshold,
         paper_context_path=args.paper_context_path,
         paper_context_mode=args.paper_context_mode,
         paper_context_top_k=args.paper_context_top_k,

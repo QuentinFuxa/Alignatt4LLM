@@ -1466,9 +1466,9 @@ class GemmaTransformersASRBackend(AlignmentBackend):
             raise RuntimeError("Gemma alignment backend is not loaded. Call load() first.")
         if streaming_prefix_text or streaming_prefix_words:
             raise NotImplementedError(
-                "Transformers-based gemma_onepass_qk_fast does not yet support "
-                "prompt-prefix streaming. Use gemma_vllm_qk_fast with "
-                "asr_streaming_prefix_enabled=True for that path."
+                "Transformers-based gemma_onepass_qk_fast does not support "
+                "prompt-prefix streaming. Use gemma_vllm_qk_fast for the "
+                "AlignAtt streaming path."
             )
         total_start = perf_counter()
 

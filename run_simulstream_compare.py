@@ -150,6 +150,8 @@ def build_processor_config(args: argparse.Namespace, *, backend_name: str) -> Si
         chunk_ms=args.chunk_ms,
         speech_chunk_size=args.chunk_ms / 1000.0,
         alignment_backend_name=backend_name,
+        asr_alignatt_frame_threshold=args.asr_alignatt_frame_threshold,
+        asr_alignatt_rewind_threshold=args.asr_alignatt_rewind_threshold,
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         partial_max_new_tokens=args.partial_max_new_tokens,
@@ -420,6 +422,10 @@ def run_backend_subprocess(
         args.source,
         "--target",
         args.target,
+        "--asr-alignatt-frame-threshold",
+        str(args.asr_alignatt_frame_threshold),
+        "--asr-alignatt-rewind-threshold",
+        str(args.asr_alignatt_rewind_threshold),
         "--min-start-seconds",
         str(args.min_start_seconds),
         "--max-history-utterances",
@@ -458,6 +464,25 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source", default="en")
     parser.add_argument("--target", default="de")
     parser.add_argument("--python", default=sys.executable)
+    parser.add_argument(
+        "--asr-alignatt-frame-threshold",
+        default=4,
+        type=int,
+        help=(
+            "AlignAtt token-level frontier gate in audio frames (simul_whisper "
+            "§4). Lower = more aggressive commit, higher = safer."
+        ),
+    )
+    parser.add_argument(
+        "--asr-alignatt-rewind-threshold",
+        default=200,
+        type=int,
+        help=(
+            "Attention-collapse guard: abort the chunk if a generated token's "
+            "argmax rewinds more than this many frames before the running "
+            "reference."
+        ),
+    )
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
     parser.add_argument("--max-history-utterances", default=0, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)

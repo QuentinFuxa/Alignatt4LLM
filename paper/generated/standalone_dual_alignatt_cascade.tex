@@ -1,0 +1,160 @@
+\begin{figure*}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  >={Latex[length=2.4mm]},
+  every node/.style={font=\small, inner sep=1.5pt},
+  header/.style={draw=black!25, rounded corners=3pt, line width=0.6pt, fill=black!2},
+  box/.style={draw=black!55, rounded corners=3pt, line width=0.7pt, fill=white, align=center},
+  gemma/.style={draw=blue!50!black, rounded corners=6pt, line width=1.3pt, fill=blue!5, align=center},
+  observer/.style={draw=orange!80!black, rounded corners=3pt, line width=0.85pt, fill=orange!10, align=center},
+  gate/.style={draw=teal!65!black, rounded corners=3pt, line width=0.85pt, fill=teal!10, align=center},
+  output/.style={draw=green!45!black, rounded corners=3pt, line width=0.85pt, fill=green!12, align=center},
+  flow/.style={->, draw=black!72, line width=0.95pt},
+  feedback/.style={->, draw=green!45!black, densely dashed, line width=0.95pt},
+  frontier/.style={draw=black!65, dashed, line width=0.55pt},
+  title/.style={font=\bfseries\small, text=black!85},
+  hdr/.style={font=\bfseries\scriptsize, text=black!72},
+  hint/.style={font=\scriptsize, text=black!65, align=left},
+  tl/.style={font=\scriptsize, text=black!70, align=center},
+  tt/.style={font=\tiny, text=black!62, align=center},
+  obstag/.style={font=\scriptsize, text=orange!60!black, align=center},
+]
+
+  % ==========================================================
+  %   Vertical grid:
+  %     y = 7.65 - 8.45 : header
+  %     y = 6.90 - 7.25 : top feedback band (arrow at 7.00, label above)
+  %     y = 6.35         : Step 1 hdr
+  %     y = 4.70 - 6.05 : ASR swimlane boxes (flow y=5.40)
+  %     y = 3.85         : Step 2 hdr
+  %     y = 2.20 - 3.55 : MT swimlane boxes (flow y=2.90)
+  %     y = 1.25 - 1.75 : bottom feedback band (arrow at 1.50, label below)
+  % ==========================================================
+
+  % Header
+  \draw[header] (0.0, 7.65) rectangle (16.0, 8.45);
+  \node[anchor=west, title] at (0.30, 8.20) {One Gemma checkpoint, two sequential AlignAtt requests};
+  \node[anchor=west, hint] at (0.30, 7.85)
+    {Per chunk: ASR request confirms a transcript prefix, then MT request extends the translation from the visible source span.};
+
+  % ==========================================================
+  % Shared Gemma (spans both lanes vertically)
+  % ==========================================================
+  \draw[gemma] (7.00, 2.20) rectangle (9.35, 6.05);
+  \node[title, text=blue!45!black, anchor=north] at (8.18, 4.55) {Gemma};
+  \node[font=\scriptsize, text=blue!50!black, anchor=north] at (8.18, 4.15) {Gemma-4 E2B/E4B};
+  \node[font=\scriptsize, text=black!60, anchor=north] at (8.18, 3.80) {(served by vLLM)};
+
+  % ==========================================================
+  % ASR swimlane
+  % ==========================================================
+  \node[anchor=west, hdr] at (0.10, 6.35) {Step 1 \textemdash\ ASR request};
+
+  % Audio chunks box
+  \draw[box] (0.30, 4.70) rectangle (2.55, 6.05);
+  \node[tt, anchor=north] at (1.42, 6.00) {audio chunks};
+  \fill[blue!18] (0.45, 5.10) rectangle (1.80, 5.55);
+  \fill[blue!6]  (1.80, 5.10) rectangle (2.40, 5.55);
+  \draw[frontier] (1.80, 5.00) -- (1.80, 5.65);
+  \node[tt] at (1.12, 5.32) {safe};
+  \node[tt] at (2.10, 5.32) {latest};
+  \node[tt, anchor=north] at (1.42, 4.98) {audio frontier};
+
+  \draw[flow] (2.55, 5.40) -- (7.00, 5.40);
+  \node[obstag, anchor=south] at (4.78, 5.43)
+    {ASR request \textbullet\ $\mathcal{H}_{\mathrm{ASR}}$};
+
+  \draw[flow] (9.35, 5.40) -- (9.70, 5.40);
+
+  \draw[observer] (9.70, 4.70) rectangle (11.70, 6.05);
+  \node[tt, anchor=north] at (10.70, 6.00) {transcript draft};
+  \node[font=\tiny, text=orange!55!black, align=center, text width=1.85cm] at (10.70, 5.23)
+    {{\tiny +} q,k capture\\draft$\to$audio rows};
+
+  \draw[flow] (11.70, 5.40) -- (12.05, 5.40);
+
+  \draw[gate] (12.05, 4.70) rectangle (13.95, 6.05);
+  \node[tt, anchor=north, text=teal!40!black] at (13.00, 6.00) {\bfseries ASR gate};
+  \node[font=\tiny, text=teal!40!black, align=center] at (13.00, 5.23)
+    {commit prefix\\on safe audio};
+
+  \draw[flow] (13.95, 5.40) -- (14.30, 5.40);
+
+  \draw[output] (14.30, 4.80) rectangle (15.90, 5.95);
+  \node[font=\tiny, text=green!38!black, align=center, text width=1.55cm] at (15.10, 5.37)
+    {\bfseries confirmed\\transcript\\prefix};
+
+  % ==========================================================
+  % MT swimlane
+  % ==========================================================
+  \node[anchor=west, hdr] at (0.10, 3.85) {Step 2 \textemdash\ MT request};
+
+  \draw[box] (0.30, 2.20) rectangle (4.75, 3.55);
+  \node[tt, anchor=north] at (2.52, 3.50) {MT prompt layout};
+  \fill[black!9]   (0.45, 3.00) rectangle (4.60, 3.25);
+  \fill[blue!18]   (0.45, 2.62) rectangle (2.55, 2.90);
+  \fill[blue!6]    (2.55, 2.62) rectangle (3.35, 2.90);
+  \fill[green!16]  (0.45, 2.30) rectangle (1.75, 2.55);
+  \fill[orange!25] (1.75, 2.30) rectangle (4.60, 2.55);
+  \draw[frontier] (2.55, 2.27) -- (2.55, 2.95);
+  \node[font=\tiny, text=black!55, anchor=west] at (0.55, 3.13) {system / instruction};
+  \node[font=\tiny, text=blue!55!black, anchor=west] at (0.55, 2.76) {\bfseries visible source};
+  \node[font=\tiny, text=blue!45!black, anchor=west] at (2.62, 2.76) {future};
+  \node[font=\tiny, text=green!40!black, anchor=west] at (0.55, 2.42) {target pref.};
+  \node[font=\tiny, text=orange!55!black, anchor=west] at (1.82, 2.42) {\bfseries live draft};
+
+  \draw[flow] (4.75, 2.90) -- (7.00, 2.90);
+  \node[obstag, anchor=south] at (5.88, 2.93)
+    {MT request \textbullet\ $\mathcal{H}_{\mathrm{MT}}$};
+
+  \draw[flow] (9.35, 2.90) -- (9.70, 2.90);
+
+  \draw[observer] (9.70, 2.20) rectangle (11.70, 3.55);
+  \node[tt, anchor=north] at (10.70, 3.50) {target draft};
+  \node[font=\tiny, text=orange!55!black, align=center, text width=1.85cm] at (10.70, 2.73)
+    {{\tiny +} q,k capture\\draft$\to$source rows};
+
+  \draw[flow] (11.70, 2.90) -- (12.05, 2.90);
+
+  \draw[gate] (12.05, 2.20) rectangle (13.95, 3.55);
+  \node[tt, anchor=north, text=teal!40!black] at (13.00, 3.50) {\bfseries MT gate};
+  \node[font=\tiny, text=teal!40!black, align=center] at (13.00, 2.73)
+    {commit prefix\\on visible source};
+
+  \draw[flow] (13.95, 2.90) -- (14.30, 2.90);
+
+  \draw[output] (14.30, 2.30) rectangle (15.90, 3.45);
+  \node[font=\tiny, text=green!38!black, align=center, text width=1.55cm] at (15.10, 2.87)
+    {\bfseries accepted\\target\\prefix};
+
+  % ==========================================================
+  % Feedback 1 (top): confirmed transcript prefix -> MT source span
+  % ==========================================================
+  \draw[feedback, rounded corners=5pt]
+    (15.10, 5.95) -- (15.10, 7.00) -- (2.52, 7.00) -- (2.52, 3.55);
+  \node[font=\scriptsize, text=green!38!black, anchor=south] at (8.80, 7.03)
+    {confirmed transcript prefix $\rightarrow$ MT source span};
+
+  % ==========================================================
+  % Feedback 2 (bottom): accepted target prefix -> next MT prefill
+  % ==========================================================
+  \draw[feedback, rounded corners=5pt]
+    (15.10, 2.30) -- (15.10, 1.50) -- (1.10, 1.50) -- (1.10, 2.20);
+  \node[font=\scriptsize, text=green!38!black, anchor=north] at (8.10, 1.47)
+    {accepted target prefix $\rightarrow$ next MT prefill};
+
+\end{tikzpicture}
+}%
+\caption{\textbf{Operational view of the decoder-only cascade.}
+A single decoder-only Gemma checkpoint is queried twice per input chunk: first
+in the ASR role (audio$\to$text) to confirm a transcript prefix, then in the MT
+role (text$\to$text) to extend the translation from the visible source span.
+In the runtime this appears as two sequential vLLM requests with role-specific
+AlignAtt observers ($\mathcal{H}_{\mathrm{ASR}}$ and $\mathcal{H}_{\mathrm{MT}}$),
+each reconstructing only the draft-to-source block consumed by its gate. The
+confirmed ASR transcript prefix feeds the MT source span, and the accepted target
+prefix is reused as causal target prefill for the next MT step.}
+\label{fig:dual-alignatt-cascade}
+\end{figure*}

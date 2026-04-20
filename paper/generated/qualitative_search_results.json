@@ -1,0 +1,194 @@
+{
+  "attempted_languages": [
+    "French"
+  ],
+  "languages": {
+    "French": {
+      "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json",
+      "top_rows": [
+        {
+          "candidate_id": "adv_08",
+          "family": "adverbial_reordering",
+          "source_text": "we separately benchmark the eager path before we compare it with qk fast",
+          "accessible_units": 9,
+          "status": "scored",
+          "score": 16.025161424715947,
+          "stop_reason": "alignatt:source_frontier",
+          "stable_rerun_match": true,
+          "accepted_prefix_word_count": 4,
+          "draft_word_count": 13,
+          "draft_text": "nous évaluons séparément le chemin eager avant de le comparer à qk fast",
+          "acceptance_text": "nous évaluons séparément le",
+          "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+        },
+        {
+          "candidate_id": "adv_07",
+          "family": "adverbial_reordering",
+          "source_text": "we consistently preserve only the accepted prefix while the draft keeps growing",
+          "accessible_units": 9,
+          "status": "scored",
+          "score": 14.34290434247193,
+          "stop_reason": "alignatt:source_frontier",
+          "stable_rerun_match": true,
+          "accepted_prefix_word_count": 5,
+          "draft_word_count": 11,
+          "draft_text": "nous préservons systématiquement uniquement le préfixe accepté pendant que le brou",
+          "acceptance_text": "nous préservons systématiquement uniquement le",
+          "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+        },
+        {
+          "candidate_id": "adv_04",
+          "family": "adverbial_reordering",
+          "source_text": "we explicitly compare only the seams that expose a real capture path",
+          "accessible_units": 9,
+          "status": "scored",
+          "score": 14.331398091042788,
+          "stop_reason": "alignatt:source_frontier",
+          "stable_rerun_match": true,
+          "accepted_prefix_word_count": 4,
+          "draft_word_count": 12,
+          "draft_text": "nous comparons explicitement uniquement les coutures qui exposent un chemin de capture",
+          "acceptance_text": "nous comparons explicitement uniquement",
+          "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+        },
+        {
+          "candidate_id": "adv_04",
+          "family": "adverbial_reordering",
+          "source_text": "we explicitly compare only the seams that expose a real capture path",
+          "accessible_units": 7,
+          "status": "scored",
+          "score": 14.331398080202407,
+          "stop_reason": "alignatt:source_frontier",
+          "stable_rerun_match": true,
+          "accepted_prefix_word_count": 4,
+          "draft_word_count": 12,
+          "draft_text": "nous comparons explicitement uniquement les coutures qui exposent un chemin de capture",
+          "acceptance_text": "nous comparons explicitement uniquement",
+          "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+        },
+        {
+          "candidate_id": "refl_03",
+          "family": "reflexive_clitic",
+          "source_text": "the policy gives itself a wider margin before it commits the next word",
+          "accessible_units": 8,
+          "status": "scored",
+          "score": 14.210242918730627,
+          "stop_reason": "alignatt:source_frontier",
+          "stable_rerun_match": true,
+          "accepted_prefix_word_count": 5,
+          "draft_word_count": 13,
+          "draft_text": "la politique se donne une marge plus large avant d'engager le mot suivant",
+          "acceptance_text": "la politique se donne une",
+          "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+        },
+        {
+          "candidate_id": "refl_03",
+          "family": "reflexive_clitic",
+          "source_text": "the policy gives itself a wider margin before it commits the next word",
+          "accessible_units": 9,
+          "status": "scored",
+          "score": 14.210242903736333,
+          "stop_reason": "alignatt:source_frontier",
+          "stable_rerun_match": true,
+          "accepted_prefix_word_count": 5,
+          "draft_word_count": 13,
+          "draft_text": "la politique se donne une marge plus large avant d'engager le mot suivant",
+          "acceptance_text": "la politique se donne une",
+          "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+        },
+        {
+          "candidate_id": "refl_03",
+          "family": "reflexive_clitic",
+          "source_text": "the policy gives itself a wider margin before it commits the next word",
+          "accessible_units": 7,
+          "status": "scored",
+          "score": 14.207902354381583,
+          "stop_reason": "alignatt:source_frontier",
+          "stable_rerun_match": true,
+          "accepted_prefix_word_count": 4,
+          "draft_word_count": 13,
+          "draft_text": "la politique se donne une marge plus large avant d'engager le mot suivant",
+          "acceptance_text": "la politique se donne",
+          "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+        },
+        {
+          "candidate_id": "adv_02",
+          "family": "adverbial_reordering",
+          "source_text": "we deliberately retain only the prompt keys that the replay really needs",
+          "accessible_units": 7,
+          "status": "scored",
+          "score": 14.14894726990915,
+          "stop_reason": "alignatt:source_frontier",
+          "stable_rerun_match": true,
+          "accepted_prefix_word_count": 5,
+          "draft_word_count": 13,
+          "draft_text": "nous ne conservons que les clés de l'invite dont la lecture a réellement",
+          "acceptance_text": "nous ne conservons que les",
+          "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+        },
+        {
+          "candidate_id": "adv_02",
+          "family": "adverbial_reordering",
+          "source_text": "we deliberately retain only the prompt keys that the replay really needs",
+          "accessible_units": 9,
+          "status": "scored",
+          "score": 14.129339153822444,
+          "stop_reason": "alignatt:source_frontier",
+          "stable_rerun_match": true,
+          "accepted_prefix_word_count": 8,
+          "draft_word_count": 13,
+          "draft_text": "nous ne conservons que les clés de l'invite dont la lecture a réellement",
+          "acceptance_text": "nous ne conservons que les clés de l'invite",
+          "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+        },
+        {
+          "candidate_id": "adj_03",
+          "family": "postnominal_adjective",
+          "source_text": "the method uses a small and stable set of translation alignment heads",
+          "accessible_units": 7,
+          "status": "scored",
+          "score": 13.97143246542334,
+          "stop_reason": "alignatt:source_frontier",
+          "stable_rerun_match": true,
+          "accepted_prefix_word_count": 4,
+          "draft_word_count": 12,
+          "draft_text": "la méthode utilise un ensemble de têtes d'alignement de traduction petit et",
+          "acceptance_text": "la méthode utilise un",
+          "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+        }
+      ],
+      "row_count": 90,
+      "scored_count": 78,
+      "stop_reason_counts": {
+        "alignatt:source_frontier": 78
+      },
+      "provenance_summary": {
+        "all_draft_units": {
+          "unit_count": 781,
+          "source_accessible": 0.09373621507138312,
+          "source_inaccessible": 0.07514667732195564,
+          "source_total": 0.16888289239333876,
+          "non_source_prompt": 0.8102757725010837,
+          "suffix": 0.020841335262913586
+        },
+        "accepted_draft_units": {
+          "unit_count": 137,
+          "source_accessible": 0.14081255381714375,
+          "source_inaccessible": 0.009613612432327365,
+          "source_total": 0.1504261662494711,
+          "non_source_prompt": 0.8329151063939951,
+          "suffix": 0.01665872737784284
+        }
+      }
+    }
+  },
+  "selected": {
+    "target_lang": "French",
+    "candidate_id": "adv_08",
+    "family": "adverbial_reordering",
+    "score": 16.025161424715947,
+    "source_text": "we separately benchmark the eager path before we compare it with qk fast",
+    "stop_reason": "alignatt:source_frontier",
+    "heads_path": "/home/fuxa/cascade_simultaneous/assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+  }
+}
