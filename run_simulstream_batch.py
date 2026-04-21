@@ -215,9 +215,11 @@ def resolve_paper_context_path_for_input(
         return None
     candidate = Path(paper_context_dir) / f"{Path(input_path).stem}.json"
     if not candidate.exists():
-        raise FileNotFoundError(
-            f"Missing paper artifact for {Path(input_path).name}: expected {candidate}"
+        print(
+            f"  [paper-context] no artifact for {Path(input_path).name} at {candidate}; "
+            f"running without extra context for this input."
         )
+        return None
     return str(candidate)
 
 
@@ -452,6 +454,18 @@ def parse_args() -> argparse.Namespace:
             "calls within an utterance. Source tokens live after the stable "
             "prefix, so the observer still captures their K on every prefill."
         ),
+    )
+    parser.add_argument(
+        "--gemma-vllm-gpu-memory-utilization",
+        type=float,
+        default=None,
+        help="vLLM gpu_memory_utilization for the Gemma ASR engine (default 0.5).",
+    )
+    parser.add_argument(
+        "--mt-vllm-gpu-memory-utilization",
+        type=float,
+        default=None,
+        help="vLLM gpu_memory_utilization for the MT engine (default 0.5).",
     )
     parser.add_argument(
         "--paper-context-path",

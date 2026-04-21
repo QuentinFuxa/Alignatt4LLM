@@ -25,98 +25,113 @@
 \newlabel{sec:positioning}{{1}{1}{Positioning}{section.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {2}Simultaneous Cascade Architecture}{1}{section.2}\protected@file@percent }
 \newlabel{sec:cascade}{{2}{1}{Simultaneous Cascade Architecture}{section.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Streaming input.}{1}{section*.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Alignment backend.}{1}{section*.2}\protected@file@percent }
-\newlabel{eq:asr-output}{{1}{1}{Alignment backend}{equation.2.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Streaming input and alignment backend.}{1}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Source accessibility frontier.}{1}{section*.3}\protected@file@percent }
+\newlabel{eq:frontier}{{1}{1}{Source accessibility frontier}{equation.2.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Translation backend.}{1}{section*.4}\protected@file@percent }
 \citation{longyaal25}
 \citation{alignatt23}
-\@writefile{toc}{\contentsline {paragraph}{Source accessibility frontier.}{2}{section*.3}\protected@file@percent }
-\newlabel{eq:frontier}{{2}{2}{Source accessibility frontier}{equation.2.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Translation backend.}{2}{section*.4}\protected@file@percent }
-\newlabel{eq:mt-draft}{{3}{2}{Translation backend}{equation.2.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{Acceptance and emission.}{2}{section*.5}\protected@file@percent }
-\newlabel{eq:accept-prefix}{{4}{2}{Acceptance and emission}{equation.2.4}{}}
-\newlabel{eq:monotone}{{5}{2}{Acceptance and emission}{equation.2.5}{}}
+\newlabel{eq:accept-prefix}{{2}{2}{Acceptance and emission}{equation.2.2}{}}
+\newlabel{eq:monotone}{{3}{2}{Acceptance and emission}{equation.2.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{Latency functional.}{2}{section*.6}\protected@file@percent }
-\newlabel{eq:lya-cu}{{6}{2}{Latency functional}{equation.2.6}{}}
+\newlabel{eq:lya-cu}{{4}{2}{Latency functional}{equation.2.4}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {3}AlignAtt for Decoder-Only LLMs}{2}{section.3}\protected@file@percent }
 \newlabel{sec:alignatt-llm}{{3}{2}{AlignAtt for Decoder-Only LLMs}{section.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{From encoder--decoder AlignAtt to decoder-only LLMs.}{2}{section*.7}\protected@file@percent }
-\newlabel{eq:xattn}{{7}{2}{From encoder--decoder AlignAtt to decoder-only LLMs}{equation.3.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{Prompt-induced source span.}{2}{section*.8}\protected@file@percent }
+\newlabel{eq:layout}{{5}{2}{Prompt-induced source span}{equation.3.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Source-restricted attention row.}{2}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What changes and what stays the same.}{2}{section*.10}\protected@file@percent }
+\citation{tokenheads26}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {Operational view of the decoder-only cascade.} A single decoder-only Gemma checkpoint is queried twice per input chunk: first in the ASR role (audio$\to $text) to confirm a transcript prefix, then in the MT role (text$\to $text) to extend the translation from the visible source span. In the runtime this appears as two sequential vLLM requests with role-specific AlignAtt observers ($\mathcal  {H}_{\mathrm  {ASR}}$ and $\mathcal  {H}_{\mathrm  {MT}}$), each reconstructing only the draft-to-source block consumed by its gate. The confirmed ASR transcript prefix feeds the MT source span, and the accepted target prefix is reused as causal target prefill for the next MT step.}}{3}{figure.1}\protected@file@percent }
 \newlabel{fig:dual-alignatt-cascade}{{1}{3}{\textbf {Operational view of the decoder-only cascade.} A single decoder-only Gemma checkpoint is queried twice per input chunk: first in the ASR role (audio$\to $text) to confirm a transcript prefix, then in the MT role (text$\to $text) to extend the translation from the visible source span. In the runtime this appears as two sequential vLLM requests with role-specific AlignAtt observers ($\mathcal {H}_{\mathrm {ASR}}$ and $\mathcal {H}_{\mathrm {MT}}$), each reconstructing only the draft-to-source block consumed by its gate. The confirmed ASR transcript prefix feeds the MT source span, and the accepted target prefix is reused as causal target prefill for the next MT step}{figure.1}{}}
-\newlabel{eq:llm-self}{{8}{3}{From encoder--decoder AlignAtt to decoder-only LLMs}{equation.3.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{Prompt-induced source span.}{3}{section*.8}\protected@file@percent }
-\newlabel{eq:layout}{{9}{3}{Prompt-induced source span}{equation.3.9}{}}
-\citation{tokenheads26}
-\@writefile{toc}{\contentsline {paragraph}{Virtual cross-attention operator.}{4}{section*.9}\protected@file@percent }
-\newlabel{eq:virtual-xattn}{{10}{4}{Virtual cross-attention operator}{equation.3.10}{}}
-\@writefile{toc}{\contentsline {paragraph}{What changes and what stays the same.}{4}{section*.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Alignment heads.}{4}{section*.11}\protected@file@percent }
-\newlabel{eq:avg-xattn}{{11}{4}{Alignment heads}{equation.3.11}{}}
-\@writefile{toc}{\contentsline {paragraph}{Offline head selection.}{4}{section*.12}\protected@file@percent }
-\newlabel{eq:head-argmax}{{12}{4}{Offline head selection}{equation.3.12}{}}
-\newlabel{eq:align-acc}{{13}{4}{Offline head selection}{equation.3.13}{}}
-\newlabel{eq:topk-heads}{{14}{4}{Offline head selection}{equation.3.14}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {Architecture-aware view of Gemma AlignAtt heads.} The heatmap shows multilingual mean translation scores over Gemma's 42 layers (horizontal axis) and 8 query heads (vertical axis). Orange outlines mark the retained shared-kernel heads; grey vertical stripes mark the full-attention layers; the blue bracket above the heatmap delimits the late shared-KV block, where observer cost follows KV-group ownership rather than query-head count.}}{5}{figure.2}\protected@file@percent }
-\newlabel{fig:decoder-only-heads}{{2}{5}{\textbf {Architecture-aware view of Gemma AlignAtt heads.} The heatmap shows multilingual mean translation scores over Gemma's 42 layers (horizontal axis) and 8 query heads (vertical axis). Orange outlines mark the retained shared-kernel heads; grey vertical stripes mark the full-attention layers; the blue bracket above the heatmap delimits the late shared-KV block, where observer cost follows KV-group ownership rather than query-head count}{figure.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{One abstraction, two roles.}{5}{section*.13}\protected@file@percent }
-\newlabel{eq:head-disjoint}{{15}{5}{One abstraction, two roles}{equation.3.15}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Selective Reconstruction and Engine-Native Capture}{5}{section.4}\protected@file@percent }
-\newlabel{sec:qk-fast}{{4}{5}{Selective Reconstruction and Engine-Native Capture}{section.4}{}}
-\newlabel{sec:vllm}{{4}{5}{Selective Reconstruction and Engine-Native Capture}{section.4}{}}
-\@writefile{toc}{\contentsline {paragraph}{Method overview.}{5}{section*.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Selective Reconstruction for Acceptance}{5}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Per-head attention and the policy-visible block.}{5}{section*.15}\protected@file@percent }
-\newlabel{eq:softmax}{{16}{5}{Per-head attention and the policy-visible block}{equation.4.16}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces \textbf  {Selective reconstruction with engine-native capture.} The $n{\times }n$ attention matrix $\mathbf  {A}^{(\ell ,h)}$ is executed entirely inside the fused attention kernel, so the full $n{\times }n$ matrix is never materialized. For each AlignAtt head $(\ell ,h)\in \mathcal  {H}$, the observer copies $\mathbf  {K}^{(\ell ,h)}$ for all positions and $\mathbf  {Q}^{(\ell ,h)}$ only for the draft rows $\mathcal  {D}$ into fixed-shape buffers. After the forward, Eq.\nobreakspace  {}\textup  {\hbox {\mathsurround \z@ \normalfont  (\ignorespaces \ref  {eq:qk-fast}\unskip \@@italiccorr )}} recomputes exactly only the draft-to-source block $\setbox \z@ \hbox {\mathsurround \z@ $\textstyle \mathbf  {A}$}\mathaccent "0362{\mathbf  {A}}_{\mathcal  {D},\mathcal  {S}^{(k)}}$, which is the sole object consumed by the source-side provenance scores of Eqs.\nobreakspace  {}\textup  {\hbox {\mathsurround \z@ \normalfont  (\ignorespaces \ref  {eq:prov-acc}\unskip \@@italiccorr )}}--\textup  {\hbox {\mathsurround \z@ \normalfont  (\ignorespaces \ref  {eq:provenance}\unskip \@@italiccorr )}} and by the acceptance policy of this section.}}{6}{figure.3}\protected@file@percent }
-\newlabel{fig:qk-fast}{{3}{6}{\textbf {Selective reconstruction with engine-native capture.} The $n{\times }n$ attention matrix $\mathbf {A}^{(\ell ,h)}$ is executed entirely inside the fused attention kernel, so the full $n{\times }n$ matrix is never materialized. For each AlignAtt head $(\ell ,h)\in \mathcal {H}$, the observer copies $\mathbf {K}^{(\ell ,h)}$ for all positions and $\mathbf {Q}^{(\ell ,h)}$ only for the draft rows $\mathcal {D}$ into fixed-shape buffers. After the forward, Eq.~\eqref {eq:qk-fast} recomputes exactly only the draft-to-source block $\widehat {\mathbf {A}}_{\mathcal {D},\mathcal {S}^{(k)}}$, which is the sole object consumed by the source-side provenance scores of Eqs.~\eqref {eq:prov-acc}--\eqref {eq:provenance} and by the acceptance policy of this section}{figure.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{\emph  {qk-fast} selective reconstruction.}{6}{section*.16}\protected@file@percent }
-\newlabel{eq:qk-fast}{{17}{6}{\emph {qk-fast} selective reconstruction}{equation.4.17}{}}
-\@writefile{toc}{\contentsline {paragraph}{From reconstructed rows to provenance features.}{6}{section*.17}\protected@file@percent }
-\newlabel{eq:rowbar}{{18}{6}{From reconstructed rows to provenance features}{equation.4.18}{}}
-\newlabel{eq:prov-acc}{{19}{6}{From reconstructed rows to provenance features}{equation.4.19}{}}
-\newlabel{eq:provenance}{{20}{6}{From reconstructed rows to provenance features}{equation.4.20}{}}
-\@writefile{toc}{\contentsline {paragraph}{Prefix-online Welford normalization.}{7}{section*.18}\protected@file@percent }
-\newlabel{eq:welford-norm}{{21}{7}{Prefix-online Welford normalization}{equation.4.21}{}}
-\newlabel{eq:medfilt}{{22}{7}{Prefix-online Welford normalization}{equation.4.22}{}}
-\newlabel{eq:avg-medfilt}{{23}{7}{Prefix-online Welford normalization}{equation.4.23}{}}
-\newlabel{eq:argmax}{{24}{7}{Prefix-online Welford normalization}{equation.4.24}{}}
-\@writefile{toc}{\contentsline {paragraph}{Acceptance policy.}{7}{section*.19}\protected@file@percent }
-\newlabel{eq:stop-rewind}{{25}{7}{Acceptance policy}{equation.4.25}{}}
-\newlabel{eq:stop-frontier}{{26}{7}{Acceptance policy}{equation.4.26}{}}
-\newlabel{eq:stop-argmax}{{27}{7}{Acceptance policy}{equation.4.27}{}}
-\newlabel{eq:stop-prov}{{28}{7}{Acceptance policy}{equation.4.28}{}}
-\@writefile{toc}{\contentsline {paragraph}{Monotone source-side gating under frontier refinement.}{7}{section*.20}\protected@file@percent }
-\newlabel{prop:monotone}{{1}{7}{Frontier-monotone source-side gates}{proposition.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{Robustness to reconstruction error.}{8}{section*.21}\protected@file@percent }
-\newlabel{eq:robust}{{29}{8}{Robustness to reconstruction error}{equation.4.29}{}}
-\@writefile{toc}{\contentsline {paragraph}{Complexity.}{8}{section*.22}\protected@file@percent }
-\newlabel{eq:complexity}{{30}{8}{Complexity}{equation.4.30}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Engine-Native Realization under Compiled Inference}{8}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Why runtime observability is part of the method.}{8}{section*.23}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Capture primitive.}{8}{section*.24}\protected@file@percent }
-\newlabel{eq:scatter}{{31}{8}{Capture primitive}{equation.4.31}{}}
-\@writefile{toc}{\contentsline {paragraph}{Compile-visible custom op.}{8}{section*.25}\protected@file@percent }
-\newlabel{eq:custom-op}{{32}{8}{Compile-visible custom op}{equation.4.32}{}}
-\@writefile{toc}{\contentsline {paragraph}{Sentinel dependency against dead-code elimination.}{9}{section*.26}\protected@file@percent }
-\newlabel{eq:sentinel}{{33}{9}{Sentinel dependency against dead-code elimination}{equation.4.33}{}}
-\@writefile{toc}{\contentsline {paragraph}{Replay consistency.}{9}{section*.27}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Offline reconstruction.}{9}{section*.28}\protected@file@percent }
-\newlabel{eq:prompt-logits}{{34}{9}{Offline reconstruction}{equation.4.34}{}}
-\newlabel{eq:suffix-logits}{{35}{9}{Offline reconstruction}{equation.4.35}{}}
-\newlabel{eq:vllm-softmax}{{36}{9}{Offline reconstruction}{equation.4.36}{}}
-\@writefile{toc}{\contentsline {paragraph}{Qualitative reconstruction example.}{9}{section*.29}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Residual provenance in decoder-only AlignAtt.}{9}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Alignment heads.}{3}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Offline head selection.}{3}{section*.12}\protected@file@percent }
+\newlabel{eq:head-argmax}{{6}{3}{Offline head selection}{equation.3.6}{}}
+\newlabel{eq:align-acc}{{7}{3}{Offline head selection}{equation.3.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{One abstraction, two roles.}{3}{section*.13}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {Architecture-aware view of Gemma AlignAtt heads.} Each heatmap covers Gemma's 42 layers (horizontal axis) and 8 query heads (vertical axis); color encodes mean token-alignment score TS on a shared $[0, \mathrm  {max}]$ scale, so empty cells read as low rather than ``below threshold''. \emph  {Top:} audio-to-text alignment heads, scored by forced-alignment MAE on English dev audio. \emph  {Bottom:} source-to-target translation heads, averaged over en$\to $\{de,\,it,\,zh\}. Blue outlines mark the per-role retained heads ($\mathcal  {H}_{\mathrm  {ASR}}$ and $\mathcal  {H}_{\mathrm  {MT}}$); grey vertical stripes mark full-attention layers; the blue bracket delimits the late shared-KV block, where observer cost follows KV-group ownership rather than query-head count. The two retained sets concentrate in disjoint depth regions, consistent with per-role functional specialization.}}{4}{figure.2}\protected@file@percent }
+\newlabel{fig:decoder-only-heads}{{2}{4}{\textbf {Architecture-aware view of Gemma AlignAtt heads.} Each heatmap covers Gemma's 42 layers (horizontal axis) and 8 query heads (vertical axis); color encodes mean token-alignment score TS on a shared $[0, \mathrm {max}]$ scale, so empty cells read as low rather than ``below threshold''. \emph {Top:} audio-to-text alignment heads, scored by forced-alignment MAE on English dev audio. \emph {Bottom:} source-to-target translation heads, averaged over en$\to $\{de,\,it,\,zh\}. Blue outlines mark the per-role retained heads ($\mathcal {H}_{\mathrm {ASR}}$ and $\mathcal {H}_{\mathrm {MT}}$); grey vertical stripes mark full-attention layers; the blue bracket delimits the late shared-KV block, where observer cost follows KV-group ownership rather than query-head count. The two retained sets concentrate in disjoint depth regions, consistent with per-role functional specialization}{figure.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Selective Reconstruction and Engine-Native Capture}{4}{section.4}\protected@file@percent }
+\newlabel{sec:qk-fast}{{4}{4}{Selective Reconstruction and Engine-Native Capture}{section.4}{}}
+\newlabel{sec:vllm}{{4}{4}{Selective Reconstruction and Engine-Native Capture}{section.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Method overview.}{4}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Selective Reconstruction for Acceptance}{4}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Per-head attention and the policy-visible block.}{4}{section*.15}\protected@file@percent }
+\newlabel{eq:softmax}{{8}{4}{Per-head attention and the policy-visible block}{equation.4.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{\emph  {qk-fast} selective reconstruction.}{5}{section*.16}\protected@file@percent }
+\newlabel{eq:qk-fast}{{9}{5}{\emph {qk-fast} selective reconstruction}{equation.4.9}{}}
+\@writefile{toc}{\contentsline {paragraph}{From reconstructed rows to provenance features.}{5}{section*.17}\protected@file@percent }
+\newlabel{eq:rowbar}{{10}{5}{From reconstructed rows to provenance features}{equation.4.10}{}}
+\newlabel{eq:prov-acc}{{11}{5}{From reconstructed rows to provenance features}{equation.4.11}{}}
+\newlabel{eq:provenance}{{12}{5}{From reconstructed rows to provenance features}{equation.4.12}{}}
+\@writefile{toc}{\contentsline {paragraph}{Prefix-online Welford normalization.}{5}{section*.18}\protected@file@percent }
+\newlabel{eq:welford-norm}{{13}{5}{Prefix-online Welford normalization}{equation.4.13}{}}
+\newlabel{eq:medfilt}{{14}{5}{Prefix-online Welford normalization}{equation.4.14}{}}
+\newlabel{eq:argmax}{{15}{5}{Prefix-online Welford normalization}{equation.4.15}{}}
+\@writefile{toc}{\contentsline {paragraph}{Acceptance policy.}{5}{section*.19}\protected@file@percent }
+\newlabel{eq:stop-rewind}{{16}{5}{Acceptance policy}{equation.4.16}{}}
+\newlabel{eq:stop-frontier}{{17}{5}{Acceptance policy}{equation.4.17}{}}
+\newlabel{eq:stop-argmax}{{18}{5}{Acceptance policy}{equation.4.18}{}}
+\newlabel{eq:stop-prov}{{19}{5}{Acceptance policy}{equation.4.19}{}}
+\@writefile{toc}{\contentsline {paragraph}{Monotone source-side gating under frontier refinement.}{5}{section*.20}\protected@file@percent }
+\newlabel{prop:monotone}{{1}{5}{Frontier-monotone source-side gates}{proposition.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces \textbf  {Selective reconstruction with engine-native capture.} The $n{\times }n$ attention matrix $\mathbf  {A}^{(\ell ,h)}$ is executed entirely inside the fused attention kernel, so the full $n{\times }n$ matrix is never materialized. For each AlignAtt head $(\ell ,h)\in \mathcal  {H}$, the observer copies $\mathbf  {K}^{(\ell ,h)}$ for all positions and $\mathbf  {Q}^{(\ell ,h)}$ only for the draft rows $\mathcal  {D}$ into fixed-shape buffers. The green band $\mathbf  {y}_{1:m_k}$ inside $\mathcal  {P}_2$ marks the committed target prefix that grows across chunks; hatched cells are never reconstructed. After the forward, Eq.\nobreakspace  {}\textup  {\hbox {\mathsurround \z@ \normalfont  (\ignorespaces \ref  {eq:qk-fast}\unskip \@@italiccorr )}} recomputes exactly only the draft-to-source block $\setbox \z@ \hbox {\mathsurround \z@ $\textstyle \mathbf  {A}$}\mathaccent "0362{\mathbf  {A}}_{\mathcal  {D},\mathcal  {S}^{(k)}}$, which is the sole object consumed by the source-side provenance scores of Eqs.\nobreakspace  {}\textup  {\hbox {\mathsurround \z@ \normalfont  (\ignorespaces \ref  {eq:prov-acc}\unskip \@@italiccorr )}}--\textup  {\hbox {\mathsurround \z@ \normalfont  (\ignorespaces \ref  {eq:provenance}\unskip \@@italiccorr )}} and by the acceptance policy of this section.}}{6}{figure.3}\protected@file@percent }
+\newlabel{fig:qk-fast}{{3}{6}{\textbf {Selective reconstruction with engine-native capture.} The $n{\times }n$ attention matrix $\mathbf {A}^{(\ell ,h)}$ is executed entirely inside the fused attention kernel, so the full $n{\times }n$ matrix is never materialized. For each AlignAtt head $(\ell ,h)\in \mathcal {H}$, the observer copies $\mathbf {K}^{(\ell ,h)}$ for all positions and $\mathbf {Q}^{(\ell ,h)}$ only for the draft rows $\mathcal {D}$ into fixed-shape buffers. The green band $\mathbf {y}_{1:m_k}$ inside $\mathcal {P}_2$ marks the committed target prefix that grows across chunks; hatched cells are never reconstructed. After the forward, Eq.~\eqref {eq:qk-fast} recomputes exactly only the draft-to-source block $\widehat {\mathbf {A}}_{\mathcal {D},\mathcal {S}^{(k)}}$, which is the sole object consumed by the source-side provenance scores of Eqs.~\eqref {eq:prov-acc}--\eqref {eq:provenance} and by the acceptance policy of this section}{figure.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Robustness to reconstruction error.}{6}{section*.21}\protected@file@percent }
+\newlabel{eq:robust}{{20}{6}{Robustness to reconstruction error}{equation.4.20}{}}
+\@writefile{toc}{\contentsline {paragraph}{Complexity.}{6}{section*.22}\protected@file@percent }
+\newlabel{eq:complexity}{{21}{6}{Complexity}{equation.4.21}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Engine-Native Realization under Compiled Inference}{6}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why runtime observability is part of the method.}{6}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Capture primitive.}{7}{section*.24}\protected@file@percent }
+\newlabel{eq:scatter}{{22}{7}{Capture primitive}{equation.4.22}{}}
+\@writefile{toc}{\contentsline {paragraph}{Compile-visible custom op.}{7}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Sentinel dependency against dead-code elimination.}{7}{section*.26}\protected@file@percent }
+\newlabel{eq:sentinel}{{23}{7}{Sentinel dependency against dead-code elimination}{equation.4.23}{}}
+\@writefile{toc}{\contentsline {paragraph}{Replay consistency.}{7}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Offline reconstruction.}{7}{section*.28}\protected@file@percent }
+\newlabel{eq:prompt-logits}{{24}{7}{Offline reconstruction}{equation.4.24}{}}
+\newlabel{eq:suffix-logits}{{25}{7}{Offline reconstruction}{equation.4.25}{}}
+\newlabel{eq:vllm-softmax}{{26}{7}{Offline reconstruction}{equation.4.26}{}}
+\@writefile{toc}{\contentsline {paragraph}{Qualitative reconstruction example.}{7}{section*.29}\protected@file@percent }
+\citation{xcometxl23}
+\citation{longyaal25}
+\citation{qwen3asr25}
+\@writefile{toc}{\contentsline {paragraph}{Residual provenance in decoder-only AlignAtt.}{8}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Numerical parity.}{8}{section*.31}\protected@file@percent }
+\newlabel{eq:parity}{{27}{8}{Numerical parity}{equation.4.27}{}}
+\@writefile{toc}{\contentsline {paragraph}{Paper-only seam benchmark.}{8}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{End-to-end throughput.}{8}{section*.33}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces \textbf  {ASR alignment comparison on \texttt  {ccpXHNfaoy} (360\,s).} Qwen3 forced uses a dedicated 3B-parameter aligner; Gemma AlignAtt reuses the decoder-only LLM already needed for MT. Boundary F1 and lag are computed against 47 gold word boundaries with a $\pm $3-word tolerance.}}{8}{table.1}\protected@file@percent }
+\newlabel{tab:asr-compare}{{1}{8}{\textbf {ASR alignment comparison on \texttt {ccpXHNfaoy} (360\,s).} Qwen3 forced uses a dedicated 3B-parameter aligner; Gemma AlignAtt reuses the decoder-only LLM already needed for MT. Boundary F1 and lag are computed against 47 gold word boundaries with a $\pm $3-word tolerance}{table.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{8}{section.5}\protected@file@percent }
+\newlabel{sec:experiments}{{5}{8}{Experiments}{section.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Setup.}{8}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}ASR Alignment: Qwen3 Forced vs Gemma AlignAtt}{8}{subsection.5.1}\protected@file@percent }
+\newlabel{sec:exp-asr}{{5.1}{8}{ASR Alignment: Qwen3 Forced vs Gemma AlignAtt}{subsection.5.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces \textbf  {Gemma AlignAtt en--en streaming frontier} on the 21-clip dev-set ($k{=}6$). Configurations A--C sit below one second of CU-LongYAAL. Q uses the original (pre-fix) rewind logic at the same $(f,\rho )$ as A and shows the upper quality bound reachable at multi-second latency.}}{9}{table.2}\protected@file@percent }
+\newlabel{tab:asr-frontier}{{2}{9}{\textbf {Gemma AlignAtt en--en streaming frontier} on the 21-clip dev-set ($k{=}6$). Configurations A--C sit below one second of CU-LongYAAL. Q uses the original (pre-fix) rewind logic at the same $(f,\rho )$ as A and shows the upper quality bound reachable at multi-second latency}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Streaming Latency/Quality Frontier}{9}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:exp-frontier}{{5.2}{9}{Streaming Latency/Quality Frontier}{subsection.5.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces \textbf  {End-to-end cascade on IWSLT\nobreakspace  {}2026 dev-set} (21 clips, OmniSTEval longform resegmentation; COMET\nobreakspace  {}=\nobreakspace  {}XCOMET-XL). Low regime uses $\Delta _{\mathrm  {chunk}}{=}850$\,ms and the AlignAtt policy of Sec.\nobreakspace  {}\ref  {sec:qk-fast}; quality regime uses $\Delta _{\mathrm  {chunk}}{=}1500$\,ms.}}{9}{table.3}\protected@file@percent }
+\newlabel{tab:e2e}{{3}{9}{\textbf {End-to-end cascade on IWSLT~2026 dev-set} (21 clips, OmniSTEval longform resegmentation; COMET~=~XCOMET-XL). Low regime uses $\Delta _{\mathrm {chunk}}{=}850$\,ms and the AlignAtt policy of Sec.~\ref {sec:qk-fast}; quality regime uses $\Delta _{\mathrm {chunk}}{=}1500$\,ms}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}End-to-End Cascade Quality and Latency}{9}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:exp-e2e}{{5.3}{9}{End-to-End Cascade Quality and Latency}{subsection.5.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Discussion}{9}{section.6}\protected@file@percent }
+\newlabel{sec:discussion}{{6}{9}{Discussion}{section.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Single-substrate vs specialist cascades.}{9}{section*.35}\protected@file@percent }
 \bibcite{alignatt23}{1}
 \bibcite{tokenheads26}{2}
 \bibcite{streamatt24}{3}
 \bibcite{simulstream25}{4}
 \bibcite{longyaal25}{5}
-\@writefile{toc}{\contentsline {paragraph}{Numerical parity.}{10}{section*.31}\protected@file@percent }
-\newlabel{eq:parity}{{37}{10}{Numerical parity}{equation.4.37}{}}
-\@writefile{toc}{\contentsline {paragraph}{Paper-only seam benchmark.}{10}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{End-to-end throughput.}{10}{section*.33}\protected@file@percent }
+\bibcite{cuniiwslt25}{6}
+\bibcite{xcometxl23}{7}
+\bibcite{qwen3asr25}{8}
+\@writefile{toc}{\contentsline {paragraph}{Numerical parity as an enabling condition.}{10}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Limitations and future work.}{10}{section*.37}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces \textbf  {Word-level selective reconstruction on a live MT draft.} \emph  {Top ribbon:} the decoder-only prompt is split into the system instruction, the live source (with the accessibility frontier shown in-line between the committed accessible prefix and the still-inaccessible tail), the already accepted target prefix reused from earlier streaming steps, and the draft currently under inference. \emph  {Left panel:} reconstructed draft-to-source attention from the selected AlignAtt heads, aggregated to the word level; rows are drafted words, columns are source words split by the dashed frontier. A star marks the per-row argmax (black when it lands in the accessible region, red when it lands beyond the frontier, which is exactly what triggers the \textsc  {source-frontier} gate). \emph  {Right panel:} for each drafted word the reconstructed attention mass is partitioned into the four provenance classes; the numeric annotation is the total source share (accessible $+$ inaccessible). The green band is previously committed target text reused as causal context; it is not itself the object of the gate. The first black stars in the orange draft show that newly proposed words may still align to multiple source words inside the current accessible span, and only the first red star beyond the frontier triggers rejection.}}{11}{figure.4}\protected@file@percent }
 \newlabel{fig:mt-selective-reconstruction}{{4}{11}{\textbf {Word-level selective reconstruction on a live MT draft.} \emph {Top ribbon:} the decoder-only prompt is split into the system instruction, the live source (with the accessibility frontier shown in-line between the committed accessible prefix and the still-inaccessible tail), the already accepted target prefix reused from earlier streaming steps, and the draft currently under inference. \emph {Left panel:} reconstructed draft-to-source attention from the selected AlignAtt heads, aggregated to the word level; rows are drafted words, columns are source words split by the dashed frontier. A star marks the per-row argmax (black when it lands in the accessible region, red when it lands beyond the frontier, which is exactly what triggers the \textsc {source-frontier} gate). \emph {Right panel:} for each drafted word the reconstructed attention mass is partitioned into the four provenance classes; the numeric annotation is the total source share (accessible $+$ inaccessible). The green band is previously committed target text reused as causal context; it is not itself the object of the gate. The first black stars in the orange draft show that newly proposed words may still align to multiple source words inside the current accessible span, and only the first red star beyond the frontier triggers rejection}{figure.4}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces \textbf  {Inference-time comparison of MT capture seams.} We compare a minimal Transformers eager reference, a Transformers qk-fast reference that reconstructs source rows from captured layer inputs, and the engine-native vLLM qk-fast path used by the shipped backend. The main plot reports the median latency per generated token on a fixed 16-prompt benchmark suite, with one unmeasured warmup pass and repeated hot runs per seam.}}{12}{figure.5}\protected@file@percent }

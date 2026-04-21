@@ -249,15 +249,6 @@ class CascadeRuntimeConfig:
                 f"paper_context_mode must be one of {VALID_CONTEXT_MODES}, "
                 f"got {self.paper_context_mode!r}."
             )
-        if (
-            self.paper_context_mode != CONTEXT_MODE_OFF
-            and self.paper_context_path is None
-        ):
-            raise ValueError(
-                "paper_context_mode is enabled but paper_context_path is None; "
-                "either set paper_context_path to a PaperArtifact JSON file or "
-                "set paper_context_mode='off'."
-            )
         if int(self.asr_alignatt_frame_threshold) < 1:
             raise ValueError(
                 "asr_alignatt_frame_threshold must be >= 1, got "
@@ -1218,6 +1209,10 @@ class CascadeSession:
                 ),
                 "alignatt_window_start_frame_abs": int(
                     delta.audio_window_start_frame_abs
+                ),
+                "alignatt_stream_committed_text": stream.committed_text,
+                "alignatt_stream_committed_word_count": len(
+                    remove_punctuation(stream.committed_text).split()
                 ),
             },
         )

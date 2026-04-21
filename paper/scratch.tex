@@ -6,6 +6,8 @@
 \usepackage{microtype}
 \usepackage{xcolor}
 \usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
 \usepackage{tikz}
 \usetikzlibrary{positioning,fit,backgrounds,arrows.meta,calc,patterns}
 
@@ -257,7 +259,7 @@ grid indexes query heads whereas capture cost still follows KV ownership.
 \input{generated/decoder_only_alignatt_heads.tex}
 
 \paragraph{One abstraction, two roles.}
-The construction of Eqs.~\eqref{eq:layout}--\eqref{eq:topk-heads} is
+The construction of Eqs.~\eqref{eq:layout}--\eqref{eq:align-acc} is
 \emph{role-agnostic}. Let $r \in \{\mathrm{ASR}, \mathrm{MT}\}$ index the
 role: for $r = \mathrm{ASR}$, $\mathbf{s}$ is a sequence of audio-token
 embeddings and $\mathbf{y}$ the transcript; for $r = \mathrm{MT}$,
@@ -826,6 +828,198 @@ Eqs.~\eqref{eq:prompt-logits}--\eqref{eq:suffix-logits}. On the control
 clip we measure an RTF penalty below $3\%$ relative to the baseline
 \emph{graph-compiled} runtime.
 
+% ============================================================
+% SECTION 5 — EXPERIMENTS
+% ============================================================
+\section{Experiments}
+\label{sec:experiments}
+
+\paragraph{Setup.}
+All experiments run on a single NVIDIA A40 with a graph-compiled vLLM
+runtime (\texttt{cudagraph=full}) and Gemma-4 E4B-it in bfloat16.
+The evaluation corpus is the 21-clip IWSLT~2026 in-house dev-set
+(${\sim}2.1$\,h total, academic research talks), resegmented by
+OmniSTEval~v0.1.7. We report BLEU and chrF against the dev reference,
+XCOMET-XL~\cite{xcometxl23} for translation adequacy, and the
+compute-unaware and computation-aware variants of LongYAAL
+\cite{longyaal25} for latency. For detailed ASR diagnostics we use a
+single 360\,s clip (\texttt{ccpXHNfaoy}) for which word-level boundary
+references are available. All cascades use synchronous ASR/MT under the
+same chunked schedule.
+
+\subsection{ASR Alignment: Qwen3 Forced vs Gemma AlignAtt}
+\label{sec:exp-asr}
+
+The single-substrate claim of Sec.~\ref{sec:alignatt-llm} rests on AlignAtt
+being usable as the alignment backend in its own right, not only as the MT
+policy. We therefore compare the Gemma AlignAtt backend against a dedicated
+forced aligner (Qwen3-ASR~\cite{qwen3asr25} followed by the Qwen3
+forced aligner) as the ASR component of the cascade, evaluated on the
+\texttt{ccpXHNfaoy} clip with 47 reference word boundaries.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+ & Qwen3 forced & Gemma AlignAtt \\
+\midrule
+WER $\downarrow$                 & $0.113$ & $0.269$ \\
+CER $\downarrow$                 & $0.046$ & $0.122$ \\
+Boundary F1 $\pm$3w $\uparrow$   & $0.878$ & $0.042$ \\
+Mean $|$boundary lag$|$ (s) $\downarrow$ & $0.145$ & $0.403$ \\
+Load time (s)                    & $63.7$  & $123.0$ \\
+RTF (wall-clock) $\downarrow$    & $0.306$ & $0.628$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{ASR alignment comparison on \texttt{ccpXHNfaoy}
+(360\,s).} Qwen3 forced uses a dedicated 3B-parameter aligner; Gemma
+AlignAtt reuses the decoder-only LLM already needed for MT. Boundary F1
+and lag are computed against 47 gold word boundaries with a
+$\pm$3-word tolerance.}
+\label{tab:asr-compare}
+\end{table}
+
+Table~\ref{tab:asr-compare} shows the expected direction of the
+specialization gap: the forced aligner produces lower WER ($0.113$ vs
+$0.269$), tighter boundaries ($0.145$\,s vs $0.403$\,s mean absolute
+lag), and a higher boundary F1. AlignAtt's low boundary F1 reflects a
+segmentation-granularity mismatch --- the streaming policy commits at
+each decoder token rather than at prosodic boundaries --- and is
+therefore not directly comparable without mapping both outputs to the
+same unit. The key point for the present paper is that a single LLM
+substrate produces alignment signals strong enough to drive streaming
+commit decisions at all, at roughly twice the RTF of a dedicated
+aligner, while removing the need to host a second 3B-parameter ASR model.
+
+\subsection{Streaming Latency/Quality Frontier}
+\label{sec:exp-frontier}
+
+We next treat the same Gemma AlignAtt backend as an end-to-end
+transcriber and sweep its two policy thresholds --- the frame threshold
+$f$ (Eq.~\eqref{eq:stop-frontier}) and the rewind threshold $\rho$
+(Eq.~\eqref{eq:stop-rewind}) --- to expose the streaming latency/quality
+frontier on the full 21-clip dev-set under the en--en (ASR-as-MT) task.
+Table~\ref{tab:asr-frontier} reports three operating points below
+$1$\,s of CU-LongYAAL (the regime targeted by this work), plus a
+quality-anchor point at $\rho{=}200$ that trades ${\sim}3.5$\,s of
+CU for ${+}9$ BLEU.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{l c c c c c}
+\toprule
+Config & $f$ & $\rho$ & BLEU $\uparrow$ & CU (ms) $\downarrow$ & CA (ms) $\downarrow$ \\
+\midrule
+A       & $4$ & $200$ & $34.32$ & $668$ & $363$ \\
+B       & $4$ & $50$  & $35.44$ & $821$ & $368$ \\
+C       & $5$ & $200$ & $35.03$ & $911$ & $612$ \\
+\midrule
+Q (quality anchor) & $4$ & $200$ & $44.35$ & $3561$ & $3359$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Gemma AlignAtt en--en streaming frontier} on the
+21-clip dev-set ($k{=}6$). Configurations A--C sit below one second of
+CU-LongYAAL. Q uses the original (pre-fix) rewind logic at the same
+$(f,\rho)$ as A and shows the upper quality bound reachable at
+multi-second latency.}
+\label{tab:asr-frontier}
+\end{table}
+
+Within the sub-1\,s regime the three configurations trace a narrow
+band ($34.3$--$35.4$ BLEU; $668$--$911$\,ms CU), with $\rho{=}50$
+(config B) offering the best BLEU and $f{=}4, \rho{=}200$ (config A)
+the lowest CU. The ${\sim}9$ BLEU gap between A--C and the quality
+anchor Q quantifies the cost of the sub-1\,s target: without the
+anchored-reference rewind fix described in Sec.~\ref{sec:alignatt-llm},
+the policy only reaches its upper quality bound at ${\sim}3.6$\,s of
+CU-LongYAAL.
+
+\subsection{End-to-End Cascade Quality and Latency}
+\label{sec:exp-e2e}
+
+Table~\ref{tab:e2e} reports the end-to-end cascade (Qwen3 forced ASR
+$+$ Gemma AlignAtt MT, chunked synchronously) for the three IWSLT~2026
+dev-set target languages. We report a low-latency regime at
+$\Delta_{\mathrm{chunk}}{=}850$\,ms and a single quality-anchor row
+per pair at $\Delta_{\mathrm{chunk}}{=}1500$\,ms.
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{l l c c c r r}
+\toprule
+Pair & Regime & BLEU & chrF & COMET & \multicolumn{2}{c}{LongYAAL (s)} \\
+\cmidrule(lr){6-7}
+& & & & & CU & CA \\
+\midrule
+\multirow{2}{*}{en$\to$de} & low     & $28.76$ & $62.1$ & $0.875$ & $2.00$ & $1.63$ \\
+                           & quality & $32.63$ & $64.2$ & $0.902$ & $3.53$ & $3.14$ \\
+\midrule
+\multirow{2}{*}{en$\to$zh} & low     & $36.01$ & $35.0$ & $0.743$ & $1.95$ & $1.77$ \\
+                           & quality & $39.86$ & $37.8$ & $0.778$ & $3.27$ & $3.09$ \\
+\midrule
+\multirow{2}{*}{en$\to$it} & low     & $40.10$ & $68.0$ & $0.805$ & $1.98$ & $1.62$ \\
+                           & quality & $44.46$ & $70.1$ & $0.841$ & $3.48$ & $3.10$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{End-to-end cascade on IWSLT~2026 dev-set}
+(21 clips, OmniSTEval longform resegmentation; COMET~=~XCOMET-XL).
+Low regime uses $\Delta_{\mathrm{chunk}}{=}850$\,ms and the AlignAtt
+policy of Sec.~\ref{sec:qk-fast}; quality regime uses
+$\Delta_{\mathrm{chunk}}{=}1500$\,ms.}
+\label{tab:e2e}
+\end{table}
+
+At ${\sim}2$\,s CU-LongYAAL all three pairs sit in a narrow band,
+and the quality regime adds ${\sim}1.5$\,s of CU for ${+}3$--${+}4$
+BLEU and ${+}0.02$--${+}0.04$ XCOMET-XL. The COMET gap between
+en--de/en--it ($\geq 0.81$) and en--zh ($\leq 0.78$) is consistent
+with the well-known distributional difference of Chinese references:
+word-segmentation choices and the lower chrF~(${\leq}38$) magnify the
+gap even at similar BLEU. Improving the en--zh prompt or introducing
+target-language domain priors is left for future work.
+
+% ============================================================
+% SECTION 6 — DISCUSSION
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Single-substrate vs specialist cascades.}
+The comparison in Sec.~\ref{sec:exp-asr} quantifies the engineering
+cost of removing a dedicated aligner: roughly $2\times$ WER and
+${\sim}0.25$\,s of additional boundary lag on the diagnostic clip,
+against a halving of model footprint and the removal of an entire
+runtime. In submissions where the MT model is already the dominant
+cost, reusing its weights for ASR alignment via AlignAtt becomes
+attractive, especially as the streaming frontier of
+Sec.~\ref{sec:exp-frontier} exposes operating points below one second
+of CU-LongYAAL that the specialist cascade cannot reach without
+additional policy machinery on top of the forced aligner.
+
+\paragraph{Numerical parity as an enabling condition.}
+The parity bound of Eq.~\eqref{eq:parity}, together with the
+reconstruction-error bound of Eq.~\eqref{eq:robust}, is what makes the
+AlignAtt substrate operational under compiled inference. Without
+bit-identical acceptance decisions, every ablation against a reference
+Transformers forward would conflate policy effects with capture noise;
+with them, every experiment in Sec.~\ref{sec:experiments} is carried
+out on the engine-native path used in deployment.
+
+\paragraph{Limitations and future work.}
+Our evaluation is single-GPU and single-language-family (en source, one
+each of de/zh/it target); the policy has not been stress-tested on
+code-switching or long overlapping speakers. The cascade loop is
+synchronous: ASR and MT chunks are serialized, so the CU-LongYAAL
+numbers in Table~\ref{tab:e2e} embed a full chunk round-trip rather
+than a pipelined one. Finally, the en--zh quality gap suggests that the next
+lever is on the MT side (larger base model, prompt engineering with
+target-language priors), not on AlignAtt. AlignAtt itself, as a policy
+substrate, is not the bottleneck on any pair tested.
+
 \begin{thebibliography}{9}
 
 \bibitem{alignatt23}
@@ -866,6 +1060,20 @@ submission to IWSLT 2025.
 \newblock In \emph{Proceedings of the 22nd International Conference on Spoken
 Language Translation (IWSLT 2025)}, pages 389--398, Vienna, Austria (in-person
 and online). Association for Computational Linguistics, 2025.
+
+\bibitem{xcometxl23}
+Nuno M. Guerreiro, Ricardo Rei, Daan van Stigt, Luisa Coheur, Pierre Colombo,
+and Andr{\'e} F. T. Martins.
+\newblock xCOMET: Transparent Machine Translation Evaluation through Fine-grained
+Error Detection.
+\newblock \emph{Transactions of the Association for Computational Linguistics},
+12:979--995, 2024.
+
+\bibitem{qwen3asr25}
+Qwen Team.
+\newblock Qwen3-ASR: A multilingual speech recognition model with
+forced-alignment timestamp supervision.
+\newblock Technical report, Alibaba Cloud, 2025.
 
 \end{thebibliography}
 

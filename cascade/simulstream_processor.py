@@ -94,6 +94,7 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "mt_vllm_cudagraph_mode",
             "mt_vllm_enable_prefix_caching",
             "mt_vllm_gpu_memory_utilization",
+            "gemma_vllm_gpu_memory_utilization",
             "paper_context_path",
             "paper_context_mode",
             "paper_context_top_k",

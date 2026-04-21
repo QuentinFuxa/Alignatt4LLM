@@ -824,6 +824,7 @@ def run_backend_streaming_eval(
     gemma_vllm_path_mode: str,
     gemma_sampling_mode: str,
     gemma_max_model_len: int | None,
+    gemma_audio_alignment_top_k_heads: int | None = None,
 ) -> dict[str, Any]:
     import numpy as np
 
@@ -838,6 +839,8 @@ def run_backend_streaming_eval(
     config.min_start_seconds = float(min_start_seconds)
     config.asr_alignatt_frame_threshold = int(asr_alignatt_frame_threshold)
     config.asr_alignatt_rewind_threshold = int(asr_alignatt_rewind_threshold)
+    if gemma_audio_alignment_top_k_heads is not None:
+        config.gemma_audio_alignment_top_k_heads = int(gemma_audio_alignment_top_k_heads)
 
     if backend_name == "gemma_vllm_qk_fast":
         if gemma_max_model_len is not None:
@@ -1195,6 +1198,16 @@ def build_run_parser(subparsers) -> None:
             "reference."
         ),
     )
+    run.add_argument(
+        "--gemma-audio-alignment-top-k-heads",
+        type=int,
+        default=None,
+        help=(
+            "Override the number of top-ranked audio-alignment heads averaged "
+            "for the AlignAtt walk. Lower values drop garbage heads from the "
+            "average and can sharpen the per-token argmaxes."
+        ),
+    )
     run.add_argument("--match-tolerance-words", type=int, default=3)
     run.add_argument(
         "--gemma-warmup-seconds",
@@ -1345,6 +1358,7 @@ def cmd_run(args: argparse.Namespace) -> None:
                     gemma_vllm_path_mode=args.gemma_vllm_path_mode,
                     gemma_sampling_mode=args.gemma_sampling_mode,
                     gemma_max_model_len=args.gemma_max_model_len,
+                    gemma_audio_alignment_top_k_heads=args.gemma_audio_alignment_top_k_heads,
                 )
                 printable = {
                     "run_id": stream_run_id,

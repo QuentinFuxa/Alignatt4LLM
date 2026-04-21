@@ -1958,22 +1958,28 @@ class GemmaTransformersASRBackend(AlignmentBackend):
         return scored
 
 
+_HEAD_MAE_DISQUALIFY_SECONDS = 2.0
+
+
 def _combine_head_score(
     mae_seconds: float | None, monotonicity: float, coverage: float
 ) -> float:
-    """Rank heads by monotonicity / (1 + MAE). Coverage breaks ties.
+    """Rank heads by monotonicity, with a hard MAE disqualification.
 
-    Monotonicity is the dominant signal because streaming needs forward
-    progress; MAE is a soft quality term; coverage ensures heads that
-    attend somewhere on the audio axis at all are preferred. The function
-    is generic and contains no calibration constants tuned to any
-    particular example.
+    Streaming AlignAtt gates commit decisions on per-token attention
+    argmaxes (simul_whisper §4). A head whose mean argmax lags the
+    teacher alignment by more than a couple of seconds cannot support
+    frame-level gating regardless of how monotonic its trajectory is,
+    so such heads are zeroed out rather than weighted down. Among the
+    qualified band, monotonicity is the primary signal (streaming needs
+    forward progress) with 1/(1+MAE) and coverage as fine tiebreakers.
     """
-    if mae_seconds is None or math.isnan(mae_seconds) or math.isinf(mae_seconds):
-        mae_term = 0.0
-    else:
-        mae_term = 1.0 / (1.0 + float(mae_seconds))
-    return float(monotonicity) * 0.7 + mae_term * 0.25 + float(coverage) * 0.05
+    if mae_seconds is None or not math.isfinite(mae_seconds):
+        return 0.0
+    if float(mae_seconds) >= _HEAD_MAE_DISQUALIFY_SECONDS:
+        return 0.0
+    mae_term = 1.0 / (1.0 + float(mae_seconds))
+    return float(monotonicity) * 0.9 + mae_term * 0.08 + float(coverage) * 0.02
 
 
 def _word_end_mae(

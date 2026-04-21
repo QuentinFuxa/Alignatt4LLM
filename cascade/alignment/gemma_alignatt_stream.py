@@ -237,8 +237,12 @@ class GemmaAlignAttStream:
         #   - if this is not the final chunk and argmax_i is within
         #     `frame_threshold` of the audio end, STOP. Commit [0..i).
         #   - if argmax_i is more than `rewind_threshold` earlier than
-        #     the running reference, the attention has collapsed; abort
-        #     this chunk (commit nothing) to avoid poisoning the state.
+        #     the last committed position across chunks, the walker has
+        #     fallen behind known-good alignment; STOP. Commit [0..i).
+        #     The reference is the pre-chunk commit frontier, not the
+        #     running token-by-token argmax: individual attention dips
+        #     inside a chunk are normal transients and should not
+        #     discard earlier, well-anchored tokens.
         #   - otherwise accept token i.
         #
         # On the final chunk, commit every generated token; no more
@@ -248,11 +252,11 @@ class GemmaAlignAttStream:
         n = min(len(gen_ids), len(argmaxes))
 
         if retained:
-            prev_argmax_local = max(
+            prev_commit_frame_local = max(
                 0, int(retained[-1].end_frame_abs) - int(win_start_frame_abs)
             )
         else:
-            prev_argmax_local = 0
+            prev_commit_frame_local = 0
 
         new_committed: list[CommittedToken] = []
         aborted_by_rewind = False
@@ -267,10 +271,8 @@ class GemmaAlignAttStream:
             if not is_final_chunk:
                 if (content_frame_len - am) <= self.frame_threshold:
                     break
-                if am < prev_argmax_local - self.rewind_threshold:
+                if am < prev_commit_frame_local - self.rewind_threshold:
                     aborted_by_rewind = True
-                    new_committed = []
-                    accepted_count = 0
                     break
 
             new_committed.append(
@@ -280,7 +282,6 @@ class GemmaAlignAttStream:
                     end_frame_abs=int(win_start_frame_abs) + int(am),
                 )
             )
-            prev_argmax_local = am
             accepted_count = i + 1
 
         # Tail = tokens generated but not committed on this step.
