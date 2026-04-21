@@ -61,7 +61,10 @@ _ALIGNATT_TENSOR_OBSERVER_BOOTSTRAP_ENV = "ALIGNATT_VLLM_TENSOR_OBSERVER_BOOTSTR
 # full-utterance path and the streaming AlignAtt path. We deliberately
 # removed the four-regime instruction matrix: regime-specific wording
 # could leak into the transcript and then recirculate through the forced
-# prefix, which is the exact desync AlignAtt streaming must avoid.
+# prefix, which is the exact desync AlignAtt streaming must avoid. This
+# does not eliminate long-form prompt leakage entirely, but it keeps the
+# instruction surface minimal so any future leak is easier to diagnose
+# and is less likely to dominate the committed transcript.
 GEMMA_ASR_INSTRUCTION = (
     "Provide a verbatim, word-for-word transcription of the audio. "
     "Only output the transcription, with no newlines."
@@ -72,6 +75,7 @@ GEMMA_VLLM_SAMPLING_MODES = (
     GEMMA_VLLM_SAMPLING_MODE_SHIPPING,
     GEMMA_VLLM_SAMPLING_MODE_HF_MODEL_CARD,
 )
+GEMMA_VLLM_EOS_ONLY_RESCUE_LOGIT_BIAS = -100.0
 
 
 @dataclass(frozen=True)
@@ -115,6 +119,11 @@ def build_gemma_vllm_sampling_params(
         or GEMMA_VLLM_SAMPLING_MODE_SHIPPING
     )
     if sampling_mode == GEMMA_VLLM_SAMPLING_MODE_SHIPPING:
+        # Keep the maintained path greedy. On the tracked smoke / dev
+        # diagnostics the public model-card sampling (1.0 / 0.95 / 64)
+        # improved some apparent latency probes only by corrupting the
+        # transcript, which is not a defensible trade-off for streaming
+        # ASR.
         return SamplingParams(
             temperature=0.0,
             max_tokens=int(max_new_tokens),
@@ -132,7 +141,9 @@ def build_gemma_vllm_sampling_params(
             ),
         }
     if sampling_mode == GEMMA_VLLM_SAMPLING_MODE_HF_MODEL_CARD:
-        # Match the public Gemma 4 model-card recommendation for ASR probes.
+        # Match the public Gemma 4 model-card recommendation for offline
+        # probes and ablations. This is intentionally not the shipping
+        # default for streaming.
         return SamplingParams(
             temperature=1.0,
             top_p=0.95,
@@ -1383,6 +1394,15 @@ class GemmaVLLMASRBackend(AlignmentBackend):
                 )
 
         if not self.alignatt_heads and self.audio_heads_path and Path(self.audio_heads_path).exists():
+            # The maintained Gemma ASR path ships one calibrated timestamp
+            # policy: selected heads plus the scalar word-end offset stored in
+            # the same head payload. Keeping them together avoids a second
+            # runtime knob that can silently drift from the published setup.
+            #
+            # Empirically the main failure mode was not "missing the perfect
+            # head", but letting a minority of weak heads drag the average
+            # left. The curated head file therefore matters more than adding
+            # more heads or inventing per-benchmark blacklists downstream.
             self.alignatt_heads, self.word_end_offset_s = load_audio_alignment_heads(
                 self.audio_heads_path,
                 top_k=self.audio_heads_top_k,
@@ -1646,6 +1666,114 @@ class GemmaVLLMASRBackend(AlignmentBackend):
             break
         return trimmed
 
+    def _is_eos_only_completion(
+        self,
+        *,
+        completion_token_ids: Sequence[int],
+        generated_ids: Sequence[int],
+        finish_reason: str | int | None,
+    ) -> bool:
+        if self.tokenizer is None or generated_ids:
+            return False
+        if finish_reason != "stop" or len(completion_token_ids) != 1:
+            return False
+        special_ids = {
+            int(token_id)
+            for token_id in (getattr(self.tokenizer, "all_special_ids", None) or [])
+        }
+        return int(completion_token_ids[0]) in special_ids
+
+    def _build_eos_only_rescue_sampling_params(
+        self,
+        sampling_params,
+        *,
+        max_new_tokens: int,
+    ) -> tuple[Any, dict[str, Any]] | tuple[None, None]:
+        # Tiny local retry used only when the primary pass emitted EOS and
+        # nothing else. We suppress special stops at the first rescue step
+        # instead of changing the global sampling policy, so nominal chunks
+        # keep exactly the validated behaviour.
+        if self.tokenizer is None:
+            raise RuntimeError("Gemma vLLM backend is not loaded.")
+        special_ids = {
+            int(token_id)
+            for token_id in (getattr(self.tokenizer, "all_special_ids", None) or [])
+        }
+        eos_token_id = getattr(self.tokenizer, "eos_token_id", None)
+        if not special_ids:
+            return None, None
+
+        rescue_sampling_params = sampling_params.clone()
+        rescue_sampling_params.max_tokens = int(
+            max(
+                1,
+                min(
+                    int(max_new_tokens),
+                    int(
+                        getattr(
+                            self.runtime_config,
+                            "gemma_audio_eos_only_rescue_max_new_tokens",
+                            3,
+                        )
+                    ),
+                ),
+            )
+        )
+        logit_bias = {
+            int(token_id): float(bias)
+            for token_id, bias in (rescue_sampling_params.logit_bias or {}).items()
+        }
+        for token_id in special_ids:
+            logit_bias[int(token_id)] = min(
+                float(logit_bias.get(int(token_id), 0.0)),
+                float(GEMMA_VLLM_EOS_ONLY_RESCUE_LOGIT_BIAS),
+            )
+        rescue_sampling_params.logit_bias = logit_bias
+        return rescue_sampling_params, {
+            "enabled": True,
+            "max_tokens": int(rescue_sampling_params.max_tokens),
+            "eos_token_id": (
+                None if eos_token_id is None else int(eos_token_id)
+            ),
+            "suppressed_special_token_count": int(len(special_ids)),
+            "special_stop_logit_bias": float(GEMMA_VLLM_EOS_ONLY_RESCUE_LOGIT_BIAS),
+        }
+
+    def _rescue_acceptance_ok(
+        self,
+        *,
+        generated_ids: Sequence[int],
+        aligned_audio_positions: Sequence[int | None],
+        content_frame_len: int,
+    ) -> tuple[bool, str]:
+        # The rescue path is allowed to recover from a spurious empty stop,
+        # but it is not allowed to invent a new tail. Require the first
+        # rescued token to look word-like and to land strictly before the
+        # held-back frontier band; otherwise the retry is safer to discard.
+        if self.tokenizer is None:
+            raise RuntimeError("Gemma vLLM backend is not loaded.")
+        if not generated_ids or not aligned_audio_positions:
+            return False, "empty"
+
+        first_position = aligned_audio_positions[0]
+        if first_position is None:
+            return False, "unaligned_first_token"
+
+        first_surface = self.tokenizer.decode(
+            [int(generated_ids[0])],
+            skip_special_tokens=True,
+        ).strip()
+        if not any(char.isalnum() for char in first_surface):
+            return False, "non_wordlike_first_token"
+
+        frame_threshold = int(
+            getattr(self.runtime_config, "asr_alignatt_frame_threshold", 4)
+        )
+        frontier_limit = int(content_frame_len) - max(1, frame_threshold)
+        if frontier_limit <= 0 or int(first_position) >= frontier_limit:
+            return False, "first_token_still_in_frontier_band"
+        return True, "accepted"
+
     def _compute_decode_drift(
         self,
         current_ids: Sequence[int],
@@ -1833,14 +1961,6 @@ class GemmaVLLMASRBackend(AlignmentBackend):
         prompt_token_ids = [int(t) for t in prompt_layout.prompt_token_ids]
         prompt_build_ms = (perf_counter() - prompt_build_start) * 1000.0
 
-        install_result = self._install_observer(
-            selected_heads=[
-                {"layer": int(head.layer), "head": int(head.head)}
-                for head in self.alignatt_heads
-            ],
-            audio_prompt_positions=list(range(audio_span.prompt_start, audio_span.prompt_end)),
-            prompt_length=int(prompt_layout.prompt_token_count),
-        )
         prompt_observer_cache_key = _compute_prompt_observer_cache_key(
             prompt_token_ids=prompt_token_ids,
             audio_prompt_positions=list(
@@ -1851,67 +1971,110 @@ class GemmaVLLMASRBackend(AlignmentBackend):
                 for head in self.alignatt_heads
             ],
         )
-
         sampling_params, sampling_diagnostics = build_gemma_vllm_sampling_params(
             runtime_config=self.runtime_config,
             max_new_tokens=int(max_new_tokens),
         )
 
-        generate_start = perf_counter()
-        inp = {
-            "prompt_token_ids": prompt_token_ids,
-            "multi_modal_data": {"audio": [audio]},
-        }
-        outputs = self.llm.generate([inp], sampling_params=sampling_params, use_tqdm=False)
-        generate_ms = (perf_counter() - generate_start) * 1000.0
-        if not outputs or not outputs[0].outputs:
-            raise RuntimeError("vLLM Gemma ASR produced no completion output.")
-
-        output = outputs[0]
-        completion = output.outputs[0]
-        raw_completion_text = str(completion.text)
-        text = raw_completion_text.strip()
-        generated_ids = self._trim_trailing_non_text_token_ids(
-            [int(t) for t in completion.token_ids],
-            text=text,
-        )
-
-        fetch_start = perf_counter()
-        capture_payload = self._fetch_observer_payload()
-        capture_fetch_ms = (perf_counter() - fetch_start) * 1000.0
-        capture_payload, prompt_observer_cache_diagnostics = (
-            _hydrate_capture_payload_from_prompt_observer_cache(
-                capture_payload,
-                cache_entry=self._prompt_observer_cache.get(prompt_observer_cache_key),
+        def run_pass(pass_sampling_params, pass_sampling_diagnostics) -> dict[str, Any]:
+            # Each pass is fully self-contained: install observer, decode,
+            # fetch captured Q/K, reconstruct attention rows, then derive
+            # per-token audio argmaxes. Keeping this loop explicit makes the
+            # primary decode and the optional EOS-only rescue comparable in
+            # the diagnostics instead of hiding one path behind side effects.
+            install_result = self._install_observer(
+                selected_heads=[
+                    {"layer": int(head.layer), "head": int(head.head)}
+                    for head in self.alignatt_heads
+                ],
+                audio_prompt_positions=list(
+                    range(audio_span.prompt_start, audio_span.prompt_end)
+                ),
+                prompt_length=int(prompt_layout.prompt_token_count),
             )
-        )
-        prompt_cache_entry = _build_prompt_observer_cache_entry(capture_payload)
-        if prompt_cache_entry is not None:
-            self._prompt_observer_cache[prompt_observer_cache_key] = prompt_cache_entry
 
-        reconstruction_start = perf_counter()
-        source_attention_rows_per_token, reconstruction_diagnostics = (
-            reconstruct_vllm_audio_attention_rows(
-                capture_payload,
-                alignatt_heads=self.alignatt_heads,
+            generate_start = perf_counter()
+            inp = {
+                "prompt_token_ids": prompt_token_ids,
+                "multi_modal_data": {"audio": [audio]},
+            }
+            outputs = self.llm.generate(
+                [inp],
+                sampling_params=pass_sampling_params,
+                use_tqdm=False,
             )
-        )
-        source_argmax_aggregation = str(
-            getattr(
-                self.runtime_config,
-                "gemma_audio_alignment_aggregation",
-                "median_argmax",
-            )
-        )
-        aligned_audio_positions = compute_alignatt_source_argmaxes(
-            source_attention_rows_per_token,
-            filter_width=self.filter_width,
-            aggregation=source_argmax_aggregation,
-            head_weights=[float(head.ts) for head in self.alignatt_heads],
-        )
-        reconstruction_ms = (perf_counter() - reconstruction_start) * 1000.0
+            generate_ms = (perf_counter() - generate_start) * 1000.0
+            if not outputs or not outputs[0].outputs:
+                raise RuntimeError("vLLM Gemma ASR produced no completion output.")
 
-        if not text or not generated_ids:
+            output = outputs[0]
+            completion = output.outputs[0]
+            completion_token_ids = [int(t) for t in completion.token_ids]
+            raw_completion_text = str(completion.text)
+            text = raw_completion_text.strip()
+            generated_ids = self._trim_trailing_non_text_token_ids(
+                completion_token_ids,
+                text=text,
+            )
+
+            fetch_start = perf_counter()
+            capture_payload = self._fetch_observer_payload()
+            capture_fetch_ms = (perf_counter() - fetch_start) * 1000.0
+            capture_payload, prompt_observer_cache_diagnostics = (
+                _hydrate_capture_payload_from_prompt_observer_cache(
+                    capture_payload,
+                    cache_entry=self._prompt_observer_cache.get(
+                        prompt_observer_cache_key
+                    ),
+                )
+            )
+            prompt_cache_entry = _build_prompt_observer_cache_entry(capture_payload)
+            if prompt_cache_entry is not None:
+                self._prompt_observer_cache[prompt_observer_cache_key] = (
+                    prompt_cache_entry
+                )
+
+            reconstruction_start = perf_counter()
+            source_attention_rows_per_token, reconstruction_diagnostics = (
+                reconstruct_vllm_audio_attention_rows(
+                    capture_payload,
+                    alignatt_heads=self.alignatt_heads,
+                )
+            )
+            aligned_audio_positions = compute_alignatt_source_argmaxes(
+                source_attention_rows_per_token,
+                filter_width=self.filter_width,
+            )
+            # At this point the head strategy is fixed: filter in source
+            # time, take one argmax per head, then take the median across
+            # heads. If the resulting timestamps still look implausible, the
+            # next thing to question is usually the decode itself, not this
+            # last reduction step.
+            reconstruction_ms = (perf_counter() - reconstruction_start) * 1000.0
+            return {
+                "install_result": install_result,
+                "sampling_diagnostics": dict(pass_sampling_diagnostics),
+                "completion_token_ids": completion_token_ids,
+                "raw_completion_text": raw_completion_text,
+                "text": text,
+                "generated_ids": generated_ids,
+                "finish_reason": completion.finish_reason,
+                "capture_payload": capture_payload,
+                "capture_fetch_ms": capture_fetch_ms,
+                "prompt_observer_cache_diagnostics": prompt_observer_cache_diagnostics,
+                "prompt_cache_entry_stored": prompt_cache_entry is not None,
+                "reconstruction_diagnostics": reconstruction_diagnostics,
+                "aligned_audio_positions": aligned_audio_positions,
+                "reconstruction_ms": reconstruction_ms,
+                "generate_ms": generate_ms,
+            }
+
+        def build_result_diagnostics(
+            pass_result: dict[str, Any],
+            *,
+            empty_completion: bool,
+            rescue_diagnostics: dict[str, Any] | None,
+        ) -> dict[str, Any]:
             diagnostics = {
                 "backend": self.name,
                 "observer_backend": "vllm_qk_fast_experimental",
@@ -1923,51 +2086,142 @@ class GemmaVLLMASRBackend(AlignmentBackend):
                     "audio_prompt_tokens": int(prompt_layout.audio_token_count),
                     "prefix_prompt_tokens": int(len(prompt_layout.prefix_token_ids)),
                 },
-                "sampling": sampling_diagnostics,
+                "sampling": dict(pass_result["sampling_diagnostics"]),
                 "selected_head_count": len(self.alignatt_heads),
-                "source_argmax_aggregation": source_argmax_aggregation,
+                "source_argmax_aggregation": "median_argmax",
                 "audio_span_length": int(audio_span.length),
-                "generated_token_count": len(generated_ids),
-                "raw_generated_token_count": len(completion.token_ids),
-                "monotonicity": None,
-                "finish_reason": completion.finish_reason,
-                "capture": reconstruction_diagnostics,
+                "generated_token_count": len(pass_result["generated_ids"]),
+                "raw_generated_token_count": len(pass_result["completion_token_ids"]),
+                "monotonicity": (
+                    None
+                    if empty_completion
+                    else monotonicity_score(pass_result["aligned_audio_positions"])
+                ),
+                "finish_reason": pass_result["finish_reason"],
+                "capture": pass_result["reconstruction_diagnostics"],
                 "capture_debug": (
-                    None if capture_payload is None else capture_payload.get("debug")
+                    None
+                    if pass_result["capture_payload"] is None
+                    else pass_result["capture_payload"].get("debug")
                 ),
                 "prompt_observer_cache": {
-                    **prompt_observer_cache_diagnostics,
+                    **pass_result["prompt_observer_cache_diagnostics"],
                     "cache_size": len(self._prompt_observer_cache),
-                    "stored": prompt_cache_entry is not None,
+                    "stored": pass_result["prompt_cache_entry_stored"],
                 },
-                "worker_install": install_result,
-                "empty_completion": True,
-                "raw_completion_text": raw_completion_text,
+                "worker_install": pass_result["install_result"],
+                "raw_completion_text": pass_result["raw_completion_text"],
                 "timings_ms": {
                     "prompt_build": round(prompt_build_ms, 3),
-                    "generate": round(generate_ms, 3),
-                    "capture_fetch": round(capture_fetch_ms, 3),
-                    "qk_reconstruction": round(reconstruction_ms, 3),
+                    "generate": round(pass_result["generate_ms"], 3),
+                    "capture_fetch": round(pass_result["capture_fetch_ms"], 3),
+                    "qk_reconstruction": round(pass_result["reconstruction_ms"], 3),
                 },
             }
+            if empty_completion:
+                diagnostics["empty_completion"] = True
+            if rescue_diagnostics is not None:
+                diagnostics["eos_only_rescue"] = rescue_diagnostics
+            return diagnostics
+
+        primary_result = run_pass(sampling_params, sampling_diagnostics)
+        final_result = primary_result
+        rescue_meta: dict[str, Any] | None = None
+
+        rescue_enabled = bool(
+            getattr(
+                self.runtime_config,
+                "gemma_audio_eos_only_rescue_enabled",
+                True,
+            )
+        )
+        if rescue_enabled and self._is_eos_only_completion(
+            completion_token_ids=primary_result["completion_token_ids"],
+            generated_ids=primary_result["generated_ids"],
+            finish_reason=primary_result["finish_reason"],
+        ):
+            rescue_sampling_params, rescue_policy = (
+                self._build_eos_only_rescue_sampling_params(
+                    sampling_params,
+                    max_new_tokens=int(max_new_tokens),
+                )
+            )
+            rescue_meta = {
+                "attempted": rescue_policy is not None,
+                "accepted": False,
+                "primary_raw_generated_token_count": len(
+                    primary_result["completion_token_ids"]
+                ),
+                "primary_generated_token_count": len(primary_result["generated_ids"]),
+                "primary_finish_reason": primary_result["finish_reason"],
+                "primary_raw_completion_text": primary_result["raw_completion_text"],
+                "policy": rescue_policy,
+            }
+            if rescue_sampling_params is not None:
+                rescue_result = run_pass(
+                    rescue_sampling_params,
+                    {
+                        **sampling_diagnostics,
+                        **rescue_policy,
+                        "sampling_mode": f"{sampling_diagnostics['sampling_mode']}:eos_only_rescue",
+                    },
+                )
+                rescue_meta.update(
+                    {
+                        "rescue_raw_generated_token_count": len(
+                            rescue_result["completion_token_ids"]
+                        ),
+                        "rescue_generated_token_count": len(
+                            rescue_result["generated_ids"]
+                        ),
+                        "rescue_finish_reason": rescue_result["finish_reason"],
+                        "rescue_raw_completion_text": rescue_result["raw_completion_text"],
+                    }
+                )
+                accepted, accepted_reason = self._rescue_acceptance_ok(
+                    generated_ids=rescue_result["generated_ids"],
+                    aligned_audio_positions=rescue_result["aligned_audio_positions"],
+                    content_frame_len=int(audio_span.length),
+                )
+                rescue_meta["acceptance_reason"] = accepted_reason
+                if accepted:
+                    final_result = rescue_result
+                    rescue_meta["accepted"] = True
+
+        if not final_result["text"] or not final_result["generated_ids"]:
+            # Empty textual output is a meaningful streaming event: the chunk
+            # consumed audio but did not expose any new transcript token.
+            # Downstream code needs this surfaced explicitly because repeated
+            # empty chunks are exactly how long stalls show up.
+            diagnostics = build_result_diagnostics(
+                final_result,
+                empty_completion=True,
+                rescue_diagnostics=rescue_meta,
+            )
             return {
                 "prompt_layout": prompt_layout,
                 "generated_ids": [],
                 "aligned_audio_positions": [],
                 "content_frame_len": int(audio_span.length),
-                "raw_completion_text": raw_completion_text,
-                "finish_reason": completion.finish_reason,
+                "raw_completion_text": final_result["raw_completion_text"],
+                "finish_reason": final_result["finish_reason"],
                 "diagnostics": diagnostics,
             }
 
+        generated_ids = list(final_result["generated_ids"])
+        aligned_audio_positions = list(final_result["aligned_audio_positions"])
         effective_token_count = min(len(generated_ids), len(aligned_audio_positions))
         if effective_token_count <= 0:
-            capture_debug = None if capture_payload is None else capture_payload.get("debug")
+            capture_debug = (
+                None
+                if final_result["capture_payload"] is None
+                else final_result["capture_payload"].get("debug")
+            )
             raise RuntimeError(
                 "The vLLM observer did not recover any generated-token alignment "
-                f"rows. capture={reconstruction_diagnostics!r} "
+                f"rows. capture={final_result['reconstruction_diagnostics']!r} "
                 f"capture_debug={capture_debug!r} "
-                f"finish_reason={completion.finish_reason!r} "
+                f"finish_reason={final_result['finish_reason']!r} "
                 f"generated_token_ids={len(generated_ids)}"
             )
         generated_ids = generated_ids[:effective_token_count]
@@ -1975,49 +2229,19 @@ class GemmaVLLMASRBackend(AlignmentBackend):
 
         self._last_generated_token_ids = list(generated_ids)
 
-        diagnostics = {
-            "backend": self.name,
-            "observer_backend": "vllm_qk_fast_experimental",
-            "prompt_budget": {
-                "max_model_len": int(self.max_model_len),
-                "prompt_reserve_tokens": int(self.prompt_budget_reserve_tokens),
-                "prompt_token_count": int(prompt_layout.prompt_token_count),
-                "non_audio_prompt_tokens": int(prompt_layout.non_audio_prompt_tokens),
-                "audio_prompt_tokens": int(prompt_layout.audio_token_count),
-                "prefix_prompt_tokens": int(len(prompt_layout.prefix_token_ids)),
-            },
-            "sampling": sampling_diagnostics,
-            "selected_head_count": len(self.alignatt_heads),
-            "source_argmax_aggregation": source_argmax_aggregation,
-            "audio_span_length": int(audio_span.length),
-            "generated_token_count": len(generated_ids),
-            "monotonicity": monotonicity_score(aligned_audio_positions),
-            "finish_reason": completion.finish_reason,
-            "capture": reconstruction_diagnostics,
-            "capture_debug": (
-                None if capture_payload is None else capture_payload.get("debug")
-            ),
-            "prompt_observer_cache": {
-                **prompt_observer_cache_diagnostics,
-                "cache_size": len(self._prompt_observer_cache),
-                "stored": prompt_cache_entry is not None,
-            },
-            "worker_install": install_result,
-            "timings_ms": {
-                "prompt_build": round(prompt_build_ms, 3),
-                "generate": round(generate_ms, 3),
-                "capture_fetch": round(capture_fetch_ms, 3),
-                "qk_reconstruction": round(reconstruction_ms, 3),
-            },
-        }
+        diagnostics = build_result_diagnostics(
+            final_result,
+            empty_completion=False,
+            rescue_diagnostics=rescue_meta,
+        )
 
         return {
             "prompt_layout": prompt_layout,
             "generated_ids": generated_ids,
             "aligned_audio_positions": aligned_audio_positions,
             "content_frame_len": int(audio_span.length),
-            "raw_completion_text": raw_completion_text,
-            "finish_reason": completion.finish_reason,
+            "raw_completion_text": final_result["raw_completion_text"],
+            "finish_reason": final_result["finish_reason"],
             "diagnostics": diagnostics,
         }
 
@@ -2100,6 +2324,11 @@ class GemmaVLLMASRBackend(AlignmentBackend):
             for aligned_position in aligned_audio_positions
         ]
         token_end_times_s = _enforce_monotone(token_end_times_s)
+        # This scalar correction is part of the shipping Gemma ASR timestamp
+        # policy, not an optional ablation in the maintained runtime.
+        # It fixes timestamp bias only; it does not make the decoder emit any
+        # earlier, so evaluation code must never confuse these corrected end
+        # times with real chunk emission times.
         token_end_times_s = _apply_word_end_offset(
             token_end_times_s,
             offset_s=self.word_end_offset_s,

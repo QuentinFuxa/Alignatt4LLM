@@ -63,7 +63,11 @@ COMMIT_POLICY = "frontier_flush"
 FRAME_THRESHOLD = 4        # f
 REWIND_THRESHOLD = 50      # rho
 TOP_K_HEADS = 6            # k
-ALIGNMENT_AGGREGATION = "median_argmax"
+# Experimental rescue for pathological empty-stop chunks. Disabled by default:
+# on the smoke clip it can unblock a few stalls, but the accepted retries still
+# corrupt the forced prefix with plausible-yet-wrong continuations.
+EOS_ONLY_RESCUE = False
+EOS_ONLY_RESCUE_MAX_NEW_TOKENS = 3
 ALIGNMENT_BACKEND = "gemma_vllm_qk_fast"
 
 
@@ -78,7 +82,10 @@ def build_config() -> CascadeRuntimeConfig:
     config.asr_alignatt_frame_threshold = int(FRAME_THRESHOLD)
     config.asr_alignatt_rewind_threshold = int(REWIND_THRESHOLD)
     config.gemma_audio_alignment_top_k_heads = int(TOP_K_HEADS)
-    config.gemma_audio_alignment_aggregation = str(ALIGNMENT_AGGREGATION)
+    config.gemma_audio_eos_only_rescue_enabled = bool(EOS_ONLY_RESCUE)
+    config.gemma_audio_eos_only_rescue_max_new_tokens = int(
+        EOS_ONLY_RESCUE_MAX_NEW_TOKENS
+    )
     return config
 
 
@@ -163,7 +170,9 @@ def write_artifacts(records: list[dict], output_dir: Path) -> None:
             "frame_threshold": FRAME_THRESHOLD,
             "rewind_threshold": REWIND_THRESHOLD,
             "top_k_heads": TOP_K_HEADS,
-            "aggregation": ALIGNMENT_AGGREGATION,
+            "aggregation": "median_argmax",
+            "eos_only_rescue": EOS_ONLY_RESCUE,
+            "eos_only_rescue_max_new_tokens": EOS_ONLY_RESCUE_MAX_NEW_TOKENS,
             "probe_mode": "qk_fast",
         },
         "files": {"hypothesis_jsonl": "hypothesis.jsonl"},
@@ -225,7 +234,8 @@ def main() -> None:
     print(
         f"[config] backend={ALIGNMENT_BACKEND} chunk={CHUNK_MS}ms "
         f"min_start={MIN_START_SECONDS}s policy={COMMIT_POLICY} f={FRAME_THRESHOLD} "
-        f"rho={REWIND_THRESHOLD} k={TOP_K_HEADS} agg={ALIGNMENT_AGGREGATION}",
+        f"rho={REWIND_THRESHOLD} k={TOP_K_HEADS} agg=median_argmax "
+        f"eos_rescue={EOS_ONLY_RESCUE}/{EOS_ONLY_RESCUE_MAX_NEW_TOKENS}",
         flush=True,
     )
 

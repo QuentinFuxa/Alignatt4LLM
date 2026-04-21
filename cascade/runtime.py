@@ -78,12 +78,6 @@ STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_vllm_qk_fast")
 VALID_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
 STABLE_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
 VALID_ASR_ALIGNATT_COMMIT_POLICIES = ("frontier_flush", "rewind_abort")
-VALID_GEMMA_AUDIO_ALIGNMENT_AGGREGATIONS = (
-    "mean",
-    "weighted_mean",
-    "median_argmax",
-    "weighted_median_argmax",
-)
 
 # Sentinel returned by the ASR commit helpers when the current chunk must not
 # produce a cascade-visible update (e.g. the word-count invariant is broken
@@ -180,6 +174,13 @@ class CascadeRuntimeConfig:
     temperature: float = 0.0
     repetition_penalty: float = 1.05
     asr_gpu_memory_utilization: float = 0.2
+    # The Qwen forced-aligner is used both online (short live chunks) and
+    # offline for full-audio diagnostic alignment. The latter can exceed the
+    # historical 1024-token cap, so we expose a larger prompt budget here
+    # instead of hardcoding it in the backend. ``2560`` fits the default
+    # Qwen GPU-memory slice on this A100 while covering the tracked longform
+    # diagnostics that overflowed at 1024.
+    qwen_asr_max_model_len: int = 2560
     gemma_max_model_len: int = 1024
     gemma_enable_prefix_caching: bool = True
     alignment_backend_name: str = "qwen_forced"
@@ -187,9 +188,11 @@ class CascadeRuntimeConfig:
     gemma_audio_alignment_heads_path: str | None = (
         "data/alignatt_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
     )
+    # The head file is not just a ranking of interesting heads: it also
+    # ships the calibrated word-end offset for that exact head set. Treat it
+    # as one timestamp policy artifact.
     gemma_audio_alignment_top_k_heads: int = 8
     gemma_audio_alignment_filter_width: int = 7
-    gemma_audio_alignment_aggregation: str = "median_argmax"
     gemma_audio_alignment_max_new_tokens: int = 256
     # vLLM-specific config for the experimental gemma_vllm_qk_fast backend.
     # Defaults reflect the validated cudagraph=full seam (PLAN.md section 6).
@@ -217,6 +220,13 @@ class CascadeRuntimeConfig:
     asr_alignatt_commit_policy: str = "frontier_flush"
     asr_alignatt_frame_threshold: int = 4
     asr_alignatt_rewind_threshold: int = 200
+    # Experimental empty-stop rescue. On some chunks Gemma emits only a single
+    # special stop token; this knob enables one tiny retry with special tokens
+    # suppressed at the first step. Kept off by default because the smoke clip
+    # still shows prefix corruption when the retry hallucinates a plausible but
+    # wrong continuation.
+    gemma_audio_eos_only_rescue_enabled: bool = False
+    gemma_audio_eos_only_rescue_max_new_tokens: int = 3
     # Extra-context injection (IWSLT 2026 Speech-to-Text with Extra Context
     # sub-track). Default off so every non-context path keeps current
     # behaviour exactly. When a paper artifact is configured, the session
@@ -260,19 +270,20 @@ class CascadeRuntimeConfig:
                 f"{VALID_ASR_ALIGNATT_COMMIT_POLICIES}, got "
                 f"{self.asr_alignatt_commit_policy!r}."
             )
-        if (
-            self.gemma_audio_alignment_aggregation
-            not in VALID_GEMMA_AUDIO_ALIGNMENT_AGGREGATIONS
-        ):
-            raise ValueError(
-                "gemma_audio_alignment_aggregation must be one of "
-                f"{VALID_GEMMA_AUDIO_ALIGNMENT_AGGREGATIONS}, got "
-                f"{self.gemma_audio_alignment_aggregation!r}."
-            )
         if int(self.asr_alignatt_rewind_threshold) < 1:
             raise ValueError(
                 "asr_alignatt_rewind_threshold must be >= 1, got "
                 f"{self.asr_alignatt_rewind_threshold!r}."
+            )
+        if int(self.gemma_audio_eos_only_rescue_max_new_tokens) < 1:
+            raise ValueError(
+                "gemma_audio_eos_only_rescue_max_new_tokens must be >= 1, got "
+                f"{self.gemma_audio_eos_only_rescue_max_new_tokens!r}."
+            )
+        if int(self.qwen_asr_max_model_len) < 1024:
+            raise ValueError(
+                "qwen_asr_max_model_len must be >= 1024, got "
+                f"{self.qwen_asr_max_model_len!r}."
             )
 
     def apply_overrides(self, **overrides) -> None:
@@ -1172,6 +1183,13 @@ class CascadeSession:
         # boundary at which the commit was made. Once the stream's window
         # slides past these tokens they are dropped from
         # stream.committed_tokens, so we capture them here.
+        #
+        # ``end_time_s`` and ``committed_at_audio_processed_s`` serve
+        # different purposes and are intentionally both logged:
+        #   - ``end_time_s`` is AlignAtt's best acoustic word-end proxy
+        #   - ``committed_at_audio_processed_s`` is the true emission time
+        #     seen by the downstream evaluator
+        # Confusing the two makes LongYAAL look impossibly low.
         audio_ms_per_token = float(alignment_backend.audio_ms_per_token)
         chunk_audio_processed_s = float(len(audio)) / float(SAMPLE_RATE)
         for tok in delta.new_committed_tokens:
@@ -1193,7 +1211,9 @@ class CascadeSession:
         # timestamps for the partial region. The source frontier falls
         # back to the "all but last word accessible" default, which is
         # correct for a live tail that has not yet cleared the frontier
-        # gate.
+        # gate. This means the runtime's public partial tail is only a UI
+        # convenience; the real latency/accounting path is the committed
+        # token log above.
         self.state.partial_word_timestamps_ms = []
 
         lcp_text = longest_common_prefix(
@@ -1250,6 +1270,11 @@ class CascadeSession:
                     else str(
                         delta.diagnostics["backend"].get("raw_completion_text", "")
                     )
+                ),
+                "alignatt_backend_eos_only_rescue": (
+                    None
+                    if not isinstance(delta.diagnostics.get("backend"), dict)
+                    else delta.diagnostics["backend"].get("eos_only_rescue")
                 ),
                 "alignatt_generated_count": int(
                     delta.diagnostics.get("generated_count", 0)
@@ -1734,7 +1759,13 @@ class CascadeSession:
                 "gemma_max_model_len": self.config.gemma_max_model_len,
                 "gemma_enable_prefix_caching": self.config.gemma_enable_prefix_caching,
                 "gemma_audio_alignment_heads_path": self.config.gemma_audio_alignment_heads_path,
-                "gemma_audio_alignment_aggregation": self.config.gemma_audio_alignment_aggregation,
+                # Aggregation is hard-coded in the maintained path on purpose:
+                # the median-over-head-argmaxes proved robust, and keeping the
+                # value explicit in provenance is more useful than keeping a
+                # live runtime knob that callers can silently mis-set.
+                "gemma_audio_alignment_aggregation": "median_argmax",
+                "gemma_audio_eos_only_rescue_enabled": self.config.gemma_audio_eos_only_rescue_enabled,
+                "gemma_audio_eos_only_rescue_max_new_tokens": self.config.gemma_audio_eos_only_rescue_max_new_tokens,
             },
             run_provenance=_enrich_provenance(self.config, run_provenance),
         )

@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Iterable, Sequence
+import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -237,11 +238,79 @@ def _maybe_release_backend(backend: Any) -> None:
 def _iter_wavs(args: argparse.Namespace) -> list[Path]:
     if args.wavs:
         wavs = [Path(path) for path in args.wavs]
+    elif args.segmentation:
+        segments = _load_segments(Path(args.segmentation))
+        wav_root = Path(args.wav_dir)
+        wavs = [wav_root / wav_name for wav_name in sorted(segments)]
     else:
         wavs = sorted(Path(args.wav_dir).glob("*.wav"))
     if args.limit is not None:
         wavs = wavs[: int(args.limit)]
     return wavs
+
+
+def _load_segments(segmentation_path: Path) -> dict[str, list[dict[str, Any]]]:
+    payload = yaml.safe_load(segmentation_path.read_text(encoding="utf-8"))
+    by_wav: dict[str, list[dict[str, Any]]] = {}
+    for entry in payload or []:
+        wav_name = str(entry["wav"])
+        by_wav.setdefault(wav_name, []).append(
+            {
+                "offset": float(entry["offset"]),
+                "duration": float(entry["duration"]),
+                "speaker_id": entry.get("speaker_id"),
+            }
+        )
+    for wav_name, segments in by_wav.items():
+        segments.sort(key=lambda row: (float(row["offset"]), float(row["duration"])))
+    return by_wav
+
+
+def _iter_segment_spans(
+    *,
+    offset_s: float,
+    duration_s: float,
+    max_segment_seconds: float,
+) -> Iterable[tuple[float, float]]:
+    remaining = float(duration_s)
+    current = float(offset_s)
+    while remaining > 0.0:
+        piece = min(float(max_segment_seconds), remaining)
+        yield current, piece
+        current += piece
+        remaining -= piece
+
+
+def _slice_audio(
+    audio: Any,
+    *,
+    sample_rate: int,
+    offset_s: float,
+    duration_s: float,
+) -> Any:
+    start = max(0, int(round(float(offset_s) * float(sample_rate))))
+    end = min(
+        int(audio.shape[0]),
+        int(round((float(offset_s) + float(duration_s)) * float(sample_rate))),
+    )
+    return audio[start:end]
+
+
+def _shift_alignment_payload(
+    payload: dict[str, Any],
+    *,
+    time_shift_s: float,
+) -> dict[str, Any]:
+    shifted = dict(payload)
+    shifted["words"] = [
+        {
+            **word,
+            "start_time": float(word["start_time"]) + float(time_shift_s),
+            "end_time": float(word["end_time"]) + float(time_shift_s),
+        }
+        for word in payload.get("words") or []
+    ]
+    return shifted
 
 
 def _run_backend_over_wavs(
@@ -252,6 +321,8 @@ def _run_backend_over_wavs(
     language: str,
     top_k: int,
     heads_path: str | None,
+    segments_by_wav: dict[str, list[dict[str, Any]]] | None,
+    max_segment_seconds: float,
 ) -> None:
     bundle_dir = output_dir / backend_name
     bundle_dir.mkdir(parents=True, exist_ok=True)
@@ -274,18 +345,91 @@ def _run_backend_over_wavs(
         for wav in pending:
             print(f"[{backend_name}] {wav.name}", flush=True)
             audio, sample_rate = load_wav(str(wav))
-            result = backend.transcribe_and_align(
-                audio,
-                sample_rate=sample_rate,
-                language=language,
+            audio_duration_s = float(len(audio)) / float(sample_rate)
+            segments = (
+                list(segments_by_wav.get(wav.name, []))
+                if segments_by_wav is not None
+                else []
             )
-            if result is None:
-                raise RuntimeError(f"{backend_name} produced no result for {wav}")
+            if not segments:
+                segments = [{"offset": 0.0, "duration": audio_duration_s, "speaker_id": None}]
+
+            merged_words: list[dict[str, Any]] = []
+            merged_texts: list[str] = []
+            segment_payloads: list[dict[str, Any]] = []
+            for segment in segments:
+                for piece_offset_s, piece_duration_s in _iter_segment_spans(
+                    offset_s=float(segment["offset"]),
+                    duration_s=float(segment["duration"]),
+                    max_segment_seconds=float(max_segment_seconds),
+                ):
+                    audio_slice = _slice_audio(
+                        audio,
+                        sample_rate=sample_rate,
+                        offset_s=piece_offset_s,
+                        duration_s=piece_duration_s,
+                    )
+                    if audio_slice.size <= 0:
+                        continue
+                    result = backend.transcribe_and_align(
+                        audio_slice,
+                        sample_rate=sample_rate,
+                        language=language,
+                    )
+                    if result is None:
+                        segment_payloads.append(
+                            {
+                                "offset_s": float(piece_offset_s),
+                                "duration_s": float(piece_duration_s),
+                                "speaker_id": segment.get("speaker_id"),
+                                "word_count": 0,
+                                "text": "",
+                                "skipped_empty_result": True,
+                            }
+                        )
+                        continue
+                    payload = _shift_alignment_payload(
+                        serialize_alignment(result),
+                        time_shift_s=piece_offset_s,
+                    )
+                    segment_payloads.append(
+                        {
+                            "offset_s": float(piece_offset_s),
+                            "duration_s": float(piece_duration_s),
+                            "speaker_id": segment.get("speaker_id"),
+                            "word_count": int(len(payload.get("words") or [])),
+                            "text": str(payload.get("text", "")),
+                        }
+                    )
+                    merged_words.extend(payload.get("words") or [])
+                    text = str(payload.get("text", "")).strip()
+                    if text:
+                        merged_texts.append(text)
+
+            if not segment_payloads:
+                raise RuntimeError(f"{backend_name} produced no segment payloads for {wav}")
+
+            merged_payload = {
+                "text": " ".join(merged_texts).strip(),
+                "audio_duration_s": audio_duration_s,
+                "words": merged_words,
+                "observer_tokens": [],
+                "diagnostics": {
+                    "segment_count": int(len(segment_payloads)),
+                    "max_segment_seconds": float(max_segment_seconds),
+                    "segmentation_mode": (
+                        "tracked_segments"
+                        if segments_by_wav is not None
+                        else "full_audio"
+                    ),
+                    "segments": segment_payloads,
+                },
+            }
             _write_bundle(
                 bundle_dir / f"{wav.stem}.json",
                 tag=backend_name,
                 wav_path=wav,
-                result_payload=serialize_alignment(result),
+                result_payload=merged_payload,
             )
     finally:
         _maybe_release_backend(backend)
@@ -336,12 +480,37 @@ def main() -> None:
             "heads path."
         ),
     )
+    parser.add_argument(
+        "--segmentation",
+        default=None,
+        help=(
+            "Optional YAML segmentation file with entries "
+            "{wav, offset, duration, speaker_id}. When set, both backends "
+            "run segment-by-segment and the outputs are stitched back onto "
+            "the original wav timeline."
+        ),
+    )
+    parser.add_argument(
+        "--max-segment-seconds",
+        type=float,
+        default=29.5,
+        help=(
+            "Maximum subsegment duration sent to one backend call. Segments "
+            "longer than this are split contiguously before alignment."
+        ),
+    )
     parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args()
 
     wavs = _iter_wavs(args)
     if not wavs:
         raise SystemExit("No wavs selected.")
+
+    segments_by_wav = (
+        _load_segments(Path(args.segmentation))
+        if args.segmentation
+        else None
+    )
 
     print(f"[plan] comparing {len(wavs)} wav(s)", flush=True)
     _run_backend_over_wavs(
@@ -351,6 +520,8 @@ def main() -> None:
         language=args.language,
         top_k=int(args.top_k),
         heads_path=args.heads_path,
+        segments_by_wav=segments_by_wav,
+        max_segment_seconds=float(args.max_segment_seconds),
     )
     _run_backend_over_wavs(
         wavs=wavs,
@@ -359,6 +530,8 @@ def main() -> None:
         language=args.language,
         top_k=int(args.top_k),
         heads_path=args.heads_path,
+        segments_by_wav=segments_by_wav,
+        max_segment_seconds=float(args.max_segment_seconds),
     )
 
     qwen_payloads = _load_payloads(args.output_dir / "qwen_forced", wavs)
@@ -397,6 +570,8 @@ def main() -> None:
                 "wav_count": len(wavs),
                 "language": args.language,
                 "top_k": int(args.top_k),
+                "segmentation": args.segmentation,
+                "max_segment_seconds": float(args.max_segment_seconds),
                 "aggregate": aggregate,
                 "per_wav": per_wav_reports,
             },

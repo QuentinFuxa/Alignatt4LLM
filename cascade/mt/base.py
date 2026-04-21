@@ -1437,14 +1437,6 @@ def median_filter_last_dim(values: torch.Tensor, width: int) -> torch.Tensor:
     return windows.median(dim=-1).values
 
 
-VALID_ALIGNATT_SOURCE_AGGREGATIONS = (
-    "mean",
-    "weighted_mean",
-    "median_argmax",
-    "weighted_median_argmax",
-)
-
-
 def _prepare_alignatt_attention_tensor(
     source_attention_rows_per_token: Sequence[torch.Tensor],
     *,
@@ -1462,70 +1454,31 @@ def _prepare_alignatt_attention_tensor(
     return median_filter_last_dim(attention_tensor, filter_width)
 
 
-def _resolve_alignatt_head_weights(
-    *,
-    head_count: int,
-    attention_tensor: torch.Tensor,
-    aggregation: str,
-    head_weights: Sequence[float] | None,
-) -> torch.Tensor:
-    if aggregation in {"mean", "median_argmax"} or head_weights is None:
-        weights = torch.ones(
-            head_count,
-            device=attention_tensor.device,
-            dtype=attention_tensor.dtype,
-        )
-    else:
-        weights = torch.tensor(
-            [max(float(weight), 0.0) for weight in head_weights],
-            device=attention_tensor.device,
-            dtype=attention_tensor.dtype,
-        )
-        if weights.numel() != head_count:
-            raise ValueError(
-                "AlignAtt head-weight count mismatch: "
-                f"{weights.numel()} != {head_count}"
-            )
-        if float(weights.sum().item()) <= 0.0:
-            weights = torch.ones(
-                head_count,
-                device=attention_tensor.device,
-                dtype=attention_tensor.dtype,
-            )
-    return weights
-
-
-def _weighted_median_position(
-    positions: Sequence[int],
-    weights: Sequence[float],
-) -> int:
-    order = sorted(range(len(positions)), key=lambda idx: (positions[idx], idx))
-    total = sum(float(weights[idx]) for idx in order)
-    if total <= 0.0:
-        return int(positions[order[len(order) // 2]])
-
-    threshold = 0.5 * total
-    cumulative = 0.0
-    for idx in order:
-        cumulative += float(weights[idx])
-        if cumulative >= threshold:
-            return int(positions[idx])
-    return int(positions[order[-1]])
+def _median_position(positions: Sequence[int]) -> int:
+    ordered = sorted(int(position) for position in positions)
+    return int(ordered[(len(ordered) - 1) // 2])
 
 
 def compute_alignatt_source_argmaxes(
     source_attention_rows_per_token: Sequence[torch.Tensor],
     *,
     filter_width: int,
-    aggregation: str = "mean",
-    head_weights: Sequence[float] | None = None,
 ) -> list[int | None]:
-    if aggregation not in VALID_ALIGNATT_SOURCE_AGGREGATIONS:
-        raise ValueError(
-            f"Unknown AlignAtt source aggregation {aggregation!r}; expected one of "
-            f"{VALID_ALIGNATT_SOURCE_AGGREGATIONS}."
-        )
-
+    # Gemma ASR shipping default: robustify at the head-consensus level
+    # before the per-token frontier test. On the smoke clip, equal-weight
+    # averaging was repeatedly dragged left by a minority of noisy heads,
+    # delaying whole words by one extra chunk even though most heads were
+    # already aligned near the correct late-audio position. `median_argmax`
+    # keeps the simple monotone argmax pipeline, improves worst-case lag,
+    # and avoids benchmark-specific head blacklists.
+    #
+    # We intentionally do not expose alternative aggregations in the
+    # maintained runtime anymore:
+    #   - mean / weighted-mean were too sensitive to one bad head
+    #   - weighted-median matched the unweighted median on the maintained
+    #     head set, so the extra knob bought no measurable benefit
+    # The robust consensus is the point here; not squeezing a tiny gain by
+    # retuning the aggregator per benchmark.
     attention_tensor = _prepare_alignatt_attention_tensor(
         source_attention_rows_per_token,
         filter_width=filter_width,
@@ -1535,28 +1488,8 @@ def compute_alignatt_source_argmaxes(
             return []
         return [None] * len(source_attention_rows_per_token)
 
-    head_count = int(attention_tensor.shape[0])
-    weights = _resolve_alignatt_head_weights(
-        head_count=head_count,
-        attention_tensor=attention_tensor,
-        aggregation=aggregation,
-        head_weights=head_weights,
-    )
-
-    if aggregation in {"mean", "weighted_mean"}:
-        weights = weights / weights.sum().clamp_min(1e-6)
-        fused = (attention_tensor * weights.view(-1, 1, 1)).sum(dim=0)
-        return [int(position) for position in torch.argmax(fused, dim=-1).tolist()]
-
     per_head_positions = torch.argmax(attention_tensor, dim=-1).transpose(0, 1).tolist()
-    weight_list = [float(weight) for weight in weights.tolist()]
-    return [
-        _weighted_median_position(
-            [int(position) for position in query_positions],
-            weight_list,
-        )
-        for query_positions in per_head_positions
-    ]
+    return [_median_position(query_positions) for query_positions in per_head_positions]
 
 
 def compute_prefix_online_alignatt_source_argmaxes(

@@ -36,6 +36,10 @@ PUNCTUATION_LEADING = "\"'`“”‘’([{"
 # the word end inside that interval instead of at the current word's last
 # token peak. A slight bias toward the next-word anchor reduces systematic
 # early word-end estimates without waiting for the full next word.
+#
+# This is a timestamp-quality correction only. It does not change when the
+# runtime is allowed to emit a word; the real emission time is still the
+# chunk boundary recorded separately in the commit log.
 WORD_END_BOUNDARY_NEXT_WEIGHT = 0.6
 
 
@@ -153,6 +157,16 @@ def aggregate_token_timings_to_words(
     time-ordered. This reduces the systematic early bias of causal-token
     argmaxes for short words such as ``in`` / ``for`` / ``by``.
 
+    The order of operations matters:
+      1. head aggregation chooses one token-level audio index per token
+      2. monotone projection removes local leftward regressions
+      3. the scalar offset de-biases those token end times globally
+      4. this word-level rule converts token anchors into word ends
+
+    Keeping the global offset outside this function is deliberate. The
+    offset is calibrated once per model/language pair, whereas this helper
+    should stay purely geometric once token end-times are fixed.
+
     Tokens with no alignment (``None``) are ignored; unaligned words inherit
     the previous word's end-time as a monotone fallback.
     """
@@ -236,6 +250,14 @@ def load_audio_alignment_heads(
     an optional ``word_end_offset_seconds`` scalar subtracted from every
     predicted word-end time at inference — correcting the systematic lag
     between a causal LLM's attention peak and the acoustic word boundary.
+
+    Heads and offset are one calibrated bundle:
+      - the head ranking controls which per-token argmaxes survive
+      - the offset corrects the residual left/right bias of that exact set
+
+    In other words, the offset is not a universal constant for "Gemma". It
+    only makes sense for the head file it ships with and the teacher used to
+    fit it. Keeping them in the same JSON prevents silent config drift.
     """
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     heads = [
@@ -275,6 +297,12 @@ def _apply_word_end_offset(
     The offset is a single scalar fit once per ``(language, model)`` on
     the same teacher that selects the heads — a generic constant, not a
     per-example hack.
+
+    This correction is useful because the token-level signal is structured
+    but biased: without it, timestamps are often consistently too early or
+    too late even when their ranking is informative. Applying the offset can
+    make word-end estimates much more plausible, but it does *not* change
+    actual latency. Only the emission timestamp can do that.
     """
     if not offset_s:
         return list(values)
@@ -297,6 +325,10 @@ def _enforce_monotone(values: Sequence[float | None]) -> list[float | None]:
     cleanest generic fix is a left-to-right running max. ``None`` values
     are only filled forward, never backward, so the fallback does not mask
     tokens that legitimately fail to align.
+
+    This projection is deliberately lightweight. If timestamps remain far
+    too early after this step, the problem is usually not "more smoothing"
+    but either a bad head consensus or a genuinely unstable decode.
     """
     output: list[float | None] = []
     running_max: float = 0.0

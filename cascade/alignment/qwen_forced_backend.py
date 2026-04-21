@@ -97,7 +97,9 @@ class QwenAlignmentBackend(AlignmentBackend):
             model=self.asr_model_path,
             gpu_memory_utilization=self.runtime_config.asr_gpu_memory_utilization,
             max_inference_batch_size=1,
-            max_model_len=1024,
+            max_model_len=int(
+                getattr(self.runtime_config, "qwen_asr_max_model_len", 4096)
+            ),
             max_new_tokens=1024,
             forced_aligner=self.forced_aligner_model_path,
             forced_aligner_kwargs={

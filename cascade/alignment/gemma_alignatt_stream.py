@@ -178,6 +178,12 @@ class GemmaAlignAttStream:
         #    model prompt. The comparison is ``>=`` because a token
         #    whose aligned frame sits exactly at the window-start frame
         #    is still supported by audio visible to the model.
+        #
+        #    This retained-prefix loop is the one place where long-form
+        #    decoder history re-enters the next chunk. When streaming ASR
+        #    drifts semantically, this is the first mechanism to audit:
+        #    any leaked or corrupted committed token is fed back here
+        #    until its anchor slides out of the window.
         retained: list[CommittedToken] = [
             tok for tok in self.committed_tokens if tok.end_frame_abs >= win_start_frame_abs
         ]
@@ -255,6 +261,13 @@ class GemmaAlignAttStream:
         #
         # On the final chunk, commit every generated token; no more
         # audio is coming so holding back is pointless.
+        #
+        # The maintained ``frontier_flush`` policy is intentionally simple:
+        # after monotone projection, commit everything strictly before the
+        # trailing hold-back band. If observed latency exceeds roughly
+        # ``chunk_ms + holdback_ms`` under this policy, the cause is no
+        # longer the commit rule itself; it is upstream (generation,
+        # alignment, or prefix drift).
         gen_ids = list(int(t) for t in step_raw.generated_token_ids)
         argmaxes = list(int(a) for a in step_raw.per_token_audio_frame_argmax)
         n = min(len(gen_ids), len(argmaxes))

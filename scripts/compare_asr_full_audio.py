@@ -72,6 +72,11 @@ META_RESPONSE_PATTERNS = (
     "only output the transcription",
     "follow these specific instructions for formatting the answer",
 )
+# Treat leaked prompt instructions as meta responses too. For Gemma ASR
+# long-form probes this bucket catches the failure mode where the model
+# starts copying the transcription instruction instead of the audio
+# content; ranking runs by meta_response_count surfaces that collapse
+# early, before LongYAAL / resegmentation become misleading.
 
 
 def _strip_word_surface(raw: str) -> str:
@@ -247,6 +252,11 @@ def is_meta_response(text: str) -> bool:
     normalized = " ".join(str(text).strip().lower().split())
     if not normalized:
         return False
+    # This predicate is intentionally coarse. For Gemma long-form probes we
+    # care less about the exact leaked wording than about catching the regime
+    # switch from "transcribe the audio" to "talk about the instruction". As
+    # soon as that switch happens, downstream latency metrics become much less
+    # trustworthy because resegmentation is matching the wrong content.
     return any(pattern in normalized for pattern in META_RESPONSE_PATTERNS)
 
 

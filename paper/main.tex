@@ -963,6 +963,59 @@ anchored-reference rewind fix described in Sec.~\ref{sec:alignatt-llm},
 the policy only reaches its upper quality bound at ${\sim}3.6$\,s of
 CU-LongYAAL.
 
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Head fusion rule & Mean & Median & P90 & Max \\
+\midrule
+Mean pooling & $472$ & $480$ & $880$ & $1200$ \\
+Weighted mean (teacher-score) & $472$ & $480$ & $880$ & $1200$ \\
+Median of per-head argmax & $\mathbf{421}$ & $\mathbf{400}$ & $\mathbf{720}$ & $\mathbf{880}$ \\
+Weighted median of per-head argmax & $\mathbf{421}$ & $\mathbf{400}$ & $\mathbf{720}$ & $\mathbf{880}$ \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Teacher-relative true commit lag for Gemma ASR head fusion}
+on the canonical smoke clip \texttt{alignatt\_smoke18.wav}, measured in
+milliseconds against Qwen3 forced word-end times. All rows use the same
+streaming policy ($\Delta_{\mathrm{chunk}}{=}800$\,ms, $f{=}6$, $k{=}6$,
+\texttt{frontier\_flush}) and produce the same final transcript; only the
+per-token head-fusion rule differs. Because the weighted variants match the
+unweighted ones on the selected head set, we ship the simpler unweighted
+\texttt{median\_argmax} rule as the Gemma~4 ASR default.}
+\label{tab:asr-head-fusion}
+\end{table}
+
+Table~\ref{tab:asr-head-fusion} isolates the remaining ASR-side decision that
+matters after the rewind fix: how to fuse the selected AlignAtt heads into a
+single source position per token. Equal-weight mean pooling leaves the worst
+teacher-relative lag at $1200$\,ms because a minority of noisy heads can drag
+the fused argmax left by roughly one extra chunk. Taking the median over the
+per-head argmaxes lowers not only the maximum lag ($1200 \rightarrow 880$\,ms)
+but also the full distribution (mean $472 \rightarrow 421$\,ms, P90
+$880 \rightarrow 720$\,ms) without introducing head-specific blacklists or
+benchmark-tuned lexical repairs. On the same smoke clip, a simple global
+calibration of the raw AlignAtt word ends by the median teacher-relative bias
+($+620$\,ms) yields a usable timestamp proxy: teacher-relative word-end error
+drops to $254$\,ms MAE, with median absolute error $180$\,ms, P90 absolute
+error $420$\,ms, and worst-case absolute error $980$\,ms. This calibrated
+proxy is not accurate enough to interpret the final $250$\,ms hold-back band
+as an exact boundary detector, but it is sufficiently structured to support a
+word-level approximation of that frontier.
+
+The same conclusion holds on the tracked 21-clip dev-set once we evaluate the
+frontier policy directly. Leaving the shipping Gemma word ends unadjusted
+commits too early on nearly half of the matched pieces (exact / early / late
+$=49.5 / 47.5 / 3.0$\%), so we do not keep the no-offset variant as a
+maintained policy. Adding one fixed frontier-calibration offset of $+376$\,ms
+to the already-shipping-corrected word ends improves teacher-relative timestamp
+error from $654$ to $484$\,ms MAE and frontier fidelity to
+$67.8 / 17.1 / 15.1$\% exact / early / late. The corresponding
+proxy-derived CU-LongYAAL is $834$\,ms on the same 21 clips. We report that
+offset-calibrated proxy as the maintained analysis path and keep the
+no-offset numbers only as an ablation in this section.
+
 \subsection{End-to-End Cascade Quality and Latency}
 \label{sec:exp-e2e}
 
