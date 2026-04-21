@@ -892,6 +892,33 @@ substrate produces alignment signals strong enough to drive streaming
 commit decisions at all, at roughly twice the RTF of a dedicated
 aligner, while removing the need to host a second 3B-parameter ASR model.
 
+To complement the single-clip diagnostic, Table~\ref{tab:asr-21clip}
+reports aggregate en--en (ASR-as-MT) metrics over the full 21-clip
+dev-set at chunk size $800$\,ms. BLEU, chrF, and LongYAAL are corpus-level
+scores from OmniSTEval; WER and CER are averaged across clips.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+ & Qwen3 forced (LA) & Gemma AlignAtt \\
+\midrule
+Mean WER $\downarrow$           & $0.092$ & --- \\
+Mean CER $\downarrow$           & $0.042$ & --- \\
+BLEU $\uparrow$                 & $74.82$ & --- \\
+chrF $\uparrow$                 & $90.81$ & --- \\
+LongYAAL CU (ms) $\downarrow$   & $865.7$ & --- \\
+LongYAAL CA (ms) $\downarrow$   & $672.7$ & --- \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{21-clip ASR alignment comparison}, en--en (ASR-as-MT),
+chunk $800$\,ms. BLEU/chrF and LongYAAL are corpus-level on the
+OmniSTEval-resegmented dev-set; WER/CER are per-clip means over the
+21 clips. Gemma AlignAtt entries pending re-run.}
+\label{tab:asr-21clip}
+\end{table}
+
 \subsection{Streaming Latency/Quality Frontier}
 \label{sec:exp-frontier}
 

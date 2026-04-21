@@ -163,6 +163,5 @@ acl-speech/*
 **/artifacts/*
 
 *.zip
-*.pdf
 *.jsonl
 *.wav
