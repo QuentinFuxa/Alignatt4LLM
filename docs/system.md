@@ -9,13 +9,14 @@
 ## Supported backends
 
 - ASR `qwen_forced` — stable default
-- ASR `gemma_onepass_qk_fast` — stable experimental
-- ASR `gemma_vllm_qk_fast` — experimental
+- ASR `gemma_vllm_qk_fast` — sole Gemma AlignAtt ASR path, sub-1 s CU-LongYAAL
+  operating point. Standalone entrypoint: `gemma_asr_low_latency.py`.
 - MT `gemma_vllm_alignatt` — only maintained MT backend
 
 ## Data layout
 
 - `data/devset/` — tracked development set, references, and PDFs
+- `dev-set/` — compatibility alias to the tracked development set
 - `data/testset/` — local untracked evaluation set
 - `data/alignatt_heads/` — tracked runtime head payloads
 - `data/smoke/` — tiny reproducible smoke fixtures

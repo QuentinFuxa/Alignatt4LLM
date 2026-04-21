@@ -27,53 +27,39 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from cascade.artifacts import (  # noqa: E402
     HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
-    normalize_computation_aware_timestamps,
+    build_asr_hypothesis_record,
+    build_asr_hypothesis_record_from_trace_first_appearance,
 )
 
 
 def build_hypothesis_record_from_run(run: dict) -> dict:
-    trace = run["stream_trace"]
-    audio_duration_ms = float(run["audio_duration_s"]) * 1000.0
+    """Build an ASR hypothesis record with SimulEval emission semantics.
+
+    Prefers the per-token commit log (exact chunk-boundary emission time
+    per word) and falls back to first-appearance matching on
+    ``public_asr_text`` when a run predates the commit log.
+    """
+    trace = run.get("stream_trace") or []
+    audio_duration_s = float(run["audio_duration_s"])
     wav_name = Path(run["wav_path"]).name
-
-    final_committed = (trace[-1].get("public_asr_text", "") or "") if trace else ""
-    final_words = final_committed.split()
-    n_final = len(final_words)
-
-    delays_ms = [0.0] * n_final
-    elapsed_ms = [0.0] * n_final
-    marked = [False] * n_final
-
-    for row in trace:
-        committed = (row.get("public_asr_text", "") or "").split()
-        audio_processed_ms = float(row["audio_processed_s"]) * 1000.0
-        wallclock_ms = float(row["wallclock_s"]) * 1000.0
-        k = min(len(committed), n_final)
-        for i in range(k):
-            if not marked[i] and committed[i] == final_words[i]:
-                delays_ms[i] = audio_processed_ms
-                elapsed_ms[i] = wallclock_ms
-                marked[i] = True
-
-    final_wallclock_ms = (
-        float(trace[-1]["wallclock_s"]) * 1000.0 if trace else 0.0
+    per_token = run.get("per_token_commits") or []
+    processing_s = (
+        float(run.get("processing_s", 0.0))
+        or (float(trace[-1]["wallclock_s"]) if trace else 0.0)
     )
-    for i in range(n_final):
-        if not marked[i]:
-            delays_ms[i] = audio_duration_ms
-            elapsed_ms[i] = final_wallclock_ms
-
-    normalized_elapsed = normalize_computation_aware_timestamps(delays_ms, elapsed_ms)
-
-    return {
-        "source": [wav_name],
-        "source_length": audio_duration_ms,
-        "prediction": final_committed,
-        "delays": delays_ms,
-        "elapsed": normalized_elapsed,
-        "elapsed_wallclock_ms": elapsed_ms,
-        "elapsed_semantics": HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
-    }
+    if per_token:
+        return build_asr_hypothesis_record(
+            per_token_commits=per_token,
+            stream_trace=trace,
+            wav_name=wav_name,
+            audio_duration_s=audio_duration_s,
+            processing_s=processing_s,
+        )
+    return build_asr_hypothesis_record_from_trace_first_appearance(
+        stream_trace=trace,
+        wav_name=wav_name,
+        audio_duration_s=audio_duration_s,
+    )
 
 
 def write_hypothesis_and_manifest(

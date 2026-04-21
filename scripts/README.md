@@ -6,6 +6,7 @@ Maintained utility scripts that sit next to the active runtime.
 
 - `compare_asr_full_audio.py` — single-audio ASR evaluation harness
 - `compare_asr_per_audio_batch.py` — hot-bundle ASR batch comparison over the tracked dev-set
+- `compare_asr_word_end_bias.py` — Qwen-vs-Gemma word-end timing bias analysis for ASR AlignAtt
 - `eval_asr_per_audio_longyaal.py` — LongYAAL and aggregate scoring for those per-audio ASR runs
 - `plot_asr_comparison.py` — plotting/report helper for the ASR comparison outputs
 - `asr_trace_to_hypothesis_jsonl.py` — convert ASR traces to OmniSTEval-style hypothesis bundles

@@ -79,12 +79,14 @@ class GemmaAlignAttStream:
         language: str,
         frame_threshold: int = 4,
         rewind_threshold: int = 200,
+        commit_policy: str = "frontier_flush",
         max_new_tokens: int | None = None,
     ) -> None:
         self.backend = backend
         self.language = str(language)
         self.frame_threshold = int(frame_threshold)
         self.rewind_threshold = int(rewind_threshold)
+        self.commit_policy = str(commit_policy)
         self.max_new_tokens = int(max_new_tokens) if max_new_tokens else int(
             backend.max_new_tokens
         )
@@ -198,6 +200,7 @@ class GemmaAlignAttStream:
                 audio_window_start_frame_abs=int(win_start_frame_abs),
                 audio_window_content_frames=int(expected_content_frames),
                 diagnostics={
+                    "commit_policy": str(self.commit_policy),
                     "budget_exceeded": True,
                     "forced_prefix_token_count": len(forced_prefix_token_ids),
                     "audio_window_samples": int(len(audio_window)),
@@ -216,8 +219,14 @@ class GemmaAlignAttStream:
                 audio_window_start_frame_abs=int(win_start_frame_abs),
                 audio_window_content_frames=int(expected_content_frames),
                 diagnostics={
+                    "commit_policy": str(self.commit_policy),
                     "empty_generation": True,
                     "forced_prefix_token_count": len(forced_prefix_token_ids),
+                    **(
+                        {"backend": dict(step_raw.diagnostics)}
+                        if step_raw is not None and step_raw.diagnostics
+                        else {}
+                    ),
                 },
             )
 
@@ -227,6 +236,7 @@ class GemmaAlignAttStream:
                 audio_window_start_frame_abs=int(win_start_frame_abs),
                 audio_window_content_frames=int(expected_content_frames),
                 diagnostics={
+                    "commit_policy": str(self.commit_policy),
                     "empty_content_frames": True,
                 },
             )
@@ -234,16 +244,14 @@ class GemmaAlignAttStream:
         # 5. Token-level commit walk (simul_whisper §4).
         #
         # For each generated token i:
-        #   - if this is not the final chunk and argmax_i is within
-        #     `frame_threshold` of the audio end, STOP. Commit [0..i).
-        #   - if argmax_i is more than `rewind_threshold` earlier than
-        #     the last committed position across chunks, the walker has
-        #     fallen behind known-good alignment; STOP. Commit [0..i).
-        #     The reference is the pre-chunk commit frontier, not the
-        #     running token-by-token argmax: individual attention dips
-        #     inside a chunk are normal transients and should not
-        #     discard earlier, well-anchored tokens.
-        #   - otherwise accept token i.
+        #   - the raw attention argmax is clipped into the visible audio window;
+        #   - under ``frontier_flush`` we project the local path onto the least
+        #     monotone majorant anchored at the previous commit frontier, then
+        #     commit the maximal prefix that lies strictly before the trailing
+        #     ``frame_threshold`` band of the chunk;
+        #   - under ``rewind_abort`` we preserve the historical behaviour:
+        #     stop when the token enters the trailing band, or abort the chunk
+        #     if it rewinds too far before the previous commit frontier.
         #
         # On the final chunk, commit every generated token; no more
         # audio is coming so holding back is pointless.
@@ -258,31 +266,70 @@ class GemmaAlignAttStream:
         else:
             prev_commit_frame_local = 0
 
-        new_committed: list[CommittedToken] = []
-        aborted_by_rewind = False
-        accepted_count = 0
+        frontier_stop_local = max(0, content_frame_len - self.frame_threshold)
+        clipped_argmaxes: list[int] = []
+        projected_argmaxes: list[int] = []
+        raw_rewind_count = 0
+        raw_max_rewind_frames = 0
+        projected_repair_count = 0
+        projected_max_repair_frames = 0
+        running_floor = int(prev_commit_frame_local)
         for i in range(n):
             am = argmaxes[i]
             if am < 0:
                 am = 0
             if am >= content_frame_len:
                 am = content_frame_len - 1
+            clipped_argmaxes.append(int(am))
 
-            if not is_final_chunk:
-                if (content_frame_len - am) <= self.frame_threshold:
-                    break
-                if am < prev_commit_frame_local - self.rewind_threshold:
-                    aborted_by_rewind = True
-                    break
+            if am < running_floor:
+                raw_rewind_count += 1
+                raw_max_rewind_frames = max(raw_max_rewind_frames, running_floor - am)
 
-            new_committed.append(
-                CommittedToken(
-                    token_id=int(gen_ids[i]),
-                    text=self.backend.decode_single_token(int(gen_ids[i])),
-                    end_frame_abs=int(win_start_frame_abs) + int(am),
+            projected = max(int(am), int(running_floor))
+            if projected != am:
+                projected_repair_count += 1
+                projected_max_repair_frames = max(
+                    projected_max_repair_frames,
+                    projected - am,
                 )
-            )
-            accepted_count = i + 1
+            projected_argmaxes.append(int(projected))
+            running_floor = int(projected)
+
+        new_committed: list[CommittedToken] = []
+        aborted_by_rewind = False
+        accepted_count = 0
+        if self.commit_policy == "rewind_abort":
+            for i in range(n):
+                am = clipped_argmaxes[i]
+                if not is_final_chunk:
+                    if am >= frontier_stop_local:
+                        break
+                    if am < prev_commit_frame_local - self.rewind_threshold:
+                        aborted_by_rewind = True
+                        break
+
+                new_committed.append(
+                    CommittedToken(
+                        token_id=int(gen_ids[i]),
+                        text=self.backend.decode_single_token(int(gen_ids[i])),
+                        end_frame_abs=int(win_start_frame_abs) + int(am),
+                    )
+                )
+                accepted_count = i + 1
+        else:
+            for i in range(n):
+                am = projected_argmaxes[i]
+                if not is_final_chunk and am >= frontier_stop_local:
+                    break
+                new_committed.append(
+                    CommittedToken(
+                        token_id=int(gen_ids[i]),
+                        text=self.backend.decode_single_token(int(gen_ids[i])),
+                        end_frame_abs=int(win_start_frame_abs) + int(am),
+                    )
+                )
+                accepted_count = i + 1
 
         # Tail = tokens generated but not committed on this step.
         # Decoded purely so callers can render a display-only live
@@ -296,12 +343,18 @@ class GemmaAlignAttStream:
         self.committed_tokens.extend(new_committed)
 
         diagnostics = {
+            "commit_policy": str(self.commit_policy),
             "generated_count": int(n),
             "accepted_count": int(len(new_committed)),
             "aborted_by_rewind": bool(aborted_by_rewind),
+            "frontier_stop_local": int(frontier_stop_local),
             "forced_prefix_token_count": int(len(forced_prefix_token_ids)),
             "out_of_window_cumulative": int(self._out_of_window_count),
             "content_frame_len": int(content_frame_len),
+            "raw_rewind_count": int(raw_rewind_count),
+            "raw_max_rewind_frames": int(raw_max_rewind_frames),
+            "projected_repair_count": int(projected_repair_count),
+            "projected_max_repair_frames": int(projected_max_repair_frames),
             "audio_window_samples": int(len(audio_window)),
             "audio_window_s": float(len(audio_window)) / float(self.backend.sample_rate),
         }

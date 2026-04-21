@@ -270,7 +270,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--alignment-backend-name",
         default="qwen_forced",
-        choices=("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast"),
+        choices=("qwen_forced", "gemma_vllm_qk_fast"),
     )
     parser.add_argument("--paper-context-top-k", type=int, default=3)
     parser.add_argument("--paper-context-max-chars", type=int, default=1200)

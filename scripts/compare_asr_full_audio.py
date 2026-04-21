@@ -46,7 +46,7 @@ DEFAULT_SEGMENTS = "data/devset/audio-segments.yaml"
 DEFAULT_SOURCE_REF = "data/devset/ref/en.txt"
 DEFAULT_OUTPUT_DIR = "outputs/asr_compare_ccpXHNfaoy"
 DEFAULT_BACKENDS = ("qwen_forced", "gemma_vllm_qk_fast")
-ALL_BACKENDS = ("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast")
+ALL_BACKENDS = ("qwen_forced", "gemma_vllm_qk_fast")
 EVAL_MODE_CHOICES = ("segmented_ref", "streaming_full", "both")
 VLLM_PATH_MODE_CHOICES = ("shipping", "chat", "generate")
 GEMMA_SAMPLING_MODE_CHOICES = ("shipping", "hf_model_card")
@@ -258,8 +258,6 @@ def _sanitize_run_component(value: Any) -> str:
 def label_for_backend(backend_name: str) -> str:
     if backend_name == "qwen_forced":
         return "Qwen3 ASR + Forced Aligner"
-    if backend_name == "gemma_onepass_qk_fast":
-        return "Gemma 4 ASR Transformers AlignAtt"
     if backend_name == "gemma_vllm_qk_fast":
         return "Gemma 4 ASR vLLM AlignAtt"
     return backend_name
@@ -1108,7 +1106,6 @@ def render_plot(*, summary: dict[str, Any], output_path: Path) -> None:
     rtfs = [float(run.get("rtf_wallclock") or 0.0) for run in runs]
     colors = {
         "qwen_forced": "#C44E52",
-        "gemma_onepass_qk_fast": "#4C72B0",
         "gemma_vllm_qk_fast": "#55A868",
     }
     bar_colors = [colors.get(run["backend_name"], "#8172B3") for run in runs]

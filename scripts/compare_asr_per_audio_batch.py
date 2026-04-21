@@ -119,6 +119,11 @@ def stream_audio_through_session(
         for segment in session.state.utt_sources[1:]
         if segment.strip()
     ]
+    per_token_commits = (
+        session.per_token_commits()
+        if hasattr(session, "per_token_commits")
+        else []
+    )
     return {
         "wav_path": wav_path,
         "audio_duration_s": audio_duration_s,
@@ -129,6 +134,7 @@ def stream_audio_through_session(
         "final_asr_text": final_asr,
         "committed_texts": committed_texts,
         "commit_events": commit_events,
+        "per_token_commits": per_token_commits,
         "stream_trace": stream_trace,
     }
 
@@ -144,6 +150,7 @@ def run_backend_over_dataset(
     asr_alignatt_frame_threshold: int,
     asr_alignatt_rewind_threshold: int,
     gemma_audio_alignment_top_k_heads: int | None,
+    gemma_vllm_enforce_eager: bool,
     warmup_seconds: float,
     match_tolerance_words: int,
     output_dir: Path,
@@ -158,6 +165,12 @@ def run_backend_over_dataset(
     config.asr_alignatt_rewind_threshold = int(asr_alignatt_rewind_threshold)
     if gemma_audio_alignment_top_k_heads is not None:
         config.gemma_audio_alignment_top_k_heads = int(gemma_audio_alignment_top_k_heads)
+    if gemma_vllm_enforce_eager:
+        # The compiled/cudagraph path hardcodes top_k_heads=8 somewhere and
+        # CUDA-asserts when the observer buffers are sized for a different k.
+        # Eager mode sidesteps the graph; slower but correct for any k.
+        config.gemma_vllm_enforce_eager = True
+        config.gemma_vllm_cudagraph_mode = None
 
     bundle = LoadedModelBundle(config)
     load_start = perf_counter()
@@ -264,6 +277,11 @@ def main() -> None:
     parser.add_argument("--asr-alignatt-frame-threshold", type=int, default=4)
     parser.add_argument("--asr-alignatt-rewind-threshold", type=int, default=200)
     parser.add_argument("--gemma-audio-alignment-top-k-heads", type=int, default=None)
+    parser.add_argument(
+        "--gemma-vllm-enforce-eager",
+        action="store_true",
+        help="Disable vLLM compile/cudagraphs; needed when top_k_heads != 8.",
+    )
     parser.add_argument("--gemma-warmup-seconds", type=float, default=18.0)
     parser.add_argument("--match-tolerance-words", type=int, default=3)
     args = parser.parse_args()
@@ -281,6 +299,7 @@ def main() -> None:
         asr_alignatt_frame_threshold=args.asr_alignatt_frame_threshold,
         asr_alignatt_rewind_threshold=args.asr_alignatt_rewind_threshold,
         gemma_audio_alignment_top_k_heads=args.gemma_audio_alignment_top_k_heads,
+        gemma_vllm_enforce_eager=args.gemma_vllm_enforce_eager,
         warmup_seconds=args.gemma_warmup_seconds,
         match_tolerance_words=args.match_tolerance_words,
         output_dir=output_dir,

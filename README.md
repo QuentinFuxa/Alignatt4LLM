@@ -22,10 +22,15 @@ ASR-to-MT cascade.
   --output-dir outputs/my_run
 ```
 
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+
+
 ## Repo layout
 
 - `cascade/` — active runtime package
 - `data/devset/` — tracked development set and references
+- `dev-set/` — compatibility alias to `data/devset/`
 - `data/alignatt_heads/` — tracked AlignAtt head payloads used by runtime and paper tooling
 - `data/smoke/` — tiny reproducible smoke fixtures
 - `docs/` — current system, results, status, and submission docs

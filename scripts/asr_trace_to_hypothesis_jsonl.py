@@ -1,9 +1,12 @@
-"""Convert compare_asr_full_audio stream_trace into a hypothesis.jsonl + manifest.
+"""Convert a compare_asr_full_audio stream_trace JSON into hypothesis.jsonl.
 
-For pure simultaneous transcription (source == target), treat the ASR emission
-timeline as the "translation" emission timeline. Each word's delay is the
-audio-processed time (ms) when the word first appears in the stream's
-committed text; each word's elapsed is the wallclock (ms) at the same point.
+SimulEval / LongYAAL semantics: each word's ``delay`` is the
+audio-processed time (ms) at which the chunk that committed it
+finished — the moment the word became visible to the downstream
+consumer. Each word's ``elapsed`` is the real wallclock at that same
+chunk boundary. Heavy lifting is done by :mod:`cascade.artifacts`'s
+shared ``build_asr_hypothesis_record`` so this script and
+``gemma_asr_low_latency.py`` cannot drift.
 """
 from __future__ import annotations
 
@@ -15,7 +18,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from cascade.artifacts import (  # noqa: E402
     HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
-    normalize_computation_aware_timestamps,
+    build_asr_hypothesis_record,
+    build_asr_hypothesis_record_from_trace_first_appearance,
 )
 
 
@@ -32,48 +36,31 @@ def main() -> None:
     args = parse_args()
     run = json.loads(Path(args.run_json).read_text(encoding="utf-8"))
     trace = run["stream_trace"]
-    audio_duration_ms = float(run["audio_duration_s"]) * 1000.0
+    audio_duration_s = float(run["audio_duration_s"])
+    audio_duration_ms = audio_duration_s * 1000.0
     wav_name = Path(run["wav_path"]).name
 
-    # ``public_asr_text`` is the cumulative, externally-visible committed
-    # transcript across all utterances in the streaming run. Per-utterance
-    # fields like ``alignatt_stream_committed_text`` reset at segment
-    # boundaries and would truncate the hypothesis to the last utterance.
-    final_committed = trace[-1].get("public_asr_text", "") or ""
-    final_words = final_committed.split()
-    n_final = len(final_words)
+    per_token = run.get("per_token_commits") or []
+    processing_s = (
+        float(run.get("processing_s", 0.0))
+        or (float(trace[-1]["wallclock_s"]) if trace else 0.0)
+    )
 
-    delays_ms: list[float] = [0.0] * n_final
-    elapsed_ms: list[float] = [0.0] * n_final
-    marked = [False] * n_final
-
-    for row in trace:
-        committed = (row.get("public_asr_text", "") or "").split()
-        audio_processed_ms = float(row["audio_processed_s"]) * 1000.0
-        wallclock_ms = float(row["wallclock_s"]) * 1000.0
-        k = min(len(committed), n_final)
-        for i in range(k):
-            if not marked[i] and committed[i] == final_words[i]:
-                delays_ms[i] = audio_processed_ms
-                elapsed_ms[i] = wallclock_ms
-                marked[i] = True
-
-    for i in range(n_final):
-        if not marked[i]:
-            delays_ms[i] = audio_duration_ms
-            elapsed_ms[i] = float(trace[-1]["wallclock_s"]) * 1000.0
-
-    normalized_elapsed = normalize_computation_aware_timestamps(delays_ms, elapsed_ms)
-
-    hypothesis = {
-        "source": [wav_name],
-        "source_length": audio_duration_ms,
-        "prediction": final_committed,
-        "delays": delays_ms,
-        "elapsed": normalized_elapsed,
-        "elapsed_wallclock_ms": elapsed_ms,
-        "elapsed_semantics": HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
-    }
+    if per_token:
+        hypothesis = build_asr_hypothesis_record(
+            per_token_commits=per_token,
+            stream_trace=trace,
+            wav_name=wav_name,
+            audio_duration_s=audio_duration_s,
+            processing_s=processing_s,
+        )
+    else:
+        hypothesis = build_asr_hypothesis_record_from_trace_first_appearance(
+            stream_trace=trace,
+            wav_name=wav_name,
+            audio_duration_s=audio_duration_s,
+        )
+    n_final = len(hypothesis["delays"])
 
     manifest = {
         "schema_version": "asr_enen_trace_v1",

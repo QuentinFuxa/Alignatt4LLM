@@ -70,14 +70,20 @@ LANGUAGE_NAME_TO_CODE = {
 LANGUAGE_CODE_TO_NAME = {
     code: name for name, code in LANGUAGE_NAME_TO_CODE.items()
 }
-VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast")
-# The stable set is used by default in comparison scripts; the experimental
-# vLLM backend is opt-in until validated under the full SimulStream loop.
-STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_onepass_qk_fast")
+VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_vllm_qk_fast")
+# The stable set is used by default in comparison scripts.
+STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_vllm_qk_fast")
 
 # MT is now a single shipped path: Gemma AlignAtt through vLLM.
 VALID_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
 STABLE_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
+VALID_ASR_ALIGNATT_COMMIT_POLICIES = ("frontier_flush", "rewind_abort")
+VALID_GEMMA_AUDIO_ALIGNMENT_AGGREGATIONS = (
+    "mean",
+    "weighted_mean",
+    "median_argmax",
+    "weighted_median_argmax",
+)
 
 # Sentinel returned by the ASR commit helpers when the current chunk must not
 # produce a cascade-visible update (e.g. the word-count invariant is broken
@@ -176,18 +182,14 @@ class CascadeRuntimeConfig:
     asr_gpu_memory_utilization: float = 0.2
     gemma_max_model_len: int = 1024
     gemma_enable_prefix_caching: bool = True
-    gemma_transformers_device: str = "cuda:0"
-    gemma_transformers_dtype: str = "bfloat16"
-    gemma_transformers_fast_attention: str = "sdpa"
-    gemma_transformers_prompt_kv_reuse: bool = True
     alignment_backend_name: str = "qwen_forced"
     mt_backend_name: str = "gemma_vllm_alignatt"
     gemma_audio_alignment_heads_path: str | None = (
         "data/alignatt_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
     )
-    gemma_audio_align_probe_mode: str = "qk_fast"
     gemma_audio_alignment_top_k_heads: int = 8
     gemma_audio_alignment_filter_width: int = 7
+    gemma_audio_alignment_aggregation: str = "median_argmax"
     gemma_audio_alignment_max_new_tokens: int = 256
     # vLLM-specific config for the experimental gemma_vllm_qk_fast backend.
     # Defaults reflect the validated cudagraph=full seam (PLAN.md section 6).
@@ -206,15 +208,13 @@ class CascadeRuntimeConfig:
     mt_vllm_cudagraph_mode: str | None = "full"
     mt_vllm_gpu_memory_utilization: float = 0.5
     # AlignAtt streaming ASR knobs (gemma_vllm_qk_fast only). See
-    # ``cascade/alignment/gemma_alignatt_stream.py``. Token-level commits
-    # use a frontier gate counted in audio frames (20 ms each by default),
-    # mirroring the simul_whisper token-level policy: when a generated
-    # token's attention argmax is within ``asr_alignatt_frame_threshold``
-    # frames of the current audio end, we stop committing on this chunk
-    # and leave the rest for a future step. ``asr_alignatt_rewind_threshold``
-    # guards against attention collapse — if a token's argmax jumps back
-    # more than that many frames from the previous commit, we abort the
-    # chunk instead of corrupting the committed state.
+    # ``cascade/alignment/gemma_alignatt_stream.py``. ``frontier_flush``
+    # commits the maximal monotone prefix on every chunk and only keeps
+    # the trailing ``asr_alignatt_frame_threshold`` audio-frame band
+    # uncommitted. ``rewind_abort`` preserves the historical behaviour:
+    # a large rewind before the previous commit frontier aborts the
+    # current chunk instead of projecting the path back to monotonicity.
+    asr_alignatt_commit_policy: str = "frontier_flush"
     asr_alignatt_frame_threshold: int = 4
     asr_alignatt_rewind_threshold: int = 200
     # Extra-context injection (IWSLT 2026 Speech-to-Text with Extra Context
@@ -254,6 +254,21 @@ class CascadeRuntimeConfig:
                 "asr_alignatt_frame_threshold must be >= 1, got "
                 f"{self.asr_alignatt_frame_threshold!r}."
             )
+        if self.asr_alignatt_commit_policy not in VALID_ASR_ALIGNATT_COMMIT_POLICIES:
+            raise ValueError(
+                "asr_alignatt_commit_policy must be one of "
+                f"{VALID_ASR_ALIGNATT_COMMIT_POLICIES}, got "
+                f"{self.asr_alignatt_commit_policy!r}."
+            )
+        if (
+            self.gemma_audio_alignment_aggregation
+            not in VALID_GEMMA_AUDIO_ALIGNMENT_AGGREGATIONS
+        ):
+            raise ValueError(
+                "gemma_audio_alignment_aggregation must be one of "
+                f"{VALID_GEMMA_AUDIO_ALIGNMENT_AGGREGATIONS}, got "
+                f"{self.gemma_audio_alignment_aggregation!r}."
+            )
         if int(self.asr_alignatt_rewind_threshold) < 1:
             raise ValueError(
                 "asr_alignatt_rewind_threshold must be >= 1, got "
@@ -282,13 +297,6 @@ class CascadeRuntimeConfig:
         name = self.alignment_backend_name
         if name == "qwen_forced":
             return (name, float(self.asr_gpu_memory_utilization))
-        if name == "gemma_onepass_qk_fast":
-            return (
-                name,
-                self.gemma_transformers_device,
-                self.gemma_transformers_dtype,
-                self.gemma_transformers_fast_attention,
-            )
         if name == "gemma_vllm_qk_fast":
             return (
                 name,
@@ -551,18 +559,6 @@ def build_alignment_backend(
             asr_model_path=qwen_model_path,
             forced_aligner_model_path=qwen_forced_aligner_model_path,
             runtime_config=config,
-        )
-    if config.alignment_backend_name == "gemma_onepass_qk_fast":
-        from cascade.alignment.gemma_transformers_asr_backend import GemmaTransformersASRBackend
-
-        return GemmaTransformersASRBackend(
-            model_name=gemma_path,
-            runtime_config=config,
-            audio_heads_path=config.gemma_audio_alignment_heads_path,
-            audio_heads_top_k=int(config.gemma_audio_alignment_top_k_heads),
-            filter_width=int(config.gemma_audio_alignment_filter_width),
-            max_new_tokens=int(config.gemma_audio_alignment_max_new_tokens),
-            audio_align_probe_mode=config.gemma_audio_align_probe_mode,
         )
     if config.alignment_backend_name == "gemma_vllm_qk_fast":
         from cascade.alignment.gemma_vllm_asr_backend import GemmaVLLMASRBackend
@@ -911,11 +907,18 @@ class CascadeSession:
         self.mt_prompt_cache = PromptCacheState()
         self.translation_units = TranslationUnitManager(self)
         # The Gemma AlignAtt stream owns the committed-token list and the
-        # audio-window policy for the gemma_vllm_qk_fast backend. Other
-        # backends (qwen_forced, gemma_onepass_qk_fast) keep using the
-        # punctuation-LCP commit path and never touch this field.
+        # audio-window policy for the gemma_vllm_qk_fast backend. The
+        # qwen_forced backend uses the punctuation-LCP commit path and
+        # never touches this field.
         self._gemma_align_att_stream: "GemmaAlignAttStream | None" = None
         self._asr_stream_trace: list[dict[str, Any]] = []
+        # Per-token commit log: persists across window slides so the
+        # evaluator can use alignatt's per-token `end_frame_abs` (the
+        # acoustic end the aligner picked) rather than the coarser
+        # segment-level `audio_processed_s`. Without this, LongYAAL
+        # inflates by ~5x because every word in a segment gets the same
+        # chunk-boundary delay.
+        self._per_token_commits: list[dict[str, Any]] = []
 
     def load_models(self) -> None:
         self.bundle.load()
@@ -926,6 +929,7 @@ class CascadeSession:
         self.mt_prompt_cache = PromptCacheState()
         self.translation_units = TranslationUnitManager(self)
         self._asr_stream_trace = []
+        self._per_token_commits = []
         self._reset_alignatt_stream()
 
     def _reset_alignatt_stream(self) -> None:
@@ -959,6 +963,9 @@ class CascadeSession:
 
     def asr_stream_trace(self) -> list[dict[str, Any]]:
         return [dict(row) for row in self._asr_stream_trace]
+
+    def per_token_commits(self) -> list[dict[str, Any]]:
+        return [dict(row) for row in self._per_token_commits]
 
     def build_translation_messages(
         self,
@@ -1083,7 +1090,7 @@ class CascadeSession:
         audio: np.ndarray,
         is_final_chunk: bool,
     ) -> str | None:
-        """Non-streaming ASR path for qwen_forced and gemma_onepass_qk_fast.
+        """Non-streaming ASR path for qwen_forced.
 
         The full utterance tail is re-transcribed from scratch on every
         chunk and committed with the legacy punctuation-LCP rule. This
@@ -1152,12 +1159,31 @@ class CascadeSession:
             self._gemma_align_att_stream = GemmaAlignAttStream(
                 backend=alignment_backend,
                 language=self.config.source_lang,
+                commit_policy=str(self.config.asr_alignatt_commit_policy),
                 frame_threshold=int(self.config.asr_alignatt_frame_threshold),
                 rewind_threshold=int(self.config.asr_alignatt_rewind_threshold),
             )
         stream = self._gemma_align_att_stream
 
         delta = stream.step(audio, is_final_chunk=is_final_chunk)
+
+        # Persist per-token commit records across window slides, with the
+        # alignatt-estimated acoustic end (end_frame_abs) and the chunk
+        # boundary at which the commit was made. Once the stream's window
+        # slides past these tokens they are dropped from
+        # stream.committed_tokens, so we capture them here.
+        audio_ms_per_token = float(alignment_backend.audio_ms_per_token)
+        chunk_audio_processed_s = float(len(audio)) / float(SAMPLE_RATE)
+        for tok in delta.new_committed_tokens:
+            self._per_token_commits.append(
+                {
+                    "text": str(tok.text),
+                    "token_id": int(tok.token_id),
+                    "end_frame_abs": int(tok.end_frame_abs),
+                    "end_time_s": float(tok.end_frame_abs) * audio_ms_per_token / 1000.0,
+                    "committed_at_audio_processed_s": chunk_audio_processed_s,
+                }
+            )
 
         committed_text = stream.committed_text
         partial_text = committed_text + delta.partial_tail_text
@@ -1192,14 +1218,62 @@ class CascadeSession:
             commit_info=commit_info,
             is_final_chunk=is_final_chunk,
             extra={
+                "alignatt_backend_finish_reason": (
+                    None
+                    if not isinstance(delta.diagnostics.get("backend"), dict)
+                    else delta.diagnostics["backend"].get("finish_reason")
+                ),
+                "alignatt_backend_empty_completion": bool(
+                    isinstance(delta.diagnostics.get("backend"), dict)
+                    and delta.diagnostics["backend"].get("empty_completion", False)
+                ),
+                "alignatt_backend_generated_token_count": (
+                    0
+                    if not isinstance(delta.diagnostics.get("backend"), dict)
+                    else int(
+                        delta.diagnostics["backend"].get("generated_token_count", 0)
+                    )
+                ),
+                "alignatt_backend_raw_generated_token_count": (
+                    0
+                    if not isinstance(delta.diagnostics.get("backend"), dict)
+                    else int(
+                        delta.diagnostics["backend"].get(
+                            "raw_generated_token_count",
+                            0,
+                        )
+                    )
+                ),
+                "alignatt_backend_raw_completion_text": (
+                    ""
+                    if not isinstance(delta.diagnostics.get("backend"), dict)
+                    else str(
+                        delta.diagnostics["backend"].get("raw_completion_text", "")
+                    )
+                ),
                 "alignatt_generated_count": int(
                     delta.diagnostics.get("generated_count", 0)
                 ),
                 "alignatt_accepted_count": int(
                     delta.diagnostics.get("accepted_count", 0)
                 ),
+                "alignatt_commit_policy": str(
+                    delta.diagnostics.get("commit_policy", "")
+                ),
                 "alignatt_aborted_by_rewind": bool(
                     delta.diagnostics.get("aborted_by_rewind", False)
+                ),
+                "alignatt_raw_rewind_count": int(
+                    delta.diagnostics.get("raw_rewind_count", 0)
+                ),
+                "alignatt_raw_max_rewind_frames": int(
+                    delta.diagnostics.get("raw_max_rewind_frames", 0)
+                ),
+                "alignatt_projected_repair_count": int(
+                    delta.diagnostics.get("projected_repair_count", 0)
+                ),
+                "alignatt_projected_max_repair_frames": int(
+                    delta.diagnostics.get("projected_max_repair_frames", 0)
                 ),
                 "alignatt_forced_prefix_token_count": int(
                     delta.diagnostics.get("forced_prefix_token_count", 0)
@@ -1659,12 +1733,8 @@ class CascadeSession:
                 "asr_gpu_memory_utilization": self.config.asr_gpu_memory_utilization,
                 "gemma_max_model_len": self.config.gemma_max_model_len,
                 "gemma_enable_prefix_caching": self.config.gemma_enable_prefix_caching,
-                "gemma_transformers_device": self.config.gemma_transformers_device,
-                "gemma_transformers_dtype": self.config.gemma_transformers_dtype,
-                "gemma_transformers_fast_attention": self.config.gemma_transformers_fast_attention,
-                "gemma_transformers_prompt_kv_reuse": self.config.gemma_transformers_prompt_kv_reuse,
-                "gemma_audio_align_probe_mode": self.config.gemma_audio_align_probe_mode,
                 "gemma_audio_alignment_heads_path": self.config.gemma_audio_alignment_heads_path,
+                "gemma_audio_alignment_aggregation": self.config.gemma_audio_alignment_aggregation,
             },
             run_provenance=_enrich_provenance(self.config, run_provenance),
         )

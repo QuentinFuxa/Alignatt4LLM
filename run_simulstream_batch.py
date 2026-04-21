@@ -313,7 +313,7 @@ def run_batch_inference(
     for key in [
         "translation_alignatt_heads_path", "translation_alignatt_top_k_heads",
         "translation_alignatt_filter_width", "translation_alignatt_probe_mode",
-        "gemma_audio_alignment_heads_path", "gemma_audio_align_probe_mode",
+        "gemma_audio_alignment_heads_path",
         "translation_emit_policy", "translation_max_tail_rewrite_words",
         "temperature", "repetition_penalty",
         "asr_alignatt_frame_threshold",
@@ -396,7 +396,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--alignment-backend-name",
         default="qwen_forced",
-        choices=("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast"),
+        choices=("qwen_forced", "gemma_vllm_qk_fast"),
     )
     parser.add_argument(
         "--asr-alignatt-frame-threshold",

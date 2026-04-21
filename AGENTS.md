@@ -20,8 +20,8 @@ general, measurable, and not benchmark-specific.
 ## Supported backends
 
 - ASR `qwen_forced` — stable default
-- ASR `gemma_onepass_qk_fast` — stable experimental
-- ASR `gemma_vllm_qk_fast` — experimental
+- ASR `gemma_vllm_qk_fast` — sole Gemma AlignAtt ASR path (sub-1 s CU-LongYAAL).
+  Standalone entrypoint: `gemma_asr_low_latency.py`.
 - MT `gemma_vllm_alignatt` — sole supported MT backend
 
 ## Operational constraints
@@ -35,6 +35,7 @@ general, measurable, and not benchmark-specific.
 ## Data and docs
 
 - Tracked dev-set: `data/devset/`
+- Compatibility alias: `dev-set/` -> `data/devset/`
 - Local untracked test-set: `data/testset/`
 - AlignAtt heads: `data/alignatt_heads/`
 - Smoke fixtures: `data/smoke/`

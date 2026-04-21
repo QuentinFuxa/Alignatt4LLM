@@ -4,7 +4,7 @@
 Runs the two supported cascades sequentially and in isolated subprocesses:
 
 - ``qwen_forced`` = Qwen3-ASR + Qwen3 Forced Aligner
-- ``gemma_onepass_qk_fast`` = Gemma 4 ASR + AlignAtt ``qk_fast`` one pass
+- ``gemma_vllm_qk_fast`` = Gemma 4 ASR + AlignAtt ``qk_fast`` streaming (vLLM-native)
 
 Each backend writes a standard inference artifact directory, then this script
 consolidates transcript quality and latency diagnostics into a comparison
@@ -150,6 +150,7 @@ def build_processor_config(args: argparse.Namespace, *, backend_name: str) -> Si
         chunk_ms=args.chunk_ms,
         speech_chunk_size=args.chunk_ms / 1000.0,
         alignment_backend_name=backend_name,
+        asr_alignatt_commit_policy=args.asr_alignatt_commit_policy,
         asr_alignatt_frame_threshold=args.asr_alignatt_frame_threshold,
         asr_alignatt_rewind_threshold=args.asr_alignatt_rewind_threshold,
         min_start_seconds=args.min_start_seconds,
@@ -159,7 +160,6 @@ def build_processor_config(args: argparse.Namespace, *, backend_name: str) -> Si
         translation_alignatt_rewind_threshold=args.translation_alignatt_rewind_threshold,
         translation_alignatt_border_margin=args.translation_alignatt_border_margin,
         translation_alignatt_inaccessible_ms=args.translation_alignatt_inaccessible_ms,
-        gemma_audio_align_probe_mode=args.gemma_audio_align_probe_mode,
     )
 
 
@@ -424,6 +424,8 @@ def run_backend_subprocess(
         args.target,
         "--asr-alignatt-frame-threshold",
         str(args.asr_alignatt_frame_threshold),
+        "--asr-alignatt-commit-policy",
+        str(args.asr_alignatt_commit_policy),
         "--asr-alignatt-rewind-threshold",
         str(args.asr_alignatt_rewind_threshold),
         "--min-start-seconds",
@@ -441,13 +443,6 @@ def run_backend_subprocess(
         "--translation-alignatt-inaccessible-ms",
         str(args.translation_alignatt_inaccessible_ms),
     ]
-    if args.gemma_audio_align_probe_mode is not None:
-        cmd.extend(
-            [
-                "--gemma-audio-align-probe-mode",
-                args.gemma_audio_align_probe_mode,
-            ]
-        )
     completed = run_subprocess(cmd, check=False, cwd=str(Path(__file__).resolve().parent))
     if completed.returncode != 0:
         raise SystemExit(
@@ -465,6 +460,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target", default="de")
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument(
+        "--asr-alignatt-commit-policy",
+        default="frontier_flush",
+        choices=("frontier_flush", "rewind_abort"),
+        help=(
+            "ASR AlignAtt commit rule. `frontier_flush` commits the maximal "
+            "monotone prefix on every chunk and only keeps the final frontier "
+            "band; `rewind_abort` preserves the legacy whole-chunk abort path."
+        ),
+    )
+    parser.add_argument(
         "--asr-alignatt-frame-threshold",
         default=4,
         type=int,
@@ -478,9 +483,8 @@ def parse_args() -> argparse.Namespace:
         default=200,
         type=int,
         help=(
-            "Attention-collapse guard: abort the chunk if a generated token's "
-            "argmax rewinds more than this many frames before the running "
-            "reference."
+            "Legacy `rewind_abort` guard in audio frames. Ignored by the "
+            "default `frontier_flush` policy."
         ),
     )
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
@@ -490,7 +494,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--translation-alignatt-rewind-threshold", default=8, type=int)
     parser.add_argument("--translation-alignatt-border-margin", default=0, type=int)
     parser.add_argument("--translation-alignatt-inaccessible-ms", default=0.0, type=float)
-    parser.add_argument("--gemma-audio-align-probe-mode", default=None)
     parser.add_argument(
         "--internal-run-backend",
         choices=BACKEND_IDS,

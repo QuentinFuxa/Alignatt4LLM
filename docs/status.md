@@ -5,6 +5,7 @@
 - duplicate submission trees were removed
 - extra-context code now lives in `cascade/paper_context/`
 - tracked evaluation assets now live under `data/`
+- `dev-set/` was restored as a compatibility alias to `data/devset/`
 - tracked research clutter was removed from `tmp/`
 - paper entrypoint is `paper/main.tex`
 

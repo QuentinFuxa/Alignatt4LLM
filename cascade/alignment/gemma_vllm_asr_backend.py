@@ -34,8 +34,7 @@ from cascade.alignment.base import (
     WordAlignment,
 )
 from cascade.alignment.gemma_alignatt_stream import AlignAttStepRaw
-from cascade.mt.base import AlignAttHead, compute_alignatt_source_argmaxes
-from cascade.alignment.gemma_transformers_asr_backend import (
+from cascade.alignment.gemma_audio_alignment import (
     AudioSpan,
     GEMMA_AUDIO_MAX_SECONDS_DEFAULT,
     GEMMA_AUDIO_MS_PER_TOKEN_DEFAULT,
@@ -49,6 +48,7 @@ from cascade.alignment.gemma_transformers_asr_backend import (
     load_audio_alignment_heads,
     monotonicity_score,
 )
+from cascade.mt.base import AlignAttHead, compute_alignatt_source_argmaxes
 
 
 # The experimental backend uses worker callables via ``collective_rpc`` to
@@ -1896,14 +1896,69 @@ class GemmaVLLMASRBackend(AlignmentBackend):
                 alignatt_heads=self.alignatt_heads,
             )
         )
+        source_argmax_aggregation = str(
+            getattr(
+                self.runtime_config,
+                "gemma_audio_alignment_aggregation",
+                "median_argmax",
+            )
+        )
         aligned_audio_positions = compute_alignatt_source_argmaxes(
             source_attention_rows_per_token,
             filter_width=self.filter_width,
+            aggregation=source_argmax_aggregation,
+            head_weights=[float(head.ts) for head in self.alignatt_heads],
         )
         reconstruction_ms = (perf_counter() - reconstruction_start) * 1000.0
 
         if not text or not generated_ids:
-            return None
+            diagnostics = {
+                "backend": self.name,
+                "observer_backend": "vllm_qk_fast_experimental",
+                "prompt_budget": {
+                    "max_model_len": int(self.max_model_len),
+                    "prompt_reserve_tokens": int(self.prompt_budget_reserve_tokens),
+                    "prompt_token_count": int(prompt_layout.prompt_token_count),
+                    "non_audio_prompt_tokens": int(prompt_layout.non_audio_prompt_tokens),
+                    "audio_prompt_tokens": int(prompt_layout.audio_token_count),
+                    "prefix_prompt_tokens": int(len(prompt_layout.prefix_token_ids)),
+                },
+                "sampling": sampling_diagnostics,
+                "selected_head_count": len(self.alignatt_heads),
+                "source_argmax_aggregation": source_argmax_aggregation,
+                "audio_span_length": int(audio_span.length),
+                "generated_token_count": len(generated_ids),
+                "raw_generated_token_count": len(completion.token_ids),
+                "monotonicity": None,
+                "finish_reason": completion.finish_reason,
+                "capture": reconstruction_diagnostics,
+                "capture_debug": (
+                    None if capture_payload is None else capture_payload.get("debug")
+                ),
+                "prompt_observer_cache": {
+                    **prompt_observer_cache_diagnostics,
+                    "cache_size": len(self._prompt_observer_cache),
+                    "stored": prompt_cache_entry is not None,
+                },
+                "worker_install": install_result,
+                "empty_completion": True,
+                "raw_completion_text": raw_completion_text,
+                "timings_ms": {
+                    "prompt_build": round(prompt_build_ms, 3),
+                    "generate": round(generate_ms, 3),
+                    "capture_fetch": round(capture_fetch_ms, 3),
+                    "qk_reconstruction": round(reconstruction_ms, 3),
+                },
+            }
+            return {
+                "prompt_layout": prompt_layout,
+                "generated_ids": [],
+                "aligned_audio_positions": [],
+                "content_frame_len": int(audio_span.length),
+                "raw_completion_text": raw_completion_text,
+                "finish_reason": completion.finish_reason,
+                "diagnostics": diagnostics,
+            }
 
         effective_token_count = min(len(generated_ids), len(aligned_audio_positions))
         if effective_token_count <= 0:
@@ -1933,6 +1988,7 @@ class GemmaVLLMASRBackend(AlignmentBackend):
             },
             "sampling": sampling_diagnostics,
             "selected_head_count": len(self.alignatt_heads),
+            "source_argmax_aggregation": source_argmax_aggregation,
             "audio_span_length": int(audio_span.length),
             "generated_token_count": len(generated_ids),
             "monotonicity": monotonicity_score(aligned_audio_positions),

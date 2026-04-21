@@ -76,6 +76,187 @@ def normalize_computation_aware_timestamps(
     return normalized
 
 
+def build_audio_to_wallclock_lookup(
+    stream_trace: list[dict],
+) -> list[tuple[float, float]]:
+    """Return a sorted list of ``(audio_processed_s, wallclock_s)`` pairs.
+
+    The stream trace has one row per session update; each row carries the
+    cumulative audio consumed at that call and the cumulative wallclock
+    since the first chunk of this wav. Use with
+    :func:`wallclock_for_commit` to map a commit's chunk-boundary audio
+    time to the wallclock at which that chunk finished processing.
+    """
+    pairs: dict[float, float] = {}
+    for row in stream_trace:
+        audio_s = float(row["audio_processed_s"])
+        wallclock_s = float(row["wallclock_s"])
+        # Keep the earliest wallclock seen for each unique audio_processed_s:
+        # a trace can retain pre-EOS and final-flush rows at the same audio
+        # time, and the pre-EOS wallclock is the true emission moment.
+        if audio_s not in pairs or wallclock_s < pairs[audio_s]:
+            pairs[audio_s] = wallclock_s
+    return sorted(pairs.items())
+
+
+def wallclock_for_commit(
+    commit_audio_s: float,
+    lookup: list[tuple[float, float]],
+    fallback_wallclock_s: float,
+) -> float:
+    """First ``wallclock_s`` in ``lookup`` with ``audio_processed_s >= commit_audio_s``."""
+    lo, hi = 0, len(lookup)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if lookup[mid][0] < commit_audio_s:
+            lo = mid + 1
+        else:
+            hi = mid
+    if lo >= len(lookup):
+        return fallback_wallclock_s
+    return lookup[lo][1]
+
+
+def build_asr_hypothesis_record(
+    *,
+    per_token_commits: list[dict],
+    stream_trace: list[dict],
+    wav_name: str,
+    audio_duration_s: float,
+    processing_s: float,
+) -> dict:
+    """Build an OmniSTEval hypothesis.jsonl entry for a streaming ASR run.
+
+    SimulEval / LongYAAL semantics:
+      - ``delays[i]`` = audio-processed time (ms) at which the system
+        *emitted* word i. For a chunk-based ASR that is the chunk
+        boundary on which the token was committed
+        (``committed_at_audio_processed_s`` in the per-token log). All
+        tokens committed at the same chunk share the same emission time
+        because the downstream consumer only sees the words when the
+        chunk flushes. Alignatt's ``end_time_s`` is an acoustic position
+        estimate and MUST NOT be used here — it measures alignment
+        quality, not emission latency, and collapses LongYAAL below the
+        chunk length which is physically impossible.
+      - ``elapsed[i]`` = real wallclock (ms) at which that chunk
+        finished processing, looked up from the stream trace. Normalised
+        to CA-compatible incremental form before writing.
+
+    Word boundaries are recovered by concatenating token ``text`` fields
+    (Gemma tokenizer pieces carry the leading space) and walking the
+    running string.
+    """
+    per_token = per_token_commits or []
+    audio_duration_ms = float(audio_duration_s) * 1000.0
+
+    wallclock_lookup = build_audio_to_wallclock_lookup(stream_trace or [])
+    final_wall_ms = float(processing_s) * 1000.0
+
+    full_text = "".join(str(t["text"]) for t in per_token)
+    words = full_text.split()
+    n = len(words)
+
+    delays_ms: list[float] = []
+    elapsed_ms: list[float] = []
+    last_commit_ms: float | None = None
+    last_wall_ms: float | None = None
+    running = ""
+    current_word_idx = 0
+    for tok in per_token:
+        text = str(tok["text"])
+        commit_audio_s = float(tok.get("committed_at_audio_processed_s", 0.0))
+        commit_ms = commit_audio_s * 1000.0
+        wall_ms = (
+            wallclock_for_commit(commit_audio_s, wallclock_lookup, processing_s)
+            * 1000.0
+        )
+        prev_word_count = len(running.split())
+        running += text
+        while current_word_idx < prev_word_count and current_word_idx < n:
+            delays_ms.append(
+                last_commit_ms if last_commit_ms is not None else commit_ms
+            )
+            elapsed_ms.append(
+                last_wall_ms if last_wall_ms is not None else wall_ms
+            )
+            current_word_idx += 1
+        last_commit_ms = commit_ms
+        last_wall_ms = wall_ms
+
+    while current_word_idx < n:
+        delays_ms.append(
+            last_commit_ms if last_commit_ms is not None else audio_duration_ms
+        )
+        elapsed_ms.append(last_wall_ms if last_wall_ms is not None else final_wall_ms)
+        current_word_idx += 1
+
+    normalized_elapsed = normalize_computation_aware_timestamps(delays_ms, elapsed_ms)
+
+    return {
+        "source": [wav_name],
+        "source_length": audio_duration_ms,
+        "prediction": full_text.strip(),
+        "delays": delays_ms,
+        "elapsed": normalized_elapsed,
+        "elapsed_wallclock_ms": elapsed_ms,
+        "elapsed_semantics": HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
+    }
+
+
+def build_asr_hypothesis_record_from_trace_first_appearance(
+    *,
+    stream_trace: list[dict],
+    wav_name: str,
+    audio_duration_s: float,
+) -> dict:
+    """Fallback hypothesis builder for traces without per-token commit log.
+
+    Uses the first chunk at which each word appears in ``public_asr_text``
+    and matches its final position as the emission time. Same SimulEval
+    semantics as :func:`build_asr_hypothesis_record`: delays and elapsed
+    are chunk-boundary audio time and the chunk's wallclock respectively.
+    """
+    audio_duration_ms = float(audio_duration_s) * 1000.0
+    final_committed = (stream_trace[-1].get("public_asr_text", "") or "") if stream_trace else ""
+    final_words = final_committed.split()
+    n_final = len(final_words)
+
+    delays_ms = [0.0] * n_final
+    elapsed_ms = [0.0] * n_final
+    marked = [False] * n_final
+
+    for row in stream_trace:
+        committed = (row.get("public_asr_text", "") or "").split()
+        audio_processed_ms = float(row["audio_processed_s"]) * 1000.0
+        wallclock_ms = float(row["wallclock_s"]) * 1000.0
+        k = min(len(committed), n_final)
+        for i in range(k):
+            if not marked[i] and committed[i] == final_words[i]:
+                delays_ms[i] = audio_processed_ms
+                elapsed_ms[i] = wallclock_ms
+                marked[i] = True
+
+    final_wallclock_ms = (
+        float(stream_trace[-1]["wallclock_s"]) * 1000.0 if stream_trace else 0.0
+    )
+    for i in range(n_final):
+        if not marked[i]:
+            delays_ms[i] = audio_duration_ms
+            elapsed_ms[i] = final_wallclock_ms
+
+    normalized_elapsed = normalize_computation_aware_timestamps(delays_ms, elapsed_ms)
+
+    return {
+        "source": [wav_name],
+        "source_length": audio_duration_ms,
+        "prediction": final_committed,
+        "delays": delays_ms,
+        "elapsed": normalized_elapsed,
+        "elapsed_wallclock_ms": elapsed_ms,
+        "elapsed_semantics": HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
+    }
+
+
 @dataclass
 class StreamUpdate:
     update_idx: int
