@@ -35,7 +35,7 @@ from cascade.simulstream_processor import CascadeAlignAttProcessor
 
 DIRECTIONS = ("de", "it", "zh")
 DATASETS = (
-    ("devset", "dev-set/audio"),
+    ("devset", "data/devset/audio"),
 )
 
 

@@ -31,15 +31,15 @@ BENCHMARK_JSON_BEGIN = "__BENCHMARK_JSON_BEGIN__"
 BENCHMARK_JSON_END = "__BENCHMARK_JSON_END__"
 PROVISIONAL_EN_FR_HEADS = (
     REPO_ROOT
-    / "assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
+    / "data/alignatt_heads/translation_heads_google_gemma-4-E4B-it_en-fr_provisional_shared_kernel.json"
 )
 GEMMA_ASR_HEADS_PATH = (
     REPO_ROOT
-    / "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
+    / "data/alignatt_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
 )
 GEMMA_ASR_FULL_RANKING_PATH = (
     REPO_ROOT
-    / "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.full_ranking.json"
+    / "data/alignatt_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.full_ranking.json"
 )
 
 GEMMA_LAYER_COUNT = 42
@@ -48,8 +48,8 @@ GEMMA_FULL_LAYERS = {5, 11, 17, 23, 29, 35, 41}
 GEMMA_SHARED_KV_START = 24
 TARGET_LANGUAGE_TO_HEADS = {
     "French": PROVISIONAL_EN_FR_HEADS,
-    "German": REPO_ROOT / "assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-de.json",
-    "Italian": REPO_ROOT / "assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-it.json",
+    "German": REPO_ROOT / "data/alignatt_heads/translation_heads_google_gemma-4-E4B-it_en-de.json",
+    "Italian": REPO_ROOT / "data/alignatt_heads/translation_heads_google_gemma-4-E4B-it_en-it.json",
 }
 TARGET_LANGUAGE_TO_CODE = {
     "French": "fr",
@@ -263,11 +263,11 @@ def average_head_grids(payloads: list[dict[str, Any]]) -> list[list[float]]:
 
 def load_multilingual_mean_grid() -> tuple[list[list[float]], list[tuple[int, int]]]:
     payloads = [
-        load_head_payload(REPO_ROOT / "assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-de.json"),
-        load_head_payload(REPO_ROOT / "assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-it.json"),
-        load_head_payload(REPO_ROOT / "assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-zh.json"),
+        load_head_payload(REPO_ROOT / "data/alignatt_heads/translation_heads_google_gemma-4-E4B-it_en-de.json"),
+        load_head_payload(REPO_ROOT / "data/alignatt_heads/translation_heads_google_gemma-4-E4B-it_en-it.json"),
+        load_head_payload(REPO_ROOT / "data/alignatt_heads/translation_heads_google_gemma-4-E4B-it_en-zh.json"),
     ]
-    shared_payload = load_head_payload(REPO_ROOT / "assets/attention_heads/translation_heads_shared_kernel_top8.json")
+    shared_payload = load_head_payload(REPO_ROOT / "data/alignatt_heads/translation_heads_shared_kernel_top8.json")
     selected = [
         (int(head["layer"]), int(head["head"]))
         for head in shared_payload["token_alignment_heads"]

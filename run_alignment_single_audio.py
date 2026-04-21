@@ -19,7 +19,7 @@ Modes:
   extraction backend explicitly.
 - ``gemma_calibrate_heads`` runs Gemma once with full-attention capture
   and ranks every (layer, head) against the Qwen teacher, writing the
-  top-K into ``assets/attention_heads/audio_alignment_heads_*.json``.
+  top-K into ``data/alignatt_heads/audio_alignment_heads_*.json``.
 - ``compare`` loads both bundles and prints a simple word-end-MAE table.
 
 Run with the already-hot ``.venv-inference`` kernel — model reloads are

@@ -12,9 +12,14 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 from time import perf_counter
 
 import numpy as np
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from cascade.audio import load_audio_mono_16khz
 from cascade.runtime import CascadeRuntimeConfig, LoadedModelBundle
@@ -251,8 +256,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", required=True, choices=["qwen_forced", "gemma_vllm_qk_fast"])
     parser.add_argument("--wavs", nargs="+", required=True)
-    parser.add_argument("--segments", default="dev-set/audio-segments.yaml")
-    parser.add_argument("--source-ref", default="dev-set/ref/en.txt")
+    parser.add_argument("--segments", default="data/devset/audio-segments.yaml")
+    parser.add_argument("--source-ref", default="data/devset/ref/en.txt")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--chunk-ms", type=int, default=800)
     parser.add_argument("--min-start-seconds", type=float, default=2.0)

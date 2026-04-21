@@ -138,9 +138,18 @@ def main() -> None:
     parser.add_argument("--chunk-ms", type=int, default=800)
     parser.add_argument("--source-lang-code", default="en")
     parser.add_argument("--target-lang-code", default="en")
-    parser.add_argument("--segmentation", default=str(REPO_ROOT / "dev-set/audio-segments.yaml"))
-    parser.add_argument("--target-reference", default=str(REPO_ROOT / "dev-set/ref/en.txt"))
-    parser.add_argument("--source-reference", default=str(REPO_ROOT / "dev-set/ref/en.txt"))
+    parser.add_argument(
+        "--segmentation",
+        default=str(REPO_ROOT / "data/devset/audio-segments.yaml"),
+    )
+    parser.add_argument(
+        "--target-reference",
+        default=str(REPO_ROOT / "data/devset/ref/en.txt"),
+    )
+    parser.add_argument(
+        "--source-reference",
+        default=str(REPO_ROOT / "data/devset/ref/en.txt"),
+    )
     parser.add_argument(
         "--eval-venv-python",
         default=str(REPO_ROOT / ".venv-evaluation/bin/python"),

@@ -44,7 +44,7 @@ from cascade.translation_variants import (
     TRANSLATION_VARIANTS,
     TranslationVariant,
 )
-from context_injection import (
+from cascade.paper_context import (
     CONTEXT_MODE_OFF,
     VALID_CONTEXT_MODES,
     PaperArtifact,
@@ -126,7 +126,7 @@ def alignatt_heads_path_for(source_lang: str, target_lang: str) -> str:
     source_code = LANGUAGE_NAME_TO_CODE.get(source_lang, source_lang.lower())
     target_code = LANGUAGE_NAME_TO_CODE.get(target_lang, target_lang.lower())
     return (
-        "assets/attention_heads/"
+        "data/alignatt_heads/"
         f"translation_heads_google_gemma-4-E4B-it_{source_code}-{target_code}.json"
     )
 
@@ -183,7 +183,7 @@ class CascadeRuntimeConfig:
     alignment_backend_name: str = "qwen_forced"
     mt_backend_name: str = "gemma_vllm_alignatt"
     gemma_audio_alignment_heads_path: str | None = (
-        "assets/attention_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
+        "data/alignatt_heads/audio_alignment_heads_google_gemma-4-E4B-it_en_forced.json"
     )
     gemma_audio_align_probe_mode: str = "qk_fast"
     gemma_audio_alignment_top_k_heads: int = 8

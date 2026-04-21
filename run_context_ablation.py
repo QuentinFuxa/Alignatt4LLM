@@ -17,7 +17,7 @@ a minimal three-condition comparison).
 Usage (from ``.venv-inference``):
 
     python run_context_ablation.py \
-        --wav tmp/ccpXHNfaoy_first75.wav \
+        --wav data/smoke/ccpXHNfaoy_first75.wav \
         --paper-context-path data/paper_artifacts/ccpXHNfaoy.json \
         --output-dir outputs/context_ablation_ccp75 \
         --source en --target de --chunk-ms 800

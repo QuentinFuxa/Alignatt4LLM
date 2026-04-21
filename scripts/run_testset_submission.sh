@@ -9,14 +9,22 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 PRESET="${PRESET:-main_low_latency}"
-INPUT_DIR="${INPUT_DIR:-test-set/audio}"
-OUTPUT_PREFIX="${OUTPUT_PREFIX:-outputs/iwslt26_testset_chunk750_borderp1}"
+INPUT_DIR="${INPUT_DIR:-data/testset/audio}"
 PYTHON_BIN="${PYTHON_BIN:-.venv-inference/bin/python}"
 LOG_DIR="${LOG_DIR:-logs}"
 mkdir -p "$LOG_DIR"
 
 export VLLM_USE_DEEP_GEMM=0
 export VLLM_MOE_USE_DEEP_GEMM=0
+
+OUTPUT_PREFIX="${OUTPUT_PREFIX:-$(PRESET_NAME="$PRESET" "$PYTHON_BIN" - <<'PY'
+from cascade.submission import get_submission_preset
+import os
+
+preset = get_submission_preset(os.environ["PRESET_NAME"])
+print(f"outputs/iwslt26_testset_{preset.name}")
+PY
+)}"
 
 for TGT in de it zh; do
   OUT="${OUTPUT_PREFIX}_en${TGT}"

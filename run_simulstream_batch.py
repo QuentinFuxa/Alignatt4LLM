@@ -7,13 +7,13 @@ models hot across audios to avoid repeated 5-minute load costs.
 Usage (from .venv-inference):
     # Sanity set (3 audios):
     python run_simulstream_batch.py \\
-        --inputs dev-set/audio/myfXyntFYL.wav dev-set/audio/DyXpuURBMP.wav dev-set/audio/ccpXHNfaoy.wav \\
+        --inputs data/devset/audio/myfXyntFYL.wav data/devset/audio/DyXpuURBMP.wav data/devset/audio/ccpXHNfaoy.wav \\
         --output-dir outputs/simulstream_batch_ende_2s \\
         --chunk-ms 450 --target de
 
     # Full set (all supported media files in directory):
     python run_simulstream_batch.py \\
-        --input-dir dev-set/audio/ \\
+        --input-dir data/devset/audio/ \\
         --output-dir outputs/simulstream_fullset_ende_2s \\
         --chunk-ms 450 --target de
 """
@@ -472,7 +472,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Path to a PaperArtifact JSON (produced by "
-            "context_injection.paper_artifact) to inject as MT-side [Paper "
+            "cascade.paper_context.paper_artifact) to inject as MT-side [Paper "
             "context]. Default: no context."
         ),
     )

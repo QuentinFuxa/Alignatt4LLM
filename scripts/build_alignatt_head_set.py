@@ -27,6 +27,11 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from cascade.mt.base import (
     load_alignatt_heads,
@@ -38,9 +43,9 @@ from cascade.mt.base import (
 
 
 DEFAULT_DIRECTION_PATHS = {
-    "en-de": "assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-de.json",
-    "en-it": "assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-it.json",
-    "en-zh": "assets/attention_heads/translation_heads_google_gemma-4-E4B-it_en-zh.json",
+    "en-de": "data/alignatt_heads/translation_heads_google_gemma-4-E4B-it_en-de.json",
+    "en-it": "data/alignatt_heads/translation_heads_google_gemma-4-E4B-it_en-it.json",
+    "en-zh": "data/alignatt_heads/translation_heads_google_gemma-4-E4B-it_en-zh.json",
 }
 
 

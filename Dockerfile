@@ -30,4 +30,4 @@ ENV PATH="/opt/cascade-venv/bin:${PATH}" \
     PYTHONPATH="/app:${PYTHONPATH}"
 
 EXPOSE 8765
-ENTRYPOINT ["/app/submission_raw/docker-entrypoint.sh"]
+ENTRYPOINT ["/app/submission/docker-entrypoint.sh"]

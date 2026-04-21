@@ -1,8 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NamedTuple
 
-from vllm.v1.worker.worker_base import CompilationTimes
+try:
+    from vllm.v1.worker.worker_base import CompilationTimes  # type: ignore[attr-defined]
+except ImportError:
+    class CompilationTimes(NamedTuple):
+        language_model: float
+        encoder: float
 
 
 def ensure_compilation_times(value: Any) -> CompilationTimes:

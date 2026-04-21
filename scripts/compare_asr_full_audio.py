@@ -13,7 +13,7 @@ reproducible harness for two evaluation regimes:
 Typical usage:
 
     PYTHONPATH=. .venv-inference/bin/python scripts/compare_asr_full_audio.py run \
-        --wav dev-set/audio/ccpXHNfaoy.wav \
+        --wav data/devset/audio/ccpXHNfaoy.wav \
         --eval-mode both \
         --output-dir outputs/asr_compare_ccpXHNfaoy
 
@@ -30,14 +30,20 @@ from pathlib import Path
 import re
 from statistics import mean, median
 import string
+import sys
 from time import perf_counter
 from typing import Any
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+
 SAMPLE_RATE = 16000
-DEFAULT_WAV = "dev-set/audio/ccpXHNfaoy.wav"
-DEFAULT_SEGMENTS = "dev-set/audio-segments.yaml"
-DEFAULT_SOURCE_REF = "dev-set/ref/en.txt"
+DEFAULT_WAV = "data/devset/audio/ccpXHNfaoy.wav"
+DEFAULT_SEGMENTS = "data/devset/audio-segments.yaml"
+DEFAULT_SOURCE_REF = "data/devset/ref/en.txt"
 DEFAULT_OUTPUT_DIR = "outputs/asr_compare_ccpXHNfaoy"
 DEFAULT_BACKENDS = ("qwen_forced", "gemma_vllm_qk_fast")
 ALL_BACKENDS = ("qwen_forced", "gemma_onepass_qk_fast", "gemma_vllm_qk_fast")

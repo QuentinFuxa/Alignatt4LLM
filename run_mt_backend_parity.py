@@ -15,7 +15,7 @@ Single-prompt shape (backward compatible):
 Curated prompt set:
 
     python run_mt_backend_parity.py \\
-        --prompt-set tmp/mt_parity_set.json \\
+        --prompt-set data/smoke/mt_parity_set.json \\
         --output tmp/mt_parity_curated.json
 
 Each entry of the JSON prompt-set file is a mapping like:

@@ -12,13 +12,13 @@ from cascade.text_surface import (
 
 
 ARTIFACT_SCHEMA_VERSION = "cascade_v1"
-DEFAULT_WAV_PATH = "dev-set/audio/ccpXHNfaoy.wav"
+DEFAULT_WAV_PATH = "data/devset/audio/ccpXHNfaoy.wav"
 DEFAULT_OUTPUT_DIR = "outputs/cascade_v1"
-DEFAULT_SEGMENTATION_PATH = "dev-set/audio-segments.yaml"
+DEFAULT_SEGMENTATION_PATH = "data/devset/audio-segments.yaml"
 DEFAULT_SOURCE_LANG_CODE = "en"
 DEFAULT_TARGET_LANG_CODE = "de"
-DEFAULT_SOURCE_REF_PATH = f"dev-set/ref/{DEFAULT_SOURCE_LANG_CODE}.txt"
-DEFAULT_TARGET_REF_PATH = f"dev-set/ref/{DEFAULT_TARGET_LANG_CODE}.txt"
+DEFAULT_SOURCE_REF_PATH = f"data/devset/ref/{DEFAULT_SOURCE_LANG_CODE}.txt"
+DEFAULT_TARGET_REF_PATH = f"data/devset/ref/{DEFAULT_TARGET_LANG_CODE}.txt"
 DEFAULT_COMET_MODEL = "Unbabel/XCOMET-XL"
 
 MANIFEST_FILENAME = "manifest.json"
@@ -35,7 +35,7 @@ def final_translation_filename(target_lang_code: str = DEFAULT_TARGET_LANG_CODE)
 
 
 def reference_path_for(lang_code: str) -> str:
-    return f"dev-set/ref/{lang_code}.txt"
+    return f"data/devset/ref/{lang_code}.txt"
 
 
 # Legacy default-language aliases preserved for callers that have not yet been

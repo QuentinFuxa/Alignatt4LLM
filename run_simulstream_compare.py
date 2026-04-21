@@ -42,8 +42,8 @@ from cascade.simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_COD
 from simulstream.server.speech_processors import SAMPLE_RATE
 
 
-DEFAULT_WAV = "tmp/alignatt_smoke18.wav"
-DEFAULT_REFERENCE = "tmp/alignment_research/smoke18_reference.txt"
+DEFAULT_WAV = "data/smoke/alignatt_smoke18.wav"
+DEFAULT_REFERENCE = "data/smoke/smoke18_reference.txt"
 DEFAULT_OUTPUT_DIR = "outputs/simulstream_compare_smoke18"
 BACKEND_IDS = tuple(STABLE_ALIGNMENT_BACKEND_NAMES)
 

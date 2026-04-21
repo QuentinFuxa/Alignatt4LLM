@@ -5,13 +5,12 @@
 .venv-evaluation
 __pycache__
 outputs
+logs
 tmp
-test-set
-dev-set
+dist
+data/devset
+data/testset
 zip_downloaded
 docs/archive
 dedicated_audio_gemma_aligner
-submission
-submission_raw/artifacts
-submission_raw/results
 SimulStreaming

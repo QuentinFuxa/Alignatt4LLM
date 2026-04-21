@@ -68,7 +68,6 @@ explicit = true
 testpaths = ["."]
 norecursedirs = [
     ".git", ".venv-inference", ".venv-evaluation", "__pycache__",
-    "scripts", "docs", "assets", "outputs", "tmp", "test-set",
-    "data", "dedicated_audio_gemma_aligner",
+    "scripts", "docs", "outputs", "tmp", "dist", "data",
 ]
 python_files = ["test_*.py"]

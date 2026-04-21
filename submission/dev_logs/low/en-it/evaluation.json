@@ -4,8 +4,8 @@
   "kind": "evaluation",
   "settings": {
     "hypothesis_file": "outputs/iwslt26_devset_chunk850_borderp1_enit/hypothesis.jsonl",
-    "speech_segmentation": "dev-set/audio-segments.yaml",
-    "target_reference": "dev-set/ref/it.txt",
+    "speech_segmentation": "data/devset/audio-segments.yaml",
+    "target_reference": "data/devset/ref/it.txt",
     "target_lang_code": "it",
     "matched_sources": [
       "DyXpuURBMP",
@@ -51,7 +51,7 @@
       "xiSxNRoOzm",
       "xiSxNRoOzm.wav"
     ],
-    "source_reference": "dev-set/ref/en.txt",
+    "source_reference": "data/devset/ref/en.txt",
     "comet_model": "Unbabel/XCOMET-XL",
     "fix_emission_ca": false,
     "output_dir": "outputs/iwslt26_devset_chunk850_borderp1_enit"
@@ -87,11 +87,11 @@
     "Settings",
     "----------------------------------------------------------------",
     "  hypothesis_file      outputs/iwslt26_devset_chunk850_borderp1_enit/hypothesis.jsonl",
-    "  speech_segmentation  dev-set/audio-segments.yaml",
-    "  target_reference     dev-set/ref/it.txt",
+    "  speech_segmentation  data/devset/audio-segments.yaml",
+    "  target_reference     data/devset/ref/it.txt",
     "  target_lang_code     it",
     "  matched_sources      ['DyXpuURBMP', 'DyXpuURBMP.wav', 'ERmKpJPPDc', 'ERmKpJPPDc.wav', 'EqmWoxNDIr', 'EqmWoxNDIr.wav', 'ICWfTnUMio', 'ICWfTnUMio.wav', 'JRrbTnEZbF', 'JRrbTnEZbF.wav', 'JhbtCwcsWY', 'JhbtCwcsWY.wav', 'MjDvRpkOFq', 'MjDvRpkOFq.wav', 'OiqEWDVtWk', 'OiqEWDVtWk.wav', 'QTlIuodOsA', 'QTlIuodOsA.wav', 'UOlPKyCVgg', 'UOlPKyCVgg.wav', 'ccpXHNfaoy', 'ccpXHNfaoy.wav', 'csJIsDTYMW', 'csJIsDTYMW.wav', 'krJSAnVcGR', 'krJSAnVcGR.wav', 'miPjvjWOvI', 'miPjvjWOvI.wav', 'myfXyntFYL', 'myfXyntFYL.wav', 'rOwZgUjcwB', 'rOwZgUjcwB.wav', 'rxrToXvRyM', 'rxrToXvRyM.wav', 'vrydRuOXbT', 'vrydRuOXbT.wav', 'wJAPXMIoIG', 'wJAPXMIoIG.wav', 'xhjBHGVOyQ', 'xhjBHGVOyQ.wav', 'xiSxNRoOzm', 'xiSxNRoOzm.wav']",
-    "  source_reference     dev-set/ref/en.txt",
+    "  source_reference     data/devset/ref/en.txt",
     "  comet_model          Unbabel/XCOMET-XL",
     "  fix_emission_ca      False",
     "  output_dir           outputs/iwslt26_devset_chunk850_borderp1_enit",
