@@ -42,6 +42,7 @@ class TranslationVariant:
     examples: tuple[PrefixContinuationExample, ...] = ()
     preserve_frozen_prefix: bool = False
     include_structured_scaffolding: bool = False
+    history_as_chat_turns: bool = False
 
     @property
     def uses_structured_messages(self) -> bool:
@@ -165,14 +166,27 @@ class TranslationVariant:
                 )
                 messages.append({"role": "assistant", "content": example.output})
 
+        history_pairs = self._history_pairs(
+            source_history=source_history,
+            translation_history=translation_history,
+        )
+        if self.history_as_chat_turns:
+            for source_item, translation_item in history_pairs:
+                messages.append({"role": "user", "content": source_item})
+                messages.append({"role": "assistant", "content": translation_item})
+
         current_user_message_index = len(messages)
         current_user_content, source_char_span = self._render_structured_user_message(
             source_text=text,
-            context_block=self._render_context_block(
-                source_lang=source_lang,
-                target_lang=target_lang,
-                source_history=source_history,
-                translation_history=translation_history,
+            context_block=(
+                "(none)"
+                if self.history_as_chat_turns
+                else self._render_context_block(
+                    source_lang=source_lang,
+                    target_lang=target_lang,
+                    source_history=source_history,
+                    translation_history=translation_history,
+                )
             ),
             source_lang=source_lang,
             is_partial=is_partial,
@@ -250,17 +264,28 @@ class TranslationVariant:
         source_history: list[str],
         translation_history: list[str],
     ) -> str:
-        pairs = [
-            (source.strip(), translation.strip())
-            for source, translation in zip(source_history, translation_history)
-            if source.strip() and translation.strip()
-        ]
+        pairs = TranslationVariant._history_pairs(
+            source_history=source_history,
+            translation_history=translation_history,
+        )
         if not pairs:
             return "(none)"
         return "\n\n".join(
             f"{source_lang}: {source}\n{target_lang}: {translation}"
             for source, translation in pairs
         )
+
+    @staticmethod
+    def _history_pairs(
+        *,
+        source_history: list[str],
+        translation_history: list[str],
+    ) -> list[tuple[str, str]]:
+        return [
+            (source.strip(), translation.strip())
+            for source, translation in zip(source_history, translation_history)
+            if source.strip() and translation.strip()
+        ]
 
 
 PUNCTUATION_STABLE_SEGMENT_RULE = "The current source segment is punctuation-stable."
@@ -285,6 +310,7 @@ def make_structured_prefix_variant(*, variant_id: str, description: str) -> Tran
         system_prompt_template=STRUCTURED_PREFIX_SYSTEM_PROMPT,
         preserve_frozen_prefix=True,
         include_structured_scaffolding=False,
+        history_as_chat_turns=True,
     )
 
 
