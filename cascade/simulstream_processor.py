@@ -74,7 +74,6 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "max_history_utterances",
             "partial_max_new_tokens",
             "translation_alignatt_inaccessible_ms",
-            "translation_alignatt_rewind_threshold",
             "translation_alignatt_border_margin",
             "translation_alignatt_min_source_mass",
             "translation_alignatt_argmax_mass_threshold",

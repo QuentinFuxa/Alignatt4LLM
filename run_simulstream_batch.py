@@ -295,9 +295,6 @@ def run_batch_inference(
         "translation_alignatt_min_source_mass": getattr(
             processor_config, "translation_alignatt_min_source_mass"
         ),
-        "translation_alignatt_rewind_threshold": getattr(
-            processor_config, "translation_alignatt_rewind_threshold"
-        ),
         "translation_alignatt_border_margin": getattr(
             processor_config, "translation_alignatt_border_margin", 0
         ),
@@ -421,7 +418,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-history-utterances", default=0, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
     parser.add_argument("--translation-alignatt-min-source-mass", default=0.0, type=float)
-    parser.add_argument("--translation-alignatt-rewind-threshold", default=8, type=int)
     parser.add_argument(
         "--translation-alignatt-border-margin",
         default=0,
@@ -520,7 +516,6 @@ def main() -> None:
         max_history_utterances=args.max_history_utterances,
         partial_max_new_tokens=args.partial_max_new_tokens,
         translation_alignatt_min_source_mass=args.translation_alignatt_min_source_mass,
-        translation_alignatt_rewind_threshold=args.translation_alignatt_rewind_threshold,
         translation_alignatt_border_margin=args.translation_alignatt_border_margin,
         translation_alignatt_inaccessible_ms=args.translation_alignatt_inaccessible_ms,
         translation_alignatt_argmax_mass_threshold=args.translation_alignatt_argmax_mass_threshold,

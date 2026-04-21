@@ -577,14 +577,9 @@ over $s \in \{1,\ldots,N_k\}$.
 
 \paragraph{Acceptance policy.}
 The policy $\Pi$ of Eq.~\eqref{eq:accept-prefix} is a first-failure scan
-over the draft indices $t = 1, 2, \ldots, L_k$ with four stop conditions.
-Let $\hat{s}_{t-1}$ denote the previous accepted alignment (undefined at
-$t=1$), let $\rho \in \mathbb{N}$ be the rewind threshold
-(default $3$), and $b \in \mathbb{N}$ the border margin (default $0$):
+over the draft indices $t = 1, 2, \ldots, L_k$ with three stop conditions.
+Let $b \in \mathbb{N}$ be the border margin (default $0$):
 \begin{align}
-  \text{\textsc{rewind}} :\quad
-  &\hat{s}_{t-1} - \hat{s}_t \;>\; \rho,
-  \label{eq:stop-rewind}\\
   \text{\textsc{source-frontier}} :\quad
   &\hat{s}_t \;\geq\; N^{(k)}_{\mathrm{acc}} + b,
   \label{eq:stop-frontier}\\
@@ -595,9 +590,14 @@ $t=1$), let $\rho \in \mathbb{N}$ be the rewind threshold
   &\pi_t^{\mathrm{acc}} \;<\; \tau_{\mathrm{src}},
   \label{eq:stop-prov}
 \end{align}
-all evaluated in order. The accepted length is the largest
+all evaluated in order. We intentionally do \emph{not} reject a drafted
+token solely because its source-side argmax moves left relative to the
+previous drafted token: such backward motion can arise from legitimate
+target-side reordering, especially in English$\rightarrow$Chinese
+translation, so an anti-rewind threshold is a poor inductive bias for MT.
+The accepted length is the largest
 $\ell_k$ such that none of
-Eq.~\eqref{eq:stop-rewind}--\eqref{eq:stop-prov} fires for any
+Eq.~\eqref{eq:stop-frontier}--\eqref{eq:stop-prov} fires for any
 $t \leq \ell_k$. Finally, $\ell_k$ is rounded back to the nearest
 stability-unit boundary (end of a whitespace- or punctuation-delimited
 word), so partial subword fragments are never emitted.
@@ -781,12 +781,12 @@ accepted target prefix $\mathbf{y}_{1:m_k}$ carried over from earlier
 streaming steps; it is causal context for the decoder, not the object of the
 frontier gate. The orange words are the current draft
 $\widetilde{\mathbf{y}}^{(k)}$, scanned left-to-right by the policy at the
-current step $k$. Thus $\hat{s}_{t-1}$ in Eq.~\eqref{eq:stop-rewind} refers to
-the previous drafted word \emph{within the same live draft}, not to a token
-accepted at an earlier streaming step. A drafted word may still attract large
-self-attention mass on the accepted prefix and yet remain admissible as long as
-its source-side signal stays inside the accessible frontier; this is exactly
-why the residual provenance terms are kept explicit in the decoder-only
+current step $k$. We deliberately allow $\hat{s}_t$ to move backward within
+the live draft when the decoder revisits earlier source material under
+target-side reordering. A drafted word may still attract large self-attention
+mass on the accepted prefix and yet remain admissible as long as its
+source-side signal stays inside the accessible frontier; this is exactly why
+the residual provenance terms are kept explicit in the decoder-only
 formulation.
 \input{generated/qualitative_provenance_summary.tex}
 
@@ -924,8 +924,7 @@ OmniSTEval-resegmented dev-set; WER/CER are per-clip means over the
 
 We next treat the same Gemma AlignAtt backend as an end-to-end
 transcriber and sweep its two policy thresholds --- the frame threshold
-$f$ (Eq.~\eqref{eq:stop-frontier}) and the rewind threshold $\rho$
-(Eq.~\eqref{eq:stop-rewind}) --- to expose the streaming latency/quality
+$f$ and the ASR-side rewind threshold $\rho$ --- to expose the streaming latency/quality
 frontier on the full 21-clip dev-set under the en--en (ASR-as-MT) task.
 Table~\ref{tab:asr-frontier} reports three operating points below
 $1$\,s of CU-LongYAAL (the regime targeted by this work), plus a
@@ -948,7 +947,7 @@ Q (quality anchor) & $4$ & $200$ & $44.35$ & $3561$ & $3359$ \\
 \end{tabular}
 \caption{\textbf{Gemma AlignAtt en--en streaming frontier} on the
 21-clip dev-set ($k{=}6$). Configurations A--C sit below one second of
-CU-LongYAAL. Q uses the original (pre-fix) rewind logic at the same
+CU-LongYAAL. Q uses the original (pre-fix) ASR rewind logic at the same
 $(f,\rho)$ as A and shows the upper quality bound reachable at
 multi-second latency.}
 \label{tab:asr-frontier}
@@ -959,7 +958,7 @@ band ($34.3$--$35.4$ BLEU; $668$--$911$\,ms CU), with $\rho{=}50$
 (config B) offering the best BLEU and $f{=}4, \rho{=}200$ (config A)
 the lowest CU. The ${\sim}9$ BLEU gap between A--C and the quality
 anchor Q quantifies the cost of the sub-1\,s target: without the
-anchored-reference rewind fix described in Sec.~\ref{sec:alignatt-llm},
+anchored-reference ASR rewind fix described in Sec.~\ref{sec:alignatt-llm},
 the policy only reaches its upper quality bound at ${\sim}3.6$\,s of
 CU-LongYAAL.
 
@@ -988,7 +987,7 @@ unweighted ones on the selected head set, we ship the simpler unweighted
 \end{table}
 
 Table~\ref{tab:asr-head-fusion} isolates the remaining ASR-side decision that
-matters after the rewind fix: how to fuse the selected AlignAtt heads into a
+matters after the ASR rewind fix: how to fuse the selected AlignAtt heads into a
 single source position per token. Equal-weight mean pooling leaves the worst
 teacher-relative lag at $1200$\,ms because a minority of noisy heads can drag
 the fused argmax left by roughly one extra chunk. Taking the median over the

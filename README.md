@@ -10,6 +10,8 @@ ASR-to-MT cascade.
 - Canonical runner: `run_simulstream_batch.py`
 - Canonical single-audio A/B: `run_simulstream_compare.py`
 - Submission presets: `main_low_latency` = `chunk_ms=850`, `main_high_latency` = `chunk_ms=1500`
+- MT AlignAtt no longer uses an anti-rewind threshold; legitimate EN->ZH reorderings
+  make that heuristic a bad fit for streaming MT.
 
 ## Canonical commands
 

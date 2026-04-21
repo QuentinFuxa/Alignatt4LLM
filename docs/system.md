@@ -12,6 +12,9 @@
 - ASR `gemma_vllm_qk_fast` — sole Gemma AlignAtt ASR path, sub-1 s CU-LongYAAL
   operating point. Standalone entrypoint: `gemma_asr_low_latency.py`.
 - MT `gemma_vllm_alignatt` — only maintained MT backend
+- MT partial acceptance uses frontier and confidence gating only; there is no
+  MT anti-rewind threshold because legitimate target-side reorderings make it
+  a poor fit for EN->ZH streaming translation.
 
 ## Data layout
 

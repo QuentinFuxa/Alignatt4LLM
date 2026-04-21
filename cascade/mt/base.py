@@ -55,8 +55,6 @@ class AlignAttProbeResult:
     unsafe_target_token_index: int | None = None
     blocked_source_local_position: int | None = None
     blocked_source_unit_index: int | None = None
-    rewind_from_local_position: int | None = None
-    rewind_to_local_position: int | None = None
     stop_reason: str | int | None = None
     probe_backend: str | None = None
     provenance: list[TokenProvenanceBreakdown] | None = None
@@ -581,34 +579,20 @@ class AlignAttDecoderPolicy:
         self,
         *,
         current_source_local_position: int | None,
-        last_aligned_source_local_position: int | None,
         accessible_source_token_count: int,
         source_inaccessible_mass: float | None = None,
-    ) -> tuple[str | None, int | None, int | None, int | None]:
+    ) -> tuple[str | None, int | None]:
+        del source_inaccessible_mass
         if current_source_local_position is None:
-            return None, None, None, None
-
-        rewind_threshold = int(
-            getattr(self.runtime_config, "translation_alignatt_rewind_threshold", 3)
-        )
-        if (
-            last_aligned_source_local_position is not None
-            and last_aligned_source_local_position - current_source_local_position > rewind_threshold
-        ):
-            return (
-                "rewind",
-                current_source_local_position,
-                last_aligned_source_local_position,
-                current_source_local_position,
-            )
+            return None, None
 
         border_margin = int(
             getattr(self.runtime_config, "translation_alignatt_border_margin", 0)
         )
         frontier = max(0, int(accessible_source_token_count)) + border_margin
         if current_source_local_position >= frontier:
-            return "source_frontier", current_source_local_position, None, None
-        return None, current_source_local_position, None, None
+            return "source_frontier", current_source_local_position
+        return None, current_source_local_position
 
     def finalize_partial(
         self,
@@ -621,8 +605,6 @@ class AlignAttDecoderPolicy:
         unsafe_token_id: int | None,
         blocked_source_local_position: int | None,
         blocked_source_unit_index: int | None,
-        rewind_from_local_position: int | None,
-        rewind_to_local_position: int | None,
         stop_reason: str | int | None,
         probe_backend: str | None,
     ) -> AlignAttAcceptance:
@@ -657,8 +639,6 @@ class AlignAttDecoderPolicy:
             "unsafe_token_starts_new_unit": unsafe_token_starts_new_unit,
             "blocked_source_local_position": blocked_source_local_position,
             "blocked_source_unit_index": blocked_source_unit_index,
-            "rewind_from_local_position": rewind_from_local_position,
-            "rewind_to_local_position": rewind_to_local_position,
             "accepted_candidate_token_count": len(accepted_candidate_ids),
             "accepted_token_count": len(trimmed_generated_ids),
             "word_boundary_trimmed": word_boundary_trimmed,

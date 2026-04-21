@@ -20,9 +20,9 @@ The observer is built on the same substrate as the ASR-side vLLM seam:
 
 ``is_partial=False`` still decodes a full translation with no observer work.
 ``is_partial=True`` runs the full AlignAtt probe and returns real
-``alignatt:source_frontier`` / ``alignatt:rewind`` / ``alignatt:provenance_weak``
-stop reasons plus a ``provenance_per_draft_token`` list — the same
-semantic surface the Transformers backend produces.
+``alignatt:source_frontier`` / ``alignatt:provenance_weak`` stop reasons
+plus a ``provenance_per_draft_token`` list — the same semantic surface
+the Transformers backend produces.
 
 This backend is the active MT path for the simplified runtime; the
 Transformers implementation remains available as a reference backend.
@@ -382,8 +382,6 @@ class GemmaVLLMMTBackend(BaseMTBackend):
             unsafe_token_id = None
             blocked_source_local_position = None
             blocked_source_unit_index = None
-            rewind_from_local_position = None
-            rewind_to_local_position = None
             aligned_source_local_positions: list[int | None] = []
             stop_reason = "alignatt:observer_empty"
         else:
@@ -416,31 +414,17 @@ class GemmaVLLMMTBackend(BaseMTBackend):
             unsafe_token_id = None
             blocked_source_local_position = None
             blocked_source_unit_index = None
-            rewind_from_local_position = None
-            rewind_to_local_position = None
             stop_reason = finish_reason
-            last_aligned_source_local_position: int | None = None
             min_source_mass = float(
                 getattr(self.runtime_config, "translation_alignatt_min_source_mass", 0.0)
             )
             for token_index, (token_id, current_source_local_position) in enumerate(
                 zip(operating_ids, aligned_source_local_positions)
             ):
-                (
-                    unsafe_reason,
-                    _,
-                    rewind_from_local_position,
-                    rewind_to_local_position,
-                ) = self.policy.should_stop_in_loop(
+                unsafe_reason, _ = self.policy.should_stop_in_loop(
                     current_source_local_position=current_source_local_position,
-                    last_aligned_source_local_position=last_aligned_source_local_position,
                     accessible_source_token_count=source_map.accessible_source_token_count,
                 )
-                if unsafe_reason == "rewind":
-                    unsafe_target_token_index = token_index
-                    unsafe_token_id = int(token_id)
-                    stop_reason = "alignatt:rewind"
-                    break
                 if unsafe_reason == "source_frontier":
                     unsafe_target_token_index = token_index
                     unsafe_token_id = int(token_id)
@@ -472,8 +456,6 @@ class GemmaVLLMMTBackend(BaseMTBackend):
                     stop_reason = "alignatt:provenance_weak"
                     break
                 accepted_candidate_ids.append(int(token_id))
-                if current_source_local_position is not None:
-                    last_aligned_source_local_position = current_source_local_position
 
         acceptance = self.policy.finalize_partial(
             accepted_candidate_ids=accepted_candidate_ids,
@@ -484,8 +466,6 @@ class GemmaVLLMMTBackend(BaseMTBackend):
             unsafe_token_id=unsafe_token_id,
             blocked_source_local_position=blocked_source_local_position,
             blocked_source_unit_index=blocked_source_unit_index,
-            rewind_from_local_position=rewind_from_local_position,
-            rewind_to_local_position=rewind_to_local_position,
             stop_reason=stop_reason,
             probe_backend="vllm_mt_observer",
         )

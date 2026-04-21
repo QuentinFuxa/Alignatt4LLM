@@ -507,7 +507,6 @@ def build_runtime_config(
         translation_alignatt_filter_width=7,
         translation_alignatt_probe_mode="qk_fast",
         translation_alignatt_inaccessible_ms=0.0,
-        translation_alignatt_rewind_threshold=8,
         translation_alignatt_border_margin=0,
         translation_alignatt_min_source_mass=0.0,
         partial_max_new_tokens=max_new_tokens,
@@ -958,28 +957,14 @@ def run_vllm_probe_snapshot(
     unsafe_reason: str | None = None
     blocked_source_local_position: int | None = None
     blocked_source_unit_index: int | None = None
-    rewind_from_local_position: int | None = None
-    rewind_to_local_position: int | None = None
     stop_reason = getattr(completion, "finish_reason", None)
-    last_aligned_source_local_position: int | None = None
     unsafe_target_token_index: int | None = None
     unsafe_token_id: int | None = None
     for token_index, (token_id, source_position) in enumerate(zip(generated_ids, aligned_positions)):
-        (
-            unsafe_reason,
-            _,
-            rewind_from_local_position,
-            rewind_to_local_position,
-        ) = backend.policy.should_stop_in_loop(
+        unsafe_reason, _ = backend.policy.should_stop_in_loop(
             current_source_local_position=source_position,
-            last_aligned_source_local_position=last_aligned_source_local_position,
             accessible_source_token_count=source_map.accessible_source_token_count,
         )
-        if unsafe_reason == "rewind":
-            unsafe_target_token_index = token_index
-            unsafe_token_id = int(token_id)
-            stop_reason = "alignatt:rewind"
-            break
         if unsafe_reason == "source_frontier":
             unsafe_target_token_index = token_index
             unsafe_token_id = int(token_id)
@@ -988,8 +973,6 @@ def run_vllm_probe_snapshot(
             stop_reason = "alignatt:source_frontier"
             break
         accepted_candidate_ids.append(int(token_id))
-        if source_position is not None:
-            last_aligned_source_local_position = int(source_position)
 
     acceptance = backend.policy.finalize_partial(
         accepted_candidate_ids=accepted_candidate_ids,
@@ -1000,8 +983,6 @@ def run_vllm_probe_snapshot(
         unsafe_token_id=unsafe_token_id,
         blocked_source_local_position=blocked_source_local_position,
         blocked_source_unit_index=blocked_source_unit_index,
-        rewind_from_local_position=rewind_from_local_position,
-        rewind_to_local_position=rewind_to_local_position,
         stop_reason=stop_reason,
         probe_backend="paper_vllm_probe",
     )
@@ -1049,8 +1030,6 @@ def run_vllm_probe_snapshot(
         "unsafe_reason": unsafe_reason,
         "blocked_source_local_position": blocked_source_local_position,
         "blocked_source_unit_index": blocked_source_unit_index,
-        "rewind_from_local_position": rewind_from_local_position,
-        "rewind_to_local_position": rewind_to_local_position,
         "aligned_source_local_positions": aligned_positions,
         "provenance_per_token": [
             {
@@ -1680,7 +1659,6 @@ class PaperTransformersReference:
 
         self._backend = _PromptOnlyBackend(model_name=gemma_model_name, runtime_config=type("Cfg", (), {
             "translation_alignatt_filter_width": 7,
-            "translation_alignatt_rewind_threshold": 8,
             "translation_alignatt_border_margin": 0,
             "gemma_max_model_len": 1024,
             "partial_translation_min_new_tokens": 4,

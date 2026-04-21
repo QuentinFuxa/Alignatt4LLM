@@ -19,6 +19,10 @@ Submission presets come only from [`cascade/submission.py`](/home/cascade_simult
 - `context_low_latency`: `main_low_latency` + `paper_context_mode=title_abstract`
 - `context_high_latency`: `main_high_latency` + `paper_context_mode=title_abstract`
 
+The maintained MT preset surface intentionally excludes any MT-side anti-rewind
+threshold. Target-language reorderings, especially EN->ZH, make that heuristic
+counterproductive for partial acceptance.
+
 ## Root Docker path
 
 The repo root `Dockerfile` renders one frozen preset on startup, then invokes

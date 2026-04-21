@@ -193,8 +193,6 @@ def _summarize_result(result: MTBackendResult) -> dict[str, Any]:
         "stop_reason": result.stop_reason,
         "blocked_source_local_position": alignatt_md.get("blocked_source_local_position"),
         "blocked_source_unit_index": alignatt_md.get("blocked_source_unit_index"),
-        "rewind_from_local_position": alignatt_md.get("rewind_from_local_position"),
-        "rewind_to_local_position": alignatt_md.get("rewind_to_local_position"),
         "unsafe_reason": alignatt_md.get("unsafe_reason"),
         "alignatt_not_implemented": alignatt_md.get("alignatt_not_implemented", False),
         "provenance_summary": provenance_summary,

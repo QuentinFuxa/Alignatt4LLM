@@ -148,7 +148,6 @@ class CascadeRuntimeConfig:
     translation_alignatt_filter_width: int = 7
     translation_alignatt_probe_mode: str = "qk_fast"
     translation_alignatt_inaccessible_ms: float = 0.0
-    translation_alignatt_rewind_threshold: int = 8
     translation_alignatt_border_margin: int = 0
     translation_alignatt_min_source_mass: float = 0.0
     # Confidence-gated acceptance on top of QK-reconstruction AlignAtt.
@@ -1738,7 +1737,6 @@ class CascadeSession:
                 "translation_alignatt_filter_width": self.config.translation_alignatt_filter_width,
                 "translation_alignatt_probe_mode": self.config.translation_alignatt_probe_mode,
                 "translation_alignatt_inaccessible_ms": self.config.translation_alignatt_inaccessible_ms,
-                "translation_alignatt_rewind_threshold": self.config.translation_alignatt_rewind_threshold,
                 "translation_alignatt_min_source_mass": self.config.translation_alignatt_min_source_mass,
                 "min_start_seconds": self.config.min_start_seconds,
                 "max_history_utterances": self.config.max_history_utterances,
