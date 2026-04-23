@@ -1,0 +1,239 @@
+{
+  "model": "/home/.cache/huggingface/hub/models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c",
+  "directions": {
+    "en-de": {
+      "direction": "en-de",
+      "attempted_rows": 903,
+      "used_pairs": 903,
+      "used_target_tokens": 11209,
+      "mean_source_prompt_tokens": 21.79734219269103,
+      "mean_target_tokens": 27.60686600221484,
+      "top_k": 8,
+      "all_head_count": 336,
+      "score_variants": {
+        "full_sequence": {
+          "score_name": "head_set_ts_argmax_full_sequence",
+          "score_description": "Average the full attention rows over the candidate head set, take the full-sequence argmax for each aligned target token, and count it correct only when the argmax lands on a gold aligned source token."
+        },
+        "source_prompt_only": {
+          "score_name": "head_set_ts_argmax_source_prompt_only",
+          "score_description": "Average the full attention rows over the candidate head set, restrict the argmax to the source-prompt token positions, and count it correct only when that source-side argmax lands on a gold aligned source token."
+        }
+      },
+      "filtered_topk": {
+        "full_sequence": {
+          "score": 0.8579712730841288,
+          "score_points": 85.79712730841288,
+          "correct": 9617,
+          "total": 11209
+        },
+        "source_prompt_only": {
+          "score": 0.9040057096975644,
+          "score_points": 90.40057096975644,
+          "correct": 10133,
+          "total": 11209
+        }
+      },
+      "all_heads": {
+        "full_sequence": {
+          "score": 0.0,
+          "score_points": 0.0,
+          "correct": 0,
+          "total": 11209
+        },
+        "source_prompt_only": {
+          "score": 0.684896065661522,
+          "score_points": 68.48960656615219,
+          "correct": 7677,
+          "total": 11209
+        }
+      },
+      "delta": {
+        "full_sequence": {
+          "score": 0.8579712730841288,
+          "score_points": 85.79712730841288,
+          "relative_gain_vs_all_percent": null
+        },
+        "source_prompt_only": {
+          "score": 0.2191096440360425,
+          "score_points": 21.91096440360425,
+          "relative_gain_vs_all_percent": 31.991663410186277
+        }
+      }
+    },
+    "en-zh": {
+      "direction": "en-zh",
+      "attempted_rows": 880,
+      "used_pairs": 880,
+      "used_target_tokens": 7582,
+      "mean_source_prompt_tokens": 21.64659090909091,
+      "mean_target_tokens": 20.49772727272727,
+      "top_k": 8,
+      "all_head_count": 336,
+      "score_variants": {
+        "full_sequence": {
+          "score_name": "head_set_ts_argmax_full_sequence",
+          "score_description": "Average the full attention rows over the candidate head set, take the full-sequence argmax for each aligned target token, and count it correct only when the argmax lands on a gold aligned source token."
+        },
+        "source_prompt_only": {
+          "score_name": "head_set_ts_argmax_source_prompt_only",
+          "score_description": "Average the full attention rows over the candidate head set, restrict the argmax to the source-prompt token positions, and count it correct only when that source-side argmax lands on a gold aligned source token."
+        }
+      },
+      "filtered_topk": {
+        "full_sequence": {
+          "score": 0.9014771828013717,
+          "score_points": 90.14771828013717,
+          "correct": 6835,
+          "total": 7582
+        },
+        "source_prompt_only": {
+          "score": 0.9348456871537852,
+          "score_points": 93.48456871537853,
+          "correct": 7088,
+          "total": 7582
+        }
+      },
+      "all_heads": {
+        "full_sequence": {
+          "score": 0.00013189132155104195,
+          "score_points": 0.013189132155104196,
+          "correct": 1,
+          "total": 7582
+        },
+        "source_prompt_only": {
+          "score": 0.6578739118965972,
+          "score_points": 65.78739118965971,
+          "correct": 4988,
+          "total": 7582
+        }
+      },
+      "delta": {
+        "full_sequence": {
+          "score": 0.9013452914798207,
+          "score_points": 90.13452914798206,
+          "relative_gain_vs_all_percent": 683400.0
+        },
+        "source_prompt_only": {
+          "score": 0.2769717752571881,
+          "score_points": 27.697177525718807,
+          "relative_gain_vs_all_percent": 42.101042502004816
+        }
+      }
+    },
+    "en-it": {
+      "direction": "en-it",
+      "attempted_rows": 907,
+      "used_pairs": 907,
+      "used_target_tokens": 12056,
+      "mean_source_prompt_tokens": 21.901874310915105,
+      "mean_target_tokens": 28.05071664829107,
+      "top_k": 8,
+      "all_head_count": 336,
+      "score_variants": {
+        "full_sequence": {
+          "score_name": "head_set_ts_argmax_full_sequence",
+          "score_description": "Average the full attention rows over the candidate head set, take the full-sequence argmax for each aligned target token, and count it correct only when the argmax lands on a gold aligned source token."
+        },
+        "source_prompt_only": {
+          "score_name": "head_set_ts_argmax_source_prompt_only",
+          "score_description": "Average the full attention rows over the candidate head set, restrict the argmax to the source-prompt token positions, and count it correct only when that source-side argmax lands on a gold aligned source token."
+        }
+      },
+      "filtered_topk": {
+        "full_sequence": {
+          "score": 0.8715992037159921,
+          "score_points": 87.15992037159921,
+          "correct": 10508,
+          "total": 12056
+        },
+        "source_prompt_only": {
+          "score": 0.9190444591904446,
+          "score_points": 91.90444591904446,
+          "correct": 11080,
+          "total": 12056
+        }
+      },
+      "all_heads": {
+        "full_sequence": {
+          "score": 0.0,
+          "score_points": 0.0,
+          "correct": 0,
+          "total": 12056
+        },
+        "source_prompt_only": {
+          "score": 0.6741871267418713,
+          "score_points": 67.41871267418713,
+          "correct": 8128,
+          "total": 12056
+        }
+      },
+      "delta": {
+        "full_sequence": {
+          "score": 0.8715992037159921,
+          "score_points": 87.15992037159921,
+          "relative_gain_vs_all_percent": null
+        },
+        "source_prompt_only": {
+          "score": 0.24485733244857333,
+          "score_points": 24.485733244857332,
+          "relative_gain_vs_all_percent": 36.318897637795274
+        }
+      }
+    }
+  },
+  "summary_rows": [
+    {
+      "direction": "en-de",
+      "full_top_k_score": 0.8579712730841288,
+      "full_all_heads_score": 0.0,
+      "full_delta_score": 0.8579712730841288,
+      "full_delta_points": 85.79712730841288,
+      "source_top_k_score": 0.9040057096975644,
+      "source_all_heads_score": 0.684896065661522,
+      "source_delta_score": 0.2191096440360425,
+      "source_delta_points": 21.91096440360425,
+      "used_pairs": 903,
+      "used_target_tokens": 11209
+    },
+    {
+      "direction": "en-zh",
+      "full_top_k_score": 0.9014771828013717,
+      "full_all_heads_score": 0.00013189132155104195,
+      "full_delta_score": 0.9013452914798207,
+      "full_delta_points": 90.13452914798206,
+      "source_top_k_score": 0.9348456871537852,
+      "source_all_heads_score": 0.6578739118965972,
+      "source_delta_score": 0.2769717752571881,
+      "source_delta_points": 27.697177525718807,
+      "used_pairs": 880,
+      "used_target_tokens": 7582
+    },
+    {
+      "direction": "en-it",
+      "full_top_k_score": 0.8715992037159921,
+      "full_all_heads_score": 0.0,
+      "full_delta_score": 0.8715992037159921,
+      "full_delta_points": 87.15992037159921,
+      "source_top_k_score": 0.9190444591904446,
+      "source_all_heads_score": 0.6741871267418713,
+      "source_delta_score": 0.24485733244857333,
+      "source_delta_points": 24.485733244857332,
+      "used_pairs": 907,
+      "used_target_tokens": 12056
+    }
+  ],
+  "top_k": 8,
+  "score_names": {
+    "full_sequence": "head_set_ts_argmax_full_sequence",
+    "source_prompt_only": "head_set_ts_argmax_source_prompt_only"
+  },
+  "score_units": "fraction",
+  "score_point_scale": 100.0,
+  "notes": [
+    "Filtered top-k uses the same per-direction retained MT heads shipped in the runtime payloads.",
+    "All-head averaging uniformly averages all 42x8 Gemma query heads before taking the full-sequence argmax.",
+    "Scores are measured on the held-out word-aligned MT calibration sets under the exact runtime prompt layout.",
+    "The source_prompt_only variant restricts the argmax to the prompt positions occupied by the source span."
+  ]
+}

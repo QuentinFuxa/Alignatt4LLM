@@ -1,0 +1,240 @@
+\begin{figure*}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  >={Latex[length=2.4mm]},
+  every node/.style={font=\scriptsize, inner sep=0pt},
+  panel/.style={draw=black!35, rounded corners=2.5pt, line width=0.6pt, fill=white},
+  box/.style       ={draw=black!50,        rounded corners=2.5pt, line width=0.5pt,  fill=white},
+  audiobox/.style  ={box, draw=black!50,   fill=black!3},
+  asrbox/.style    ={box, draw=green!45!black, fill=green!5},
+  mtbox/.style     ={box, draw=blue!50!black,  fill=blue!4},
+  obsbox/.style    ={box, draw=orange!75!black, fill=orange!7,
+                     line width=1.0pt},
+  outbox/.style    ={box, draw=teal!60!black,  fill=teal!6},
+  hdr/.style       ={font=\scriptsize\bfseries, align=center, inner sep=0pt},
+  sub/.style       ={font=\tiny, text=black!55, align=center, inner sep=0pt},
+  tagL/.style      ={font=\tiny, text=black!70, align=left,   inner sep=0pt},
+  arr/.style       ={->, line width=0.9pt, draw=black!72},
+  feed/.style      ={->, line width=0.8pt, draw=teal!55!black, dashed},
+  chunktick/.style ={draw=black!45, line width=0.5pt},
+]
+
+  %% ========================================================
+  %% Canvas
+  %% ========================================================
+  \def\Wmax{17.00}\def\Hmax{5.20}
+  \draw[panel] (0,0) rectangle (\Wmax,\Hmax);
+
+  %% ========================================================
+  %% Main band: 5 processing stages
+  %% ========================================================
+  \def\bYB{0.95}\def\bYT{4.30}
+
+  \def\aL{0.25}\def\aR{2.10}    % audio
+  \def\bL{2.45}\def\bR{4.85}    % ASR
+  \def\cL{5.20}\def\cR{9.00}    % MT prompt
+  \def\dL{9.35}\def\dR{13.80}   % Observer (hero)
+  \def\eL{14.15}\def\eR{16.75}  % committed target
+
+  %% ---- Stage 1: Audio chunk ----
+  \filldraw[audiobox] (\aL,\bYB) rectangle (\aR,\bYT);
+  \node[hdr, anchor=north] at ({(\aL+\aR)/2},\bYT-0.18)
+    {audio chunk $k$};
+  \node[sub, anchor=north] at ({(\aL+\aR)/2},\bYT-0.52)
+    {raw waveform};
+  \def\awY{2.80}
+  \foreach \i/\h in {0/0.35, 1/0.55, 2/0.85, 3/0.50, 4/0.78, 5/0.95,
+                     6/0.60, 7/0.35, 8/0.45, 9/0.30} {
+    \pgfmathsetmacro\xw{\aL+0.22 + 0.15*\i}
+    \pgfmathsetmacro\yA{\awY - \h/2*0.70}
+    \pgfmathsetmacro\yB{\awY + \h/2*0.70}
+    \draw[black!60, line width=0.55pt] (\xw,\yA) -- (\xw,\yB);
+  }
+  \node[sub, anchor=south] at ({(\aL+\aR)/2},\bYB+0.10)
+    {streaming chunk};
+
+  %% ---- Stage 2: Qwen3 ASR ----
+  \filldraw[asrbox] (\bL,\bYB) rectangle (\bR,\bYT);
+  \node[hdr, text=green!30!black, anchor=north] at ({(\bL+\bR)/2},\bYT-0.18)
+    {Qwen3 forced ASR};
+  \node[sub, anchor=north] at ({(\bL+\bR)/2},\bYT-0.52)
+    {transcript $+$ word-end times};
+  \def\asrY{2.95}
+  \def\asrLx{2.63}\def\asrRx{4.67}
+  \draw[black!55, line width=0.4pt] (\asrLx,\asrY-0.12) -- (\asrRx,\asrY-0.12);
+  \foreach \i/\tok in {0/the, 1/cat, 2/sat, 3/on} {
+    \pgfmathsetmacro\xtk{\asrLx + 0.51*\i + 0.255}
+    \node[font=\tiny, text=black!70] at (\xtk,\asrY+0.12) {\tok};
+    \draw[black!55, line width=0.4pt] (\xtk,\asrY-0.05) -- (\xtk,\asrY-0.19);
+  }
+  \foreach \i/\lab in {0/{0.3}, 1/{0.7}, 2/{1.1}, 3/{1.5}} {
+    \pgfmathsetmacro\xtk{\asrLx + 0.51*\i + 0.255}
+    \node[font=\tiny, text=black!55] at (\xtk,\asrY-0.34) {\lab\,s};
+  }
+  \node[sub, anchor=south, text=green!30!black, align=center]
+    at ({(\bL+\bR)/2},\bYB+0.10)
+    {full hypothesis (no punct.)\\ $\to$ MT};
+
+  % Local Agreement self-loop on Qwen3 ASR box
+  \draw[->, draw=green!45!black, line width=0.75pt, rounded corners=4pt]
+    ({\bR-0.20},\bYT+0.02)
+    -- ({\bR-0.20},\bYT+0.45)
+    -- ({\bL+0.20},\bYT+0.45)
+    -- ({\bL+0.20},\bYT+0.02);
+  \node[font=\tiny, text=green!30!black, anchor=south]
+    at ({(\bL+\bR)/2},\bYT+0.48)
+    {Local Agreement on prefix};
+
+  %% ---- Stage 3: MT prompt with explicit layout ----
+  \filldraw[mtbox] (\cL,\bYB) rectangle (\cR,\bYT);
+  \node[hdr, text=blue!40!black, anchor=north] at ({(\cL+\cR)/2},\bYT-0.18)
+    {Gemma-4 MT prompt};
+  \node[sub, anchor=north] at ({(\cL+\cR)/2},\bYT-0.52)
+    {deterministic causal layout};
+  % Wider segmented bar; tiny labels use short forms (full names in caption)
+  \def\pbL{5.35}\def\pbR{8.85}
+  \def\pbB{2.60}\def\pbT{3.15}
+  % widths (sum = 3.50): sys=0.28, src=1.30, instr=0.38, y_pref=0.80, draft=0.74
+  \def\segsys{0.28}\def\segsrc{1.30}\def\segins{0.38}
+  \def\segypref{0.80}\def\segdraft{0.74}
+  \pgfmathsetmacro\xs{\pbL}
+  \filldraw[draw=black!40, fill=black!10, line width=0.3pt]
+    (\xs,\pbB) rectangle ({\xs+\segsys},\pbT);
+  \node[font=\tiny, text=black!55] at ({\xs+\segsys/2},{(\pbB+\pbT)/2}) {sys};
+  \pgfmathsetmacro\xs{\pbL+\segsys}
+  \filldraw[draw=blue!50!black, fill=blue!20, line width=0.3pt]
+    (\xs,\pbB) rectangle ({\xs+\segsrc},\pbT);
+  \node[font=\tiny, text=blue!40!black] at ({\xs+\segsrc/2},{(\pbB+\pbT)/2})
+    {$\mathbf{s}^{(k)}$};
+  \pgfmathsetmacro\xs{\pbL+\segsys+\segsrc}
+  \filldraw[draw=black!40, fill=black!10, line width=0.3pt]
+    (\xs,\pbB) rectangle ({\xs+\segins},\pbT);
+  \node[font=\tiny, text=black!55] at ({\xs+\segins/2},{(\pbB+\pbT)/2}) {instr};
+  \pgfmathsetmacro\xs{\pbL+\segsys+\segsrc+\segins}
+  \pgfmathsetmacro\ypSlotCx{\xs+\segypref/2}  % store target-prefix center for feedback
+  \filldraw[draw=green!45!black, fill=green!20, line width=0.3pt]
+    (\xs,\pbB) rectangle ({\xs+\segypref},\pbT);
+  \node[font=\tiny, text=green!30!black] at ({\xs+\segypref/2},{(\pbB+\pbT)/2})
+    {$\mathbf{y}_{\le m}$};
+  \pgfmathsetmacro\xs{\pbL+\segsys+\segsrc+\segins+\segypref}
+  \filldraw[draw=orange!75!black, fill=orange!22, line width=0.3pt]
+    (\xs,\pbB) rectangle ({\xs+\segdraft},\pbT);
+  \node[font=\tiny, text=orange!55!black] at ({\xs+\segdraft/2},{(\pbB+\pbT)/2})
+    {$\widetilde{\mathbf{y}}^{(k)}$};
+  \node[sub, anchor=south] at ({(\cL+\cR)/2},\bYB+0.10)
+    {source $+$ target history, one causal stream};
+
+  %% ---- Stage 4: Engine-native AlignAtt observer (HERO) ----
+  \filldraw[obsbox] (\dL,\bYB) rectangle (\dR,\bYT);
+  \node[hdr, text=orange!55!black, anchor=north] at ({(\dL+\dR)/2},\bYT-0.18)
+    {Engine-native AlignAtt observer};
+  \node[sub, anchor=north, font=\tiny\itshape, text=orange!55!black]
+    at ({(\dL+\dR)/2},\bYT-0.52)
+    {main contribution of this paper};
+  % Mini attention matrix (3 rows draft x 7 cols source)
+  \def\matL{9.60}\def\matB{1.85}
+  \def\cellw{0.19}
+  \foreach \r/\c/\k in {
+    0/0/0, 0/1/1, 0/2/2, 0/3/1, 0/4/0, 0/5/0, 0/6/0,
+    1/0/0, 1/1/1, 1/2/1, 1/3/2, 1/4/1, 1/5/0, 1/6/0,
+    2/0/0, 2/1/0, 2/2/1, 2/3/1, 2/4/2, 2/5/1, 2/6/0
+  } {
+    \pgfmathsetmacro\xc{\matL + \c*\cellw}
+    \pgfmathsetmacro\yc{\matB + \r*\cellw}
+    \ifnum\k=2
+      \filldraw[fill=orange!70!black, draw=orange!80!black, line width=0.18pt]
+        (\xc,\yc) rectangle ({\xc+\cellw},{\yc+\cellw});
+    \else\ifnum\k=1
+      \filldraw[fill=blue!30, draw=blue!45, line width=0.18pt]
+        (\xc,\yc) rectangle ({\xc+\cellw},{\yc+\cellw});
+    \else
+      \filldraw[fill=blue!8, draw=blue!20, line width=0.18pt]
+        (\xc,\yc) rectangle ({\xc+\cellw},{\yc+\cellw});
+    \fi\fi
+  }
+  % frontier marker between col 4 and col 5 (no label, stays inside matrix)
+  \pgfmathsetmacro\frX{\matL + 5*\cellw}
+  \draw[black!65, dashed, line width=0.45pt]
+    (\frX,\matB-0.05) -- (\frX,{\matB+3*\cellw+0.05});
+  % matrix title (above cells): formula + description on separate lines
+  \node[font=\tiny\bfseries, text=orange!55!black, anchor=south]
+    at ({\matL+7*\cellw/2},{\matB+3*\cellw+0.22})
+    {$\widehat{\mathbf{A}}_{\mathcal{D},\,\mathcal{S}^{(k)}}$};
+  \node[font=\tiny\itshape, text=black!60, anchor=south]
+    at ({\matL+7*\cellw/2},{\matB+3*\cellw+0.04})
+    {draft $\times$ source};
+  % frontier caption below matrix (centered under the dashed line)
+  \node[font=\tiny, text=black!55, anchor=north]
+    at (\frX,\matB-0.06) {frontier};
+
+  % Right column: 2 short properties (condensed)
+  \def\hintX{11.35}
+  \node[tagL, anchor=west] at (\hintX,3.45)
+    {\textbullet\ \ selective \emph{qk-fast} replay};
+  \node[tagL, anchor=west] at (\hintX,3.11)
+    {\textbullet\ \ compile-safe $q/k$ capture};
+  \node[tagL, anchor=west] at (\hintX,2.77)
+    {\textbullet\ \ policy gates the draft};
+  \node[sub, anchor=south, text=orange!55!black] at ({(\dL+\dR)/2},\bYB+0.10)
+    {no $n{\times}n$ attention ever materialized};
+
+  %% ---- Stage 5: Committed target ----
+  \filldraw[outbox] (\eL,\bYB) rectangle (\eR,\bYT);
+  \node[hdr, text=teal!45!black, anchor=north] at ({(\eL+\eR)/2},\bYT-0.18)
+    {committed target};
+  \node[sub, anchor=north] at ({(\eL+\eR)/2},\bYT-0.52)
+    {$\mathbf{y}_{1:m_k}$, append-only};
+  \def\gbL{14.32}\def\gbR{16.60}
+  \def\gbY{2.70}\def\gbH{0.38}
+  \filldraw[draw=teal!55!black, fill=teal!18, line width=0.3pt]
+    (\gbL,\gbY) rectangle ({\gbL+1.45},{\gbY+\gbH});
+  \filldraw[draw=teal!65!black, fill=teal!35, line width=0.3pt]
+    ({\gbL+1.45},\gbY) rectangle ({\gbL+1.95},{\gbY+\gbH});
+  \draw[dashed, draw=teal!55!black, line width=0.3pt]
+    ({\gbL+1.95},{\gbY+\gbH/2}) -- (\gbR,{\gbY+\gbH/2});
+  \node[font=\tiny, text=teal!40!black, anchor=south]
+    at ({\gbL+0.725},\gbY+\gbH+0.04) {prior};
+  \node[font=\tiny, text=teal!45!black, anchor=south]
+    at ({\gbL+1.70},\gbY+\gbH+0.04) {new};
+  \node[font=\tiny, text=teal!40!black, anchor=north, font=\tiny\itshape]
+    at ({\gbR-0.15},\gbY-0.04) {next};
+  \node[sub, anchor=south] at ({(\eL+\eR)/2},\bYB+0.10)
+    {never retracted};
+
+  %% ========================================================
+  %% Arrows between stages (clean, no labels)
+  %% ========================================================
+  \def\midY{2.92}
+  \draw[arr] ({\aR+0.04},\midY) -- ({\bL-0.04},\midY);
+  \draw[arr] ({\bR+0.04},\midY) -- ({\cL-0.04},\midY);
+  \draw[arr] ({\cR+0.04},\midY) -- ({\dL-0.04},\midY);
+  \draw[arr] ({\dR+0.04},\midY) -- ({\eL-0.04},\midY);
+
+  %% ========================================================
+  %% Feedback: committed target -> target-prefix slot of next step
+  %% ========================================================
+  \def\fbY{0.38}
+  \draw[feed, rounded corners=4pt]
+    ({(\eL+\eR)/2},\bYB-0.03)
+    -- ({(\eL+\eR)/2},\fbY)
+    -- (\ypSlotCx,\fbY)
+    -- (\ypSlotCx,\bYB-0.03);
+  \node[font=\tiny\itshape, text=teal!45!black, anchor=south]
+    at ({(\ypSlotCx+(\eL+\eR)/2)/2},\fbY+0.04)
+    {accepted target $\rightarrow$ target-prefix slot, step $k{+}1$};
+
+\end{tikzpicture}
+}%
+\caption{\textbf{Submitted cascade, one chunk-synchronous step.} Each chunk
+first updates the source prefix with Qwen3 forced ASR, then runs one Gemma-4
+MT step. The MT prompt keeps the ASR transcript explicit inside the
+decoder-only causal layout, so the engine-native observer (\emph{main
+contribution of this paper}) can capture the selected heads' queries and keys
+on the deployed vLLM path and reconstruct only the draft-to-source block
+$\widehat{\mathbf{A}}_{\mathcal{D},\mathcal{S}^{(k)}}$ used by the acceptance
+policy. Accepted target tokens are appended to $\mathbf{y}_{1:m_k}$ and become
+the target-prefix slot of the next step's prompt (dashed teal feedback).}
+\label{fig:system}
+\end{figure*}

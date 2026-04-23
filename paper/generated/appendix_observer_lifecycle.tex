@@ -1,0 +1,205 @@
+\begin{figure*}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  >={Latex[length=2.4mm]},
+  every node/.style={font=\small, inner sep=0pt},
+  panel/.style={draw=black!45, rounded corners=3pt, line width=0.6pt, fill=white},
+  inner/.style={draw=black!40, line width=0.45pt, rounded corners=2.5pt,
+                fill=black!1},
+  opnode/.style={draw=black!60, fill=black!5, rounded corners=2pt,
+                 line width=0.5pt, inner sep=3pt, font=\scriptsize,
+                 align=center},
+  obsnode/.style={draw=orange!75!black, fill=orange!14, rounded corners=2pt,
+                  line width=0.7pt, inner sep=3pt, font=\scriptsize,
+                  align=center},
+  bufnode/.style={draw=teal!60!black, fill=teal!14, rounded corners=2pt,
+                  line width=0.7pt, inner sep=3pt, font=\scriptsize,
+                  align=center},
+  outnode/.style={draw=green!45!black, fill=green!14, rounded corners=2pt,
+                  line width=0.7pt, inner sep=3pt, font=\scriptsize,
+                  align=center},
+  tagbox/.style={draw=green!45!black, fill=green!7, rounded corners=2pt,
+                 line width=0.4pt, inner sep=3pt, font=\scriptsize, align=left},
+  tflow/.style={->, draw=black!75, line width=0.9pt},
+  dflow/.style={->, draw=teal!55!black, line width=0.8pt},
+  ocap/.style={->, draw=orange!70!black, dashed, line width=0.75pt},
+  ozero/.style={->, draw=orange!60!black, dashed, line width=0.65pt},
+  wireblk/.style={draw=black!75, line width=0.75pt},
+  sectitle/.style={font=\scriptsize\bfseries, align=left, inner sep=0pt},
+  sub/.style={font=\scriptsize, align=left, text=black!60, inner sep=0pt},
+  tny/.style={font=\tiny, align=left, text=black!55, inner sep=0pt},
+  cen/.style={font=\tiny, align=center, text=black!60, inner sep=0pt},
+  bullet/.style={font=\scriptsize, align=left, text=black!85, inner sep=0pt},
+  prose/.style={font=\scriptsize, align=left, text=black!75, inner sep=0pt},
+]
+
+  \def\Wmax{17.00}\def\Hmax{7.80}
+  \draw[panel] (0.00,0.00) rectangle (\Wmax,\Hmax);
+
+  \draw[black!30, dashed, line width=0.45pt] (8.20,0.30) -- (8.20,7.50);
+
+  % ========================================================================
+  % LEFT: Compile-time setup
+  % ========================================================================
+  \node[sectitle, text=black!85, anchor=north west] at (0.20,7.65)
+    {A.~Compile-time: install observer before graph capture};
+  \node[sub, anchor=north west, text width=7.80cm] at (0.20,7.30)
+    {runs once, before \texttt{torch.compile}\,/\,cudagraph freezes the graph};
+
+  % --- Inner graph-fragment box ---
+  \def\xLL{0.30}\def\xLR{8.00}\def\xLB{3.75}\def\xLT{6.80}
+  \draw[inner] (\xLL,\xLB) rectangle (\xLR,\xLT);
+  \node[sub, text=black!75, anchor=north west] at (\xLL+0.15,\xLT-0.12)
+    {patched \texttt{GemmaAttention.forward},\ \ $(\ell,h)\in\mathcal{H}$};
+
+  % Inputs (stacked)
+  \node[opnode, minimum width=0.85cm, minimum height=0.55cm]
+    (Q) at (0.95,5.75) {$\mathbf{Q}^{(\ell,h)}$};
+  \node[opnode, minimum width=0.85cm, minimum height=0.55cm]
+    (K) at (0.95,4.70) {$\mathbf{K}^{(\ell,h)}$};
+
+  % Vertical bus at x=2.00
+  \def\Bx{2.00}
+  \draw[wireblk] (Q.east) -- (\Bx,5.75);
+  \draw[wireblk] (K.east) -- (\Bx,4.70);
+  \draw[wireblk] (\Bx,5.75) -- (\Bx,4.70);
+
+  % Fused attention
+  \node[opnode, minimum width=2.4cm, minimum height=0.80cm]
+    (fused) at (4.15,5.75) {fused attention};
+  \node[cen, anchor=north] at (4.15,5.30)
+    {$n{\times}n$ never materialized};
+
+  % Observer op
+  \node[obsnode, minimum width=3.15cm, minimum height=0.80cm, align=center]
+    (obs) at (4.50,4.40)
+    {observer op $\phi_{\mathrm{cap}}(\mathbf{Q},\mathbf{K})\!\to\!\mathbf{0}$};
+  \node[cen, anchor=north, text=orange!50!black] at (4.50,3.98)
+    {writes slot};
+
+  % Sum node
+  \node[opnode, minimum width=0.55cm, minimum height=0.55cm]
+    (sum) at (6.80,5.75) {$+$};
+
+  % Arrows from bus: clean L-shapes (no diagonals)
+  \draw[tflow] (\Bx,5.75) -- (fused.west);
+  \draw[ocap] (\Bx,4.70) -- (\Bx,4.40) -- (obs.west);
+
+  % Fused -> sum
+  \draw[tflow] (fused.east) -- (sum.west);
+
+  % Observer 0 -> sum (dashed orange, dogleg up)
+  \draw[ozero] (obs.east) -- (6.80,4.40) -- (sum.south);
+  \node[cen, text=orange!55!black, anchor=east] at (6.75,5.05)
+    {adds $\mathbf{0}$};
+
+  % Sum -> output
+  \draw[tflow] (sum.east) -- (7.75,5.75);
+  \node[cen, anchor=south] at (7.30,5.80) {output};
+
+  % --- Installed items as clean bullet points ---
+  \node[sectitle, anchor=north west] at (0.20,3.40)
+    {Three things the patch installs:};
+
+  \node[bullet, anchor=north west, text width=7.60cm] at (0.20,3.00)
+    {\ $\bullet$\ \ fixed-shape buffer slot per layer (pre-allocated, known
+     dtype and stride)};
+  \node[bullet, anchor=north west, text width=7.60cm] at (0.20,2.40)
+    {\ $\bullet$\ \ custom-op call site
+     $\phi_{\mathrm{cap}}(\mathbf{Q},\mathbf{K})\!\to\!\mathbf{0}$ for heads
+     $(\ell,h)\in\mathcal{H}$};
+  \node[bullet, anchor=north west, text width=7.60cm] at (0.20,1.80)
+    {\ $\bullet$\ \ add-back edge summing $\phi_{\mathrm{cap}}$'s zero output
+     into the attention output};
+
+  \node[prose, anchor=north west, text width=7.60cm] at (0.20,1.10)
+    {\emph{Why this survives compilation}: fixed shapes let AOT resolve every
+     attribute; the add-back keeps $\phi_{\mathrm{cap}}$ in the live fan-in,
+     so dead-code elimination cannot remove it; outputs are bit-identical to
+     the unpatched model.};
+
+  % ========================================================================
+  % RIGHT: Per-forward runtime
+  % ========================================================================
+  \node[sectitle, text=black!85, anchor=north west] at (8.40,7.65)
+    {B.~Runtime: capture during the forward, replay after};
+  \node[sub, anchor=north west, text width=8.40cm] at (8.40,7.30)
+    {observer ops run inside the compiled graph; replay runs in Python on the
+     stored slots};
+
+  % --- Inner runtime box ---
+  \def\xRL{8.50}\def\xRR{16.85}\def\xRB{3.75}\def\xRT{6.80}
+  \draw[inner] (\xRL,\xRB) rectangle (\xRR,\xRT);
+  \node[sub, text=black!75, anchor=north west] at (\xRL+0.15,\xRT-0.12)
+    {after forward: slots hold captured tensors for $(\ell,h)\in\mathcal{H}$};
+
+  % Captured K
+  \node[bufnode, minimum width=1.70cm, minimum height=0.70cm]
+    (bK) at (9.50,5.95) {$\mathbf{K}^{(\ell,h)}_{\mathcal{P}}$};
+  \node[cen, anchor=north] at (9.50,5.54) {keys, full prompt};
+
+  % Captured Q
+  \node[bufnode, minimum width=1.70cm, minimum height=0.70cm]
+    (bQ) at (9.50,4.70) {$\mathbf{Q}^{(\ell,h)}_{\mathcal{D}}$};
+  \node[cen, anchor=north] at (9.50,4.29) {queries, draft rows};
+
+  % Replay op: shorter, wrapped formula so the box width is predictable
+  \node[outnode, text width=3.00cm, align=center, minimum height=1.40cm]
+    (replay) at (12.90,5.30)
+    {$\mathrm{softmax}(\mathbf{Q}\mathbf{K}^{\!\top}\!+\mathbf{m})$};
+  \node[cen, anchor=north] at (12.90,4.48) {replay, Python-side};
+
+  % Slice output
+  \node[outnode, minimum width=1.80cm, minimum height=0.90cm]
+    (slice) at (15.85,5.30)
+    {$\widehat{\mathbf{A}}^{(\ell,h)}_{\mathcal{D},\mathcal{S}^{(k)}}$};
+  \node[cen, anchor=north] at (15.85,4.75) {keep source cols};
+
+  % Edges
+  \draw[dflow] (bK.east) -- (replay.west |- bK);
+  \draw[dflow] (bQ.east) -- (replay.west |- bQ);
+  \draw[dflow] (replay.east) -- (slice.west);
+
+  % --- Consumer tags (with room above the tagbox row) ---
+  \node[sectitle, anchor=north west] at (8.40,3.35)
+    {Consumers of $\widehat{\mathbf{A}}$:};
+
+  \node[tagbox, anchor=north west, text width=3.85cm] at (8.40,2.85)
+    {policy features (Fig.~\ref{fig:appendix-policy-pipeline})};
+  \node[tagbox, anchor=north west, text width=3.85cm] at (12.65,2.85)
+    {parity vs.\ eager (Eq.~\eqref{eq:parity})};
+  \node[tagbox, anchor=north west, text width=3.85cm] at (8.40,2.25)
+    {qualitative probe (Fig.~\ref{fig:mt-selective-reconstruction})};
+  \node[tagbox, anchor=north west, text width=3.85cm] at (12.65,2.25)
+    {cost $\mathcal{O}(|\mathcal{H}|\,L_k\,N_k)$ per decode step};
+
+  \node[prose, anchor=north west, text width=8.20cm] at (8.40,1.50)
+    {\emph{One capture path, three readers}: the same replayed tensor feeds
+     the online policy, the Transformers-eager parity check, and the offline
+     qualitative probe; cost scales with the selected heads and the short
+     draft length, not with the full $LHn^2$ attention tensor.};
+
+\end{tikzpicture}
+}%
+\caption{\textbf{Compile-safe observer lifecycle on the deployed vLLM path.}
+\emph{Left (A), once, before graph capture:} the forward of
+\texttt{GemmaAttention} is patched so that for each selected head
+$(\ell,h)\in\mathcal{H}$ the query and key tensors also pass through an
+observer custom op $\phi_{\mathrm{cap}}$ (dashed orange side path). The op
+writes the selected slices into fixed-shape, pre-allocated slots and returns
+a zero tensor that is added back into the attention output; this keeps the op
+in the live fan-in of the graph so the compiler cannot dead-code-eliminate
+it, while the numerical output of the layer is unchanged.
+\emph{Right (B), every forward:} after the compiled forward finishes, the
+observer slots hold $\mathbf{K}^{(\ell,h)}_{\mathcal{P}}$ for the full prompt
+and $\mathbf{Q}^{(\ell,h)}_{\mathcal{D}}$ for the draft rows; a short
+Python-side replay computes $\mathbf{Q}\mathbf{K}^{\!\top}$ for the draft
+against the full prompt, applies the causal mask $\mathbf{m}$, takes the
+softmax, and keeps the source columns to yield the selective block
+$\widehat{\mathbf{A}}^{(\ell,h)}_{\mathcal{D},\mathcal{S}^{(k)}}$ that feeds
+the policy, the parity check against an uncompiled Transformers reference,
+and the qualitative probe.}
+\label{fig:appendix-observer-lifecycle}
+\end{figure*}

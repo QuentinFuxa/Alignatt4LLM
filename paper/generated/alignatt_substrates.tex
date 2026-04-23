@@ -1,0 +1,191 @@
+\begin{figure*}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  >={Latex[length=2.4mm]},
+  every node/.style={font=\small, inner sep=0pt},
+  panel/.style={draw=black!40, rounded corners=3pt, line width=0.6pt, fill=white},
+  title/.style={font=\scriptsize\bfseries, text=black!85, align=left, inner sep=0pt},
+  sub/.style={font=\scriptsize, text=black!60, align=left, inner sep=0pt},
+  tny/.style={font=\tiny, text=black!55, align=center, inner sep=0pt},
+  decbox/.style={draw=green!45!black, fill=green!10, rounded corners=2pt,
+                 line width=0.55pt, inner sep=2pt, font=\scriptsize, align=center},
+  caption/.style={font=\tiny, text=green!28!black, align=center, inner sep=0pt},
+  flow/.style={->, draw=black!72, line width=0.85pt},
+  peakflow/.style={->, draw=teal!55!black, line width=0.7pt, dashed},
+  srcacc/.style={draw=blue!50!black, fill=blue!16, line width=0.4pt},
+  srcinacc/.style={draw=blue!30!black, fill=blue!5, line width=0.4pt},
+  prompt/.style={draw=black!35, fill=black!7, line width=0.35pt},
+  tgtpref/.style={draw=green!45!black, fill=green!16, line width=0.35pt},
+  draft/.style={draw=orange!75!black, fill=orange!18, line width=0.35pt},
+]
+
+  %% ================================================================
+  %% LEFT PANEL: a. Standard encoder--decoder AlignAtt
+  %% ================================================================
+  \def\aL{0.00}\def\aR{8.40}\def\aB{1.50}\def\aT{6.20}
+  \draw[panel] (\aL,\aB) rectangle (\aR,\aT);
+
+  \node[title, anchor=north west] at (\aL+0.25,\aT-0.15)
+    {a.~Standard encoder--decoder AlignAtt};
+  \node[sub, anchor=north west, text width=7.90cm] at (\aL+0.25,\aT-0.52)
+    {decoder cross-attention already returns a source-only row; the policy
+     reads it directly.};
+
+  % Decoder state box
+  \node[decbox, minimum width=1.80cm, minimum height=0.75cm]
+    (dec) at (1.50,4.40) {decoder state\\for $y_t$};
+
+  % Histogram (cross-attention row over source frames) — 8 bars
+  \def\aHx{3.00}        % left x of histogram
+  \def\aHy{4.00}        % baseline y of histogram
+  \def\aHw{0.46}        % bar width
+  \def\aHg{0.12}        % gap between bars
+  \def\aHs{0.58}        % step (width + gap)
+  \foreach \i/\h in {0/0.12, 1/0.28, 2/0.55, 3/0.82, 4/0.55, 5/0.30, 6/0.14, 7/0.08} {
+    \pgfmathsetmacro\x{\aHx + \aHs*\i}
+    \filldraw[fill=teal!35, draw=teal!45!black, line width=0.25pt]
+      (\x,\aHy) rectangle (\x+\aHw,\aHy+\h);
+  }
+  \pgfmathsetmacro\aHxR{\aHx + \aHs*7 + \aHw}   % right edge of histogram
+  \node[tny, anchor=south] at ({(\aHx+\aHxR)/2}, {\aHy+0.95})
+    {cross-attention row, source-normalized};
+
+  % Arrow from decoder state to histogram
+  \draw[flow] (dec.east) -- (\aHx-0.10,4.40);
+
+  % Source bar below the histogram, aligned columnwise
+  \def\aSyB{2.60}\def\aSyT{3.20}
+  % peak bar x-position (bar 3, 0-indexed): bar left = aHx + aHs*3
+  \pgfmathsetmacro\aPeakX{\aHx + \aHs*3 + \aHw/2}
+  % frontier between bar 3 and bar 4: x = aHx + aHs*3 + aHw + aHg/2
+  \pgfmathsetmacro\aFx{\aHx + \aHs*3 + \aHw + \aHg/2}
+  \filldraw[srcacc] (\aHx,\aSyB) rectangle (\aFx,\aSyT);
+  \filldraw[srcinacc] (\aFx,\aSyB) rectangle (\aHxR,\aSyT);
+  \draw[black!65, dashed, line width=0.5pt] (\aFx,\aSyB-0.20) -- (\aFx,\aHy-0.05);
+
+  \node[tny, text=blue!55!black] at ({(\aHx+\aFx)/2}, {(\aSyB+\aSyT)/2})
+    {accessible source};
+  \node[tny, text=blue!40!black] at ({(\aFx+\aHxR)/2}, {(\aSyB+\aSyT)/2})
+    {future source};
+  \node[tny, anchor=north] at (\aFx,\aSyB-0.05) {frontier};
+
+  % Peak arrow (dashed teal) from peak bar down to accessible source
+  \draw[peakflow] (\aPeakX,\aHy-0.05) -- (\aPeakX,\aSyT+0.05);
+
+  % Caption (plain italic prose, close to figure)
+  \node[font=\scriptsize\itshape, text=black!70, align=center]
+    at ({(\aL+\aR)/2},1.90)
+    {policy accepts iff the peak stays on the accessible side};
+
+  %% ================================================================
+  %% RIGHT PANEL: b. Decoder-only LLM with explicit source span
+  %% ================================================================
+  \def\bL{8.60}\def\bR{17.00}\def\bB{1.50}\def\bT{6.20}
+  \draw[panel] (\bL,\bB) rectangle (\bR,\bT);
+
+  \node[title, anchor=north west] at (\bL+0.25,\bT-0.15)
+    {b.~Decoder-only LLM with explicit source span};
+  \node[sub, anchor=north west, text width=7.90cm] at (\bL+0.25,\bT-0.52)
+    {self-attention mixes the full causal prompt; we mark the source span,
+     then keep only the draft-to-source slice.};
+
+  % Prompt partition bar (horizontal, full width of visual area)
+  \def\bPx{8.85}\def\bPxR{16.75}
+  \def\bPyB{4.35}\def\bPyT{4.85}
+  % Segment widths sum to bPxR - bPx = 7.90. Assign:
+  %   P1=0.80, S_acc=2.40, S_inacc=1.00, instr=0.80, y_{1:m_k}=1.50, draft=1.40
+  \def\bP1{0.80}\def\bSacc{2.40}\def\bSinacc{1.00}\def\bInstr{0.80}
+  \def\bYpref{1.50}\def\bDraft{1.40}
+  \pgfmathsetmacro\bx{\bPx}
+  \filldraw[prompt] (\bx,\bPyB) rectangle ({\bx+\bP1},\bPyT);
+  \node[tny] at ({\bx+\bP1/2},{(\bPyB+\bPyT)/2}) {$\mathcal{P}_1$};
+  \pgfmathsetmacro\bx{\bPx + \bP1}
+  \filldraw[srcacc] (\bx,\bPyB) rectangle ({\bx+\bSacc},\bPyT);
+  \node[tny, text=blue!55!black] at ({\bx+\bSacc/2},{(\bPyB+\bPyT)/2})
+    {$\mathcal{S}^{(k)}_{\mathrm{acc}}$};
+  \pgfmathsetmacro\bx{\bPx + \bP1 + \bSacc}
+  \pgfmathsetmacro\bFx{\bx}       % frontier x
+  \filldraw[srcinacc] (\bx,\bPyB) rectangle ({\bx+\bSinacc},\bPyT);
+  \node[tny, text=blue!40!black] at ({\bx+\bSinacc/2},{(\bPyB+\bPyT)/2})
+    {$\mathcal{S}^{(k)}_{\mathrm{inacc}}$};
+  \pgfmathsetmacro\bx{\bPx + \bP1 + \bSacc + \bSinacc}
+  \filldraw[prompt] (\bx,\bPyB) rectangle ({\bx+\bInstr},\bPyT);
+  \node[tny] at ({\bx+\bInstr/2},{(\bPyB+\bPyT)/2}) {instr};
+  \pgfmathsetmacro\bx{\bPx + \bP1 + \bSacc + \bSinacc + \bInstr}
+  \filldraw[tgtpref] (\bx,\bPyB) rectangle ({\bx+\bYpref},\bPyT);
+  \node[tny, text=green!35!black] at ({\bx+\bYpref/2},{(\bPyB+\bPyT)/2})
+    {$\mathbf{y}_{1:m_k}$};
+  \pgfmathsetmacro\bx{\bPx + \bP1 + \bSacc + \bSinacc + \bInstr + \bYpref}
+  \filldraw[draft] (\bx,\bPyB) rectangle ({\bx+\bDraft},\bPyT);
+  \node[tny, text=orange!65!black] at ({\bx+\bDraft/2},{(\bPyB+\bPyT)/2})
+    {$\widetilde{\mathbf{y}}^{(k)}$};
+
+  \node[tny, anchor=south] at ({(\bPx+\bPxR)/2}, \bPyT+0.05)
+    {explicit prompt partition};
+
+  % Frontier dashed line through histogram+prompt bar (stops at histogram baseline 2.70)
+  \draw[black!65, dashed, line width=0.5pt] (\bFx,2.70) -- (\bFx,\bPyT+0.05);
+
+  % Self-attention histogram row below (one bar per rough segment-cell).
+  % Show 12 cells spread across full width; source cells (S_acc + S_inacc) get teal,
+  % everything else gets muted gray.  Bars visually indicate where the peak lies.
+  \def\bHx{8.85}\def\bHxR{16.75}\def\bHyB{2.70}
+  \def\bHw{0.45}\def\bHs{0.60}     % 12 cells * 0.60 = 7.20, fits in 7.90
+  \def\bHxStart{9.10}
+  % bar heights and source-mask (1 if source, 0 if not). Designed so peak lies on accessible source.
+  % With 12 bars starting at x=9.10 step 0.60:
+  %   bar0 x=9.10 (P1 area)       mask=0 h=0.10
+  %   bar1 x=9.70 (S_acc start)   mask=1 h=0.32
+  %   bar2 x=10.30 (S_acc)        mask=1 h=0.60
+  %   bar3 x=10.90 (S_acc, peak)  mask=1 h=0.85
+  %   bar4 x=11.50 (S_acc)        mask=1 h=0.60
+  %   bar5 x=12.10 (near frontier)mask=1 h=0.30
+  %   bar6 x=12.70 (S_inacc)      mask=1 h=0.14  -- to the right of frontier
+  %   bar7 x=13.30 (instr)        mask=0 h=0.10
+  %   bar8 x=13.90 (instr/y_pref) mask=0 h=0.12
+  %   bar9 x=14.50 (y_pref)       mask=0 h=0.18
+  %   bar10 x=15.10 (y_pref)      mask=0 h=0.20
+  %   bar11 x=15.70 (draft)       mask=0 h=0.08
+  \foreach \i/\h/\m in {
+    0/0.10/0, 1/0.32/1, 2/0.60/1, 3/0.85/1, 4/0.60/1, 5/0.30/1,
+    6/0.14/1, 7/0.10/0, 8/0.12/0, 9/0.18/0, 10/0.20/0, 11/0.08/0
+  } {
+    \pgfmathsetmacro\x{\bHxStart + \bHs*\i}
+    \ifnum\m=1
+      \filldraw[fill=teal!35, draw=teal!45!black, line width=0.25pt]
+        (\x,\bHyB) rectangle (\x+\bHw,\bHyB+\h);
+    \else
+      \filldraw[fill=black!15, draw=black!30, line width=0.22pt]
+        (\x,\bHyB) rectangle (\x+\bHw,\bHyB+\h);
+    \fi
+  }
+  % Peak bar index 3: x=10.90, center at 10.90+0.225=11.125
+  \pgfmathsetmacro\bPeakX{\bHxStart + \bHs*3 + \bHw/2}
+
+  \node[tny, anchor=north] at ({(\bHx+\bHxR)/2}, \bHyB-0.05)
+    {full self-attention row; teal = source columns, gray = non-source};
+
+  % Peak arrow (teal dashed) from histogram peak up to prompt partition (indicating draft attends to acc source)
+  \draw[peakflow] (\bPeakX, \bHyB+0.90) -- (\bPeakX, \bPyB-0.05);
+
+  % Caption (plain italic prose, close to figure)
+  \node[font=\scriptsize\itshape, text=black!70, align=center]
+    at ({(\bL+\bR)/2},1.90)
+    {take the source slice of the row, then apply the same policy as (a)};
+
+\end{tikzpicture}
+}%
+\caption{\textbf{How AlignAtt changes substrate between encoder--decoder and
+decoder-only models.} \emph{(a)} In the original encoder--decoder setting,
+the decoder already exposes a source-only cross-attention row, so the policy
+can gate tokens directly against the accessible source frontier: if the peak
+of the row falls on the accessible side, the draft token is accepted.
+\emph{(b)} In our decoder-only MT setting, source and target history share
+one causal prompt. We therefore mark the source span explicitly in prompt
+space, isolate translation-specific heads, and reconstruct only the
+draft-to-source slice needed by the policy; the decision rule is otherwise
+the same as in (a).}
+\label{fig:alignatt-substrates}
+\end{figure*}

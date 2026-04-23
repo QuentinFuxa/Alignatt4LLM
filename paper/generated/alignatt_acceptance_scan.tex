@@ -1,0 +1,84 @@
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  >={Latex[length=2.2mm]},
+  every node/.style={font=\scriptsize},
+  panel/.style={draw=black!40, rounded corners=3pt, line width=0.6pt, fill=white},
+  tokok/.style={draw=green!45!black, fill=green!14, rounded corners=2pt, line width=0.55pt},
+  tokfail/.style={draw=red!65!black, fill=red!10, rounded corners=2pt, line width=0.7pt},
+  tokrest/.style={draw=black!25, fill=black!6, rounded corners=2pt, line width=0.4pt},
+  note/.style={font=\scriptsize, text=black!65, align=center},
+  tinylabel/.style={font=\tiny, text=black!68, align=center},
+  flow/.style={->, draw=black!72, line width=0.85pt},
+]
+
+  \draw[panel] (0.00,0.00) rectangle (8.35,6.35);
+  \node[anchor=west, font=\bfseries\small] at (0.22,6.02) {First-failure AlignAtt scan};
+  \node[anchor=west, note, text width=7.85cm, align=left] at (0.22,5.58)
+    {Draft tokens are scanned left-to-right. The longest prefix before the
+     first frontier or confidence failure is emitted; the remaining suffix is
+     not examined.};
+
+  % token row
+  \node[tinylabel, anchor=east] at (1.05,4.85) {draft tokens};
+  \draw[tokok]   (1.25,4.45) rectangle (2.15,5.10);
+  \draw[tokok]   (2.30,4.45) rectangle (3.20,5.10);
+  \draw[tokok]   (3.35,4.45) rectangle (4.25,5.10);
+  \draw[tokfail] (4.40,4.45) rectangle (5.30,5.10);
+  \draw[tokrest] (5.45,4.45) rectangle (6.35,5.10);
+  \draw[tokrest] (6.50,4.45) rectangle (7.40,5.10);
+  \node at (1.70,4.78) {$y_{m+1}$};
+  \node at (2.75,4.78) {$y_{m+2}$};
+  \node at (3.80,4.78) {$y_{m+3}$};
+  \node[text=red!70!black] at (4.85,4.78) {$y_{m+4}$};
+  \node[text=black!55] at (5.90,4.78) {$y_{m+5}$};
+  \node[text=black!55] at (6.95,4.78) {$y_{m+6}$};
+  \draw[flow] (1.25,5.25) -- (5.30,5.25);
+  \node[tinylabel, anchor=south] at (3.25,5.28) {scan until first failure};
+  \draw[red!65!black, line width=0.8pt, dashed] (4.85,0.78) -- (4.85,5.28);
+  \node[tinylabel, text=red!70!black, anchor=west] at (4.98,5.05) {stop here};
+
+  % source axis row
+  \node[tinylabel, anchor=east] at (1.05,3.55) {source argmax $\hat{s}_t$};
+  \draw[blue!45!black, fill=blue!16, line width=0.4pt] (1.25,3.18) rectangle (4.15,3.78);
+  \draw[blue!25!black, fill=blue!6, line width=0.4pt] (4.15,3.18) rectangle (7.40,3.78);
+  \draw[black!60, dashed, line width=0.55pt] (4.15,2.95) -- (4.15,4.00);
+  \node[tinylabel, text=blue!55!black] at (2.70,3.48) {accessible source};
+  \node[tinylabel, text=blue!45!black] at (5.78,3.48) {inaccessible source};
+  \filldraw[green!45!black] (1.80,3.48) circle (0.08);
+  \filldraw[green!45!black] (2.55,3.48) circle (0.08);
+  \filldraw[green!45!black] (3.55,3.48) circle (0.08);
+  \filldraw[red!70!black] (4.95,3.48) circle (0.09);
+  \node[tinylabel, anchor=north] at (4.15,2.88) {$N_{\mathrm{acc}}^{(k)}+b$};
+
+  % accessible mass row
+  \node[tinylabel, anchor=east] at (1.05,2.08) {accessible mass $\pi_t^{\mathrm{acc}}$};
+  \draw[black!35, line width=0.35pt] (1.25,1.40) -- (7.55,1.40);
+  \draw[black!50, dashed, line width=0.45pt] (1.25,1.90) -- (7.55,1.90);
+  \node[tinylabel, anchor=west] at (7.58,1.90) {$\tau_{\mathrm{src}}$};
+  \filldraw[fill=green!35, draw=green!45!black, line width=0.35pt] (1.55,1.40) rectangle (2.00,2.28);
+  \filldraw[fill=green!35, draw=green!45!black, line width=0.35pt] (2.60,1.40) rectangle (3.05,2.36);
+  \filldraw[fill=green!35, draw=green!45!black, line width=0.35pt] (3.65,1.40) rectangle (4.10,2.12);
+  \filldraw[fill=red!22, draw=red!65!black, line width=0.4pt] (4.70,1.40) rectangle (5.15,2.18);
+  \filldraw[fill=black!12, draw=black!28, line width=0.3pt] (5.75,1.40) rectangle (6.20,1.80);
+  \filldraw[fill=black!12, draw=black!28, line width=0.3pt] (6.80,1.40) rectangle (7.25,1.72);
+
+  % emitted prefix brace-ish annotation
+  \draw[green!45!black, line width=0.55pt]
+    (1.25,0.85) -- (1.25,0.65) -- (4.25,0.65) -- (4.25,0.85);
+  \node[tinylabel, text=green!35!black, anchor=north] at (2.75,0.60)
+    {emitted prefix $\mathbf{a}^{(k)} = (y_{m+1},y_{m+2},y_{m+3})$};
+  \node[tinylabel, text=red!70!black, anchor=north west, align=left] at (5.02,0.92)
+    {first failure can come from the frontier test\\or from weak source confidence};
+
+\end{tikzpicture}
+}%
+\caption{\textbf{The first-failure AlignAtt scan used by the MT policy.}
+Drafted tokens are checked left-to-right. For each token, the policy tracks the
+source-side argmax position $\hat{s}_t$ and the accessible-source mass
+$\pi_t^{\mathrm{acc}}$. The longest prefix before the first failure is emitted;
+once a token fails, the speculative suffix is not accepted at that chunk.}
+\label{fig:alignatt-scan}
+\end{figure}

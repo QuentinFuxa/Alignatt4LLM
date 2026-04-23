@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l r r r r}
+\toprule
+Pair & Top-8 TS & All-336 TS & Gain & Aligned tokens \\
+\midrule
+EN$\to$DE & 90.40 & 68.49 & \textbf{+21.91} & 11,209 \\
+EN$\to$ZH & 93.48 & 65.79 & \textbf{+27.70} & 7,582 \\
+EN$\to$IT & 91.90 & 67.42 & \textbf{+24.49} & 12,056 \\
+\bottomrule
+\end{tabular}
+}
+\caption{\textbf{MT head-set filtering ablation on held-out word-aligned dev examples.} To make the all-head baseline maximally charitable, we average the candidate head set first and then restrict the argmax to the source-prompt token zone before scoring against gold aligned source tokens. Scores are reported in points ($100\times\mathrm{TS}$). Even under this source-only argmax, the per-direction retained top-8 heads still preserve a markedly stronger alignment signal than uniform all-head averaging.}
+\label{tab:mt-head-filtering}
+\end{table}

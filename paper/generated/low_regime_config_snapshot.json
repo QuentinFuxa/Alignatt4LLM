@@ -1,0 +1,20 @@
+{
+  "rows": [
+    {
+      "label": "EN$\\to$DE",
+      "tag": "maintained-low",
+      "bundle_dir": "outputs/iwslt26_devset_chunk1100_borderp1_rerun20260423_ende",
+      "alignment_backend_name": "qwen_forced",
+      "mt_backend_name": "gemma_vllm_alignatt",
+      "chunk_ms": 1100,
+      "translation_alignatt_top_k_heads": 8,
+      "translation_alignatt_border_margin": 1,
+      "min_start_seconds": 2.0,
+      "bleu": 27.882351986777355,
+      "chrf": 61.958922215916836,
+      "xcometxl": 0.8786027319607719,
+      "longyaal_cu_ms": 1963.6487335562813,
+      "longyaal_ca_ms": 1647.6534970755667
+    }
+  ]
+}

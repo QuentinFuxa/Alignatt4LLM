@@ -1,0 +1,145 @@
+\begin{figure*}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  >={Latex[length=2.6mm]},
+  every node/.style={font=\small},
+  panel/.style={draw=black!45, rounded corners=3pt, line width=0.6pt, fill=white},
+  title/.style={font=\bfseries\small, text=black!85},
+  subtitle/.style={font=\scriptsize, text=black!60, align=left},
+  stagearrow/.style={->, line width=1.1pt, draw=black!75},
+  guide/.style={draw=black!25, line width=0.35pt, dashed},
+  kernelbox/.style={draw=black!35, dashed, fill=black!3, line width=0.6pt},
+  captureband/.style={fill=orange!20, draw=orange!75!black, line width=0.9pt},
+  captureline/.style={draw=orange!75!black, line width=0.9pt, rounded corners=1pt},
+  reconbox/.style={draw=teal!65!black, fill=teal!15, line width=1.1pt, rounded corners=1.5pt},
+  partP/.style={draw=black!30, fill=black!7, line width=0.3pt},
+  partPy/.style={draw=green!35!black, fill=green!18, line width=0.3pt},
+  partSa/.style={draw=blue!40, fill=blue!18, line width=0.3pt},
+  partSi/.style={draw=blue!25, fill=blue!6, line width=0.3pt},
+  partD/.style={draw=purple!45, fill=purple!14, line width=0.3pt},
+  notrecon/.style={pattern=north east lines, pattern color=black!25, draw=black!20, line width=0.2pt},
+  labelnote/.style={font=\scriptsize, text=black!70, align=center},
+  mathnote/.style={font=\scriptsize\itshape, text=black!60, align=center},
+]
+
+  \draw[panel] (-1.55, 0.35) rectangle (9.3, 6.85);
+  \node[title, anchor=north west] at (-1.30, 6.75) {1.~Fused attention forward};
+
+  \def\mL{1.70}\def\mR{7.70}\def\mB{0.55}\def\mT{5.55}
+  \def\cPa{2.10}
+  \def\cSa{3.70}
+  \def\cSi{4.60}
+  \def\cPi{5.30}
+  \def\cPy{6.90}
+  \def\rPa{4.95}
+  \def\rSa{3.75}
+  \def\rSi{2.95}
+  \def\rPi{2.40}
+  \def\rPy{1.25}
+
+  \draw[kernelbox] (\mL, \mB) rectangle (\mR, \mT);
+  \node[mathnote] at ({(\mL+\mR)/2}, 4.40)
+    {$\mathbf{A}^{(\ell,h)}=\mathrm{softmax}\!\bigl(\mathbf{Q}\mathbf{K}^{\!\top}+\mathbf{m}\bigr)$};
+  \node[labelnote] at ({(\mL+\mR)/2}, 3.95) {$n{\times}n$, fused, never materialized};
+
+  \foreach \x in {\cPa,\cSa,\cSi,\cPi,\cPy} \draw[guide] (\x,\mB) -- (\x,\mT);
+  \foreach \y in {\rPa,\rSa,\rSi,\rPi,\rPy} \draw[guide] (\mL,\y) -- (\mR,\y);
+
+  \draw[notrecon] (\mL,  \mB) rectangle (\cPa,  \rPy);
+  \draw[notrecon] (\cSi, \mB) rectangle (\mR,   \rPy);
+
+  \draw[reconbox] (\cPa, \mB) rectangle (\cSi, \rPy);
+  \node[font=\scriptsize\bfseries, text=teal!55!black]
+    at ({(\cPa+\cSi)/2}, {(\mB+\rPy)/2 + 0.07})
+    {$\widehat{\mathbf{A}}_{\mathcal{D},\mathcal{S}^{(k)}}$};
+  \node[font=\tiny, text=teal!55!black]
+    at ({(\cPa+\cSi)/2}, {(\mB+\rPy)/2 - 0.17})
+    {$L_k{\times}N_k$, only block used};
+
+  \def\csB{5.68}\def\csT{6.00}
+  \draw[partP ] (\mL  ,\csB) rectangle (\cPa ,\csT) node[midway,font=\tiny]{$\mathcal{P}_1$};
+  \draw[partSa] (\cPa ,\csB) rectangle (\cSa ,\csT) node[midway,font=\tiny]{$\mathcal{S}^{(k)}_{\mathrm{acc}}$};
+  \draw[partSi] (\cSa ,\csB) rectangle (\cSi ,\csT) node[midway,font=\tiny]{$\mathcal{S}^{(k)}_{\mathrm{inacc}}$};
+  \draw[partP ] (\cSi ,\csB) rectangle (\cPi,\csT) node[midway,font=\tiny]{instr};
+  \draw[partPy] (\cPi,\csB) rectangle (\cPy,\csT) node[midway,font=\tiny,text=green!30!black]{$\mathbf{y}_{1:m_k}$};
+  \draw[partD ] (\cPy,\csB) rectangle (\mR  ,\csT) node[midway,font=\tiny]{$\mathcal{D}$};
+  \draw[black!50, line width=0.3pt] (\cSi, \csB-0.05) -- (\cSi, \csB-0.14) -- (\cPy, \csB-0.14) -- (\cPy, \csB-0.05);
+  \node[labelnote, anchor=north, font=\tiny] at ({(\cSi+\cPy)/2}, \csB-0.15) {$\mathcal{P}_2$};
+  \draw[captureline] ({\mL-0.05}, {\csT+0.14}) -- ({\mR+0.05}, {\csT+0.14});
+  \draw[captureline] ({\mL-0.05}, {\csT+0.06}) -- ({\mL-0.05}, {\csT+0.14});
+  \draw[captureline] ({\mR+0.05}, {\csT+0.06}) -- ({\mR+0.05}, {\csT+0.14});
+  \node[labelnote, anchor=south] at ({(\mL+\mR)/2}, {\csT+0.18})
+    {\textcolor{orange!70!black}{\textbf{capture all} $\mathbf{K}^{(\ell,h)}$ columns}};
+
+  \def\rsL{1.20}\def\rsR{1.52}
+  \draw[partP ] (\rsL,\rPa ) rectangle (\rsR,\mT  ) node[midway,rotate=90,font=\tiny]{$\mathcal{P}_1$};
+  \draw[partSa] (\rsL,\rSa ) rectangle (\rsR,\rPa ) node[midway,rotate=90,font=\tiny]{$\mathcal{S}^{(k)}_{\mathrm{acc}}$};
+  \draw[partSi] (\rsL,\rSi ) rectangle (\rsR,\rSa ) node[midway,rotate=90,font=\tiny]{$\mathcal{S}^{(k)}_{\mathrm{inacc}}$};
+  \draw[partP ] (\rsL,\rPi) rectangle (\rsR,\rSi ) node[midway,rotate=90,font=\tiny]{instr};
+  \draw[partPy] (\rsL,\rPy) rectangle (\rsR,\rPi) node[midway,rotate=90,font=\tiny,text=green!30!black]{$\mathbf{y}_{1:m_k}$};
+  \draw[partD ] (\rsL,\mB  ) rectangle (\rsR,\rPy) node[midway,rotate=90,font=\tiny]{$\mathcal{D}$};
+  \node[labelnote, rotate=90] at ({\rsL-0.58}, {(\mB+\mT)/2})
+    {query rows in the full prompt};
+
+  \draw[captureline] ({\rsL-0.14}, \mB) -- ({\rsL-0.14}, \rPy);
+  \draw[captureline] ({\rsL-0.14}, \mB) -- ({\rsL-0.06}, \mB);
+  \draw[captureline] ({\rsL-0.14}, \rPy) -- ({\rsL-0.06}, \rPy);
+  \node[labelnote, text=orange!70!black, anchor=east, align=right, text width=1.55cm]
+    at (0.30, {(\mB+\rPy)/2})
+    {\textbf{capture only}\\ $\mathbf{Q}^{(\ell,h)}_{\mathcal{D}}$\\(draft rows)};
+
+  \draw[panel] (10.3, 0.35) rectangle (15.9, 6.85);
+  \node[title, anchor=north west] at (10.55, 6.75) {2.~Recompute Only That Block};
+  \node[subtitle, anchor=north west, text width=5.05cm] at (10.55, 6.29)
+    {Exact \emph{qk-fast} recomputation from captured $Q/K$; then average over $\mathcal{H}$, split accessible vs.\ inaccessible source mass, and apply the acceptance gates.};
+
+  \def\bL{11.25}\def\bR{15.45}\def\bMid{13.48}
+  \def\bB{0.95}\def\bT{3.15}
+  \def\bcB{3.28}\def\bcT{3.60}
+
+  \draw[partSa] (\bL,\bcB) rectangle (\bMid,\bcT);
+  \node[labelnote] at ({(\bL+\bMid)/2}, {(\bcB+\bcT)/2}) {$\mathcal{S}^{(k)}_{\mathrm{acc}}$};
+  \draw[partSi] (\bMid,\bcB) rectangle (\bR,\bcT);
+  \node[labelnote] at ({(\bMid+\bR)/2}, {(\bcB+\bcT)/2}) {$\mathcal{S}^{(k)}_{\mathrm{inacc}}$};
+  \node[labelnote, anchor=south] at ({(\bL+\bR)/2}, {\bcT+0.04})
+    {source columns in local live-source order};
+
+  \def\brL{10.92}\def\brR{11.18}
+  \draw[partD] (\brL,\bB) rectangle (\brR,\bT);
+  \node[labelnote, rotate=90] at ({(\brL+\brR)/2}, {(\bB+\bT)/2}) {$\mathcal{D}$};
+  \node[labelnote, rotate=90] at (10.64, {(\bB+\bT)/2})
+    {draft query rows};
+
+  \draw[reconbox] (\bL,\bB) rectangle (\bR,\bT);
+  \draw[teal!55!black, dashed, line width=0.4pt] (\bMid,\bB) -- (\bMid, 1.68);
+  \draw[teal!55!black, dashed, line width=0.4pt] (\bMid, 2.42) -- (\bMid,\bT);
+  \node[font=\small, text=teal!55!black]
+    at ({(\bL+\bR)/2}, {(\bB+\bT)/2 + 0.18})
+    {$\widehat{\mathbf{A}}^{(\ell,h)}_{\mathcal{D},\,\mathcal{S}^{(k)}}$};
+  \node[labelnote, text=teal!55!black]
+    at ({(\bL+\bR)/2}, {(\bB+\bT)/2 - 0.20})
+    {$L_k$ draft rows $\times$ $N_k$ source columns};
+
+  \draw[stagearrow]
+    (9.35, {(\bB+\bT)/2})
+    -- (11.08, {(\bB+\bT)/2});
+\end{tikzpicture}
+}%
+\caption{\textbf{Selective reconstruction with engine-native capture.} The
+$n{\times}n$ attention matrix
+$\mathbf{A}^{(\ell,h)}$ is executed entirely inside the fused attention
+kernel, so the full $n{\times}n$ matrix is never materialized. For each
+AlignAtt head $(\ell,h)\in\mathcal{H}$, the observer copies
+$\mathbf{K}^{(\ell,h)}$ for all positions and $\mathbf{Q}^{(\ell,h)}$ only for
+the draft rows $\mathcal{D}$ into fixed-shape buffers. The green band
+$\mathbf{y}_{1:m_k}$ inside $\mathcal{P}_2$ marks the committed target prefix
+that grows across chunks; hatched cells are never reconstructed. After the
+forward, Eq.~\eqref{eq:mt-qk-fast} recomputes exactly only the draft-to-source
+block $\widehat{\mathbf{A}}_{\mathcal{D},\mathcal{S}^{(k)}}$, which is the sole
+object consumed by the source-side provenance scores of
+Eqs.~\eqref{eq:mt-prov-acc}--\eqref{eq:mt-provenance} and by the
+acceptance policy of this section.}
+\label{fig:qk-fast}
+\end{figure*}

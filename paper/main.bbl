@@ -1,0 +1,48 @@
+\begin{thebibliography}{6}
+\providecommand{\natexlab}[1]{#1}
+
+\bibitem[{Gaido et~al.(2025)Gaido, Papi, Cettolo, Negri, and
+  Bentivogli}]{simulstream25}
+Marco Gaido, Sara Papi, Mauro Cettolo, Matteo Negri, and Luisa Bentivogli.
+  2025.
+\newblock Simulstream: Open-source toolkit for evaluation and demonstration of
+  streaming speech-to-text translation systems.
+\newblock ArXiv preprint arXiv:2512.17648.
+
+\bibitem[{Guerreiro et~al.(2024)Guerreiro, Rei, van Stigt, Coheur, Colombo, and
+  Martins}]{xcometxl23}
+Nuno~M. Guerreiro, Ricardo Rei, Daan van Stigt, Luisa Coheur, Pierre Colombo,
+  and Andr{\'e} F.~T. Martins. 2024.
+\newblock {xCOMET}: Transparent machine translation evaluation through
+  fine-grained error detection.
+\newblock \emph{Transactions of the Association for Computational Linguistics},
+  12:979--995.
+
+\bibitem[{Liu et~al.(2026)Liu, Han, Chen, Zhang, Guo, Lin, Zhang, Wang, and
+  Zheng}]{tokenheads26}
+Binbin Liu, Wenhan Han, Feng Chen, Yifan Zhang, Ping Guo, Haobin Lin, Bingni
+  Zhang, Taifeng Wang, and Yin Zheng. 2026.
+\newblock Token alignment heads: Unveiling attention's role in {LLM}
+  multilingual translation.
+\newblock ICLR 2026 poster, OpenReview.
+
+\bibitem[{Papi et~al.(2023)Papi, Turchi, and Negri}]{alignatt23}
+Sara Papi, Marco Turchi, and Matteo Negri. 2023.
+\newblock Alignatt: Using attention-based audio-translation alignments as a
+  guide for simultaneous speech translation.
+\newblock In \emph{Proceedings of Interspeech 2023}.
+
+\bibitem[{Pol{\'a}k et~al.(2025)Pol{\'a}k, Papi, Bentivogli, and
+  Bojar}]{longyaal25}
+Peter Pol{\'a}k, Sara Papi, Luisa Bentivogli, and Ond{\v{r}}ej Bojar. 2025.
+\newblock Better late than never: Meta-evaluation of latency metrics for
+  simultaneous speech-to-text translation.
+\newblock ArXiv preprint arXiv:2509.17349.
+
+\bibitem[{{Qwen Team}(2025)}]{qwen3asr25}
+{Qwen Team}. 2025.
+\newblock {Qwen3-ASR}: A multilingual speech recognition model with
+  forced-alignment timestamp supervision.
+\newblock Technical report, Alibaba Cloud.
+
+\end{thebibliography}

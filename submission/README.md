@@ -14,7 +14,7 @@ It now contains:
 
 Submission presets come only from [`cascade/submission.py`](/home/cascade_simultaneous/cascade/submission.py):
 
-- `main_low_latency`: `chunk_ms=850`, `translation_alignatt_border_margin=1`
+- `main_low_latency`: `chunk_ms=1100`, `translation_alignatt_border_margin=1`
 - `main_high_latency`: `chunk_ms=1500`, `translation_alignatt_border_margin=1`
 - `context_low_latency`: `main_low_latency` + `paper_context_mode=title_abstract`
 - `context_high_latency`: `main_high_latency` + `paper_context_mode=title_abstract`
@@ -76,6 +76,11 @@ directories if they already exist.
 
 `submission/dev_logs/` keeps the six validated dev-set runs for the maintained
 main-track regimes:
+
+These bundles are frozen evidence, not automatically regenerated when the
+active preset changes. The current `main_low_latency` preset is `chunk_ms=1100`,
+while the existing frozen low-regime dev logs still reflect the older
+`chunk_ms=850` validation sweep.
 
 - `submission/dev_logs/low/en-de`
 - `submission/dev_logs/low/en-it`

@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l c c c}
+\toprule
+Setting & XCOMET-XL $\uparrow$ & CU (s) $\downarrow$ & CA (s) $\downarrow$ \\
+\midrule
+Top-8 heads & 0.879 & \textbf{1.96} & \textbf{1.65} \\
+All 336 heads & \textbf{0.885} & 2.06 & 1.83 \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{EN$\to$DE full-MCIF MT head-set comparison at $\Delta_{\mathrm{chunk}}=1100$ ms.} Both rows use the same maintained runtime and no MT rewind policy; only the MT head set changes. All-head replay is slightly better on XCOMET-XL, but increases CU and especially CA because the runtime must reconstruct more attention at each MT step.}
+\label{tab:mt-e2e-head-filtering}
+\end{table}

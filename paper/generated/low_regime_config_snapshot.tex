@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l l l}
+\toprule
+Language & Config & Scores \\
+\midrule
+EN$\to$DE & \shortstack[l]{\texttt{qwen\_forced} + \texttt{gemma\_vllm\_alignatt}\\$\Delta_{\mathrm{chunk}}=1100$ ms; top-$k=8$\\border margin $=1$; min-start $=2.0$ s\\no MT rewind policy} & \shortstack[l]{BLEU 27.88; chrF 61.96\\XCOMET-XL 0.879\\LongYAAL CU/CA 1.96 / 1.65 s} \\
+\bottomrule
+\end{tabular}
+}
+\caption{\textbf{Clean EN$\to$DE rerun at $\Delta_{\mathrm{chunk}}=1100$ ms.} This maintained rerun keeps the deployed Qwen3-ASR forced backend, the Gemma AlignAtt MT backend, the retained top-8 MT head set, border margin 1, and min-start 2.0 s, but removes the historical MT rewind policy used in the frozen submitted low-regime bundles. We report it separately from Table~\ref{tab:e2e} because it is a cleaner maintenance rerun rather than a submitted operating point.}
+\label{tab:low-config-snapshot}
+\end{table}

@@ -1,0 +1,35 @@
+{
+  "rows": [
+    {
+      "setting": "Top-8 heads",
+      "tag": "top8",
+      "bundle_dir": "outputs/iwslt26_devset_chunk1100_borderp1_rerun20260423_ende",
+      "chunk_ms": 1100,
+      "translation_alignatt_top_k_heads": 8,
+      "translation_alignatt_border_margin": 1,
+      "min_start_seconds": 2.0,
+      "translation_alignatt_rewind_threshold": null,
+      "xcometxl": 0.8786027319607719,
+      "longyaal_cu_ms": 1963.6487335562813,
+      "longyaal_ca_ms": 1647.6534970755667
+    },
+    {
+      "setting": "All 336 heads",
+      "tag": "all_heads",
+      "bundle_dir": "outputs/mt_head_ablation_low_all_heads_chunk1100_current/low/en-de/all_heads",
+      "chunk_ms": 1100,
+      "translation_alignatt_top_k_heads": 336,
+      "translation_alignatt_border_margin": 1,
+      "min_start_seconds": 2.0,
+      "translation_alignatt_rewind_threshold": null,
+      "xcometxl": 0.8845319199386956,
+      "longyaal_cu_ms": 2063.9405194499204,
+      "longyaal_ca_ms": 1827.1830079345066
+    }
+  ],
+  "deltas": {
+    "xcometxl": 0.005929187977923744,
+    "longyaal_cu_ms": 100.29178589363914,
+    "longyaal_ca_ms": 179.52951085893983
+  }
+}

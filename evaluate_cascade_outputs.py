@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import os
 from pathlib import Path
@@ -237,6 +238,69 @@ def comet_local_cache_blocker(comet_model: str) -> dict[str, str] | None:
     return None
 
 
+def resolve_comet_checkpoint_path(comet_model: str) -> str:
+    from comet import download_model  # type: ignore
+
+    checkpoint_path = Path(comet_model)
+    if checkpoint_path.exists():
+        return str(checkpoint_path)
+
+    try:
+        return str(download_model(comet_model, local_files_only=True))
+    except Exception:
+        return str(download_model(comet_model))
+
+
+def compute_comet_system_score(
+    *,
+    comet_model: str,
+    instances: list,
+    source_sentences: list[str],
+) -> float:
+    import torch
+    from comet import load_from_checkpoint  # type: ignore
+
+    checkpoint_path = resolve_comet_checkpoint_path(comet_model)
+    predict_rows = [
+        {
+            "src": source_sentence,
+            "mt": instance.prediction,
+            "ref": instance.reference,
+        }
+        for source_sentence, instance in zip(source_sentences, instances)
+    ]
+    accelerators = ["cuda", "cpu"] if torch.cuda.is_available() else ["cpu"]
+    last_error: Exception | None = None
+
+    for accelerator in accelerators:
+        model = load_from_checkpoint(checkpoint_path)
+        try:
+            gpus = 1 if accelerator == "cuda" else 0
+            output = model.predict(
+                predict_rows,
+                batch_size=8,
+                gpus=gpus,
+                accelerator=accelerator,
+                progress_bar=False,
+            )
+            return float(output.system_score)
+        except torch.OutOfMemoryError as exc:
+            last_error = exc
+        except RuntimeError as exc:
+            if "out of memory" not in str(exc).lower():
+                raise
+            last_error = exc
+        finally:
+            del model
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+    if last_error is None:
+        raise RuntimeError("COMET evaluation failed without raising an exception.")
+    raise last_error
+
+
 def try_compute_comet_score(
     instances: list,
     *,
@@ -248,13 +312,9 @@ def try_compute_comet_score(
         return None, local_cache_blocker
 
     try:
-        comet_scores, _ = evaluate_instances(
-            instances,
-            compute_quality=True,
-            compute_latency=False,
-            is_longform=True,
-            compute_comet=True,
+        comet_score = compute_comet_system_score(
             comet_model=comet_model,
+            instances=instances,
             source_sentences=source_sentences,
         )
     except Exception as exc:
@@ -267,7 +327,7 @@ def try_compute_comet_score(
             "message": str(exc),
         }
 
-    return comet_scores.get("comet"), None
+    return comet_score, None
 
 
 def append_metric_blockers(report_lines: list[str], blockers: list[dict[str, str]]) -> list[str]:

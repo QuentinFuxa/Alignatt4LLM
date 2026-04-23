@@ -68,11 +68,11 @@ SUBMISSION_PRESETS = {
         name="main_low_latency",
         track="main",
         latency_regime="low",
-        chunk_ms=850,
+        chunk_ms=1100,
         translation_alignatt_border_margin=1,
         description=(
             "Main-track low-latency preset: qwen_forced ASR + gemma_vllm_alignatt "
-            "MT with chunk_ms=850 and AlignAtt border margin=1. Validated on "
+            "MT with chunk_ms=1100 and AlignAtt border margin=1. Validated on "
             "the dev-set inside the LOW LongYAAL regime."
         ),
     ),
@@ -91,7 +91,7 @@ SUBMISSION_PRESETS = {
         name="context_low_latency",
         track="extra_context",
         latency_regime="low",
-        chunk_ms=850,
+        chunk_ms=1100,
         translation_alignatt_border_margin=1,
         paper_context_mode="title_abstract",
         translation_alignatt_min_source_mass=0.3,

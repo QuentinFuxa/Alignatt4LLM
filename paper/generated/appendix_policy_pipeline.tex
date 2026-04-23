@@ -1,0 +1,188 @@
+\begin{figure*}[t]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  >={Latex[length=2.4mm]},
+  every node/.style={font=\small, inner sep=0pt},
+  panel/.style={draw=black!45, rounded corners=3pt, line width=0.6pt, fill=white},
+  branchL/.style={draw=teal!60!black, line width=0.6pt, rounded corners=2.5pt,
+                  fill=teal!6},
+  branchR/.style={draw=orange!70!black, line width=0.6pt, rounded corners=2.5pt,
+                  fill=orange!5},
+  gatebox/.style={draw=green!45!black, line width=0.7pt, rounded corners=2.5pt,
+                  fill=green!7},
+  tensorbox/.style={draw=teal!60!black, line width=0.7pt, rounded corners=2pt,
+                    fill=teal!9},
+  flow/.style={->, draw=black!75, line width=0.9pt},
+  sectitle/.style={font=\scriptsize\bfseries, align=left, inner sep=0pt},
+  caption/.style={font=\scriptsize, align=left, text=black!60, inner sep=0pt},
+  eqn/.style={font=\scriptsize, align=left, text=black!85, inner sep=0pt},
+  sublab/.style={font=\tiny, align=left, text=black!55, inner sep=0pt},
+  axlab/.style={font=\tiny, align=center, text=black!55, inner sep=0pt},
+]
+
+  \def\Wmax{17.00}\def\Hmax{6.40}
+  \draw[panel] (0.00,0.00) rectangle (\Wmax,\Hmax);
+
+  % === Input: reconstructed tensor block ===================================
+  \def\ixL{0.55}\def\ixR{2.25}\def\iyB{1.90}\def\iyT{5.30}
+
+  \node[sectitle, text=black!80, anchor=south, text width=3.0cm, align=center]
+    at ({(\ixL+\ixR)/2},\iyT+0.40)
+    {Input: reconstructed block};
+
+  \draw[tensorbox] (\ixL,\iyB) rectangle (\ixR,\iyT);
+  \foreach \i in {1,...,8} {
+    \pgfmathsetmacro\yy{\iyB + (\iyT-\iyB)*\i/9}
+    \draw[black!18, line width=0.25pt] (\ixL,\yy) -- (\ixR,\yy);
+  }
+  \foreach \j in {1,...,6} {
+    \pgfmathsetmacro\xx{\ixL + (\ixR-\ixL)*\j/7}
+    \draw[black!18, line width=0.25pt] (\xx,\iyB) -- (\xx,\iyT);
+  }
+  \draw[black!70, dashed, line width=0.5pt]
+    ({\ixL + (\ixR-\ixL)*4/7},\iyB-0.05)
+    -- ({\ixL + (\ixR-\ixL)*4/7},\iyT+0.05);
+  \node[axlab, anchor=south] at ({(\ixL+\ixR)/2}, \iyT+0.05) {source $s$};
+  \node[axlab, rotate=90, anchor=south] at ({\ixL-0.22}, {(\iyB+\iyT)/2})
+    {draft $t$};
+  \node[axlab, text=blue!55!black, anchor=north]
+    at ({\ixL + (\ixR-\ixL)*2/7}, \iyB-0.02) {acc};
+  \node[axlab, text=blue!40!black, anchor=north]
+    at ({\ixL + (\ixR-\ixL)*5.5/7}, \iyB-0.02) {inacc};
+  \node[eqn, anchor=north] at ({(\ixL+\ixR)/2}, \iyB-0.45)
+    {$\widehat{\mathbf{A}}^{(\ell,h)}_{t,s},\ (\ell,h)\in\mathcal{H}$};
+  \node[sublab, anchor=north] at ({(\ixL+\ixR)/2}, \iyB-0.90)
+    {Eq.~\eqref{eq:qk-fast}};
+
+  % --- Split arrow ---------------------------------------------------------
+  \def\jx{2.90}
+  \draw[flow, -] (\ixR+0.05,{(\iyB+\iyT)/2}) -- (\jx,{(\iyB+\iyT)/2});
+  \draw[black!75, line width=0.85pt, -] (\jx,{(\iyB+\iyT)/2}) -- (\jx,4.90);
+  \draw[black!75, line width=0.85pt, -] (\jx,{(\iyB+\iyT)/2}) -- (\jx,2.30);
+  \draw[flow] (\jx,4.90) -- (3.50,4.90);
+  \draw[flow] (\jx,2.30) -- (3.50,2.30);
+
+  % === Branch A: Accessible-source mass ====================================
+  \def\aL{3.55}\def\aR{10.70}\def\aB{3.80}\def\aT{5.85}
+  \draw[branchL] (\aL,\aB) rectangle (\aR,\aT);
+
+  \node[sectitle, text=teal!35!black, anchor=north west] at (\aL+0.20,\aT-0.15)
+    {A.~Accessible-source mass};
+  \node[caption, text=teal!40!black, anchor=north west,
+        text width=6.75cm] at (\aL+0.20,\aT-0.50)
+    {sum the head-averaged row on the accessible side of the frontier};
+
+  \node[eqn, anchor=west] at (\aL+0.20,\aT-1.30)
+    {$\displaystyle \pi^{\mathrm{acc}}_t\;=\!\!\sum_{s\,\in\,\mathcal{S}^{(k)}_{\mathrm{acc}}}\!\!p_{t,s},
+      \qquad p_{t,s}=\tfrac{1}{|\mathcal{H}|}\!\!\sum_{(\ell,h)\in\mathcal{H}}\!\!\widehat{\mathbf{A}}^{(\ell,h)}_{t,s}$};
+
+  \draw[flow] (\aR,{(\aB+\aT)/2}) -- (\aR+0.55,{(\aB+\aT)/2});
+
+  % === Branch B: Stabilized peak ===========================================
+  \def\bL{3.55}\def\bR{10.70}\def\bB{0.75}\def\bT{2.90}
+  \draw[branchR] (\bL,\bB) rectangle (\bR,\bT);
+
+  \node[sectitle, text=orange!38!black, anchor=north west] at (\bL+0.20,\bT-0.15)
+    {B.~Stabilized source peak};
+  \node[caption, text=orange!42!black, anchor=north west,
+        text width=6.75cm] at (\bL+0.20,\bT-0.50)
+    {argmax on a normalized, smoothed row $\tilde z$ of the same heads};
+
+  \node[eqn, anchor=west] at (\bL+0.20,\bT-1.30)
+    {$\displaystyle \hat s_t\;=\;\arg\max_{s\,\in\,\mathcal{S}^{(k)}}\,\tilde z_{t,s}$};
+  \node[sublab, anchor=west, text width=6.75cm] at (\bL+0.20,\bT-1.80)
+    {$\tilde z$: per-head prefix-online z-score, averaged over $\mathcal{H}$,
+     then width-$7$ median filter};
+
+  \draw[flow] (\bR,{(\bB+\bT)/2}) -- (\bR+0.55,{(\bB+\bT)/2});
+
+  % === Gate ================================================================
+  \def\gL{11.30}\def\gR{14.35}\def\gB{0.90}\def\gT{5.85}
+  \draw[gatebox] (\gL,\gB) rectangle (\gR,\gT);
+
+  \node[sectitle, text=green!28!black, anchor=north west] at (\gL+0.20,\gT-0.15)
+    {Gate $g_t$};
+  \node[caption, text=green!32!black, anchor=north west,
+        text width=2.65cm] at (\gL+0.20,\gT-0.50)
+    {emit $y_t$ iff all three hold:};
+
+  \node[eqn, anchor=west] at (\gL+0.20,\gT-1.30)
+    {(i)\ \ $\hat s_t\,\in\,\mathcal{S}^{(k)}_{\mathrm{acc}}$};
+  \node[sublab, anchor=west, text width=2.50cm]
+    at (\gL+0.40,\gT-1.75) {peak stays left of the frontier};
+
+  \node[eqn, anchor=west] at (\gL+0.20,\gT-2.45)
+    {(ii)\ \ $p_{t,\hat s_t}\,\ge\,\tau_{\mathrm{peak}}$};
+  \node[sublab, anchor=west, text width=2.50cm]
+    at (\gL+0.40,\gT-2.90) {local peak mass high enough};
+
+  \node[eqn, anchor=west] at (\gL+0.20,\gT-3.60)
+    {(iii)\ \ $\pi^{\mathrm{acc}}_t\,\ge\,\tau_{\mathrm{prov}}$};
+  \node[sublab, anchor=west, text width=2.50cm]
+    at (\gL+0.40,\gT-4.05) {enough accessible mass overall};
+
+  \node[sublab, text=black!50, anchor=south, text width=2.65cm,
+        align=center] at ({(\gL+\gR)/2},\gB+0.10)
+    {thresholds fixed per direction};
+
+  \draw[flow] (\gR,{(\gB+\gT)/2}) -- (\gR+0.55,{(\gB+\gT)/2});
+
+  % === Scan ================================================================
+  \def\sL{14.95}\def\sR{16.85}
+  \node[sectitle, anchor=north west] at (\sL,5.80) {Scan};
+  \node[sublab, anchor=north west, text width=1.85cm] at (\sL,5.45)
+    {left$\to$right; emit while $g_t{=}1$, drop at first $g_t{=}0$};
+
+  \def\cellw{0.28}\def\cellh{0.38}\def\cellg{0.02}
+  \def\stX{\sL}
+  \def\stY{3.40}
+  \foreach \i in {0,1,2} {
+    \pgfmathsetmacro\x{\stX + (\cellw+\cellg)*\i}
+    \filldraw[fill=green!22, draw=green!45!black, line width=0.4pt]
+      (\x,\stY) rectangle (\x+\cellw,\stY+\cellh);
+    \node[font=\tiny, text=green!30!black, inner sep=0pt]
+      at (\x+\cellw/2,\stY+\cellh/2) {\textbf{\checkmark}};
+  }
+  \pgfmathsetmacro\xf{\stX + (\cellw+\cellg)*3}
+  \filldraw[fill=red!18, draw=red!65!black, line width=0.55pt]
+    (\xf,\stY) rectangle (\xf+\cellw,\stY+\cellh);
+  \node[font=\tiny, text=red!60!black, inner sep=0pt]
+    at (\xf+\cellw/2,\stY+\cellh/2) {\textbf{$\times$}};
+  \foreach \i in {4,5} {
+    \pgfmathsetmacro\x{\stX + (\cellw+\cellg)*\i}
+    \filldraw[fill=black!5, draw=black!30, line width=0.35pt]
+      (\x,\stY) rectangle (\x+\cellw,\stY+\cellh);
+    \node[font=\tiny, text=black!45, inner sep=0pt]
+      at (\x+\cellw/2,\stY+\cellh/2) {--};
+  }
+  \foreach \i/\tok in {0/{$y_1$},1/{$y_2$},2/{$y_3$},3/{$y_4$},4/{$y_5$},5/{$y_6$}} {
+    \pgfmathsetmacro\x{\stX + (\cellw+\cellg)*\i}
+    \node[font=\tiny, text=black!70, inner sep=0pt]
+      at (\x+\cellw/2,\stY-0.22) {\tok};
+  }
+  \node[sublab, text=green!30!black, anchor=north west, text width=1.1cm]
+    at (\sL,\stY-0.50) {emit $y_1{:}y_3$};
+  \node[sublab, text=red!60!black, anchor=north west, text width=0.9cm]
+    at ({\sL+1.10},\stY-0.50) {drop rest};
+
+\end{tikzpicture}
+}%
+\caption{\textbf{From the reconstructed block to an acceptance decision.}
+The selective \emph{qk-fast} reconstruction produces
+$\widehat{\mathbf{A}}^{(\ell,h)}_{t,s}$ for $(\ell,h)\in\mathcal{H}$, with draft
+positions $t$ against source positions $s$ (left). The policy reads it through
+two parallel aggregations. \emph{Branch~A} averages the selected heads into a
+row $p_{t,\cdot}$ and sums its mass on the accessible side of the frontier,
+giving the provenance score $\pi^{\mathrm{acc}}_t$. \emph{Branch~B} returns
+the peak $\hat s_t$ of a stabilized row $\tilde z_{t,\cdot}$, where $\tilde
+z$ is obtained by z-scoring each head with prefix-online Welford moments,
+averaging over~$\mathcal{H}$, and applying a width-$7$ median filter along
+the source axis. The gate $g_t$ accepts draft token $t$ iff the peak stays on
+the accessible side of the frontier, the peak mass exceeds
+$\tau_{\mathrm{peak}}$, and the accessible-source mass exceeds
+$\tau_{\mathrm{prov}}$. A left-to-right scan emits the longest run of
+accepting tokens and drops the remainder at the first failure.}
+\label{fig:appendix-policy-pipeline}
+\end{figure*}

@@ -27,6 +27,38 @@ QUALITATIVE_PROVENANCE_PATH = GENERATED_DIR / "qualitative_provenance_summary.js
 QUALITATIVE_PROVENANCE_TEX_PATH = GENERATED_DIR / "qualitative_provenance_summary.tex"
 BENCHMARK_RESULTS_PATH = GENERATED_DIR / "mt_capture_speed_benchmark.json"
 BENCHMARK_FIG_PATH = GENERATED_DIR / "mt_capture_speed_benchmark.tex"
+MT_HEAD_FILTERING_RESULTS_PATH = GENERATED_DIR / "mt_head_filtering_ablation.json"
+MT_HEAD_FILTERING_TABLE_PATH = GENERATED_DIR / "mt_head_filtering_ablation.tex"
+MT_E2E_HEAD_ABLATION_BUNDLES = [
+    {
+        "bundle_dir": REPO_ROOT / "outputs" / "iwslt26_devset_chunk1100_borderp1_rerun20260423_ende",
+        "setting": "Top-8 heads",
+        "tag": "top8",
+    },
+    {
+        "bundle_dir": (
+            REPO_ROOT
+            / "outputs"
+            / "mt_head_ablation_low_all_heads_chunk1100_current"
+            / "low"
+            / "en-de"
+            / "all_heads"
+        ),
+        "setting": "All 336 heads",
+        "tag": "all_heads",
+    },
+]
+MT_E2E_HEAD_ABLATION_RESULTS_PATH = GENERATED_DIR / "mt_e2e_head_ablation.json"
+MT_E2E_HEAD_ABLATION_TABLE_PATH = GENERATED_DIR / "mt_e2e_head_ablation.tex"
+LOW_CONFIG_SNAPSHOT_BUNDLES = [
+    {
+        "bundle_dir": REPO_ROOT / "outputs" / "iwslt26_devset_chunk1100_borderp1_rerun20260423_ende",
+        "label": r"EN$\to$DE",
+        "tag": "maintained-low",
+    }
+]
+LOW_CONFIG_SNAPSHOT_RESULTS_PATH = GENERATED_DIR / "low_regime_config_snapshot.json"
+LOW_CONFIG_SNAPSHOT_TABLE_PATH = GENERATED_DIR / "low_regime_config_snapshot.tex"
 BENCHMARK_JSON_BEGIN = "__BENCHMARK_JSON_BEGIN__"
 BENCHMARK_JSON_END = "__BENCHMARK_JSON_END__"
 PROVISIONAL_EN_FR_HEADS = (
@@ -488,6 +520,247 @@ def build_section3_figure() -> None:
     lines.append(r"\label{fig:decoder-only-heads}")
     lines.append(r"\end{figure*}")
     SECTION3_FIG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def build_mt_head_filtering_table() -> None:
+    payload = load_json(MT_HEAD_FILTERING_RESULTS_PATH)
+    rows = list(payload.get("summary_rows", []))
+    if not rows:
+        raise ValueError(f"{MT_HEAD_FILTERING_RESULTS_PATH} does not contain summary_rows")
+
+    direction_labels = {
+        "en-de": r"EN$\to$DE",
+        "en-zh": r"EN$\to$ZH",
+        "en-it": r"EN$\to$IT",
+    }
+
+    def format_points(value: float) -> str:
+        return f"{100.0 * float(value):.2f}"
+
+    def format_count(value: int) -> str:
+        return f"{int(value):,}"
+
+    lines: list[str] = []
+    lines.append(r"\begin{table}[t]")
+    lines.append(r"\centering")
+    lines.append(r"\small")
+    lines.append(r"\resizebox{\columnwidth}{!}{%")
+    lines.append(r"\begin{tabular}{l r r r r}")
+    lines.append(r"\toprule")
+    lines.append(r"Pair & Top-8 TS & All-336 TS & Gain & Aligned tokens \\")
+    lines.append(r"\midrule")
+    for row in rows:
+        direction = str(row["direction"])
+        lines.append(
+            " & ".join(
+                [
+                    direction_labels.get(direction, tex_escape(direction)),
+                    format_points(float(row["source_top_k_score"])),
+                    format_points(float(row["source_all_heads_score"])),
+                    rf"\textbf{{+{float(row['source_delta_points']):.2f}}}",
+                    format_count(int(row["used_target_tokens"])),
+                ]
+            )
+            + r" \\"
+        )
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    lines.append(r"}")
+    lines.append(
+        r"\caption{\textbf{MT head-set filtering ablation on held-out word-aligned "
+        r"dev examples.} To make the all-head baseline maximally charitable, we "
+        r"average the candidate head set first and then restrict the argmax to the "
+        r"source-prompt token zone before scoring against gold aligned source "
+        r"tokens. Scores are reported in points ($100\times\mathrm{TS}$). Even "
+        r"under this source-only argmax, the per-direction retained top-8 heads "
+        r"still preserve a markedly stronger alignment signal than uniform "
+        r"all-head averaging.}"
+    )
+    lines.append(r"\label{tab:mt-head-filtering}")
+    lines.append(r"\end{table}")
+    MT_HEAD_FILTERING_TABLE_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def build_mt_e2e_head_ablation_table() -> None:
+    def format_score(value: float, *, decimals: int = 2) -> str:
+        return f"{float(value):.{decimals}f}"
+
+    def format_xcomet(value: float) -> str:
+        return f"{float(value):.3f}"
+
+    def format_latency_seconds(value_ms: float) -> str:
+        return f"{float(value_ms) / 1000.0:.2f}"
+
+    rows: list[dict[str, Any]] = []
+    for spec in MT_E2E_HEAD_ABLATION_BUNDLES:
+        bundle_dir = Path(spec["bundle_dir"])
+        manifest = load_json(bundle_dir / "manifest.json")
+        evaluation = load_json(bundle_dir / "evaluation.json")
+        runtime = manifest["runtime_config"]
+        scores = evaluation["contract_scores"]
+        rows.append(
+            {
+                "setting": spec["setting"],
+                "tag": spec["tag"],
+                "bundle_dir": str(bundle_dir.relative_to(REPO_ROOT)),
+                "chunk_ms": runtime["chunk_ms"],
+                "translation_alignatt_top_k_heads": runtime["translation_alignatt_top_k_heads"],
+                "translation_alignatt_border_margin": runtime["translation_alignatt_border_margin"],
+                "min_start_seconds": runtime["min_start_seconds"],
+                "translation_alignatt_rewind_threshold": runtime.get(
+                    "translation_alignatt_rewind_threshold"
+                ),
+                "xcometxl": scores["XCOMETXL"],
+                "longyaal_cu_ms": scores["LongYAAL CU"],
+                "longyaal_ca_ms": scores["LongYAAL CA"],
+            }
+        )
+
+    if len(rows) != 2:
+        raise ValueError("Expected exactly two EN->DE MCIF comparison rows")
+    rows_by_tag = {row["tag"]: row for row in rows}
+    top8_row = rows_by_tag["top8"]
+    all_heads_row = rows_by_tag["all_heads"]
+    write_json(
+        MT_E2E_HEAD_ABLATION_RESULTS_PATH,
+        {
+            "rows": rows,
+            "deltas": {
+                "xcometxl": all_heads_row["xcometxl"] - top8_row["xcometxl"],
+                "longyaal_cu_ms": all_heads_row["longyaal_cu_ms"] - top8_row["longyaal_cu_ms"],
+                "longyaal_ca_ms": all_heads_row["longyaal_ca_ms"] - top8_row["longyaal_ca_ms"],
+            },
+        },
+    )
+
+    lines: list[str] = []
+    lines.append(r"\begin{table}[t]")
+    lines.append(r"\centering")
+    lines.append(r"\small")
+    lines.append(r"\setlength{\tabcolsep}{4pt}")
+    lines.append(r"\begin{tabular}{l c c c}")
+    lines.append(r"\toprule")
+    lines.append(
+        r"Setting & XCOMET-XL $\uparrow$ & CU (s) $\downarrow$ & CA (s) $\downarrow$ \\"
+    )
+    lines.append(r"\midrule")
+    lines.append(
+        " & ".join(
+            [
+                top8_row["setting"],
+                format_xcomet(top8_row["xcometxl"]),
+                rf"\textbf{{{format_latency_seconds(top8_row['longyaal_cu_ms'])}}}",
+                rf"\textbf{{{format_latency_seconds(top8_row['longyaal_ca_ms'])}}}",
+            ]
+        )
+        + r" \\"
+    )
+    lines.append(
+        " & ".join(
+            [
+                all_heads_row["setting"],
+                rf"\textbf{{{format_xcomet(all_heads_row['xcometxl'])}}}",
+                format_latency_seconds(all_heads_row["longyaal_cu_ms"]),
+                format_latency_seconds(all_heads_row["longyaal_ca_ms"]),
+            ]
+        )
+        + r" \\"
+    )
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    lines.append(
+        r"\caption{\textbf{EN$\to$DE full-MCIF MT head-set comparison at "
+        r"$\Delta_{\mathrm{chunk}}=1100$ ms.} Both rows use the same maintained "
+        r"runtime and no MT rewind policy; only the MT head set changes. "
+        r"All-head replay is slightly better on XCOMET-XL, but increases CU and "
+        r"especially CA because the runtime must reconstruct more attention at "
+        r"each MT step.}"
+    )
+    lines.append(r"\label{tab:mt-e2e-head-filtering}")
+    lines.append(r"\end{table}")
+    MT_E2E_HEAD_ABLATION_TABLE_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def build_low_regime_config_snapshot_table() -> None:
+    def format_score(value: float, *, decimals: int = 2) -> str:
+        return f"{float(value):.{decimals}f}"
+
+    def format_xcomet(value: float) -> str:
+        return f"{float(value):.3f}"
+
+    def format_latency_seconds(value_ms: float) -> str:
+        return f"{float(value_ms) / 1000.0:.2f}"
+
+    def make_shortstack(lines: list[str]) -> str:
+        return r"\shortstack[l]{" + r"\\".join(lines) + "}"
+
+    rows: list[dict[str, Any]] = []
+    for spec in LOW_CONFIG_SNAPSHOT_BUNDLES:
+        bundle_dir = Path(spec["bundle_dir"])
+        manifest = load_json(bundle_dir / "manifest.json")
+        evaluation = load_json(bundle_dir / "evaluation.json")
+        runtime = manifest["runtime_config"]
+        scores = evaluation["contract_scores"]
+        rows.append(
+            {
+                "label": spec["label"],
+                "tag": spec["tag"],
+                "bundle_dir": str(bundle_dir.relative_to(REPO_ROOT)),
+                "alignment_backend_name": runtime["alignment_backend_name"],
+                "mt_backend_name": runtime["mt_backend_name"],
+                "chunk_ms": runtime["chunk_ms"],
+                "translation_alignatt_top_k_heads": runtime["translation_alignatt_top_k_heads"],
+                "translation_alignatt_border_margin": runtime["translation_alignatt_border_margin"],
+                "min_start_seconds": runtime["min_start_seconds"],
+                "bleu": scores["BLEU"],
+                "chrf": scores["CHRF"],
+                "xcometxl": scores["XCOMETXL"],
+                "longyaal_cu_ms": scores["LongYAAL CU"],
+                "longyaal_ca_ms": scores["LongYAAL CA"],
+            }
+        )
+
+    write_json(LOW_CONFIG_SNAPSHOT_RESULTS_PATH, {"rows": rows})
+
+    lines: list[str] = []
+    lines.append(r"\begin{table}[t]")
+    lines.append(r"\centering")
+    lines.append(r"\small")
+    lines.append(r"\setlength{\tabcolsep}{4pt}")
+    lines.append(r"\resizebox{\columnwidth}{!}{%")
+    lines.append(r"\begin{tabular}{l l l}")
+    lines.append(r"\toprule")
+    lines.append(r"Language & Config & Scores \\")
+    lines.append(r"\midrule")
+    for row in rows:
+        config_cell = make_shortstack(
+            [
+                rf"\texttt{{{tex_escape(row['alignment_backend_name'])}}} + \texttt{{{tex_escape(row['mt_backend_name'])}}}",
+                rf"$\Delta_{{\mathrm{{chunk}}}}={int(row['chunk_ms'])}$ ms; top-$k={int(row['translation_alignatt_top_k_heads'])}$",
+                rf"border margin $={int(row['translation_alignatt_border_margin'])}$; min-start $={float(row['min_start_seconds']):.1f}$ s",
+            ]
+        )
+        score_cell = make_shortstack(
+            [
+                rf"BLEU {format_score(row['bleu'])}; chrF {format_score(row['chrf'])}",
+                rf"XCOMET-XL {format_xcomet(row['xcometxl'])}",
+                rf"LongYAAL CU/CA {format_latency_seconds(row['longyaal_cu_ms'])} / {format_latency_seconds(row['longyaal_ca_ms'])} s",
+            ]
+        )
+        lines.append(" & ".join([row["label"], config_cell, score_cell]) + r" \\")
+    lines.append(r"\bottomrule")
+    lines.append(r"\end{tabular}")
+    lines.append(r"}")
+    lines.append(
+        r"\caption{\textbf{Current low-regime configuration snapshot for the refreshed EN$\to$DE rerun.} "
+        r"The table records the exact maintained low-latency operating point we use to "
+        r"recalibrate the system near the 2\,s boundary: the deployed Qwen3-ASR forced "
+        r"alignment backend, the Gemma AlignAtt MT backend, the larger 1.1\,s cascade "
+        r"chunk, and the retained top-8 MT head set with border margin 1.}"
+    )
+    lines.append(r"\label{tab:low-config-snapshot}")
+    lines.append(r"\end{table}")
+    LOW_CONFIG_SNAPSHOT_TABLE_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def build_runtime_config(
@@ -2074,7 +2347,18 @@ def run_benchmark_speed() -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", nargs="?", choices=["section3-figure", "qualitative-search", "benchmark-speed"])
+    parser.add_argument(
+        "command",
+        nargs="?",
+        choices=[
+            "section3-figure",
+            "mt-head-table",
+            "mt-e2e-table",
+            "low-config-table",
+            "qualitative-search",
+            "benchmark-speed",
+        ],
+    )
     parser.add_argument("--worker-benchmark", action="store_true")
     return parser.parse_args()
 
@@ -2088,13 +2372,26 @@ def main() -> None:
     if args.command == "section3-figure":
         build_section3_figure()
         return
+    if args.command == "mt-head-table":
+        build_mt_head_filtering_table()
+        return
+    if args.command == "mt-e2e-table":
+        build_mt_e2e_head_ablation_table()
+        return
+    if args.command == "low-config-table":
+        build_low_regime_config_snapshot_table()
+        return
     if args.command == "qualitative-search":
         search_qualitative_example()
         return
     if args.command == "benchmark-speed":
         run_benchmark_speed()
         return
-    raise SystemExit("Choose one of: section3-figure, qualitative-search, benchmark-speed")
+    raise SystemExit(
+        "Choose one of: section3-figure, mt-head-table, mt-e2e-table, "
+        "low-config-table, "
+        "qualitative-search, benchmark-speed"
+    )
 
 
 if __name__ == "__main__":

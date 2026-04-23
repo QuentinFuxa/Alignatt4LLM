@@ -1,22 +1,97 @@
 \begin{figure}[t]
 \centering
 \resizebox{\linewidth}{!}{%
-\begin{tikzpicture}[x=1cm,y=1cm, every node/.style={font=\scriptsize}]
-\draw[rounded corners=2pt, fill=white, draw=black!20] (0,-0.2) rectangle (8.35,4.45);
-\node[anchor=west, font=\bfseries\small] at (0.25,4.00) {Paper-only MT capture benchmark};
-\node[anchor=west, text=black!60] at (0.25,3.58) {Median latency per generated token on a fixed 16-prompt text-only suite.};
-\node[anchor=west, text=black!80] at (0.35,3.02) {Transformers eager};
-\filldraw[fill=gray!45, draw=gray!45] (2.95,2.80) rectangle (6.85,3.25);
-\node[anchor=west, text=black!70] at (7.05,3.03) {63.7 ms/token};
-\node[anchor=west, text=black!80] at (0.35,2.07) {Transformers qk\_fast};
-\filldraw[fill=orange!75!black, draw=orange!75!black] (2.95,1.85) rectangle (6.56,2.30);
-\node[anchor=west, text=black!70] at (6.76,2.08) {59.0 ms/token};
-\node[anchor=west, text=black!80] at (0.35,1.12) {vLLM qk\_fast};
-\filldraw[fill=blue!60!black, draw=blue!60!black] (2.95,0.90) rectangle (4.51,1.35);
-\node[anchor=west, text=black!70] at (4.71,1.13) {25.4 ms/token};
-\node[anchor=west, text=black!55, align=left, text width=7.7cm] at (0.25,0.18) {16 prompts, 3 hot repeats per seam, greedy decode, fixed head set, subprocess isolation. Full per-prompt results and divergences are stored in the generated JSON artifact.};
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  >={Latex[length=2.2mm]},
+  every node/.style={font=\scriptsize, inner sep=0pt},
+  panel/.style={draw=black!35, rounded corners=2.5pt, line width=0.6pt, fill=white},
+  title/.style={font=\small\bfseries, text=black!85, align=left, inner sep=0pt},
+  sub/.style={font=\scriptsize, text=black!60, align=left, inner sep=0pt},
+  tck/.style={font=\tiny, text=black!55, align=center, inner sep=0pt},
+  rowlbl/.style={font=\scriptsize, text=black!80, align=right, anchor=east, inner sep=0pt},
+  rowsub/.style={font=\tiny, text=black!55, align=right, anchor=east, inner sep=0pt},
+  valuelbl/.style={font=\scriptsize\bfseries, anchor=west, inner sep=0pt},
+  note/.style={font=\scriptsize, text=black!60, align=left, inner sep=0pt},
+  grid/.style={draw=black!15, line width=0.35pt},
+  axis/.style={draw=black!55, line width=0.55pt},
+  barbase/.style={draw=none, line width=0pt},
+]
+
+  %% Canvas
+  \def\Wmax{11.00}\def\Hmax{5.20}
+  \draw[panel] (0,0) rectangle (\Wmax,\Hmax);
+
+  %% Header
+  \node[title, anchor=north west] at (0.30,\Hmax-0.18)
+    {Median MT decode latency, per generated token};
+  \node[sub, anchor=north west, text width=10.30cm] at (0.30,\Hmax-0.58)
+    {Fixed 16-prompt text-only suite, 3 hot repeats per seam, greedy
+     decode, subprocess isolation.};
+
+  %% Plot area geometry
+  \def\pxL{3.80}    % left edge of bars (axis)
+  \def\pxR{9.60}    % right edge of plot area
+  \def\pyB{0.95}    % baseline
+  \def\pyT{3.50}    % top of plot area
+  % x-axis mapping: 0 ms .. 70 ms -> \pxL .. \pxR, i.e. 5.80cm for 70 ms
+  \def\xScale{0.0828571}   % 5.80/70
+  % helper macro for x-coord of value v
+  % (inlined via pgfmath below)
+
+  %% Gridlines at 0, 10, 20, ..., 70 ms
+  \foreach \v in {0,10,20,30,40,50,60,70} {
+    \pgfmathsetmacro\xv{\pxL + \xScale*\v}
+    \draw[grid] (\xv,\pyB-0.04) -- (\xv,\pyT);
+    \node[tck, anchor=north] at (\xv,\pyB-0.10) {\v};
+  }
+  \node[tck, anchor=north, font=\tiny\itshape, text=black!60]
+    at ({(\pxL+\pxR)/2},\pyB-0.40) {ms per generated token};
+
+  %% x-axis line
+  \draw[axis] (\pxL,\pyB) -- (\pxR,\pyB);
+
+  %% Three bar rows (top-to-bottom): eager, transformers qk-fast, vllm qk-fast
+  %% Row y-centers
+  \def\ryA{3.05}   % Transformers eager
+  \def\ryB{2.20}   % Transformers qk-fast
+  \def\ryC{1.35}   % vLLM qk-fast
+  \def\bh{0.45}    % bar half-height
+
+  %% Row labels (left of axis)
+  \node[rowlbl] at (\pxL-0.25,\ryA+0.08) {Transformers eager};
+  \node[rowsub] at (\pxL-0.25,\ryA-0.15) {reference};
+  \node[rowlbl] at (\pxL-0.25,\ryB+0.08) {Transformers qk-fast};
+  \node[rowsub] at (\pxL-0.25,\ryB-0.15) {paper replay};
+  \node[rowlbl] at (\pxL-0.25,\ryC+0.08) {vLLM qk-fast};
+  \node[rowsub] at (\pxL-0.25,\ryC-0.15) {shipped backend};
+
+  %% Bar A: eager, 63.7 ms
+  \pgfmathsetmacro\xA{\pxL + \xScale*63.7}
+  \filldraw[barbase, fill=black!28] (\pxL,\ryA-\bh) rectangle (\xA,\ryA+\bh);
+  \node[valuelbl, text=black!65] at (\xA+0.10,\ryA) {63.7\,ms};
+
+  %% Bar B: transformers qk-fast, 59.0 ms
+  \pgfmathsetmacro\xB{\pxL + \xScale*59.0}
+  \filldraw[barbase, fill=orange!70!black] (\pxL,\ryB-\bh) rectangle (\xB,\ryB+\bh);
+  \node[valuelbl, text=orange!55!black] at (\xB+0.10,\ryB) {59.0\,ms};
+
+  %% Bar C: vllm qk-fast, 25.4 ms -- highlighted, with inline speedup badge
+  \pgfmathsetmacro\xC{\pxL + \xScale*25.4}
+  \filldraw[barbase, fill=teal!65!black] (\pxL,\ryC-\bh) rectangle (\xC,\ryC+\bh);
+  \node[valuelbl, text=teal!45!black] at (\xC+0.10,\ryC) {25.4\,ms};
+  \node[font=\tiny, text=teal!40!black, anchor=west]
+    at (\xC+0.10,\ryC-0.26) {2.5$\times$ faster than eager};
+
 \end{tikzpicture}
-}
-\caption{\textbf{Inference-time comparison of MT capture seams.} We compare a minimal Transformers eager reference, a Transformers qk-fast reference that reconstructs source rows from captured layer inputs, and the engine-native vLLM qk-fast path used by the shipped backend. The main plot reports the median latency per generated token on a fixed 16-prompt benchmark suite, with one unmeasured warmup pass and repeated hot runs per seam.}
+}%
+\caption{\textbf{Inference-time comparison of MT capture seams.} Median
+latency per generated token on a fixed 16-prompt text-only suite, for a
+minimal Transformers eager reference, a Transformers \emph{qk-fast} reference
+that reconstructs source rows from captured layer inputs, and the
+engine-native vLLM \emph{qk-fast} path used by the shipped backend. Each seam
+uses one unmeasured warmup pass followed by three hot repeats, greedy decode,
+a fixed AlignAtt head set, and subprocess isolation; per-prompt results and
+divergences are stored in the generated JSON artifact.}
 \label{fig:mt-capture-speed}
 \end{figure}

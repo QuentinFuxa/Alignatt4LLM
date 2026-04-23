@@ -77,6 +77,7 @@ class CascadeAlignAttProcessor(SpeechProcessor):
             "translation_alignatt_border_margin",
             "translation_alignatt_min_source_mass",
             "translation_alignatt_argmax_mass_threshold",
+            "translation_alignatt_heads_path",
             "translation_alignatt_top_k_heads",
             "translation_alignatt_filter_width",
             "translation_alignatt_probe_mode",
