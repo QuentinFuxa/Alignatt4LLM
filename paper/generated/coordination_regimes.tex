@@ -1,4 +1,4 @@
-\begin{figure*}[!htbp]
+\begin{strip}
 \centering
 \begin{tikzpicture}[
   x=1cm, y=1cm,
@@ -138,6 +138,18 @@
     {Regimes (a) and (b) require a non-blocking scheduler (e.g.\ vLLM \texttt{AsyncLLMEngine}) with request abort on stale MT decodes; our current implementation is (c) with two blocking \texttt{LLM} instances sharing a single GPU. The gaps between ASR chunks in (a) and (b) reflect an ASR real-time factor below~1. This design axis mainly affects \emph{compute-aware} latency; our central submitted comparisons remain on the serialized regime in (c).};
 
 \end{tikzpicture}
-\caption{\label{fig:coord-regimes}%
-Three coordination regimes for ASR and MT sharing one GPU. The submitted system uses the strict ASR--MT alternation in~(c).}
-\end{figure*}
+\captionof{figure}{Three coordination regimes for ASR and MT sharing one GPU. The submitted system uses the strict ASR--MT alternation in~(c). In full async mode~(a), successive MT launches need not correspond to comparable source-time increments: a long MT decode can absorb several incoming ASR updates, while the next relaunch may cover much less newly available audio. That makes history-dependent policies such as local agreement less natural to calibrate there than an attention-only policy such as AlignAtt, which scores each draft directly against the currently accessible source prefix.}
+\label{fig:coord-regimes}
+
+\vspace{0.4em}
+\section{Additional MT Alignment-Head Diagnostics}
+\label{sec:appendix-alignatt}
+
+This appendix keeps only the MT-side head diagnostics omitted from
+Section~\ref{sec:method}. Figure~\ref{fig:mt-alignatt-heads} shows the
+architecture-aware score map behind the retained MT head set: useful heads are
+sparse, clustered late in the backbone, and overlap the late shared-KV region
+where observer cost is governed by KV ownership rather than raw query-head
+count. Table~\ref{tab:mt-head-filtering} then reports the held-out calibration
+gap between the retained top-8 heads and uniform all-head averaging.
+\end{strip}

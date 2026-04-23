@@ -17,6 +17,8 @@
 \usepackage{multirow}
 \usepackage{xcolor}
 \usepackage{graphicx}
+\usepackage{cuted}
+\usepackage{capt-of}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc,patterns}
 
@@ -187,7 +189,21 @@ parallel text, then every Gemma head is scored with Translation Score (TS) on
 those aligned examples. We retain the top $k=8$ heads per language pair. This
 head set is fixed at inference time and is the only part of the policy that
 depends on offline calibration. Appendix~\ref{sec:appendix-alignatt} reports
-the calibration details, corpus sizes, and per-direction score summaries.
+the calibration details, corpus sizes, and per-direction score summaries. The
+retained MT heads are sparse and concentrated in a limited late-depth region of
+the backbone rather than spread uniformly; Appendix~\ref{sec:appendix-alignatt}
+visualizes that pattern in Figure~\ref{fig:mt-alignatt-heads}.
+
+The policy only reads the source slice of each draft attention row,
+$\mathbf{A}^{(\ell,h)}_{t,\phi^{(k)}(s)}$, but unlike encoder--decoder
+cross-attention this slice is not source-normalized. Off-source mass on the
+accepted target prefix, prompt template, and speculative suffix is therefore
+structural rather than implementation noise. On the 78 French qualitative
+probes used for our detailed diagnostics, drafted units allocate on average
+9\% to accessible source tokens, 8\% to inaccessible source tokens, 81\% to
+non-source prompt positions, and 2\% to the speculative suffix; among units
+that the policy actually accepts, the inaccessible-source share drops from 8\%
+to 1\%.
 
 \subsection{Selective Reconstruction for the Policy}
 
@@ -243,17 +259,16 @@ of three conditions first fires:
   &\pi_t^{\mathrm{acc}} < \tau_{\mathrm{src}}.
   \label{eq:mt-stop-prov}
 \end{align}
-The first condition prevents dependence on still-inaccessible source words, the
-second rejects weak alignment peaks, and the third rejects tokens with too
-little total accessible-source support. The accepted output is the longest
-draft prefix preceding the first failure, rounded back to the nearest
-stability-unit boundary so partial subword fragments are never emitted.
-Figure~\ref{fig:mt-selective-reconstruction} shows the gate on a live MT draft:
-black stars mark drafted tokens whose source argmax stays on the accessible
-side of the frontier, and the first red star marks the position at which the
-\textsc{source-frontier} condition fires.
 
-\input{generated/mt_selective_reconstruction_example.tex}
+\input{generated/appendix_policy_pipeline.tex}
+
+Figure~\ref{fig:policy-pipeline} makes the decision path explicit. One branch
+averages the retained heads and sums accessible-source mass to obtain
+$\pi_t^{\mathrm{acc}}$. The other normalizes and smooths the same replayed rows
+before taking the source-side argmax $\hat{s}_t$. The gate accepts token $t$
+iff all three conditions above pass; a left-to-right first-failure scan then
+emits the longest accepting draft prefix and rounds back to the nearest
+stability-unit boundary so partial subword fragments are never emitted.
 
 \subsection{Engine-Native Capture under Compiled Inference}
 
@@ -271,13 +286,20 @@ dependency keeps the observer in the transitive fan-in of the graph output:
   \qquad \Phi \equiv \mathbf{0}.
   \label{eq:mt-sentinel}
 \end{equation}
-This leaves model outputs unchanged while making the policy-visible rows
-recoverable on the actual submission path. Without the additive
-$\Phi \equiv \mathbf{0}$ term, graph lowering treats the observer outputs as
-dead intermediates, removes the capture path entirely, and the compiled run no
-longer materializes usable Q/K buffers. Appendix~\ref{sec:appendix-observer}
-gives the full buffer layout, replay details, parity measurements, and
-qualitative reconstruction examples.
+
+\input{generated/appendix_observer_lifecycle.tex}
+
+Figure~\ref{fig:observer-lifecycle} separates the capture path into three
+stages. At compile time, we patch the attention forward and install fixed-shape
+observer slots before graph capture. During each compiled forward, the live
+observer records prompt keys and draft-row queries for the selected heads while
+returning $\Phi \equiv \mathbf{0}$ back into the attention output. After the
+forward, a short Python-side replay reconstructs only the selective
+draft-to-source block consumed by the policy and by the parity suite. The
+sentinel term is therefore only a liveness device: without the additive zero,
+graph lowering dead-code-eliminates the observer path and no usable Q/K
+buffers survive on the deployed runtime. Appendix~\ref{sec:appendix-observer}
+keeps the replay equations, parity measurements, and qualitative probe.
 
 \section{Results}
 \label{sec:results}
@@ -314,10 +336,11 @@ Table~\ref{tab:e2e} as evidence that the MT-side AlignAtt realization supports
 both a stable low-latency operating point and a higher-quality regime on the
 same decoder-only Gemma backend.
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \small
-\setlength{\tabcolsep}{3.5pt}
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{l l c c c r r}
 \toprule
 Pair & Regime & BLEU & chrF & XCOMET-XL & \multicolumn{2}{c}{LongYAAL (s)} \\
@@ -325,21 +348,22 @@ Pair & Regime & BLEU & chrF & XCOMET-XL & \multicolumn{2}{c}{LongYAAL (s)} \\
 & & & & & CU & CA \\
 \midrule
 \multirow{2}{*}{en$\to$de} & low     & $28.76$ & $62.1$ & $0.875$ & $2.00$ & $1.63$ \\
-                           & high-latency & $32.63$ & $64.2$ & $0.902$ & $3.53$ & $3.14$ \\
+                           & high    & $32.63$ & $64.2$ & $0.902$ & $3.53$ & $3.14$ \\
 \midrule
 \multirow{2}{*}{en$\to$zh} & low     & $36.01$ & $35.0$ & $0.743$ & $1.95$ & $1.77$ \\
-                           & high-latency & $39.86$ & $37.8$ & $0.778$ & $3.27$ & $3.09$ \\
+                           & high    & $39.86$ & $37.8$ & $0.778$ & $3.27$ & $3.09$ \\
 \midrule
 \multirow{2}{*}{en$\to$it} & low     & $40.10$ & $68.0$ & $0.805$ & $1.98$ & $1.62$ \\
-                           & high-latency & $44.46$ & $70.1$ & $0.841$ & $3.48$ & $3.10$ \\
+                           & high    & $44.46$ & $70.1$ & $0.841$ & $3.48$ & $3.10$ \\
 \bottomrule
 \end{tabular}
+}
 \caption{\textbf{Submitted cascade on the IWSLT 2026 dev set}
-(21 clips, OmniSTEval long-form resegmentation). Low-latency rows use the
-submitted setting with $\Delta_{\mathrm{chunk}}=850$ ms. High-latency rows use
-the submitted setting with $\Delta_{\mathrm{chunk}}=1500$ ms.}
+(21 clips, OmniSTEval long-form resegmentation). Low rows use the submitted
+setting with $\Delta_{\mathrm{chunk}}=850$ ms. High rows use the submitted
+setting with $\Delta_{\mathrm{chunk}}=1500$ ms.}
 \label{tab:e2e}
-\end{table*}
+\end{table}
 
 \subsection{Head Filtering Matters End-to-End}
 \label{sec:head-filtering}
@@ -385,8 +409,6 @@ compute-unaware latency, but would require a non-blocking scheduler and a more
 careful treatment of stale MT requests. We leave that scheduler axis to future
 work.
 
-\input{generated/coordination_regimes.tex}
-
 \section{Conclusion}
 \label{sec:conclusion}
 
@@ -401,173 +423,62 @@ BLEU and XCOMET-XL.
 
 \bibliography{references}
 
+\clearpage
+
 \appendix
 
-\section{Additional Decoder-Only AlignAtt Details}
-\label{sec:appendix-alignatt}
-\label{sec:alignatt-llm}
+\input{generated/coordination_regimes.tex}
 
-\paragraph{From encoder--decoder AlignAtt to decoder-only MT.}
-In its original formulation, AlignAtt exploits decoder cross-attention in an
-encoder--decoder speech translation model \citep{alignatt23}: each decoder row
-is normalized over source positions only, so source provenance is built into
-the architecture. In a decoder-only LLM there is no cross-attention. A single
-causal token stream mixes instructions, source, accepted target history, and
-the current draft, and each row of self-attention is normalized over all prompt
-positions. Relative to the encoder--decoder setting, the attention row no
-longer distinguishes source from non-source by construction, and no head is
-architecturally reserved for source alignment.
-
-\paragraph{Prompt-induced source span.}
-We therefore recover a source-target distinction through prompt layout rather
-than architecture. At MT step $k$, the prompt is assembled as
-\begin{equation}
-  \mathbf{p}^{(k)} = \bigl[\,
-  \mathbf{p}^{\mathrm{sys}}
-  \Vert \mathbf{s}^{(k)}
-  \Vert \mathbf{p}^{\mathrm{instr}}, \mathbf{y}_{1:m_k}
-  \Vert \widetilde{\mathbf{y}}^{(k)} \,\bigr],
-  \label{eq:layout}
-\end{equation}
-where $\mathbf{s}^{(k)}$ is the live transcript prefix,
-$\mathbf{y}_{1:m_k}$ the accepted target prefix, and
-$\widetilde{\mathbf{y}}^{(k)}$ the drafted continuation. Let
-$\phi^{(k)} : \mathcal{S}^{(k)} \hookrightarrow \{1,\ldots,n\}$ map local
-source indices to absolute prompt positions.
-
-\paragraph{Virtual source-restricted attention rows.}
-The object relevant to alignment is then the source slice of
-self-attention. For draft position $t$ and source index $s$, we read
-\begin{equation}
-  \mathbf{A}^{(\ell,h)}_{\mathrm{src}}(t,s)
-  := \mathbf{A}^{(\ell,h)}_{t,\,\phi^{(k)}(s)},
-  \label{eq:virtual-xattn}
-\end{equation}
-at layer $\ell$ and head $h$. Unlike encoder--decoder cross-attention,
-$\sum_{s \in \mathcal{S}^{(k)}} \mathbf{A}^{(\ell,h)}_{\mathrm{src}}(t,s) < 1$
-in general because the row is normalized over the entire prompt. Residual mass
-on non-source prompt positions and on the draft is therefore structural, not an
-implementation artifact.
-
-\paragraph{What stays the same and what changes.}
-The online decision rule still follows the original AlignAtt spirit: accept the
-longest draft prefix whose source-side alignment signal remains inside the
-accessible frontier. What changes is the substrate on which that signal is
-observed. In the decoder-only case, we carve source-restricted rows out of the
-full-prompt self-attention tensor and keep track of the residual mass on the
-accepted target prefix, the rest of the prompt, and the speculative suffix.
-
-\paragraph{Alignment heads.}
-Not all self-attention heads carry translation alignment signal. We assume the
-existence of a small head subset
-$\mathcal{H} \subset \{1,\ldots,L\} \times \{1,\ldots,H\}$,
-$|\mathcal{H}| \ll LH$, such that the head-averaged source row approximates
-gold source-to-target alignments on a held-out calibration set
-$\mathcal{G} = \{(\mathbf{s}^{(i)}, \mathbf{y}^{(i)}, \mathbf{a}^{(i)})\}_i$,
-where $\mathbf{a}^{(i)}$ is the GPT-5-mini word-level alignment used for
-calibration. This sparsity
-assumption is not just compatible with \citet{tokenheads26}; it directly
-follows their calibration strategy. We first build $\mathcal{G}$ with
-GPT-5-mini word-level alignments on held-out parallel text, then score each
-Gemma head under the exact prompt layout of Eq.~\eqref{eq:layout}. In the
-current \texttt{cs-en} run documented in
-\texttt{data/alignatt\_heads/HEADS\_INFORMATION.md}, this yields 512 usable
-pairs, 6,043 aligned target tokens, and 69 detected alignment heads out of
-336, with top TS values of 0.8341 for $(11,3)$, 0.7785 for $(17,3)$, and
-0.7369 for $(20,0)$. The same multilingual core also appears in the older
-\texttt{en-de}, \texttt{en-it}, and \texttt{en-zh} runs, which is why we treat
-alignment-head sparsity as an empirical design constraint rather than a loose
-interpretability analogy.
-
-\paragraph{Offline head selection.}
-For one head $(\ell,h)$, we compute Translation Score (TS): the fraction of
-aligned target positions whose \emph{full-sequence} attention argmax lands on a
-valid aligned source prompt position. This is stricter than a source-restricted
-argmax because heads that mostly attend to BOS or instruction tokens do not
-score well by accident. We then select
-$\mathcal{H} = \operatorname*{top-}k_{(\ell,h)} \mathrm{TS}(\ell,h)$ with
-$k=8$.
-
-\noindent Before testing these head sets end-to-end in
-Section~\ref{sec:head-filtering}, we first score them on held-out word-aligned
-MT examples under the same prompt layout. Table~\ref{tab:mt-head-filtering}
-shows that the retained top-8 heads preserve a markedly stronger alignment
-signal than uniform all-head averaging even when the all-head baseline is made
-maximally charitable by restricting its argmax to the source-prompt zone
-before scoring.
+\input{generated/decoder_only_alignatt_heads.tex}
 
 \input{generated/mt_head_filtering_ablation.tex}
 
-\section{Observer Implementation, Proof Sketches, and Qualitative Diagnostics}
+\section{Observer Replay and Qualitative Diagnostics}
 \label{sec:appendix-observer}
-\label{sec:qk-fast}
-\label{sec:vllm}
 
-\paragraph{Method overview.}
-Section~\ref{sec:method} gives the compact main-paper version. This appendix
-keeps the fuller derivations, proof sketches, and runtime details. The method
-has two coupled parts. First, we reconstruct exactly only the draft-to-source
-attention block consumed by the policy. Second, we make the required query and
-key tensors observable inside a fused, graph-compiled runtime where the full
-attention matrix never appears in memory.
+This appendix keeps only the details omitted from
+Section~\ref{sec:method}: the prompt/suffix replay equations, one qualitative
+probe, and the numerical parity measurements on the engine-native path.
 
-\paragraph{\emph{qk-fast} selective reconstruction.}
-Let $\mathcal{H}$ be the selected MT head set. The acceptance policy never
-consumes the full $n \times n$ matrix; it only needs draft rows against source
-columns. We therefore reconstruct only that block:
-\begin{equation}
-  \widehat{\mathbf{A}}^{(\ell,h)}_{t,s}
-  =
-  \frac{\exp\!\bigl(\mathbf{Q}^{(\ell,h)}_t \cdot
-    \mathbf{K}^{(\ell,h)}_{\phi^{(k)}(s)}\bigr)}
-       {\sum_{j=1}^{n} \exp\!\bigl(
-         \mathbf{Q}^{(\ell,h)}_t \cdot \mathbf{K}^{(\ell,h)}_j + m_{t,j}
-       \bigr)},
-  \label{eq:qk-fast}
-\end{equation}
-for draft positions $t$, source positions $s$, and heads $(\ell,h)\in
-\mathcal{H}$. The denominator still ranges over the entire prompt, so the
-runtime must expose keys for all prompt positions even though the reconstructed
-object is indexed only by source positions.
-
-\paragraph{Why this simplification is safe.}
-Two qualitative facts matter more than the omitted derivations. First, the
-source-side gate is frontier-monotone: when ASR reveals more source words, mass
-can only move from the inaccessible bucket to the accessible bucket, and the
-allowed frontier only moves right. Second, the replay noise we observe is small
-relative to typical post-filter argmax margins, which is why the eager and
-engine-native paths make the same acceptance decisions on our parity suite.
-The cost story is similarly simple: full attention would scale with the whole
-$LHn^2$ tensor, whereas replay only scales with the selected heads, the draft
-length, and the live prompt length. With $|\mathcal{H}|{=}8$ and short drafts,
-that selective path stays cheap enough to run online.
-
-\paragraph{Why runtime observability is part of the method.}
-Equation~\eqref{eq:qk-fast} is only useful if the runtime exposes the selected
-query and key tensors. Under fused attention kernels and
-\texttt{cudagraph=full}, the Q/K tensors never leave the fused kernel,
-Python-side recorders cannot hook into the compiled graph, and unused outputs
-are eliminated during lowering. The observer is therefore not ancillary
-tooling; it is the mechanism that makes selective reconstruction available in
-the actual inference stack.
-
-\paragraph{Compile-safe capture and replay.}
-The observer is installed before compilation, one slot per layer, so the
-compiled graph never encounters missing attributes. During the fused forward,
-it records only fixed-shape prompt-key and draft query/key tensors for the
-selected head subset; this is why the capture path stays compile-safe. The
-custom op is numerically inert, but its zero-valued return is added back into
-the attention output so the compiler cannot dead-code-eliminate it. After the
-decode step, the stored buffers are sufficient to rebuild prompt-side logits,
-suffix-side logits, and finally the same source-restricted rows that the
-policy consumes.
+\paragraph{Prompt-space replay details.}
+After capture, we replay prompt-side and suffix-side logits separately from the
+stored buffers. Writing $\mathbf{B}^{(\ell,h)}_\star :=
+\mathbf{B}^{(\ell)}_\star[h]$ for head-specific captured tensors, we compute
+\begin{align}
+  \mathbf{P}^{(\ell,h)} &=
+  \mathbf{B}^{(\ell,h)}_{\mathrm{dQ}}
+  \bigl(\mathbf{B}^{(\ell,h)}_{\mathrm{pK}}\bigr)^{\!\top},
+  \label{eq:prompt-logits}\\
+  \mathbf{S}^{(\ell,h)} &=
+  \mathbf{B}^{(\ell,h)}_{\mathrm{dQ}}
+  \bigl(\mathbf{B}^{(\ell,h)}_{\mathrm{dK}}\bigr)^{\!\top}
+  + \mathbf{m}_{\mathrm{causal}},
+  \label{eq:suffix-logits}\\
+  \widetilde{\mathbf{A}}^{(\ell,h)}
+  &= \mathrm{softmax}[\mathbf{P}^{(\ell,h)}, \mathbf{S}^{(\ell,h)}].
+  \label{eq:vllm-softmax}
+\end{align}
+Restricting $\widetilde{\mathbf{A}}^{(\ell,h)}$ to the source columns
+$\phi^{(k)}(s)$ recovers the policy-visible block of
+Eq.~\eqref{eq:mt-qk-fast}. The replay cost therefore scales with the selected
+head set and the short draft length, not with the full $LHn^2$ attention
+tensor.
 
 \paragraph{Qualitative reconstruction example.}
-Figure~\ref{fig:mt-selective-reconstruction} instantiates the full
-reconstruction stack on a text-only MT probe: the exact prompt
-partition seen by the decoder is shown, reconstructed token-level rows are
-aggregated to the word level for readability, and the four-way provenance
-accounting is kept visible for every drafted word.
+Figure~\ref{fig:mt-selective-reconstruction} shows the full reconstruction
+stack on a text-only MT probe: the exact prompt partition seen by the decoder,
+word-level aggregation of the replayed rows for readability, and the four-way
+provenance accounting for every drafted word.
+
+\input{generated/mt_selective_reconstruction_example.tex}
+
+The green band in Figure~\ref{fig:mt-selective-reconstruction} is previously
+committed target text reused as causal context; it is not itself the object of
+the gate. The orange words are the current draft scanned left-to-right by the
+policy. We allow $\hat{s}_t$ to move backward within a live draft when the
+decoder revisits earlier source material under reordering, which is why the
+residual prompt and suffix masses remain explicit in the decoder-only
+formulation.
 
 \paragraph{Numerical parity.}
 Let $\mathbf{A}^{(\mathrm{TF})}$ denote the reference attention tensor produced
@@ -592,12 +503,17 @@ system choice but are no longer central to the retained submission narrative.
 
 \paragraph{Gemma AlignAtt ASR is feasible but not competitive.}
 We verified that the same AlignAtt toolkit can be made to run on the ASR side,
-but the resulting Gemma-ASR path is not competitive enough for submission.
+but the resulting Gemma-ASR path is not competitive enough for submission. The
+limiting factor is poor Gemma-4 ASR quality itself, and this weakness appears
+to be shared by the current multimodal family rather than by one particular
+size variant: the same qualitative limitation is present for both E2B and E4B.
 On the diagnostic clip \texttt{ccpXHNfaoy} (360\,s), Qwen3 forced clearly
 dominates the exploratory Gemma AlignAtt ASR path: WER drops from 0.269 to
 0.113, CER from 0.122 to 0.046, mean absolute boundary lag from 0.403\,s to
 0.145\,s, load time from 123.0\,s to 63.7\,s, and wall-clock RTF from 0.628
 to 0.306. We therefore keep Gemma AlignAtt ASR only as an exploratory result
-and retain Qwen3 forced ASR for the submitted system.
+and retain Qwen3 forced ASR for the submitted system. If a future multimodal
+LLM closes that ASR gap, the same overall design could support a double-AlignAtt
+cascade in which AlignAtt governs both the ASR stage and the MT stage.
 
 \end{document}

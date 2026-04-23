@@ -1,6 +1,6 @@
 \begin{figure*}[!tbp]
 \centering
-\resizebox{\textwidth}{!}{%
+\resizebox{0.94\textwidth}{!}{%
 \begin{tikzpicture}[x=0.55cm,y=0.55cm, every node/.style={font=\scriptsize}]
 \node[anchor=west, font=\bfseries\small] at (-0.15,21.45) {Word-level selective reconstruction on a live MT draft};
 \node[anchor=west, text=black!60] at (-0.15,20.75) {target=\texttt{French} \; \textbullet \; gate=\texttt{alignatt:source\_frontier} \; \textbullet \; blocked at source word 13 (\emph{fast})};
@@ -344,19 +344,19 @@
 \node[anchor=north, font=\tiny, text=black!60] at (1.00,1.14) {0.00};
 \node[anchor=north, font=\tiny, text=black!60] at (5.50,1.14) {0.68};
 \node[font=\bfseries, text=black!85] at (6.80,1.35) {$\bigstar$};
-\node[anchor=west, font=\tiny, text=black!65] at (7.08,1.35) {argmax in accessible region};
+\node[anchor=west, font=\tiny, text=black!65] at (7.08,1.35) {argmax before frontier};
 \node[font=\bfseries, text=red!70!black] at (13.60,1.35) {$\bigstar$};
-\node[anchor=west, font=\tiny, text=black!65] at (13.88,1.35) {argmax beyond frontier $\Rightarrow$ gate fires};
+\node[anchor=west, font=\tiny, text=black!65] at (13.88,1.35) {argmax beyond frontier};
 \filldraw[fill=blue!55!black, draw=blue!55!black] (4.22,0.38) rectangle (4.54,0.72);
-\node[anchor=west, font=\tiny, text=black!65] at (4.70,0.55) {accessible source};
+\node[anchor=west, font=\tiny, text=black!65] at (4.70,0.55) {acc. source};
 \filldraw[fill=blue!22, draw=blue!22] (8.93,0.38) rectangle (9.25,0.72);
-\node[anchor=west, font=\tiny, text=black!65] at (9.40,0.55) {inaccessible source};
+\node[anchor=west, font=\tiny, text=black!65] at (9.40,0.55) {inacc. source};
 \filldraw[fill=black!22, draw=black!22] (13.93,0.38) rectangle (14.25,0.72);
-\node[anchor=west, font=\tiny, text=black!65] at (14.40,0.55) {non-source prompt};
+\node[anchor=west, font=\tiny, text=black!65] at (14.40,0.55) {prompt};
 \filldraw[fill=orange!55!black, draw=orange!55!black] (18.62,0.38) rectangle (18.95,0.72);
 \node[anchor=west, font=\tiny, text=black!65] at (19.09,0.55) {suffix};
 \end{tikzpicture}%
 }
-\caption{\textbf{Word-level selective reconstruction on a live MT draft.} \emph{Top ribbon:} the decoder-only prompt is split into the system instruction, the live source (with the accessibility frontier shown in-line between the committed accessible prefix and the still-inaccessible tail), the already accepted target prefix reused from earlier streaming steps, and the draft currently under inference. \emph{Left panel:} reconstructed draft-to-source attention from the selected AlignAtt heads, aggregated to the word level; rows are drafted words, columns are source words split by the dashed frontier. A star marks the per-row argmax (black when it lands in the accessible region, red when it lands beyond the frontier, which is exactly what triggers the \textsc{source-frontier} gate). \emph{Right panel:} for each drafted word the reconstructed attention mass is partitioned into the four provenance classes; the numeric annotation is the total source share (accessible $+$ inaccessible). The green band is previously committed target text reused as causal context; it is not itself the object of the gate. The first black stars in the orange draft show that newly proposed words may still align to multiple source words inside the current accessible span, and only the first red star beyond the frontier triggers rejection.}
+\caption{\textbf{Word-level selective reconstruction on a live MT draft.} \emph{Top ribbon:} prompt partition into system instruction, live source, accepted target prefix, and current draft. \emph{Left panel:} reconstructed draft-to-source attention from the selected AlignAtt heads, aggregated to words and split by the dashed accessibility frontier; black stars stay on the accessible side, while the first red star marks the \textsc{source-frontier} failure. \emph{Right panel:} each drafted word is decomposed into accessible-source, inaccessible-source, prompt, and suffix mass, with the numeric label giving the total source share.}
 \label{fig:mt-selective-reconstruction}
 \end{figure*}

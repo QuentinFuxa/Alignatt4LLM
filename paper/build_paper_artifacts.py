@@ -324,11 +324,11 @@ def load_asr_grid_and_selected() -> tuple[list[list[float]], list[tuple[int, int
 
 def build_section3_figure() -> None:
     mt_grid, mt_selected = load_multilingual_mean_grid()
-    asr_grid, asr_selected = load_asr_grid_and_selected()
+    _asr_grid, asr_selected = load_asr_grid_and_selected()
 
     observed_values = [
         value
-        for grid in (mt_grid, asr_grid)
+        for grid in (mt_grid,)
         for row in grid
         for value in row
         if value > 0.0
@@ -352,11 +352,10 @@ def build_section3_figure() -> None:
         return rgb_mix(mid, high, (normalized - 0.55) / 0.45)
 
     mt_y0 = 0.0
-    asr_y0 = 11.0
     panel_height = 8.0
-    legend_y = -2.6
-    box_y_min = -4.6
-    box_y_max = asr_y0 + panel_height + 3.0  # 22.0
+    legend_y = -2.45
+    box_y_min = -4.0
+    box_y_max = mt_y0 + panel_height + 3.0
 
     lines: list[str] = []
     lines.append(r"\begin{figure*}[t]")
@@ -370,6 +369,7 @@ def build_section3_figure() -> None:
     def emit_panel(
         grid: list[list[float]],
         selected: list[tuple[int, int]],
+        comparison_selected: list[tuple[int, int]],
         y0: float,
         panel_title: str,
         *,
@@ -377,6 +377,7 @@ def build_section3_figure() -> None:
         show_shared_kv_bracket: bool,
     ) -> None:
         selected_set = set(selected)
+        comparison_set = set(comparison_selected)
         y1 = y0 + panel_height
 
         title_y = y1 + 1.5 if show_shared_kv_bracket else y1 + 0.7
@@ -414,15 +415,22 @@ def build_section3_figure() -> None:
         for layer in range(GEMMA_LAYER_COUNT):
             for head in range(GEMMA_HEAD_COUNT):
                 fill_rgb = score_fill_rgb(grid[layer][head])
-                draw = "black!55"
-                width = "0.25pt"
-                if (layer, head) in selected_set:
-                    draw = "blue!55!black"
-                    width = "0.9pt"
                 lines.append(
-                    rf"\filldraw[fill={tikz_color(fill_rgb)}, draw={draw}, line width={width}] "
+                    rf"\filldraw[fill={tikz_color(fill_rgb)}, draw=black!55, line width=0.25pt] "
                     rf"({layer:.2f},{y0 + head:.2f}) rectangle ({layer + 1:.2f},{y0 + head + 1:.2f});"
                 )
+        for layer, head in comparison_set:
+            lines.append(
+                rf"\draw[draw=green!55!black, line width=0.9pt] "
+                rf"({layer + 0.03:.2f},{y0 + head + 0.03:.2f}) rectangle "
+                rf"({layer + 0.97:.2f},{y0 + head + 0.97:.2f});"
+            )
+        for layer, head in selected_set:
+            lines.append(
+                rf"\draw[draw=blue!55!black, line width=0.9pt] "
+                rf"({layer + 0.10:.2f},{y0 + head + 0.10:.2f}) rectangle "
+                rf"({layer + 0.90:.2f},{y0 + head + 0.90:.2f});"
+            )
         lines.append(
             rf"\draw[draw=black!45, line width=0.5pt] (0,{y0:.2f}) rectangle (42,{y1:.2f});"
         )
@@ -440,20 +448,13 @@ def build_section3_figure() -> None:
                     )
 
     emit_panel(
-        asr_grid,
-        asr_selected,
-        asr_y0,
-        "ASR alignment heads (English, forced-alignment TS)",
-        show_layer_labels=False,
-        show_shared_kv_bracket=True,
-    )
-    emit_panel(
         mt_grid,
         mt_selected,
+        asr_selected,
         mt_y0,
         r"MT alignment heads (en$\to\{$de,\,it,\,zh$\}$ mean TS)",
         show_layer_labels=True,
-        show_shared_kv_bracket=False,
+        show_shared_kv_bracket=True,
     )
 
     lines.append(rf"\node[anchor=east, font=\tiny, text=black!70] at (5.0,{legend_y:.2f}) {{TS scale}};")
@@ -488,36 +489,45 @@ def build_section3_figure() -> None:
     )
     lines.append(
         rf"\node[anchor=west, font=\tiny, text=black!70] at "
-        rf"(15.2,{legend_y:.2f}) {{retained online}};"
+        rf"(15.2,{legend_y:.2f}) {{retained MT}};"
+    )
+
+    lines.append(
+        rf"\filldraw[fill=white, draw=green!55!black, line width=0.9pt] "
+        rf"(19.0,{legend_y - 0.35:.2f}) rectangle (19.8,{legend_y + 0.35:.2f});"
+    )
+    lines.append(
+        rf"\node[anchor=west, font=\tiny, text=black!70] at "
+        rf"(20.0,{legend_y:.2f}) {{ASR heads}};"
     )
 
     lines.append(
         rf"\filldraw[fill=black!7, draw=black!20] "
-        rf"(21.2,{legend_y - 0.35:.2f}) rectangle (22.0,{legend_y + 0.35:.2f});"
+        rf"(29.0,{legend_y - 0.35:.2f}) rectangle (29.8,{legend_y + 0.35:.2f});"
     )
     lines.append(
         rf"\node[anchor=west, font=\tiny, text=black!70] at "
-        rf"(22.2,{legend_y:.2f}) {{full-attention layer}};"
+        rf"(30.0,{legend_y:.2f}) {{full-attention layer}};"
     )
 
     lines.append(r"\end{tikzpicture}%")
     lines.append(r"}")
     lines.append(
-        r"\caption{\textbf{Architecture-aware view of Gemma AlignAtt heads.} "
-        r"Each heatmap covers Gemma's 42 layers (horizontal axis) and 8 query heads "
+        r"\caption{\textbf{Architecture-aware view of retained MT alignment heads.} "
+        r"The heatmap covers Gemma's 42 layers (horizontal axis) and 8 query heads "
         r"(vertical axis); color encodes mean token-alignment score TS on a shared "
-        r"$[0, \mathrm{max}]$ scale, so empty cells read as low rather than "
-        r"``below threshold''. \emph{Top:} audio-to-text alignment heads, scored by "
-        r"forced-alignment MAE on English dev audio. \emph{Bottom:} source-to-target "
-        r"translation heads, averaged over en$\to$\{de,\,it,\,zh\}. Blue outlines mark "
-        r"the per-role retained heads ($\mathcal{H}_{\mathrm{ASR}}$ and "
-        r"$\mathcal{H}_{\mathrm{MT}}$); grey vertical stripes mark full-attention layers; "
-        r"the blue bracket delimits the late shared-KV block, where observer cost "
-        r"follows KV-group ownership rather than query-head count. The two retained "
-        r"sets concentrate in disjoint depth regions, consistent with per-role "
-        r"functional specialization.}"
+        r"$[0,\mathrm{max}]$ scale, so empty cells read as low rather than "
+        r"``below threshold''. Scores are averaged over en$\to$\{de,\,it,\,zh\}. "
+        r"Blue outlines mark the retained shared-kernel MT head set "
+        r"$\mathcal{H}_{\mathrm{MT}}$; green outlines mark the ASR "
+        r"alignment heads from the discarded single-substrate path; grey vertical "
+        r"stripes mark full-attention layers; the blue bracket delimits the late "
+        r"shared-KV block, where observer cost follows KV-group ownership rather "
+        r"than raw query-head count. The useful MT heads are sparse and concentrated "
+        r"in the late part of the backbone, while the limited overlap with the ASR "
+        r"set highlights role-specific specialization.}"
     )
-    lines.append(r"\label{fig:decoder-only-heads}")
+    lines.append(r"\label{fig:mt-alignatt-heads}")
     lines.append(r"\end{figure*}")
     SECTION3_FIG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -1080,8 +1090,8 @@ def write_qualitative_provenance_summary(summary: dict[str, Any]) -> None:
     lines = [
         r"\paragraph{Residual provenance in decoder-only AlignAtt.}",
         (
-            r"Unlike encoder--decoder AlignAtt, the source-restricted rows of "
-            r"Eq.~\eqref{eq:virtual-xattn} are not normalized over the source alone: "
+            r"Unlike encoder--decoder AlignAtt, the replayed decoder-only rows are "
+            r"not normalized over the source alone: "
             r"attention can also land on the accepted target prefix, the rest of the "
             r"prompt template, and the speculative suffix. On the French qualitative "
             r"probe bank used to mine Fig.~\ref{fig:mt-selective-reconstruction} "
@@ -1495,29 +1505,6 @@ def write_qualitative_figure(snapshot: dict[str, Any]) -> None:
     if prefix_text and draft_text.startswith(prefix_text):
         draft_suffix_text = draft_text[len(prefix_text):].lstrip()
 
-    example_note = ""
-    if snapshot.get("family") == "perspective_inversion":
-        example_note = (
-            r" In the selected example, English \emph{I miss you} becomes French "
-            r"\emph{Tu me manques}, so the accepted target prefix already follows a "
-            r"non-monotone source order that a simple token-count heuristic would not capture."
-        )
-    elif snapshot.get("family") == "perspective_clause_boundary":
-        example_note = (
-            r" Here the accepted prefix comes from the earlier source clause, while the "
-            r"draft begins with the English object phrase \emph{those good old days} "
-            r"before the French experiencer ending \emph{me manquent}, exposing a genuine "
-            r"non-monotone continuation beyond the frontier."
-        )
-    else:
-        example_note = (
-            r" The green band is previously committed target text reused as causal context; "
-            r"it is not itself the object of the gate. The first black stars in the orange "
-            r"draft show that newly proposed words may still align to multiple source words "
-            r"inside the current accessible span, and only the first red star beyond the "
-            r"frontier triggers rejection."
-        )
-
     # ---------- Layout (TikZ units; x=y=0.55cm) ----------
     TU_CM = 0.55
 
@@ -1527,28 +1514,28 @@ def write_qualitative_figure(snapshot: dict[str, Any]) -> None:
 
     heat_x0 = left_label_w
     heat_x1 = heat_x0 + n_src * cell_w
-    prov_gap = 0.70
+    prov_gap = 0.55
     prov_x0 = heat_x1 + prov_gap
-    prov_w = 6.8
+    prov_w = 6.35
     prov_x1 = prov_x0 + prov_w
 
-    heat_y0 = 2.20
+    heat_y0 = 1.95
     heat_y1 = heat_y0 + n_tgt * cell_h
 
     # Space above heatmap for the accessible/inaccessible band and rotated column headers.
     band_y = heat_y1 + 0.25
     col_header_top = band_y + 0.45
 
-    panel_head_y = col_header_top + 2.40  # leave room for rotated column headers
+    panel_head_y = col_header_top + 2.05  # leave room for rotated column headers
 
     # Tag pills sit just above each ribbon box; tags use \tiny so ~0.25 TikZ unit.
-    ribbon_height = 2.25
-    prompt_y0 = panel_head_y + 0.70
+    ribbon_height = 2.00
+    prompt_y0 = panel_head_y + 0.55
     prompt_y1 = prompt_y0 + ribbon_height
     tag_y = prompt_y1 + 0.10
 
-    subtitle_y = tag_y + 1.00
-    title_y = subtitle_y + 0.70
+    subtitle_y = tag_y + 0.75
+    title_y = subtitle_y + 0.55
 
     canvas_x0 = -0.25
     canvas_x1 = prov_x1 + 0.25
@@ -1556,7 +1543,7 @@ def write_qualitative_figure(snapshot: dict[str, Any]) -> None:
     lines: list[str] = []
     lines.append(r"\begin{figure*}[t]")
     lines.append(r"\centering")
-    lines.append(r"\resizebox{\textwidth}{!}{%")
+    lines.append(r"\resizebox{0.94\textwidth}{!}{%")
     lines.append(r"\begin{tikzpicture}[x=0.55cm,y=0.55cm, every node/.style={font=\scriptsize}]")
 
     # -------- Title + subtitle --------
@@ -1779,15 +1766,15 @@ def write_qualitative_figure(snapshot: dict[str, Any]) -> None:
             rf"{{{src_share * 100:.0f}\% source}};"
         )
 
-    # -------- Bottom legend: two rows --------
+    # -------- Bottom legend: two compact rows --------
     # Row A (top): colorbar + argmax stars.
     # Row B (bottom): provenance swatches in a single horizontal row.
-    row_a_y = 1.35
-    row_b_y = 0.55
-    cbar_half = 0.18
+    row_a_y = 1.05
+    row_b_y = 0.48
+    cbar_half = 0.16
 
     cbar_x0 = canvas_x0 + 1.25  # leave room for "attention" label to the left
-    cbar_x1 = cbar_x0 + 4.50
+    cbar_x1 = cbar_x0 + 3.90
     n_grad = 48
     for idx in range(n_grad):
         t = idx / (n_grad - 1)
@@ -1821,28 +1808,28 @@ def write_qualitative_figure(snapshot: dict[str, Any]) -> None:
     )
     lines.append(
         rf"\node[anchor=west, font=\tiny, text=black!65] "
-        rf"at ({star1_x + 0.28:.2f},{row_a_y:.2f}) {{argmax in accessible region}};"
+        rf"at ({star1_x + 0.28:.2f},{row_a_y:.2f}) {{argmax before frontier}};"
     )
-    star2_x = star1_x + 6.80
+    star2_x = star1_x + 4.70
     lines.append(
         rf"\node[font=\bfseries, text=red!70!black] at ({star2_x:.2f},{row_a_y:.2f}) {{$\bigstar$}};"
     )
     lines.append(
         rf"\node[anchor=west, font=\tiny, text=black!65] "
-        rf"at ({star2_x + 0.28:.2f},{row_a_y:.2f}) {{argmax beyond frontier $\Rightarrow$ gate fires}};"
+        rf"at ({star2_x + 0.28:.2f},{row_a_y:.2f}) {{argmax beyond frontier}};"
     )
 
     # Row B: 4 provenance swatches laid out horizontally.
     sw_entries = [
-        ("blue!55!black", "accessible source"),
-        ("blue!22", "inaccessible source"),
-        ("black!22", "non-source prompt"),
+        ("blue!55!black", "acc. source"),
+        ("blue!22", "inacc. source"),
+        ("black!22", "prompt"),
         ("orange!55!black", "suffix"),
     ]
     sw_w = 0.32
     sw_gap_text = 0.15
-    entry_gap = 0.90
-    entry_widths = [3.80, 4.10, 3.80, 1.80]
+    entry_gap = 0.55
+    entry_widths = [2.80, 3.00, 2.10, 1.45]
     total_entries_w = sum(entry_widths) + entry_gap * (len(sw_entries) - 1)
     cursor_x = canvas_x0 + (canvas_x1 - canvas_x0 - total_entries_w) / 2.0
     for (color, label), ew in zip(sw_entries, entry_widths):
@@ -1861,21 +1848,15 @@ def write_qualitative_figure(snapshot: dict[str, Any]) -> None:
 
     lines.append(
         r"\caption{\textbf{Word-level selective reconstruction on a live MT draft.} "
-        r"\emph{Top ribbon:} the decoder-only prompt is split into the system instruction, "
-        r"the live source (with the accessibility frontier shown in-line between the "
-        r"committed accessible prefix and the still-inaccessible tail), the already "
-        r"accepted target prefix reused from earlier streaming steps, and the draft currently "
-        r"under inference. "
+        r"\emph{Top ribbon:} prompt partition into system instruction, live source, "
+        r"accepted target prefix, and current draft. "
         r"\emph{Left panel:} reconstructed draft-to-source attention from the selected "
-        r"AlignAtt heads, aggregated to the word level; rows are drafted words, columns "
-        r"are source words split by the dashed frontier. A star marks the per-row argmax "
-        r"(black when it lands in the accessible region, red when it lands beyond the "
-        r"frontier, which is exactly what triggers the \textsc{source-frontier} gate). "
-        r"\emph{Right panel:} for each drafted word the reconstructed attention mass is "
-        r"partitioned into the four provenance classes; the numeric annotation is the "
-        r"total source share (accessible $+$ inaccessible)."
-        + example_note
-        + r"}")
+        r"AlignAtt heads, aggregated to words and split by the dashed accessibility "
+        r"frontier; black stars stay on the accessible side, while the first red star "
+        r"marks the \textsc{source-frontier} failure. "
+        r"\emph{Right panel:} each drafted word is decomposed into accessible-source, "
+        r"inaccessible-source, prompt, and suffix mass, with the numeric label giving "
+        r"the total source share.}")
     lines.append(r"\label{fig:mt-selective-reconstruction}")
     lines.append(r"\end{figure*}")
     QUALITATIVE_FIG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")

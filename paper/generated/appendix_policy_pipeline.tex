@@ -54,7 +54,7 @@
   \node[eqn, anchor=north] at ({(\ixL+\ixR)/2}, \iyB-0.45)
     {$\widehat{\mathbf{A}}^{(\ell,h)}_{t,s},\ (\ell,h)\in\mathcal{H}$};
   \node[sublab, anchor=north] at ({(\ixL+\ixR)/2}, \iyB-0.90)
-    {Eq.~\eqref{eq:qk-fast}};
+    {Eq.~\eqref{eq:mt-qk-fast}};
 
   % --- Split arrow ---------------------------------------------------------
   \def\jx{2.90}
@@ -109,17 +109,17 @@
     {emit $y_t$ iff all three hold:};
 
   \node[eqn, anchor=west] at (\gL+0.20,\gT-1.30)
-    {(i)\ \ $\hat s_t\,\in\,\mathcal{S}^{(k)}_{\mathrm{acc}}$};
+    {(i)\ \ $\hat s_t \,<\, N^{(k)}_{\mathrm{acc}} + b$};
   \node[sublab, anchor=west, text width=2.50cm]
     at (\gL+0.40,\gT-1.75) {peak stays left of the frontier};
 
   \node[eqn, anchor=west] at (\gL+0.20,\gT-2.45)
-    {(ii)\ \ $p_{t,\hat s_t}\,\ge\,\tau_{\mathrm{peak}}$};
+    {(ii)\ \ $p_{t,\hat s_t}\,\ge\,\tau_{\mathrm{argmax}}$};
   \node[sublab, anchor=west, text width=2.50cm]
     at (\gL+0.40,\gT-2.90) {local peak mass high enough};
 
   \node[eqn, anchor=west] at (\gL+0.20,\gT-3.60)
-    {(iii)\ \ $\pi^{\mathrm{acc}}_t\,\ge\,\tau_{\mathrm{prov}}$};
+    {(iii)\ \ $\pi^{\mathrm{acc}}_t\,\ge\,\tau_{\mathrm{src}}$};
   \node[sublab, anchor=west, text width=2.50cm]
     at (\gL+0.40,\gT-4.05) {enough accessible mass overall};
 
@@ -181,8 +181,8 @@ z$ is obtained by z-scoring each head with prefix-online Welford moments,
 averaging over~$\mathcal{H}$, and applying a width-$7$ median filter along
 the source axis. The gate $g_t$ accepts draft token $t$ iff the peak stays on
 the accessible side of the frontier, the peak mass exceeds
-$\tau_{\mathrm{peak}}$, and the accessible-source mass exceeds
-$\tau_{\mathrm{prov}}$. A left-to-right scan emits the longest run of
-accepting tokens and drops the remainder at the first failure.}
-\label{fig:appendix-policy-pipeline}
+$\tau_{\mathrm{argmax}}$, and the accessible-source mass exceeds
+$\tau_{\mathrm{src}}$. A left-to-right scan emits the longest run of accepting
+tokens and drops the remainder at the first failure.}
+\label{fig:policy-pipeline}
 \end{figure*}
