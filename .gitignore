@@ -167,5 +167,6 @@ acl-speech/*
 
 *.zip
 *.pdf
+!paper/main.pdf
 *.jsonl
 *.wav
