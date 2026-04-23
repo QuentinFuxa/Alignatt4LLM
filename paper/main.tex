@@ -64,27 +64,24 @@ observer cheap enough to stay on the deployed runtime.
 
 This paper describes the retained IWSLT 2026 submission system for
 English-to-German, English-to-Chinese, and English-to-Italian. The stack is a
-synchronous Qwen3 forced ASR \,+\, Gemma-4 E4B-it cascade with two operating
-regimes: one low-latency and one high-latency. Earlier exploration of an
-all-Gemma ``single substrate'' variant remains in the appendix, but it is not
-part of the submitted system.
+synchronous Qwen3 forced ASR \,+\, Gemma-4 E4B-it \citep{gemma4card26}
+cascade with two operating regimes: one low-latency and one high-latency.
 
 One deployment choice shapes the rest of the paper: both ASR and MT are served
-through vLLM so that speech and translation share a single compiled inference
-stack. On the MT side, that choice removes the standard AlignAtt observation
-point twice over. Gemma-4 is decoder-only, so there is no decoder
-cross-attention to read, and vLLM keeps self-attention inside fused,
+through vLLM \citep{vllm23} so that speech and translation share a single
+compiled inference stack. On the MT side, that choice removes the standard
+AlignAtt observation point twice over. Gemma-4 is decoder-only, so there is no
+decoder cross-attention to read, and vLLM keeps self-attention inside fused,
 graph-compiled kernels, so the full attention matrix is not exposed to Python.
-The main technical contribution is therefore an engine-native AlignAtt
-realization for decoder-only MT: a deterministic prompt layout to mark the
-source span, offline head selection, selective replay of the draft-to-source
-block, and compile-safe query/key capture that preserves model outputs
-bit-identically.
+The practical question is therefore whether an AlignAtt-style MT policy can be
+recovered on that deployed stack without falling back to a separate inspection
+runtime. The answer is yes: we keep the policy engine-native and bit-identical
+to the served model, and the rest of the paper explains how.
 
 Section~\ref{sec:background} situates the problem,
 Section~\ref{sec:system} describes the submitted system,
 Section~\ref{sec:method} details the MT-side AlignAtt realization,
-Section~\ref{sec:results} reports the results, and the appendix keeps the
+Section~\ref{sec:results} reports the results, and the appendix gathers the
 heavier derivations and exploratory analyses.
 
 \section{Background}
@@ -135,24 +132,31 @@ on boundary accuracy, word error rate, and runtime; the auxiliary comparison is
 reported in Appendix~\ref{sec:appendix-asr}.
 
 \paragraph{MT backend.}
-The translation side uses Gemma-4 E4B-it served through graph-compiled vLLM.
+The translation side uses Gemma-4 E4B-it \citep{gemma4card26} served through
+graph-compiled vLLM \citep{vllm23}.
 At step $k$, Gemma receives the current transcript prefix, the already accepted
-target prefix, and a fixed translation instruction, then generates a short
-draft continuation. AlignAtt accepts the longest draft prefix whose alignment
-signal stays on the currently accessible side of the source frontier.
+target prefix, and a fixed translation instruction, then greedily generates a
+draft continuation capped at 16 new tokens in the partial streaming mode used
+by the submitted bundles. AlignAtt accepts the longest draft prefix whose
+alignment signal stays on the currently accessible side of the source frontier.
 
 \paragraph{Streaming loop.}
 The cascade is synchronous and chunk-based. Each chunk first updates the ASR
 transcript prefix, then launches one MT request. Source words are considered
-accessible only once their end time is older than a small hold-back margin. MT
-output is append-only: once a target token is accepted, it is reused as causal
-prefill for the next MT step and is never retracted.
+accessible only once their end time is older than a hold-back margin; in the
+frozen submitted bundles this margin is 0 ms, so a word becomes accessible as
+soon as its aligned end time is observed. Both submitted regimes also delay the
+first MT emission until 2.0 s of source audio have accumulated. MT output is
+append-only: once a target token is accepted, it is reused as causal prefill
+for the next MT step and is never retracted.
 
 \paragraph{Submitted operating points.}
 We keep two official submission regimes. The low-latency submission uses
 $\Delta_{\mathrm{chunk}}=850$ ms and the high-latency submission uses
 $\Delta_{\mathrm{chunk}}=1500$ ms. Both use the same ASR backend, Gemma-4 MT
-backbone, and MT-side AlignAtt realization.
+backbone, and MT-side AlignAtt realization. In the frozen submitted bundles,
+both regimes also use the same top-8 MT head set, a width-7 source-axis median
+filter, and a border margin $b=1$.
 
 \input{generated/submitted_cascade.tex}
 
@@ -171,7 +175,8 @@ forcing a deterministic prompt layout:
 \mathbf{p}^{(k)} =
 \left[\mathbf{p}^{\mathrm{sys}}
 \Vert \mathbf{s}^{(k)}
-\Vert \mathbf{p}^{\mathrm{instr}}, \mathbf{y}_{1:m_k}
+\Vert \mathbf{p}^{\mathrm{instr}}
+\Vert \mathbf{y}_{1:m_k}
 \Vert \widetilde{\mathbf{y}}^{(k)}\right],
 \label{eq:mt-prompt}
 \end{equation}
@@ -183,24 +188,25 @@ map $\phi^{(k)}$ from source-word indices to prompt positions.
 
 Not all self-attention heads carry a useful translation signal
 \citep{tokenheads26}. Following \citet{tokenheads26}, we operationalize this
-with a two-stage offline calibration procedure under the exact prompt layout
-above: GPT-5-mini first provides word-level source-target alignments on held-out
-parallel text, then every Gemma head is scored with Translation Score (TS) on
-those aligned examples. We retain the top $k=8$ heads per language pair. This
-head set is fixed at inference time and is the only part of the policy that
-depends on offline calibration. Appendix~\ref{sec:appendix-alignatt} reports
-the calibration details, corpus sizes, and per-direction score summaries. The
-retained MT heads are sparse and concentrated in a limited late-depth region of
-the backbone rather than spread uniformly; Appendix~\ref{sec:appendix-alignatt}
-visualizes that pattern in Figure~\ref{fig:mt-alignatt-heads}.
+with a two-stage offline calibration procedure under the exact prompt layout of
+Eq.~\eqref{eq:mt-prompt}: GPT-5-mini first provides word-level source-target
+alignments on held-out parallel text, then every Gemma head is scored with
+Translation Score (TS) on those aligned examples. We retain the top $k=8$
+heads per language pair. This head set is fixed at inference time and is the
+only part of the policy that depends on offline calibration.
+Appendix~\ref{sec:appendix-alignatt} reports the calibration details, corpus
+sizes, and per-direction score summaries. The retained MT heads are sparse and
+concentrated in a limited late-depth region of the backbone rather than spread
+uniformly; Appendix~\ref{sec:appendix-alignatt} visualizes that pattern in
+Figure~\ref{fig:mt-alignatt-heads}.
 
 The policy only reads the source slice of each draft attention row,
 $\mathbf{A}^{(\ell,h)}_{t,\phi^{(k)}(s)}$, but unlike encoder--decoder
 cross-attention this slice is not source-normalized. Off-source mass on the
 accepted target prefix, prompt template, and speculative suffix is therefore
-structural rather than implementation noise. On the 78 French qualitative
-probes used for our detailed diagnostics, drafted units allocate on average
-9\% to accessible source tokens, 8\% to inaccessible source tokens, 81\% to
+structural rather than implementation noise. On the 78 text-only qualitative
+probes used for our detailed diagnostics, drafted units allocate on average 9\%
+to accessible source tokens, 8\% to inaccessible source tokens, 81\% to
 non-source prompt positions, and 2\% to the speculative suffix; among units
 that the policy actually accepts, the inaccessible-source share drops from 8\%
 to 1\%.
@@ -213,13 +219,22 @@ positions $t$, and source positions $s$, we reconstruct
 \begin{equation}
 \widehat{A}^{(\ell,h)}_{t,s}
 =
-\frac{\exp\!\left(q^{(\ell,h)}_t \cdot k^{(\ell,h)}_{\phi^{(k)}(s)}\right)}
-{\sum_j \exp\!\left(q^{(\ell,h)}_t \cdot k^{(\ell,h)}_j + m_{t,j}\right)},
+\frac{\exp\!\left(
+\gamma^{(\ell)} q^{(\ell,h)}_t \cdot k^{(\ell,h)}_{\phi^{(k)}(s)}
+  + m_{t,\phi^{(k)}(s)}
+\right)}
+{\sum_j \exp\!\left(
+\gamma^{(\ell)} q^{(\ell,h)}_t \cdot k^{(\ell,h)}_j + m_{t,j}
+\right)},
 \label{eq:mt-qk-fast}
 \end{equation}
-where the denominator still ranges over the entire prompt. We call this replay
-path \emph{qk-fast}: it is exact up to floating-point reassociation relative to
-the fused forward and only reconstructs the policy-visible block.
+where $q$ and $k$ are the captured post-normalization, post-RoPE tensors
+actually consumed by the deployed attention module, $\gamma^{(\ell)}$ is that
+module's runtime scaling factor, and $m_{t,j}$ replays the same causal and
+sliding-window masks as the fused forward. We call this replay path
+\emph{qk-fast}: it reconstructs only the policy-visible block and matches the
+deployed attention algebra up to floating-point reassociation relative to the
+fused forward.
 
 \input{generated/qk_fast_selective_reconstruction.tex}
 
@@ -238,7 +253,10 @@ drafted token: accessible-source mass and inaccessible-source mass,
 where $\bar{\mathbf{r}}_t$ is the head-averaged reconstructed row. We
 additionally normalize per-head rows online with prefix Welford statistics and
 apply a short median filter along the source axis before taking the source-side
-argmax. This stabilizes the alignment peak without changing the underlying
+argmax. The submitted gate only thresholds $\pi_t^{\mathrm{acc}}$; the
+complementary $\pi_t^{\mathrm{inacc}}$ is retained as a diagnostic split for
+Figure~\ref{fig:mt-selective-reconstruction} and the appendix-level provenance
+analyses. This stabilizes the alignment peak without changing the underlying
 replayed rows.
 
 \subsection{AlignAtt Acceptance Policy}
@@ -259,6 +277,10 @@ of three conditions first fires:
   &\pi_t^{\mathrm{acc}} < \tau_{\mathrm{src}}.
   \label{eq:mt-stop-prov}
 \end{align}
+In the frozen 850/1500 submission bundles, $b=1$,
+$\tau_{\mathrm{argmax}}=0$, and $\tau_{\mathrm{src}}=0$, so the optional
+argmax-mass and minimum-source-mass gates are present in the runtime but
+inactive in the submitted operating points.
 
 \input{generated/appendix_policy_pipeline.tex}
 
@@ -266,9 +288,14 @@ Figure~\ref{fig:policy-pipeline} makes the decision path explicit. One branch
 averages the retained heads and sums accessible-source mass to obtain
 $\pi_t^{\mathrm{acc}}$. The other normalizes and smooths the same replayed rows
 before taking the source-side argmax $\hat{s}_t$. The gate accepts token $t$
-iff all three conditions above pass; a left-to-right first-failure scan then
-emits the longest accepting draft prefix and rounds back to the nearest
-stability-unit boundary so partial subword fragments are never emitted.
+iff the three tests in
+Eqs.~\eqref{eq:mt-stop-frontier}--\eqref{eq:mt-stop-prov} all pass; a
+left-to-right first-failure scan then emits the longest accepting draft prefix
+and rounds back to the last completed stability unit. Here a stability unit is
+the smallest target fragment that the tokenizer treats as safe to commit: a
+whitespace-delimited lexical word in spacing scripts such as EN$\to$DE/IT, or
+a single CJK character in EN$\to$ZH, so partial subword fragments are never
+emitted.
 
 \subsection{Engine-Native Capture under Compiled Inference}
 
@@ -292,14 +319,16 @@ dependency keeps the observer in the transitive fan-in of the graph output:
 Figure~\ref{fig:observer-lifecycle} separates the capture path into three
 stages. At compile time, we patch the attention forward and install fixed-shape
 observer slots before graph capture. During each compiled forward, the live
-observer records prompt keys and draft-row queries for the selected heads while
-returning $\Phi \equiv \mathbf{0}$ back into the attention output. After the
-forward, a short Python-side replay reconstructs only the selective
+observer records prompt keys and draft-row queries for the selected heads after
+the module's $q/k$ normalization and rotary embedding, then returns
+$\Phi \equiv \mathbf{0}$ back into the attention output. After the forward, a
+short Python-side replay reconstructs only the selective
 draft-to-source block consumed by the policy and by the parity suite. The
-sentinel term is therefore only a liveness device: without the additive zero,
-graph lowering dead-code-eliminates the observer path and no usable Q/K
-buffers survive on the deployed runtime. Appendix~\ref{sec:appendix-observer}
-keeps the replay equations, parity measurements, and qualitative probe.
+sentinel add-back of Eq.~\eqref{eq:mt-sentinel} is therefore only a liveness
+device: without the additive zero, graph lowering dead-code-eliminates the
+observer path and no usable Q/K buffers survive on the deployed runtime.
+Appendix~\ref{sec:appendix-observer} keeps the replay equations, parity
+measurements, and qualitative probe.
 
 \section{Results}
 \label{sec:results}
@@ -331,7 +360,11 @@ same head set, one warmup pass, and repeated hot runs in isolated subprocesses.
 Table~\ref{tab:e2e} reports the submitted operating points. The pattern is
 consistent across EN$\to$DE, EN$\to$ZH, and EN$\to$IT: the low-latency regime
 stays near a 2\,s CU-LongYAAL point, while the high-latency regime moves to a
-clearly stronger quality point at the expected latency cost. We therefore read
+clearly stronger quality point at the expected latency cost. CA-LongYAAL is
+consistently below CU-LongYAAL here because OmniSTEval replaces each
+chunk-boundary audio increment by the actual wall-clock increment spent
+processing that chunk, and our hot A40 pipeline runs faster than real time.
+The columns are therefore not inverted. We therefore read
 Table~\ref{tab:e2e} as evidence that the MT-side AlignAtt realization supports
 both a stable low-latency operating point and a higher-quality regime on the
 same decoder-only Gemma backend.
@@ -427,6 +460,9 @@ BLEU and XCOMET-XL.
 
 \appendix
 
+\section{Coordination Regimes and Additional MT Alignment-Head Diagnostics}
+\label{sec:appendix-alignatt}
+
 \input{generated/coordination_regimes.tex}
 
 \input{generated/decoder_only_alignatt_heads.tex}
@@ -436,23 +472,29 @@ BLEU and XCOMET-XL.
 \section{Observer Replay and Qualitative Diagnostics}
 \label{sec:appendix-observer}
 
-This appendix keeps only the details omitted from
-Section~\ref{sec:method}: the prompt/suffix replay equations, one qualitative
-probe, and the numerical parity measurements on the engine-native path.
+Below we report the prompt/suffix replay equations, one qualitative probe, and
+the numerical parity measurements on the engine-native path.
 
 \paragraph{Prompt-space replay details.}
 After capture, we replay prompt-side and suffix-side logits separately from the
 stored buffers. Writing $\mathbf{B}^{(\ell,h)}_\star :=
-\mathbf{B}^{(\ell)}_\star[h]$ for head-specific captured tensors, we compute
+\mathbf{B}^{(\ell)}_\star[h]$ for head-specific captured tensors,
+$\gamma^{(\ell)}$ for the attention module's runtime scaling factor, and
+$\mathbf{M}^{(\ell,h)}_{\mathrm{prompt}}$ /
+$\mathbf{M}^{(\ell,h)}_{\mathrm{suffix}}$ for the replayed prompt-side
+sliding-window and suffix-side causal/window masks, we compute
 \begin{align}
   \mathbf{P}^{(\ell,h)} &=
+  \gamma^{(\ell)}
   \mathbf{B}^{(\ell,h)}_{\mathrm{dQ}}
-  \bigl(\mathbf{B}^{(\ell,h)}_{\mathrm{pK}}\bigr)^{\!\top},
+  \bigl(\mathbf{B}^{(\ell,h)}_{\mathrm{pK}}\bigr)^{\!\top}
+  + \mathbf{M}^{(\ell,h)}_{\mathrm{prompt}},
   \label{eq:prompt-logits}\\
   \mathbf{S}^{(\ell,h)} &=
+  \gamma^{(\ell)}
   \mathbf{B}^{(\ell,h)}_{\mathrm{dQ}}
   \bigl(\mathbf{B}^{(\ell,h)}_{\mathrm{dK}}\bigr)^{\!\top}
-  + \mathbf{m}_{\mathrm{causal}},
+  + \mathbf{M}^{(\ell,h)}_{\mathrm{suffix}},
   \label{eq:suffix-logits}\\
   \widetilde{\mathbf{A}}^{(\ell,h)}
   &= \mathrm{softmax}[\mathbf{P}^{(\ell,h)}, \mathbf{S}^{(\ell,h)}].
@@ -466,9 +508,9 @@ tensor.
 
 \paragraph{Qualitative reconstruction example.}
 Figure~\ref{fig:mt-selective-reconstruction} shows the full reconstruction
-stack on a text-only MT probe: the exact prompt partition seen by the decoder,
-word-level aggregation of the replayed rows for readability, and the four-way
-provenance accounting for every drafted word.
+stack on an EN$\to$DE text-only MT probe: the exact prompt partition seen by
+the decoder, word-level aggregation of the replayed rows for readability, and
+the four-way provenance accounting for every drafted word.
 
 \input{generated/mt_selective_reconstruction_example.tex}
 
@@ -498,7 +540,7 @@ support controlled MT ablations.
 \section{Additional ASR Analyses}
 \label{sec:appendix-asr}
 
-This appendix collects the all-Gemma ASR analyses that informed the final
+The analyses below summarize the all-Gemma ASR results that informed the final
 system choice but are no longer central to the retained submission narrative.
 
 \paragraph{Gemma AlignAtt ASR is feasible but not competitive.}

@@ -41,7 +41,7 @@
 
   \draw[kernelbox] (\mL, \mB) rectangle (\mR, \mT);
   \node[mathnote] at ({(\mL+\mR)/2}, 4.40)
-    {$\mathbf{A}^{(\ell,h)}=\mathrm{softmax}\!\bigl(\mathbf{Q}\mathbf{K}^{\!\top}+\mathbf{m}\bigr)$};
+    {$\mathbf{A}^{(\ell,h)}=\mathrm{softmax}\!\bigl(\gamma\,\mathbf{Q}\mathbf{K}^{\!\top}+\mathbf{M}\bigr)$};
   \node[labelnote] at ({(\mL+\mR)/2}, 3.95) {$n{\times}n$, fused, never materialized};
 
   \foreach \x in {\cPa,\cSa,\cSi,\cPi,\cPy} \draw[guide] (\x,\mB) -- (\x,\mT);
@@ -66,7 +66,7 @@
   \draw[partPy] (\cPi,\csB) rectangle (\cPy,\csT) node[midway,font=\tiny,text=green!30!black]{$\mathbf{y}_{1:m_k}$};
   \draw[partD ] (\cPy,\csB) rectangle (\mR  ,\csT) node[midway,font=\tiny]{$\mathcal{D}$};
   \draw[black!50, line width=0.3pt] (\cSi, \csB-0.05) -- (\cSi, \csB-0.14) -- (\cPy, \csB-0.14) -- (\cPy, \csB-0.05);
-  \node[labelnote, anchor=north, font=\tiny] at ({(\cSi+\cPy)/2}, \csB-0.15) {$\mathcal{P}_2$};
+  \node[labelnote, anchor=north, font=\tiny] at ({(\cSi+\cPy)/2}, \csB-0.15) {instr $+$ $\mathbf{y}_{1:m_k}$};
   \draw[captureline] ({\mL-0.05}, {\csT+0.14}) -- ({\mR+0.05}, {\csT+0.14});
   \draw[captureline] ({\mL-0.05}, {\csT+0.06}) -- ({\mL-0.05}, {\csT+0.14});
   \draw[captureline] ({\mR+0.05}, {\csT+0.06}) -- ({\mR+0.05}, {\csT+0.14});
@@ -134,12 +134,13 @@ kernel, so the full $n{\times}n$ matrix is never materialized. For each
 AlignAtt head $(\ell,h)\in\mathcal{H}$, the observer copies
 $\mathbf{K}^{(\ell,h)}$ for all positions and $\mathbf{Q}^{(\ell,h)}$ only for
 the draft rows $\mathcal{D}$ into fixed-shape buffers. The green band
-$\mathbf{y}_{1:m_k}$ inside $\mathcal{P}_2$ marks the committed target prefix
-that grows across chunks; hatched cells are never reconstructed. After the
-forward, Eq.~\eqref{eq:mt-qk-fast} recomputes exactly only the draft-to-source
-block $\widehat{\mathbf{A}}_{\mathcal{D},\mathcal{S}^{(k)}}$, which is the sole
-object consumed by the source-side provenance scores of
-Eqs.~\eqref{eq:mt-prov-acc}--\eqref{eq:mt-provenance} and by the
-acceptance policy of this section.}
+$\mathbf{y}_{1:m_k}$ marks the committed target prefix that grows across
+chunks; hatched cells are never reconstructed. After the forward,
+Eq.~\eqref{eq:mt-qk-fast} recomputes exactly only the draft-to-source block
+$\widehat{\mathbf{A}}_{\mathcal{D},\mathcal{S}^{(k)}}$, which is the sole
+object consumed by the source-side provenance split of
+Eqs.~\eqref{eq:mt-prov-acc}--\eqref{eq:mt-provenance}, where
+$\pi_t^{\mathrm{acc}}$ drives the gate and $\pi_t^{\mathrm{inacc}}$ is
+retained for diagnostics, and by the acceptance policy of this section.}
 \label{fig:qk-fast}
 \end{figure*}

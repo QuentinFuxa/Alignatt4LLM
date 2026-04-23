@@ -427,6 +427,6 @@
 \node[anchor=west, font=\tiny, text=black!70] at (30.0,-2.45) {full-attention layer};
 \end{tikzpicture}%
 }
-\caption{\textbf{Architecture-aware view of retained MT alignment heads.} The heatmap covers Gemma's 42 layers (horizontal axis) and 8 query heads (vertical axis); color encodes mean token-alignment score TS on a shared $[0,\mathrm{max}]$ scale, so empty cells read as low rather than ``below threshold''. Scores are averaged over en$\to$\{de,\,it,\,zh\}. Blue outlines mark the retained shared-kernel MT head set $\mathcal{H}_{\mathrm{MT}}$; green outlines mark the ASR alignment heads from the discarded single-substrate path; grey vertical stripes mark full-attention layers; the blue bracket delimits the late shared-KV block, where observer cost follows KV-group ownership rather than raw query-head count. The useful MT heads are sparse and concentrated in the late part of the backbone, while the limited overlap with the ASR set highlights role-specific specialization.}
+\caption{\textbf{Architecture-aware view of retained MT alignment heads.} The useful MT heads are sparse, late, and only partly overlap with the ASR set, which highlights role-specific specialization. Their clustering inside the late shared-KV block is favorable because observer cost follows KV-group ownership rather than raw query-head count.}
 \label{fig:mt-alignatt-heads}
 \end{figure*}

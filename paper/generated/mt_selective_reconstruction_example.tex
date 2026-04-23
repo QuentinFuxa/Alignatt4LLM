@@ -3,10 +3,10 @@
 \resizebox{0.94\textwidth}{!}{%
 \begin{tikzpicture}[x=0.55cm,y=0.55cm, every node/.style={font=\scriptsize}]
 \node[anchor=west, font=\bfseries\small] at (-0.15,21.45) {Word-level selective reconstruction on a live MT draft};
-\node[anchor=west, text=black!60] at (-0.15,20.75) {target=\texttt{French} \; \textbullet \; gate=\texttt{alignatt:source\_frontier} \; \textbullet \; blocked at source word 13 (\emph{fast})};
+\node[anchor=west, text=black!60] at (-0.15,20.75) {target=\texttt{German} \; \textbullet \; gate=\texttt{alignatt:source\_frontier} \; \textbullet \; blocked at source word 13 (\emph{fast})};
 \node[anchor=south west, font=\bfseries\tiny, text=black!65] at (-0.10,19.75) {system};
 \draw[rounded corners=1.5pt, fill=black!4, draw=black!30, line width=0.5pt] (-0.15,17.40) rectangle (3.96,19.65);
-\node[anchor=north west, text=black!60, align=left, text width=2.04cm] at (0.05,19.43) {Translate to French.};
+\node[anchor=north west, text=black!60, align=left, text width=3.60cm] at (0.05,19.43) {Translate to German.};
 \node[anchor=south west, font=\bfseries\tiny, text=blue!55!black] at (4.26,19.75) {source};
 \draw[rounded corners=1.5pt, fill=blue!6, draw=blue!35, line width=0.5pt] (4.21,17.40) rectangle (13.71,19.65);
 \node[anchor=north west, text=blue!55!black, align=left, text width=3.39cm] at (4.41,19.43) {we separately benchmark the eager path before we compare};
@@ -14,10 +14,10 @@
 \node[anchor=north west, text=blue!30!black, align=left, text width=1.46cm] at (10.83,19.43) {it with qk fast};
 \node[anchor=south west, font=\bfseries\tiny, text=green!40!black] at (14.01,19.75) {accepted target prefix};
 \draw[rounded corners=1.5pt, fill=green!8, draw=green!50!black, line width=0.5pt] (13.96,17.40) rectangle (17.64,19.65);
-\node[anchor=north west, text=green!30!black, align=left, text width=1.80cm] at (14.16,19.43) {nous};
+\node[anchor=north west, text=green!30!black, align=left, text width=1.80cm] at (14.16,19.43) {wir};
 \node[anchor=south west, font=\bfseries\tiny, text=orange!70!black] at (17.94,19.75) {draft};
 \draw[rounded corners=1.5pt, fill=orange!10, draw=orange!60!black, line width=0.5pt] (17.89,17.40) rectangle (24.80,19.65);
-\node[anchor=north west, text=orange!70!black, align=left, text width=3.58cm] at (18.09,19.43) {{\'e}valuons s\'epar\'ement le chemin eager avant de le comparer \`a qk fast};
+\node[anchor=north west, text=orange!70!black, align=left, text width=6.10cm] at (18.09,19.43) {pr\"ufen den eager pfad getrennt bevor wir ihn mit qk fast vergleichen};
 \node[anchor=west, font=\bfseries\scriptsize] at (-0.15,16.70) {Draft-to-source attention (word level)};
 \node[anchor=west, font=\bfseries\scriptsize] at (17.85,16.70) {Per-word provenance};
 \node[anchor=south west, rotate=45, text=blue!55!black, font=\scriptsize] at (2.73,14.30) {we};
@@ -37,7 +37,7 @@
 \draw[draw=blue!30!black, line width=1.0pt, dash pattern=on 2pt off 1pt] (12.60,13.85) -- (17.15,13.85);
 \node[anchor=south, font=\tiny, text=blue!55!black] at (7.38,13.87) {accessible};
 \node[anchor=south, font=\tiny, text=blue!30!black] at (14.85,13.87) {inaccessible};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,13.12) {{\'e}valuons};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,13.12) {pr\"ufen};
 \filldraw[fill={rgb,255:red,236; green,205; blue,202}, draw=black!12, line width=0.2pt] (2.20,12.65) rectangle (3.35,13.60);
 \filldraw[fill={rgb,255:red,235; green,204; blue,200}, draw=black!12, line width=0.2pt] (3.35,12.65) rectangle (4.50,13.60);
 \filldraw[fill={rgb,255:red,204; green,111; blue,110}, draw=black!12, line width=0.2pt] (4.50,12.65) rectangle (5.65,13.60);
@@ -52,7 +52,7 @@
 \filldraw[fill={rgb,255:red,243; green,225; blue,221}, draw=black!12, line width=0.2pt] (14.85,12.65) rectangle (16.00,13.60);
 \filldraw[fill={rgb,255:red,245; green,233; blue,230}, draw=black!12, line width=0.2pt] (16.00,12.65) rectangle (17.15,13.60);
 \node[font=\bfseries, text=black!85] at (5.08,13.12) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,12.17) {s\'epar\'ement};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,12.17) {den};
 \filldraw[fill={rgb,255:red,241; green,221; blue,218}, draw=black!12, line width=0.2pt] (2.20,11.70) rectangle (3.35,12.65);
 \filldraw[fill={rgb,255:red,178; green,34; blue,34}, draw=black!12, line width=0.2pt] (3.35,11.70) rectangle (4.50,12.65);
 \filldraw[fill={rgb,255:red,239; green,213; blue,210}, draw=black!12, line width=0.2pt] (4.50,11.70) rectangle (5.65,12.65);
@@ -67,7 +67,7 @@
 \filldraw[fill={rgb,255:red,243; green,227; blue,223}, draw=black!12, line width=0.2pt] (14.85,11.70) rectangle (16.00,12.65);
 \filldraw[fill={rgb,255:red,245; green,232; blue,228}, draw=black!12, line width=0.2pt] (16.00,11.70) rectangle (17.15,12.65);
 \node[font=\bfseries, text=black!85] at (3.92,12.17) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,11.22) {le};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,11.22) {eager};
 \filldraw[fill={rgb,255:red,231; green,192; blue,189}, draw=black!12, line width=0.2pt] (2.20,10.75) rectangle (3.35,11.70);
 \filldraw[fill={rgb,255:red,238; green,213; blue,209}, draw=black!12, line width=0.2pt] (3.35,10.75) rectangle (4.50,11.70);
 \filldraw[fill={rgb,255:red,227; green,178; blue,175}, draw=black!12, line width=0.2pt] (4.50,10.75) rectangle (5.65,11.70);
@@ -82,7 +82,7 @@
 \filldraw[fill={rgb,255:red,239; green,214; blue,211}, draw=black!12, line width=0.2pt] (14.85,10.75) rectangle (16.00,11.70);
 \filldraw[fill={rgb,255:red,243; green,227; blue,223}, draw=black!12, line width=0.2pt] (16.00,10.75) rectangle (17.15,11.70);
 \node[font=\bfseries, text=black!85] at (6.23,11.22) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,10.28) {chemin};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,10.28) {pfad};
 \filldraw[fill={rgb,255:red,243; green,228; blue,224}, draw=black!12, line width=0.2pt] (2.20,9.80) rectangle (3.35,10.75);
 \filldraw[fill={rgb,255:red,243; green,225; blue,222}, draw=black!12, line width=0.2pt] (3.35,9.80) rectangle (4.50,10.75);
 \filldraw[fill={rgb,255:red,236; green,207; blue,203}, draw=black!12, line width=0.2pt] (4.50,9.80) rectangle (5.65,10.75);
@@ -97,7 +97,7 @@
 \filldraw[fill={rgb,255:red,236; green,207; blue,203}, draw=black!12, line width=0.2pt] (14.85,9.80) rectangle (16.00,10.75);
 \filldraw[fill={rgb,255:red,239; green,214; blue,210}, draw=black!12, line width=0.2pt] (16.00,9.80) rectangle (17.15,10.75);
 \node[font=\bfseries, text=black!85] at (8.53,10.28) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,9.32) {eager};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,9.32) {getrennt};
 \filldraw[fill={rgb,255:red,243; green,226; blue,222}, draw=black!12, line width=0.2pt] (2.20,8.85) rectangle (3.35,9.80);
 \filldraw[fill={rgb,255:red,243; green,226; blue,223}, draw=black!12, line width=0.2pt] (3.35,8.85) rectangle (4.50,9.80);
 \filldraw[fill={rgb,255:red,244; green,229; blue,225}, draw=black!12, line width=0.2pt] (4.50,8.85) rectangle (5.65,9.80);
@@ -112,7 +112,7 @@
 \filldraw[fill={rgb,255:red,235; green,202; blue,199}, draw=black!12, line width=0.2pt] (14.85,8.85) rectangle (16.00,9.80);
 \filldraw[fill={rgb,255:red,236; green,207; blue,203}, draw=black!12, line width=0.2pt] (16.00,8.85) rectangle (17.15,9.80);
 \node[font=\bfseries, text=black!85] at (7.38,9.32) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,8.38) {avant};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,8.38) {bevor};
 \filldraw[fill={rgb,255:red,243; green,227; blue,223}, draw=black!12, line width=0.2pt] (2.20,7.90) rectangle (3.35,8.85);
 \filldraw[fill={rgb,255:red,239; green,213; blue,210}, draw=black!12, line width=0.2pt] (3.35,7.90) rectangle (4.50,8.85);
 \filldraw[fill={rgb,255:red,240; green,218; blue,215}, draw=black!12, line width=0.2pt] (4.50,7.90) rectangle (5.65,8.85);
@@ -127,7 +127,7 @@
 \filldraw[fill={rgb,255:red,243; green,226; blue,223}, draw=black!12, line width=0.2pt] (14.85,7.90) rectangle (16.00,8.85);
 \filldraw[fill={rgb,255:red,243; green,226; blue,222}, draw=black!12, line width=0.2pt] (16.00,7.90) rectangle (17.15,8.85);
 \node[font=\bfseries, text=black!85] at (9.67,8.38) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,7.42) {de};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,7.42) {wir};
 \filldraw[fill={rgb,255:red,239; green,214; blue,211}, draw=black!12, line width=0.2pt] (2.20,6.95) rectangle (3.35,7.90);
 \filldraw[fill={rgb,255:red,236; green,204; blue,201}, draw=black!12, line width=0.2pt] (3.35,6.95) rectangle (4.50,7.90);
 \filldraw[fill={rgb,255:red,240; green,218; blue,215}, draw=black!12, line width=0.2pt] (4.50,6.95) rectangle (5.65,7.90);
@@ -142,7 +142,7 @@
 \filldraw[fill={rgb,255:red,241; green,221; blue,217}, draw=black!12, line width=0.2pt] (14.85,6.95) rectangle (16.00,7.90);
 \filldraw[fill={rgb,255:red,243; green,226; blue,223}, draw=black!12, line width=0.2pt] (16.00,6.95) rectangle (17.15,7.90);
 \node[font=\bfseries, text=black!85] at (10.82,7.42) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,6.47) {le};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,6.47) {ihn};
 \filldraw[fill={rgb,255:red,237; green,209; blue,206}, draw=black!12, line width=0.2pt] (2.20,6.00) rectangle (3.35,6.95);
 \filldraw[fill={rgb,255:red,242; green,223; blue,220}, draw=black!12, line width=0.2pt] (3.35,6.00) rectangle (4.50,6.95);
 \filldraw[fill={rgb,255:red,241; green,220; blue,216}, draw=black!12, line width=0.2pt] (4.50,6.00) rectangle (5.65,6.95);
@@ -157,7 +157,7 @@
 \filldraw[fill={rgb,255:red,240; green,217; blue,214}, draw=black!12, line width=0.2pt] (14.85,6.00) rectangle (16.00,6.95);
 \filldraw[fill={rgb,255:red,243; green,226; blue,223}, draw=black!12, line width=0.2pt] (16.00,6.00) rectangle (17.15,6.95);
 \node[font=\bfseries, text=red!70!black] at (13.12,6.47) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,5.52) {comparer};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,5.52) {mit};
 \filldraw[fill={rgb,255:red,245; green,233; blue,229}, draw=black!12, line width=0.2pt] (2.20,5.05) rectangle (3.35,6.00);
 \filldraw[fill={rgb,255:red,243; green,227; blue,224}, draw=black!12, line width=0.2pt] (3.35,5.05) rectangle (4.50,6.00);
 \filldraw[fill={rgb,255:red,234; green,198; blue,195}, draw=black!12, line width=0.2pt] (4.50,5.05) rectangle (5.65,6.00);
@@ -172,7 +172,7 @@
 \filldraw[fill={rgb,255:red,243; green,226; blue,222}, draw=black!12, line width=0.2pt] (14.85,5.05) rectangle (16.00,6.00);
 \filldraw[fill={rgb,255:red,244; green,228; blue,225}, draw=black!12, line width=0.2pt] (16.00,5.05) rectangle (17.15,6.00);
 \node[font=\bfseries, text=black!85] at (11.97,5.52) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,4.57) {\`a};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,4.57) {qk};
 \filldraw[fill={rgb,255:red,244; green,229; blue,226}, draw=black!12, line width=0.2pt] (2.20,4.10) rectangle (3.35,5.05);
 \filldraw[fill={rgb,255:red,242; green,225; blue,221}, draw=black!12, line width=0.2pt] (3.35,4.10) rectangle (4.50,5.05);
 \filldraw[fill={rgb,255:red,237; green,208; blue,205}, draw=black!12, line width=0.2pt] (4.50,4.10) rectangle (5.65,5.05);
@@ -187,7 +187,7 @@
 \filldraw[fill={rgb,255:red,240; green,217; blue,214}, draw=black!12, line width=0.2pt] (14.85,4.10) rectangle (16.00,5.05);
 \filldraw[fill={rgb,255:red,234; green,199; blue,196}, draw=black!12, line width=0.2pt] (16.00,4.10) rectangle (17.15,5.05);
 \node[font=\bfseries, text=red!70!black] at (14.27,4.57) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,3.63) {qk};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,3.63) {fast};
 \filldraw[fill={rgb,255:red,242; green,225; blue,221}, draw=black!12, line width=0.2pt] (2.20,3.15) rectangle (3.35,4.10);
 \filldraw[fill={rgb,255:red,246; green,235; blue,232}, draw=black!12, line width=0.2pt] (3.35,3.15) rectangle (4.50,4.10);
 \filldraw[fill={rgb,255:red,243; green,227; blue,223}, draw=black!12, line width=0.2pt] (4.50,3.15) rectangle (5.65,4.10);
@@ -202,7 +202,7 @@
 \filldraw[fill={rgb,255:red,187; green,61; blue,60}, draw=black!12, line width=0.2pt] (14.85,3.15) rectangle (16.00,4.10);
 \filldraw[fill={rgb,255:red,229; green,185; blue,183}, draw=black!12, line width=0.2pt] (16.00,3.15) rectangle (17.15,4.10);
 \node[font=\bfseries, text=red!70!black] at (15.42,3.63) {$\bigstar$};
-\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,2.68) {fast};
+\node[anchor=east, text=orange!70!black, font=\scriptsize] at (2.10,2.68) {vergleichen};
 \filldraw[fill={rgb,255:red,245; green,233; blue,230}, draw=black!12, line width=0.2pt] (2.20,2.20) rectangle (3.35,3.15);
 \filldraw[fill={rgb,255:red,245; green,232; blue,228}, draw=black!12, line width=0.2pt] (3.35,2.20) rectangle (4.50,3.15);
 \filldraw[fill={rgb,255:red,242; green,223; blue,219}, draw=black!12, line width=0.2pt] (4.50,2.20) rectangle (5.65,3.15);

@@ -148,7 +148,7 @@
   % Replay op: shorter, wrapped formula so the box width is predictable
   \node[outnode, text width=3.00cm, align=center, minimum height=1.40cm]
     (replay) at (12.90,5.30)
-    {$\mathrm{softmax}(\mathbf{Q}\mathbf{K}^{\!\top}\!+\mathbf{m})$};
+    {$\mathrm{softmax}(\gamma\,\mathbf{Q}\mathbf{K}^{\!\top}\!+\mathbf{M})$};
   \node[cen, anchor=north] at (12.90,4.48) {replay, Python-side};
 
   % Slice output
@@ -195,9 +195,9 @@ it, while the numerical output of the layer is unchanged.
 \emph{Right (B), every forward:} after the compiled forward finishes, the
 observer slots hold $\mathbf{K}^{(\ell,h)}_{\mathcal{P}}$ for the full prompt
 and $\mathbf{Q}^{(\ell,h)}_{\mathcal{D}}$ for the draft rows; a short
-Python-side replay computes $\mathbf{Q}\mathbf{K}^{\!\top}$ for the draft
-against the full prompt, applies the causal mask $\mathbf{m}$, takes the
-softmax, and keeps the source columns to yield the selective block
+Python-side replay reapplies the module scaling and the same prompt/suffix
+masks used by the deployed attention kernel, then keeps the source columns to
+yield the selective block
 $\widehat{\mathbf{A}}^{(\ell,h)}_{\mathcal{D},\mathcal{S}^{(k)}}$ that feeds
 the policy, the parity check against an uncompiled Transformers reference,
 and the qualitative probe.}

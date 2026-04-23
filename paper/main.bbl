@@ -1,4 +1,4 @@
-\begin{thebibliography}{6}
+\begin{thebibliography}{9}
 \providecommand{\natexlab}[1]{#1}
 
 \bibitem[{Gaido et~al.(2025)Gaido, Papi, Cettolo, Negri, and
@@ -9,6 +9,11 @@ Marco Gaido, Sara Papi, Mauro Cettolo, Matteo Negri, and Luisa Bentivogli.
   streaming speech-to-text translation systems.
 \newblock ArXiv preprint arXiv:2512.17648.
 
+\bibitem[{{Google DeepMind}(2026)}]{gemma4card26}
+{Google DeepMind}. 2026.
+\newblock Gemma 4 e4b-it model card.
+\newblock Hugging Face model card.
+
 \bibitem[{Guerreiro et~al.(2024)Guerreiro, Rei, van Stigt, Coheur, Colombo, and
   Martins}]{xcometxl23}
 Nuno~M. Guerreiro, Ricardo Rei, Daan van Stigt, Luisa Coheur, Pierre Colombo,
@@ -18,6 +23,14 @@ Nuno~M. Guerreiro, Ricardo Rei, Daan van Stigt, Luisa Coheur, Pierre Colombo,
 \newblock \emph{Transactions of the Association for Computational Linguistics},
   12:979--995.
 
+\bibitem[{Kwon et~al.(2023)Kwon, Li, Zhuang, Sheng, Zheng, Yu, Gonzalez, Zhang,
+  and Stoica}]{vllm23}
+Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng, Cody~Hao Yu,
+  Joseph~E. Gonzalez, Hao Zhang, and Ion Stoica. 2023.
+\newblock Efficient memory management for large language model serving with
+  pagedattention.
+\newblock ArXiv preprint arXiv:2309.06180.
+
 \bibitem[{Liu et~al.(2026)Liu, Han, Chen, Zhang, Guo, Lin, Zhang, Wang, and
   Zheng}]{tokenheads26}
 Binbin Liu, Wenhan Han, Feng Chen, Yifan Zhang, Ping Guo, Haobin Lin, Bingni
@@ -25,6 +38,12 @@ Binbin Liu, Wenhan Han, Feng Chen, Yifan Zhang, Ping Guo, Haobin Lin, Bingni
 \newblock Token alignment heads: Unveiling attention's role in {LLM}
   multilingual translation.
 \newblock ICLR 2026 poster, OpenReview.
+
+\bibitem[{Liu et~al.(2020)Liu, Spanakis, and Niehues}]{liu20s_interspeech}
+Danni Liu, Gerasimos Spanakis, and Jan Niehues. 2020.
+\newblock Low-latency sequence-to-sequence speech recognition and translation
+  by partial hypothesis selection.
+\newblock In \emph{Proceedings of Interspeech 2020}.
 
 \bibitem[{Papi et~al.(2023)Papi, Turchi, and Negri}]{alignatt23}
 Sara Papi, Marco Turchi, and Matteo Negri. 2023.

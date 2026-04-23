@@ -514,18 +514,10 @@ def build_section3_figure() -> None:
     lines.append(r"}")
     lines.append(
         r"\caption{\textbf{Architecture-aware view of retained MT alignment heads.} "
-        r"The heatmap covers Gemma's 42 layers (horizontal axis) and 8 query heads "
-        r"(vertical axis); color encodes mean token-alignment score TS on a shared "
-        r"$[0,\mathrm{max}]$ scale, so empty cells read as low rather than "
-        r"``below threshold''. Scores are averaged over en$\to$\{de,\,it,\,zh\}. "
-        r"Blue outlines mark the retained shared-kernel MT head set "
-        r"$\mathcal{H}_{\mathrm{MT}}$; green outlines mark the ASR "
-        r"alignment heads from the discarded single-substrate path; grey vertical "
-        r"stripes mark full-attention layers; the blue bracket delimits the late "
-        r"shared-KV block, where observer cost follows KV-group ownership rather "
-        r"than raw query-head count. The useful MT heads are sparse and concentrated "
-        r"in the late part of the backbone, while the limited overlap with the ASR "
-        r"set highlights role-specific specialization.}"
+        r"The useful MT heads are sparse, late, and only partly overlap with the "
+        r"ASR set, which highlights role-specific specialization. Their clustering "
+        r"inside the late shared-KV block is favorable because observer cost "
+        r"follows KV-group ownership rather than raw query-head count.}"
     )
     lines.append(r"\label{fig:mt-alignatt-heads}")
     lines.append(r"\end{figure*}")
@@ -1093,8 +1085,9 @@ def write_qualitative_provenance_summary(summary: dict[str, Any]) -> None:
             r"Unlike encoder--decoder AlignAtt, the replayed decoder-only rows are "
             r"not normalized over the source alone: "
             r"attention can also land on the accepted target prefix, the rest of the "
-            r"prompt template, and the speculative suffix. On the French qualitative "
-            r"probe bank used to mine Fig.~\ref{fig:mt-selective-reconstruction} "
+            rf"prompt template, and the speculative suffix. On the "
+            rf"{tex_escape(str(summary['target_lang']))} qualitative probe bank used to "
+            r"mine Fig.~\ref{fig:mt-selective-reconstruction} "
             rf"({int(summary['snapshot_count'])} scored prefix-continuation probes on an NVIDIA A40), "
             r"drafted target units allocate on average "
             rf"{fmt_pct(all_units['source_accessible'])} to accessible source tokens, "
@@ -1344,7 +1337,7 @@ def run_vllm_probe_snapshot(
 
 def search_qualitative_example() -> None:
     candidates = load_json(CANDIDATE_BANK_PATH)
-    attempted_languages = ["French"]
+    attempted_languages = ["German"]
     overall_results: dict[str, Any] = {"attempted_languages": attempted_languages, "languages": {}}
     best_snapshot: dict[str, Any] | None = None
     best_score = float("-inf")
@@ -1606,7 +1599,7 @@ def write_qualitative_figure(snapshot: dict[str, Any]) -> None:
     segment_box(cursor, cursor + widths["sys"],
                 fill="black!4", draw="black!30",
                 tag="system", tag_color="black!65",
-                body="Translate to French.", body_color="black!60")
+                body=tex_escape(f"Translate to {snapshot['target_lang']}."), body_color="black!60")
     cursor += widths["sys"] + gap
 
     src_x0, src_x1 = cursor, cursor + widths["src"]
