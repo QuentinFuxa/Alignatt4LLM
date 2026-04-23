@@ -51,17 +51,17 @@
   %% x-axis line
   \draw[axis] (\pxL,\pyB) -- (\pxR,\pyB);
 
-  %% Three bar rows (top-to-bottom): eager, transformers qk-fast, vllm qk-fast
+  %% Three bar rows (top-to-bottom): eager, transformers SDPA - qk-fast, vllm qk-fast
   %% Row y-centers
   \def\ryA{3.05}   % Transformers eager
-  \def\ryB{2.20}   % Transformers qk-fast
+  \def\ryB{2.20}   % Transformers SDPA - qk-fast
   \def\ryC{1.35}   % vLLM qk-fast
   \def\bh{0.45}    % bar half-height
 
   %% Row labels (left of axis)
   \node[rowlbl] at (\pxL-0.25,\ryA+0.08) {Transformers eager};
   \node[rowsub] at (\pxL-0.25,\ryA-0.15) {reference};
-  \node[rowlbl] at (\pxL-0.25,\ryB+0.08) {Transformers qk-fast};
+  \node[rowlbl] at (\pxL-0.25,\ryB+0.08) {Transformers SDPA - qk-fast};
   \node[rowsub] at (\pxL-0.25,\ryB-0.15) {paper replay};
   \node[rowlbl] at (\pxL-0.25,\ryC+0.08) {vLLM qk-fast};
   \node[rowsub] at (\pxL-0.25,\ryC-0.15) {shipped backend};
@@ -71,7 +71,7 @@
   \filldraw[barbase, fill=black!28] (\pxL,\ryA-\bh) rectangle (\xA,\ryA+\bh);
   \node[valuelbl, text=black!65] at (\xA+0.10,\ryA) {63.7\,ms};
 
-  %% Bar B: transformers qk-fast, 59.0 ms
+  %% Bar B: transformers SDPA - qk-fast, 59.0 ms
   \pgfmathsetmacro\xB{\pxL + \xScale*59.0}
   \filldraw[barbase, fill=orange!70!black] (\pxL,\ryB-\bh) rectangle (\xB,\ryB+\bh);
   \node[valuelbl, text=orange!55!black] at (\xB+0.10,\ryB) {59.0\,ms};
@@ -87,11 +87,12 @@
 }%
 \caption{\textbf{Inference-time comparison of MT capture seams.} Median
 latency per generated token on a fixed 16-prompt text-only suite, for a
-minimal Transformers eager reference, a Transformers \emph{qk-fast} reference
-that reconstructs source rows from captured layer inputs, and the
-engine-native vLLM \emph{qk-fast} path used by the shipped backend. Each seam
-uses one unmeasured warmup pass followed by three hot repeats, greedy decode,
-a fixed AlignAtt head set, and subprocess isolation; per-prompt results and
-divergences are stored in the generated JSON artifact.}
+minimal Transformers eager reference, a Transformers SDPA
+$-$\,\emph{qk-fast} reference that reconstructs source rows from captured
+layer inputs, and the engine-native vLLM \emph{qk-fast} path used by the
+shipped backend. Each seam uses one unmeasured warmup pass followed by three
+hot repeats, greedy decode, a fixed AlignAtt head set, and subprocess
+isolation; per-prompt results and divergences are stored in the generated JSON
+artifact.}
 \label{fig:mt-capture-speed}
 \end{figure}

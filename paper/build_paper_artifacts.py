@@ -671,10 +671,10 @@ def build_mt_e2e_head_ablation_table() -> None:
     lines.append(
         r"\caption{\textbf{EN$\to$DE full-MCIF MT head-set comparison at "
         r"$\Delta_{\mathrm{chunk}}=1100$ ms.} Both rows use the same maintained "
-        r"runtime and no MT rewind policy; only the MT head set changes. "
-        r"All-head replay is slightly better on XCOMET-XL, but increases CU and "
-        r"especially CA because the runtime must reconstruct more attention at "
-        r"each MT step.}"
+        r"runtime; only the MT head set changes. All-head replay is slightly "
+        r"better on XCOMET-XL, but increases CU and especially CA because the "
+        r"observer becomes less selective while the runtime must reconstruct "
+        r"more attention at each MT step.}"
     )
     lines.append(r"\label{tab:mt-e2e-head-filtering}")
     lines.append(r"\end{table}")
@@ -2287,7 +2287,7 @@ def summarize_benchmark(results_by_seam: dict[str, dict[str, Any]]) -> dict[str,
 def write_benchmark_figure(summary: dict[str, Any]) -> None:
     seam_order = [
         ("transformers_eager", "Transformers eager", "gray!45"),
-        ("transformers_qk_fast", "Transformers qk\\_fast", "orange!75!black"),
+        ("transformers_qk_fast", "Transformers SDPA - qk\\_fast", "orange!75!black"),
         ("vllm_qk_fast", "vLLM qk\\_fast", "blue!60!black"),
     ]
     medians = [summary["seams"][seam]["median_per_generated_token_ms"] for seam, _label, _color in seam_order]
@@ -2312,10 +2312,11 @@ def write_benchmark_figure(summary: dict[str, Any]) -> None:
     lines.append(r"}")
     lines.append(
         r"\caption{\textbf{Inference-time comparison of MT capture seams.} "
-        r"We compare a minimal Transformers eager reference, a Transformers qk-fast "
-        r"reference that reconstructs source rows from captured layer inputs, and the "
-        r"engine-native vLLM qk-fast path used by the shipped backend. The main plot "
-        r"reports the median latency per generated token on a fixed 16-prompt benchmark suite, "
+        r"We compare a minimal Transformers eager reference, a Transformers SDPA - "
+        r"qk-fast reference that reconstructs source rows from captured layer inputs, "
+        r"and the engine-native vLLM qk-fast path used by the shipped backend. The "
+        r"main plot reports the median latency per generated token on a fixed "
+        r"16-prompt benchmark suite, "
         r"with one unmeasured warmup pass and repeated hot runs per seam.}")
     lines.append(r"\label{fig:mt-capture-speed}")
     lines.append(r"\end{figure}")
