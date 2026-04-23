@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 
-\usepackage[review]{acl}
+\usepackage[final]{acl}
 
 \usepackage{times}
 \usepackage{latexsym}
@@ -23,7 +23,16 @@
 \newtheorem{proposition}{Proposition}
 
 \title{Engine-Native AlignAtt for Decoder-Only LLM MT\\in an IWSLT 2026 Simultaneous Speech Translation System}
-\author{}
+\author{
+Quentin Fuxa \\
+Independent Researcher \\
+\texttt{quentin.fuxa@gmail.com}
+\And
+Dominik Mach\'a\v{c}ek \\
+Charles University \\
+Institute of Formal and Applied Linguistics (UFAL) \\
+\texttt{machacek@ufal.mff.cuni.cz}
+}
 
 \begin{document}
 \maketitle
@@ -139,13 +148,12 @@ prefill for the next MT step and is never retracted.
 
 \paragraph{Submitted operating points.}
 We keep two official frozen submission regimes. The low-latency submission
-uses $\Delta_{\mathrm{chunk}}=850$ ms together with the historical MT rewind
-policy, and the high-latency submission uses $\Delta_{\mathrm{chunk}}=1500$ ms.
-Both share the same ASR backend, Gemma-4 MT backbone, and MT-side AlignAtt
-realization; only the operating point changes. Section~\ref{sec:main-results}
-then reports separately a cleaner EN$\to$DE rerun at $\Delta_{\mathrm{chunk}}
-=1100$ ms, without the MT rewind policy, which we use to track the current
-maintained preset near the 2\,s boundary.
+uses $\Delta_{\mathrm{chunk}}=850$ ms and the high-latency submission uses
+$\Delta_{\mathrm{chunk}}=1500$ ms. Both frozen bundles still include the
+historical MT rewind heuristic that was active at submission time, together
+with the same ASR backend, Gemma-4 MT backbone, and MT-side AlignAtt
+realization. Later no-rewind reruns are therefore treated in this paper only as
+auxiliary diagnostics rather than as submitted operating points.
 
 \input{generated/submitted_cascade.tex}
 
@@ -244,14 +252,16 @@ stability-unit boundary so partial subword fragments are never emitted. We
 intentionally do not impose an anti-rewind rule on $\hat{s}_t$, because that
 bias consistently hurt valid reorderings in EN$\to$ZH development.
 
-Figure~\ref{fig:appendix-policy-pipeline} visualizes the full pipeline, from
-the reconstructed block $\widehat{\mathbf{A}}^{(\ell,h)}_{t,s}$ to the
-first-failure scan. Figure~\ref{fig:mt-selective-reconstruction} shows the
-same gate on a live MT draft: black stars mark drafted tokens whose source
-argmax stays on the accessible side of the frontier, and the first red star
-marks the position at which the \textsc{source-frontier} condition fires.
+The frozen submitted bundles additionally wrap this frontier rule in a small
+historical rewind heuristic on the source-side argmax trajectory. We later
+found that removing this guard helps language pairs with stronger reorderings,
+especially EN$\to$ZH, so rewind should be read here as a property of the
+frozen submission artifacts rather than of the underlying AlignAtt
+formulation. Figure~\ref{fig:mt-selective-reconstruction} shows the gate on a
+live MT draft: black stars mark drafted tokens whose source argmax stays on
+the accessible side of the frontier, and the first red star marks the position
+at which the \textsc{source-frontier} condition fires.
 
-\input{generated/appendix_policy_pipeline.tex}
 \input{generated/mt_selective_reconstruction_example.tex}
 
 \subsection{Engine-Native Capture under Compiled Inference}
@@ -283,7 +293,7 @@ qualitative reconstruction examples.
 
 All experiments run on a single NVIDIA A40. The MT backend uses Gemma-4 E4B-it
 in bfloat16 through graph-compiled vLLM; the speech side uses Qwen3-ASR with
-forced alignment. Evaluation uses the 21-clip IWSLT 2026 in-house dev set
+forced alignment. Evaluation uses the official 21-clip IWSLT 2026 MCIF dev set
 ($\sim 2.1$ hours total, long academic talks) resegmented by OmniSTEval
 v0.1.7. We report BLEU and chrF against the dev references, XCOMET-XL for
 translation adequacy \citep{xcometxl23}, and compute-unaware / compute-aware
@@ -312,13 +322,6 @@ submitted cascade delivers a stable low-latency operating point, and the
 MT-side AlignAtt realization lets the same decoder-only Gemma backend move up
 the quality/latency frontier when more latency is allowed.
 
-Table~\ref{tab:low-config-snapshot} then reports the separate clean EN$\to$DE
-rerun at $\Delta_{\mathrm{chunk}}=1100$ ms. This rerun keeps the same
-Qwen3-forced ASR + Gemma AlignAtt MT stack and the same top-8 MT head set, but
-removes the historical MT rewind policy. We use it as a maintained reference
-for the current 2\,s-class operating point, not as a replacement for the
-frozen submitted row in Table~\ref{tab:e2e}.
-
 \begin{table*}[t]
 \centering
 \small
@@ -343,30 +346,25 @@ Pair & Regime & BLEU & chrF & XCOMET-XL & \multicolumn{2}{c}{LongYAAL (s)} \\
 (21 clips, OmniSTEval long-form resegmentation). Low-latency rows use the
 frozen submitted setting with $\Delta_{\mathrm{chunk}}=850$ ms and the
 historical MT rewind policy. High-latency rows use the frozen submitted
-setting with $\Delta_{\mathrm{chunk}}=1500$ ms.}
+setting with $\Delta_{\mathrm{chunk}}=1500$ ms and the same rewind-equipped MT
+runtime.}
 \label{tab:e2e}
 \end{table*}
-
-\input{generated/low_regime_config_snapshot.tex}
 
 \subsection{Head Filtering Matters End-to-End}
 \label{sec:head-filtering}
 
-Table~\ref{tab:mt-e2e-head-filtering} shows why deployment keeps a fixed top-8
-head set. On the refreshed EN$\to$DE full multi-clip inference (MCIF) rerun at
-$\Delta_{\mathrm{chunk}}=1100$ ms, the comparison is a direct \emph{qk-fast}
-quality/latency trade-off under the same maintained runtime, with only the MT
-head set changing. Reconstructing all 336 heads yields a slightly stronger
-XCOMET-XL signal (+0.0059 over the retained top-8 setup), but raises
-CU-LongYAAL by +100.3\,ms and, more noticeably, CA-LongYAAL by +179.5\,ms.
-This behavior is expected because replay cost scales with the number of
-reconstructed heads: moving from 8 to 336 heads buys a slightly stronger
-observer signal, but materially increases the attention reconstruction work on
-the deployed runtime. We therefore keep the top-8 head set as the maintained
-low-regime default near the 2\,s boundary, and treat all-head replay as a
-quality-leaning reference rather than a deployment setting.
-Appendix~\ref{sec:appendix-alignatt} gives the held-out calibration numbers
-behind the retained head sets.
+Table~\ref{tab:mt-e2e-head-filtering} is an auxiliary EN$\to$DE rerun included
+only to isolate the MT head-set effect under the maintained \emph{qk-fast}
+runtime, without the historical MT rewind heuristic used by the frozen
+submission bundles. End-to-end quality is nearly equivalent: replaying all 336
+heads improves XCOMET-XL by only +0.0059 relative to the retained top-8 setup,
+while increasing CU-LongYAAL by +100.3\,ms and CA-LongYAAL by +179.5\,ms. This
+is the expected \emph{qk-fast} trade-off because replay cost grows with the
+number of reconstructed heads. We therefore read the auxiliary comparison as
+evidence that a small retained head set captures most of the useful MT
+alignment signal at much lower runtime cost. Appendix~\ref{sec:appendix-alignatt}
+gives the held-out calibration numbers behind the retained head sets.
 
 \input{generated/mt_e2e_head_ablation.tex}
 
@@ -386,22 +384,14 @@ it is practical inside the compiled runtime we actually deploy.
 \subsection{Coordination Regimes and Compute-Aware Latency}
 
 Our cascade loads the ASR and MT models as two separate blocking
-\texttt{vllm.LLM} instances on a single GPU, which serializes every
-audio chunk into an ASR decode followed by an MT decode
-(Fig.~\ref{fig:coord-regimes}\,(c)). This regime is sufficient for the
-IWSLT~2026 evaluation because the scoring is compute-unaware: translation
-timestamps are those at which tokens become committable under the emission
-policy, not those at which they materialize on the GPU. Two alternative
-regimes, MT pipelined at the ASR cadence
-(Fig.~\ref{fig:coord-regimes}\,(b)) and a fully asynchronous regime in
-which a single MT request is relaunched on completion over the
-monotonic source prefix (Fig.~\ref{fig:coord-regimes}\,(a)), would
-reduce the compute-aware LongYAAL at fixed compute-unaware latency, at
-the cost of a non-blocking scheduler (\texttt{AsyncLLMEngine} with
-abort on stale requests). Full async additionally weakens the continuity
-assumption behind fixed-cadence prefix-stability heuristics, since two
-consecutive MT prompts can differ arbitrarily in length. We leave the
-quantitative study of this scheduler axis to future work.
+\texttt{vllm.LLM} instances on a single GPU, which serializes every audio chunk
+into an ASR decode followed by an MT decode
+(Fig.~\ref{fig:coord-regimes}\,(c)). This conservative regime keeps policy
+effects separate from scheduler overlap. Alternative pipelined or fully
+asynchronous regimes would mainly reduce compute-aware LongYAAL at fixed
+compute-unaware latency, but would require a non-blocking scheduler and a more
+careful treatment of stale MT requests. We leave that scheduler axis to future
+work.
 
 \input{generated/coordination_regimes.tex}
 
@@ -422,78 +412,6 @@ speech modeling itself.
 \bibliography{references}
 
 \appendix
-
-\section{Formal Cascade Definition}
-\label{sec:cascade}
-
-\paragraph{Streaming input and alignment backend.}
-The system is invoked on a monotone sequence of timestamps
-$t_1 < t_2 < \cdots$ with $t_{k+1} - t_k = \Delta_{\mathrm{chunk}}$.
-At each $t_k$, the ASR/alignment backend returns a live transcript prefix
-$\mathbf{s}^{(k)} = (s^{(k)}_1, \ldots, s^{(k)}_{N_k})$ together with per-word
-end times $\theta^{(k)}_i \in \mathbb{R}_{\geq 0}$, $i=1,\ldots,N_k$.
-Throughout this appendix, bold symbols denote ordered token sequences and
-calligraphic symbols denote index sets; in particular
-$\mathcal{S}^{(k)} := \{1,\ldots,N_k\}$ is the local index set of the live
-source prefix at step $k$.
-
-\paragraph{Source accessibility frontier.}
-Given an inaccessibility margin $\tau_{\mathrm{in}} \ge 0$, the accessible
-source index set at time $t_k$ is
-\begin{equation}
-  \mathcal{S}^{(k)}_{\mathrm{acc}}
-  = \Bigl\{\, i \in \mathcal{S}^{(k)}
-     \;\Bigm|\; \theta^{(k)}_i \le t_k - \tau_{\mathrm{in}} \,\Bigr\},
-  \label{eq:frontier}
-\end{equation}
-with $N^{(k)}_{\mathrm{acc}} = |\mathcal{S}^{(k)}_{\mathrm{acc}}|$. On the
-final chunk we set $N^{(k)}_{\mathrm{acc}} = N_k$. The inaccessible complement
-is $\mathcal{S}^{(k)}_{\mathrm{inacc}} =
-\mathcal{S}^{(k)} \setminus \mathcal{S}^{(k)}_{\mathrm{acc}}$.
-
-\paragraph{Translation backend.}
-The MT backend maps the live source $\mathbf{s}^{(k)}$ and the already
-accepted target prefix $\mathbf{y}_{1:m_k}$ to a draft
-$\widetilde{\mathbf{y}}^{(k)} =
-(\widetilde{y}^{(k)}_1, \ldots, \widetilde{y}^{(k)}_{L_k})$ of at most
-$L_{\mathrm{draft}}$ new target tokens.
-
-\paragraph{Acceptance and emission.}
-An AlignAtt policy $\Pi$ turns the draft into an accepted suffix
-$\mathbf{a}^{(k)}$ of length $\ell_k \in \{0,1,\ldots,L_k\}$:
-\begin{equation}
-  \mathbf{a}^{(k)} = \Pi\!\left(
-    \widetilde{\mathbf{y}}^{(k)},\, \mathcal{S}^{(k)}_{\mathrm{acc}}
-  \right),
-  \label{eq:accept-prefix}
-\end{equation}
-so $\mathbf{a}^{(k)} =
-(\widetilde{y}^{(k)}_1, \ldots, \widetilde{y}^{(k)}_{\ell_k})$ is the retained
-draft prefix. The accepted target prefix then extends monotonically:
-\begin{equation}
-  \mathbf{y}_{1:m_{k+1}} =
-  \mathbf{y}_{1:m_k} \,\Vert\, \mathbf{a}^{(k)},
-  \label{eq:monotone}
-\end{equation}
-with $m_{k+1} = m_k + \ell_k$. Already emitted target tokens are never
-retracted.
-
-Figure~\ref{fig:system} gives the submission-specific operational view; this
-appendix keeps only the role-agnostic notation needed for the later
-derivations.
-
-\paragraph{Latency functional.}
-Let $\tau^{\mathrm{emit}}_j$ denote the wall-clock emission time of target
-token $y_j$ and $\tau^{\mathrm{src}}_j$ the end time of the source word
-responsible for it. The main latency metric in this paper is the
-compute-unaware LongYAAL latency:
-\begin{equation}
-  \mathrm{LongYAAL}_{\mathrm{CU}}(\mathbf{y})
-  = \frac{1}{|\mathbf{y}|} \sum_{j=1}^{|\mathbf{y}|}
-  \bigl(\tau^{\mathrm{emit}}_j - \tau^{\mathrm{src}}_j\bigr)_+,
-  \label{eq:lya-cu}
-\end{equation}
-with $(u)_+ = \max(u,0)$ \citep{longyaal25}.
 
 \section{Additional Decoder-Only AlignAtt Details}
 \label{sec:appendix-alignatt}
@@ -594,8 +512,6 @@ before scoring.
 
 \input{generated/mt_head_filtering_ablation.tex}
 
-\input{generated/decoder_only_alignatt_heads.tex}
-
 \paragraph{One abstraction, two roles.}
 The same abstraction can in principle be used for ASR and MT. In the retained
 submission we deploy it only on the MT side, but the role-agnostic formulation
@@ -655,18 +571,16 @@ are eliminated during lowering. The observer is therefore not ancillary
 tooling; it is the mechanism that makes selective reconstruction available in
 the actual inference stack.
 
-\input{generated/appendix_observer_lifecycle.tex}
-
 \paragraph{Compile-safe capture and replay.}
-Figure~\ref{fig:appendix-observer-lifecycle} replaces the buffer algebra. The
-observer is installed before compilation, one slot per layer, so the compiled
-graph never encounters missing attributes. During the fused forward, it records
-only fixed-shape prompt-key and draft query/key tensors for the selected head
-subset; this is why the capture path stays compile-safe. The custom op is
-numerically inert, but its zero-valued return is added back into the attention
-output so the compiler cannot dead-code-eliminate it. After the decode step,
-the stored buffers are sufficient to rebuild prompt-side logits, suffix-side
-logits, and finally the same source-restricted rows that the policy consumes.
+The observer is installed before compilation, one slot per layer, so the
+compiled graph never encounters missing attributes. During the fused forward,
+it records only fixed-shape prompt-key and draft query/key tensors for the
+selected head subset; this is why the capture path stays compile-safe. The
+custom op is numerically inert, but its zero-valued return is added back into
+the attention output so the compiler cannot dead-code-eliminate it. After the
+decode step, the stored buffers are sufficient to rebuild prompt-side logits,
+suffix-side logits, and finally the same source-restricted rows that the
+policy consumes.
 
 \paragraph{Qualitative reconstruction example.}
 Figure~\ref{fig:mt-selective-reconstruction} instantiates the full
@@ -674,7 +588,6 @@ reconstruction stack on a text-only MT probe: the exact prompt
 partition seen by the decoder is shown, reconstructed token-level rows are
 aggregated to the word level for readability, and the four-way provenance
 accounting is kept visible for every drafted word.
-\input{generated/qualitative_provenance_summary.tex}
 
 \paragraph{Numerical parity.}
 Let $\mathbf{A}^{(\mathrm{TF})}$ denote the reference attention tensor produced
@@ -697,13 +610,13 @@ support controlled MT ablations.
 This appendix collects the all-Gemma ASR analyses that informed the final
 system choice but are no longer central to the retained submission narrative.
 
-\paragraph{Why the submitted system keeps Qwen3 forced ASR.}
-Table~\ref{tab:asr-compare} compares the dedicated Qwen3 forced aligner with
-the discarded Gemma AlignAtt ASR path on the diagnostic clip
-\texttt{ccpXHNfaoy}. The direction is unambiguous: Qwen3 forced is better in
-WER, boundary lag, and wall-clock RTF. That is why the submitted system keeps
-Qwen3 forced ASR rather than pushing the single-substrate idea into the final
-submission.
+\paragraph{Gemma AlignAtt ASR is feasible but not competitive.}
+We verified that the same AlignAtt toolkit can be made to run on the ASR side,
+but the resulting Gemma-ASR path is not competitive enough for submission.
+Table~\ref{tab:asr-compare} compares it with the dedicated Qwen3 forced
+aligner on a diagnostic clip: Qwen3 forced is clearly better in error rate,
+boundary lag, and wall-clock RTF. We therefore keep Gemma AlignAtt ASR only as
+an exploratory result and retain Qwen3 forced ASR for the submitted system.
 
 \begin{table}[t]
 \centering
@@ -726,39 +639,5 @@ Qwen3 forced remains clearly stronger than the discarded Gemma AlignAtt ASR
 path on both boundary quality and runtime.}
 \label{tab:asr-compare}
 \end{table}
-
-\paragraph{Verified 21-clip ASR reference row.}
-Across the tracked 21-clip dev set, the verified Qwen3 forced row provides a
-stable point of comparison for the MT-side submission stack:
-
-\begin{table}[t]
-\centering
-\small
-\begin{tabular}{lc}
-\toprule
-Metric & Qwen3 forced (LA) \\
-\midrule
-Mean WER $\downarrow$         & $0.092$ \\
-Mean CER $\downarrow$         & $0.042$ \\
-BLEU $\uparrow$               & $74.82$ \\
-chrF $\uparrow$               & $90.81$ \\
-LongYAAL CU (ms) $\downarrow$ & $865.7$ \\
-LongYAAL CA (ms) $\downarrow$ & $672.7$ \\
-\bottomrule
-\end{tabular}
-\caption{\textbf{Verified aggregate Qwen3 forced ASR reference} on the 21-clip
-dev set, evaluated in the same ASR-as-MT setup used during development.}
-\label{tab:asr-21clip}
-\end{table}
-
-\paragraph{Gemma AlignAtt ASR is feasible but not competitive.}
-We also swept Gemma-ASR streaming configurations and head-fusion rules to
-expose its latency/quality frontier. The conclusion is short: the path runs
-end-to-end and produces reasonable transcripts, but no sub-one-second
-operating point we tried approaches the quality or boundary lag of the
-dedicated Qwen3 forced aligner, and the only fusion change that reliably
-helped was switching from mean pooling to a median of per-head argmax
-positions. We therefore report Gemma AlignAtt ASR only as an exploratory
-baseline here, not as a candidate submission.
 
 \end{document}

@@ -118,7 +118,7 @@
   \node[panelsub] at (2.40, 5.85)
     {\,: strict ASR--MT alternation; the configuration used for our IWSLT~2026 submission};
 
-  % Single alternating row; ASR(i) and MT(i) are glued together (pair-collé)
+  % Single alternating row; ASR(i) and MT(i) are glued together (tight pair)
   \node[asr, minimum width=1.95cm, anchor=west] at (1.25, 4.75) {ASR$(t)$};
   \node[mt,  minimum width=2.35cm, anchor=west] at (3.20, 4.75) {MT$(t)$};
   \node[asr, minimum width=1.95cm, anchor=west] at (5.80, 4.75) {ASR$(t{+}1)$};
@@ -135,9 +135,9 @@
   %% ==========================================================
   \node[anchor=north west, font=\scriptsize, text=black!62, align=justify, text width=16.4cm]
     at (0.30, 3.55)
-    {Regimes (a) and (b) require a non-blocking scheduler (e.g.\ vLLM \texttt{AsyncLLMEngine}) with request abort on stale MT decodes; our current implementation is (c) with two blocking \texttt{LLM} instances sharing a single GPU. The gaps between ASR chunks in (a) and (b) reflect a real-time factor below~1 for the ASR engine: each ASR chunk completes before the next audio window arrives, leaving the GPU idle. The design axis affects only the \emph{compute-aware} LongYAAL latency; compute-unaware LongYAAL and translation quality are invariant across the three regimes, so the IWSLT~2026 scoring is unaffected.};
+    {Regimes (a) and (b) require a non-blocking scheduler (e.g.\ vLLM \texttt{AsyncLLMEngine}) with request abort on stale MT decodes; our current implementation is (c) with two blocking \texttt{LLM} instances sharing a single GPU. The gaps between ASR chunks in (a) and (b) reflect an ASR real-time factor below~1. This design axis mainly affects \emph{compute-aware} latency; our central submitted comparisons remain on the serialized regime in (c).};
 
 \end{tikzpicture}
 \caption{\label{fig:coord-regimes}%
-Three coordination regimes between the ASR and MT vLLM engines sharing a single GPU. Box widths sketch realistic wall-clock durations under MT heavier than ASR (Gemma~4B vs.\ Qwen~1.7B). In (a), ASR runs at a fixed audio cadence and appends to a shared source prefix; a single MT decode runs at a time and is relaunched on completion over the current state of that prefix, so successive MT prompts can differ substantially in length, undermining the continuity assumption of \textsc{LocalAgreement}-style emission policies. In (b), MT is pipelined at the ASR chunk cadence; the MT lane is contiguous because MT is GPU-constrained to one decode at a time and is heavier than ASR. In (c), ASR and MT alternate strictly; this is our IWSLT~2026 configuration and the one reported in Table~\ref{tab:e2e}.}
+Three coordination regimes for ASR and MT sharing one GPU. The submitted system uses the strict ASR--MT alternation in~(c).}
 \end{figure*}
