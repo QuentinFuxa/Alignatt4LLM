@@ -1,12 +1,11 @@
 \begin{figure*}[!tbp]
 \centering
 \resizebox{0.94\textwidth}{!}{%
-\begin{tikzpicture}[x=0.55cm,y=0.55cm, every node/.style={font=\scriptsize}]
+\begin{tikzpicture}[x=0.55cm,y=0.45cm, every node/.style={font=\scriptsize}]
 \node[anchor=west, font=\bfseries\small] at (-0.15,21.45) {Word-level selective reconstruction on a live MT draft};
-\node[anchor=west, text=black!60] at (-0.15,20.75) {target=\texttt{German} \; \textbullet \; gate=\texttt{alignatt:source\_frontier} \; \textbullet \; blocked at source word 13 (\emph{fast})};
 \node[anchor=south west, font=\bfseries\tiny, text=black!65] at (-0.10,19.75) {system};
 \draw[rounded corners=1.5pt, fill=black!4, draw=black!30, line width=0.5pt] (-0.15,17.40) rectangle (3.96,19.65);
-\node[anchor=north west, text=black!60, align=left, text width=3.60cm] at (0.05,19.43) {Translate to German.};
+\node[anchor=north west, text=black!60, align=left, text width=1.80cm] at (0.05,19.43) {Translate to German.};
 \node[anchor=south west, font=\bfseries\tiny, text=blue!55!black] at (4.26,19.75) {source};
 \draw[rounded corners=1.5pt, fill=blue!6, draw=blue!35, line width=0.5pt] (4.21,17.40) rectangle (13.71,19.65);
 \node[anchor=north west, text=blue!55!black, align=left, text width=3.39cm] at (4.41,19.43) {we separately benchmark the eager path before we compare};
@@ -16,8 +15,8 @@
 \draw[rounded corners=1.5pt, fill=green!8, draw=green!50!black, line width=0.5pt] (13.96,17.40) rectangle (17.64,19.65);
 \node[anchor=north west, text=green!30!black, align=left, text width=1.80cm] at (14.16,19.43) {wir};
 \node[anchor=south west, font=\bfseries\tiny, text=orange!70!black] at (17.94,19.75) {draft};
-\draw[rounded corners=1.5pt, fill=orange!10, draw=orange!60!black, line width=0.5pt] (17.89,17.40) rectangle (24.80,19.65);
-\node[anchor=north west, text=orange!70!black, align=left, text width=6.10cm] at (18.09,19.43) {pr\"ufen den eager pfad getrennt bevor wir ihn mit qk fast vergleichen};
+\draw[rounded corners=1.5pt, fill=orange!10, draw=orange!60!black, line width=0.5pt] (17.89,17.40) rectangle (26.50,19.65);
+\node[anchor=north west, text=orange!70!black, align=left, text width=4.50cm] at (18.09,19.43) {pr\"ufen den eager pfad getrennt bevor wir ihn mit qk fast vergleichen};
 \node[anchor=west, font=\bfseries\scriptsize] at (-0.15,16.70) {Draft-to-source attention (word level)};
 \node[anchor=west, font=\bfseries\scriptsize] at (17.85,16.70) {Per-word provenance};
 \node[anchor=south west, rotate=45, text=blue!55!black, font=\scriptsize] at (2.73,14.30) {we};
@@ -343,18 +342,14 @@
 \node[anchor=east, font=\tiny, text=black!65] at (0.90,1.35) {attention};
 \node[anchor=north, font=\tiny, text=black!60] at (1.00,1.14) {0.00};
 \node[anchor=north, font=\tiny, text=black!60] at (5.50,1.14) {0.68};
-\node[font=\bfseries, text=black!85] at (6.80,1.35) {$\bigstar$};
-\node[anchor=west, font=\tiny, text=black!65] at (7.08,1.35) {argmax before frontier};
-\node[font=\bfseries, text=red!70!black] at (13.60,1.35) {$\bigstar$};
-\node[anchor=west, font=\tiny, text=black!65] at (13.88,1.35) {argmax beyond frontier};
-\filldraw[fill=blue!55!black, draw=blue!55!black] (4.22,0.38) rectangle (4.54,0.72);
-\node[anchor=west, font=\tiny, text=black!65] at (4.70,0.55) {acc. source};
-\filldraw[fill=blue!22, draw=blue!22] (8.93,0.38) rectangle (9.25,0.72);
-\node[anchor=west, font=\tiny, text=black!65] at (9.40,0.55) {inacc. source};
-\filldraw[fill=black!22, draw=black!22] (13.93,0.38) rectangle (14.25,0.72);
-\node[anchor=west, font=\tiny, text=black!65] at (14.40,0.55) {prompt};
-\filldraw[fill=orange!55!black, draw=orange!55!black] (18.62,0.38) rectangle (18.95,0.72);
-\node[anchor=west, font=\tiny, text=black!65] at (19.09,0.55) {suffix};
+\filldraw[fill=blue!55!black, draw=blue!55!black] (6.80,1.17) rectangle (7.12,1.53);
+\node[anchor=west, font=\tiny, text=black!65] at (7.28,1.35) {acc. source};
+\filldraw[fill=blue!22, draw=blue!22] (11.00,1.17) rectangle (11.32,1.53);
+\node[anchor=west, font=\tiny, text=black!65] at (11.48,1.35) {inacc. source};
+\filldraw[fill=black!22, draw=black!22] (15.40,1.17) rectangle (15.72,1.53);
+\node[anchor=west, font=\tiny, text=black!65] at (15.88,1.35) {prompt};
+\filldraw[fill=orange!55!black, draw=orange!55!black] (18.60,1.17) rectangle (18.92,1.53);
+\node[anchor=west, font=\tiny, text=black!65] at (19.08,1.35) {suffix};
 \end{tikzpicture}%
 }
 \caption{\textbf{Word-level selective reconstruction on a live MT draft.} \emph{Top ribbon:} prompt partition into system instruction, live source, accepted target prefix, and current draft. \emph{Left panel:} reconstructed draft-to-source attention from the selected AlignAtt heads, aggregated to words and split by the dashed accessibility frontier; black stars stay on the accessible side, while the first red star marks the \textsc{source-frontier} failure. \emph{Right panel:} each drafted word is decomposed into accessible-source, inaccessible-source, prompt, and suffix mass, with the numeric label giving the total source share.}

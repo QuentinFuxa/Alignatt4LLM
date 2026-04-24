@@ -2,32 +2,32 @@
 \centering
 \begin{tikzpicture}[
   x=1cm, y=1cm,
-  >={Latex[length=1.8mm]},
+  >={Latex[length=1.6mm]},
   asr/.style={
-    draw=purple!55!black, rounded corners=2.5pt, line width=0.8pt,
-    fill=purple!7, minimum height=0.60cm, align=center,
-    font=\footnotesize, text=purple!32!black, inner sep=1.5pt,
+    draw=purple!55!black, rounded corners=2pt, line width=0.55pt,
+    fill=purple!7, minimum height=0.48cm, align=center,
+    font=\scriptsize, text=purple!32!black, inner sep=1pt,
   },
   asrsmall/.style={
-    draw=purple!55!black, rounded corners=2.5pt, line width=0.8pt,
-    fill=purple!7, minimum height=0.60cm, align=center,
+    draw=purple!55!black, rounded corners=2pt, line width=0.55pt,
+    fill=purple!7, minimum height=0.48cm, align=center,
     font=\scriptsize, text=purple!32!black, inner sep=1pt,
     minimum width=1.40cm,
   },
   mt/.style={
-    draw=blue!50!black, rounded corners=2.5pt, line width=0.8pt,
-    fill=blue!6, minimum height=0.60cm, align=center,
-    font=\footnotesize, text=blue!32!black, inner sep=1.5pt,
+    draw=blue!50!black, rounded corners=2pt, line width=0.55pt,
+    fill=blue!6, minimum height=0.48cm, align=center,
+    font=\scriptsize, text=blue!32!black, inner sep=1pt,
   },
   buffer/.style={
-    draw=teal!55!black, rounded corners=1.5pt, line width=0.5pt,
+    draw=teal!55!black, rounded corners=1.5pt, line width=0.45pt,
     fill=teal!7,
   },
-  flowin/.style={->, draw=teal!60!black, line width=0.45pt, densely dotted},
-  flowout/.style={->, draw=teal!60!black, line width=0.45pt, densely dashed},
-  dispatch/.style={draw=black!22, line width=0.35pt, densely dotted},
-  panel/.style={draw=black!18, rounded corners=3pt, line width=0.5pt},
-  timeaxis/.style={->, draw=black!50, line width=0.5pt},
+  flowin/.style={->, draw=teal!60!black, line width=0.4pt, densely dotted},
+  flowout/.style={->, draw=teal!60!black, line width=0.4pt, densely dashed},
+  dispatch/.style={draw=black!22, line width=0.3pt, densely dotted},
+  panel/.style={draw=black!18, rounded corners=3pt, line width=0.45pt},
+  timeaxis/.style={->, draw=black!50, line width=0.45pt},
   panelhdr/.style={font=\small\bfseries, text=black!78, anchor=west},
   panelsub/.style={font=\scriptsize\itshape, text=black!52, anchor=west},
   lanelabel/.style={font=\scriptsize, text=black!60, anchor=east},
@@ -38,103 +38,97 @@
   %% ==========================================================
   %% Panel (a): Full async
   %% ==========================================================
-  \draw[panel] (0.00, 9.10) rectangle (17.00, 12.10);
-  \node[panelhdr] at (0.25, 11.85) {(a) Full async};
-  \node[panelsub] at (2.60, 11.85)
+  \draw[panel] (0.00, 9.05) rectangle (15.30, 11.40);
+  \node[panelhdr] at (0.25, 11.20) {(a) Full async};
+  \node[panelsub] at (2.10, 11.20)
     {\,: one MT request at a time, relaunched over the current state of the shared source prefix};
 
   % ASR lane: 7 chunks, fixed cadence, with gaps reflecting RTF_ASR < 1
-  \node[lanelabel] at (1.05, 11.25) {ASR};
+  \node[lanelabel] at (1.05, 10.65) {ASR};
   \foreach \i/\lbl in {0/{$t$}, 1/{$t{+}1$}, 2/{$t{+}2$}, 3/{$t{+}3$}, 4/{$t{+}4$}, 5/{$t{+}5$}, 6/{$t{+}6$}} {
     \node[asrsmall, anchor=west]
-      at ({1.25 + \i*1.53}, 11.25) {ASR$(\lbl)$};
+      at ({1.25 + \i*1.53}, 10.65) {ASR$(\lbl)$};
   }
 
   % Buffer strip between lanes
-  \draw[buffer] (1.20, 10.31) rectangle (12.05, 10.69);
+  \draw[buffer] (1.20, 10.04) rectangle (12.05, 10.28);
   \pgfmathsetmacro{\bufCx}{(1.20 + 12.05)/2}
   \node[buflabel, align=center, text width=10.40cm, anchor=center]
-    at (\bufCx, 10.50)
+    at (\bufCx, 10.16)
     {shared source prefix \textmd{(async: whatever ASR has committed at launch)}};
 
   % Flow hints: ASR appends into the shared prefix, then MT relaunches from it
-  % Both markers are centered horizontally on the shared source prefix block
-  \fill[teal!60!black] (\bufCx, 10.72) -- ({\bufCx - 0.10}, 10.86) -- ({\bufCx + 0.10}, 10.86) -- cycle;
-  \fill[teal!60!black] (\bufCx, 10.16) -- ({\bufCx - 0.10}, 10.30) -- ({\bufCx + 0.10}, 10.30) -- cycle;
+  \fill[teal!60!black] (\bufCx, 10.30) -- ({\bufCx - 0.08}, 10.40) -- ({\bufCx + 0.08}, 10.40) -- cycle;
+  \fill[teal!60!black] (\bufCx, 9.92)  -- ({\bufCx - 0.08}, 10.02) -- ({\bufCx + 0.08}, 10.02) -- cycle;
 
-  % MT lane: 4 variable-length decodes (relaunched on completion); widths are
-  % non-monotonic: a long MT call "consumes" many ASR chunks, so the next call
-  % has less new source to translate and is shorter.
-  \node[lanelabel] at (1.05, 9.85) {MT};
-  \node[mt, minimum width=2.20cm, anchor=west] at (2.39, 9.85) {MT};
-  \node[mt, minimum width=3.60cm, anchor=west] at (4.59, 9.85) {MT};
-  \node[mt, minimum width=1.50cm, anchor=west] at (8.19, 9.85) {MT};
-  \node[mt, minimum width=2.50cm, anchor=west] at (9.69, 9.85) {MT};
-  % Note: MT resumes from the previously committed target, not from scratch.
-  % Forced line break keeps the note within 2 lines so it does not overflow
-  % the panel or the MT lane vertical band.
+  % MT lane
+  \node[lanelabel] at (1.05, 9.66) {MT};
+  \node[mt, minimum width=2.20cm, anchor=west] at (2.39, 9.66) {MT};
+  \node[mt, minimum width=3.60cm, anchor=west] at (4.59, 9.66) {MT};
+  \node[mt, minimum width=1.50cm, anchor=west] at (8.19, 9.66) {MT};
+  \node[mt, minimum width=2.50cm, anchor=west] at (9.69, 9.66) {MT};
   \node[font=\scriptsize\itshape, text=black!52, anchor=west,
-        text width=4.40cm, align=left, inner sep=1pt]
-    at (12.30, 9.85)
-    {committed target re-injected;\\MT resumes, no regeneration};
+        text width=2.80cm, align=left, inner sep=1pt]
+    at (12.30, 9.66)
+    {committed target\\re-injected; MT resumes,\\no regeneration};
 
   % Time axis
-  \draw[timeaxis] (1.25, 9.30) -- (12.19, 9.30);
-  \node[tick] at (12.24, 9.30) {wall-clock time};
+  \draw[timeaxis] (1.25, 9.22) -- (12.19, 9.22);
+  \node[tick] at (12.24, 9.22) {wall-clock time};
 
   %% ==========================================================
   %% Panel (b): Semi async
   %% ==========================================================
-  \draw[panel] (0.00, 6.40) rectangle (17.00, 8.80);
+  \draw[panel] (0.00, 6.75) rectangle (15.30, 8.75);
   \node[panelhdr] at (0.25, 8.55) {(b) Semi async};
-  \node[panelsub] at (2.85, 8.55)
+  \node[panelsub] at (2.10, 8.55)
     {\,: fixed ASR cadence; MT$(i)$ dispatches as soon as ASR$(i)$ commits};
 
-  % ASR lane: gaps between chunks (RTF_ASR < 1)
+  % ASR lane
   \node[lanelabel] at (1.05, 8.00) {ASR};
   \foreach \i/\lbl in {0/{$t$}, 1/{$t{+}1$}, 2/{$t{+}2$}} {
     \node[asr, minimum width=1.55cm, anchor=west]
       at ({1.25 + \i*2.70}, 8.00) {ASR$(\lbl)$};
   }
 
-  % MT lane: pipelined, GPU-constrained to one at a time
-  \node[lanelabel] at (1.05, 7.15) {MT};
+  % MT lane
+  \node[lanelabel] at (1.05, 7.30) {MT};
   \foreach \x in {2.80, 5.50, 8.20} {
-    \draw[dispatch] (\x, 7.72) -- (\x, 7.47);
+    \draw[dispatch] (\x, 7.76) -- (\x, 7.54);
   }
-  \node[mt, minimum width=2.70cm, anchor=west] at (2.80, 7.15) {MT$(t)$};
-  \node[mt, minimum width=2.70cm, anchor=west] at (5.50, 7.15) {MT$(t{+}1)$};
-  \node[mt, minimum width=2.70cm, anchor=west] at (8.20, 7.15) {MT$(t{+}2)$};
+  \node[mt, minimum width=2.70cm, anchor=west] at (2.80, 7.30) {MT$(t)$};
+  \node[mt, minimum width=2.70cm, anchor=west] at (5.50, 7.30) {MT$(t{+}1)$};
+  \node[mt, minimum width=2.70cm, anchor=west] at (8.20, 7.30) {MT$(t{+}2)$};
 
   % Time axis
-  \draw[timeaxis] (1.25, 6.65) -- (11.10, 6.65);
-  \node[tick] at (11.15, 6.65) {wall-clock time};
+  \draw[timeaxis] (1.25, 6.92) -- (12.19, 6.92);
+  \node[tick] at (12.24, 6.92) {wall-clock time};
 
   %% ==========================================================
   %% Panel (c): Full sync
   %% ==========================================================
-  \draw[panel] (0.00, 3.80) rectangle (17.00, 6.10);
-  \node[panelhdr] at (0.25, 5.85) {(c) Full sync};
-  \node[panelsub] at (2.40, 5.85)
+  \draw[panel] (0.00, 4.75) rectangle (15.30, 6.35);
+  \node[panelhdr] at (0.25, 6.15) {(c) Full sync};
+  \node[panelsub] at (2.00, 6.15)
     {\,: strict ASR--MT alternation; the configuration used for our IWSLT~2026 submission};
 
   % Single alternating row; ASR(i) and MT(i) are glued together (tight pair)
-  \node[asr, minimum width=1.95cm, anchor=west] at (1.25, 4.75) {ASR$(t)$};
-  \node[mt,  minimum width=2.35cm, anchor=west] at (3.20, 4.75) {MT$(t)$};
-  \node[asr, minimum width=1.95cm, anchor=west] at (5.80, 4.75) {ASR$(t{+}1)$};
-  \node[mt,  minimum width=2.35cm, anchor=west] at (7.75, 4.75) {MT$(t{+}1)$};
-  \node[asr, minimum width=1.95cm, anchor=west] at (10.35, 4.75) {ASR$(t{+}2)$};
-  \node[mt,  minimum width=2.35cm, anchor=west] at (12.30, 4.75) {MT$(t{+}2)$};
+  \node[asr, minimum width=1.55cm, anchor=west] at (1.25, 5.60) {ASR$(t)$};
+  \node[mt,  minimum width=1.85cm, anchor=west] at (2.80, 5.60) {MT$(t)$};
+  \node[asr, minimum width=1.55cm, anchor=west] at (4.90, 5.60) {ASR$(t{+}1)$};
+  \node[mt,  minimum width=1.85cm, anchor=west] at (6.45, 5.60) {MT$(t{+}1)$};
+  \node[asr, minimum width=1.55cm, anchor=west] at (8.55, 5.60) {ASR$(t{+}2)$};
+  \node[mt,  minimum width=1.85cm, anchor=west] at (10.10, 5.60) {MT$(t{+}2)$};
 
   % Time axis
-  \draw[timeaxis] (1.25, 4.20) -- (15.45, 4.20);
-  \node[tick] at (15.50, 4.20) {wall-clock time};
+  \draw[timeaxis] (1.25, 5.05) -- (12.19, 5.05);
+  \node[tick] at (12.24, 5.05) {wall-clock time};
 
   %% ==========================================================
   %% Bottom note
   %% ==========================================================
-  \node[anchor=north west, font=\scriptsize, text=black!62, align=justify, text width=16.4cm]
-    at (0.30, 3.55)
+  \node[anchor=north west, font=\scriptsize, text=black!62, align=justify, text width=14.7cm]
+    at (0.30, 4.55)
     {Regimes (a) and (b) require a non-blocking scheduler (e.g.\ the vLLM async engine \citep{vllm23}) with request abort on stale MT decodes; our current implementation is (c) with two blocking \texttt{LLM} instances sharing a single GPU. The gaps between ASR chunks in (a) and (b) reflect an ASR real-time factor below~1. This design axis mainly affects \emph{compute-aware} latency; our central submitted comparisons remain on the serialized regime in (c).};
 
 \end{tikzpicture}

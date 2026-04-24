@@ -22,14 +22,14 @@
   axlab/.style={font=\tiny, align=center, text=black!55, inner sep=0pt},
 ]
 
-  \def\Wmax{17.00}\def\Hmax{6.40}
+  \def\Wmax{17.00}\def\Hmax{5.25}
   \draw[panel] (0.00,0.00) rectangle (\Wmax,\Hmax);
 
   % === Input: reconstructed tensor block ===================================
-  \def\ixL{0.55}\def\ixR{2.25}\def\iyB{1.90}\def\iyT{5.30}
+  \def\ixL{0.55}\def\ixR{2.25}\def\iyB{1.30}\def\iyT{4.50}
 
-  \node[sectitle, text=black!80, anchor=south, text width=3.0cm, align=center]
-    at ({(\ixL+\ixR)/2},\iyT+0.40)
+  \node[sectitle, text=black!80, anchor=south]
+    at ({(\ixL+\ixR)/2 + 0.35},\iyT+0.35)
     {Input: reconstructed block};
 
   \draw[tensorbox] (\ixL,\iyB) rectangle (\ixR,\iyT);
@@ -59,13 +59,13 @@
   % --- Split arrow ---------------------------------------------------------
   \def\jx{2.90}
   \draw[flow, -] (\ixR+0.05,{(\iyB+\iyT)/2}) -- (\jx,{(\iyB+\iyT)/2});
-  \draw[black!75, line width=0.85pt, -] (\jx,{(\iyB+\iyT)/2}) -- (\jx,4.90);
-  \draw[black!75, line width=0.85pt, -] (\jx,{(\iyB+\iyT)/2}) -- (\jx,2.30);
-  \draw[flow] (\jx,4.90) -- (3.50,4.90);
-  \draw[flow] (\jx,2.30) -- (3.50,2.30);
+  \draw[black!75, line width=0.85pt, -] (\jx,{(\iyB+\iyT)/2}) -- (\jx,4.00);
+  \draw[black!75, line width=0.85pt, -] (\jx,{(\iyB+\iyT)/2}) -- (\jx,1.50);
+  \draw[flow] (\jx,4.00) -- (3.50,4.00);
+  \draw[flow] (\jx,1.50) -- (3.50,1.50);
 
   % === Branch A: Accessible-source mass ====================================
-  \def\aL{3.55}\def\aR{10.70}\def\aB{3.80}\def\aT{5.85}
+  \def\aL{3.55}\def\aR{10.70}\def\aB{3.00}\def\aT{5.00}
   \draw[branchL] (\aL,\aB) rectangle (\aR,\aT);
 
   \node[sectitle, text=teal!35!black, anchor=north west] at (\aL+0.20,\aT-0.15)
@@ -81,7 +81,7 @@
   \draw[flow] (\aR,{(\aB+\aT)/2}) -- (\aR+0.55,{(\aB+\aT)/2});
 
   % === Branch B: Stabilized peak ===========================================
-  \def\bL{3.55}\def\bR{10.70}\def\bB{0.75}\def\bT{2.90}
+  \def\bL{3.55}\def\bR{10.70}\def\bB{0.40}\def\bT{2.60}
   \draw[branchR] (\bL,\bB) rectangle (\bR,\bT);
 
   \node[sectitle, text=orange!38!black, anchor=north west] at (\bL+0.20,\bT-0.15)
@@ -99,7 +99,7 @@
   \draw[flow] (\bR,{(\bB+\bT)/2}) -- (\bR+0.55,{(\bB+\bT)/2});
 
   % === Gate ================================================================
-  \def\gL{11.30}\def\gR{14.35}\def\gB{0.90}\def\gT{5.85}
+  \def\gL{11.30}\def\gR{14.35}\def\gB{0.40}\def\gT{5.00}
   \draw[gatebox] (\gL,\gB) rectangle (\gR,\gT);
 
   \node[sectitle, text=green!28!black, anchor=north west] at (\gL+0.20,\gT-0.15)
@@ -108,20 +108,20 @@
         text width=2.65cm] at (\gL+0.20,\gT-0.50)
     {emit $y_t$ iff all three hold:};
 
-  \node[eqn, anchor=west] at (\gL+0.20,\gT-1.30)
+  \node[eqn, anchor=west] at (\gL+0.20,\gT-1.20)
     {(i)\ \ $\hat s_t \,<\, N^{(k)}_{\mathrm{acc}} + b$};
   \node[sublab, anchor=west, text width=2.50cm]
-    at (\gL+0.40,\gT-1.75) {peak stays left of the frontier};
+    at (\gL+0.40,\gT-1.60) {peak stays left of the frontier};
 
-  \node[eqn, anchor=west] at (\gL+0.20,\gT-2.45)
+  \node[eqn, anchor=west] at (\gL+0.20,\gT-2.30)
     {(ii)\ \ $p_{t,\hat s_t}\,\ge\,\tau_{\mathrm{argmax}}$};
   \node[sublab, anchor=west, text width=2.50cm]
-    at (\gL+0.40,\gT-2.90) {local peak mass high enough};
+    at (\gL+0.40,\gT-2.70) {local peak mass high enough};
 
-  \node[eqn, anchor=west] at (\gL+0.20,\gT-3.60)
+  \node[eqn, anchor=west] at (\gL+0.20,\gT-3.40)
     {(iii)\ \ $\pi^{\mathrm{acc}}_t\,\ge\,\tau_{\mathrm{src}}$};
   \node[sublab, anchor=west, text width=2.50cm]
-    at (\gL+0.40,\gT-4.05) {enough accessible mass overall};
+    at (\gL+0.40,\gT-3.80) {enough accessible mass overall};
 
   \node[sublab, text=black!50, anchor=south, text width=2.65cm,
         align=center] at ({(\gL+\gR)/2},\gB+0.10)
@@ -131,13 +131,13 @@
 
   % === Scan ================================================================
   \def\sL{14.95}\def\sR{16.85}
-  \node[sectitle, anchor=north west] at (\sL,5.80) {Scan};
-  \node[sublab, anchor=north west, text width=1.85cm] at (\sL,5.45)
+  \node[sectitle, anchor=north west] at (\sL,4.60) {Scan};
+  \node[sublab, anchor=north west, text width=1.85cm] at (\sL,4.25)
     {left$\to$right; emit while $g_t{=}1$, drop at first $g_t{=}0$};
 
   \def\cellw{0.28}\def\cellh{0.38}\def\cellg{0.02}
   \def\stX{\sL}
-  \def\stY{3.40}
+  \def\stY{2.51}
   \foreach \i in {0,1,2} {
     \pgfmathsetmacro\x{\stX + (\cellw+\cellg)*\i}
     \filldraw[fill=green!22, draw=green!45!black, line width=0.4pt]

@@ -24,7 +24,7 @@
   %% ================================================================
   %% LEFT PANEL: a. Standard encoder--decoder AlignAtt
   %% ================================================================
-  \def\aL{0.00}\def\aR{8.40}\def\aB{1.50}\def\aT{6.20}
+  \def\aL{0.00}\def\aR{8.40}\def\aB{2.30}\def\aT{6.20}
   \draw[panel] (\aL,\aB) rectangle (\aR,\aT);
 
   \node[title, anchor=north west] at (\aL+0.25,\aT-0.15)
@@ -74,15 +74,10 @@
   % Peak arrow (dashed teal) from peak bar down to accessible source
   \draw[peakflow] (\aPeakX,\aHy-0.05) -- (\aPeakX,\aSyT+0.05);
 
-  % Caption (plain italic prose, close to figure)
-  \node[font=\scriptsize\itshape, text=black!70, align=center]
-    at ({(\aL+\aR)/2},1.90)
-    {policy accepts iff the peak stays on the accessible side};
-
   %% ================================================================
   %% RIGHT PANEL: b. Decoder-only LLM with explicit source span
   %% ================================================================
-  \def\bL{8.60}\def\bR{17.00}\def\bB{1.50}\def\bT{6.20}
+  \def\bL{8.60}\def\bR{17.00}\def\bB{2.30}\def\bT{6.20}
   \draw[panel] (\bL,\bB) rectangle (\bR,\bT);
 
   \node[title, anchor=north west] at (\bL+0.25,\bT-0.15)
@@ -169,11 +164,6 @@
 
   % Peak arrow (teal dashed) from histogram peak up to prompt partition (indicating draft attends to acc source)
   \draw[peakflow] (\bPeakX, \bHyB+0.90) -- (\bPeakX, \bPyB-0.05);
-
-  % Caption (plain italic prose, close to figure)
-  \node[font=\scriptsize\itshape, text=black!70, align=center]
-    at ({(\bL+\bR)/2},1.90)
-    {take the source slice of the row, then apply the same policy as (a)};
 
 \end{tikzpicture}
 }%

@@ -24,13 +24,15 @@
   %% ========================================================
   %% Canvas
   %% ========================================================
-  \def\Wmax{17.00}\def\Hmax{5.20}
+  \def\Wmax{17.00}\def\Hmax{3.25}
   \draw[panel] (0,0) rectangle (\Wmax,\Hmax);
+
+  \begin{scope}[yshift=-1.15cm]
 
   %% ========================================================
   %% Main band: 5 processing stages
   %% ========================================================
-  \def\bYB{0.95}\def\bYT{4.30}
+  \def\bYB{1.85}\def\bYT{4.30}
 
   \def\aL{0.25}\def\aR{2.10}    % audio
   \def\bL{2.45}\def\bR{4.85}    % ASR
@@ -77,14 +79,14 @@
     at ({(\bL+\bR)/2},\bYB+0.10)
     {full hypothesis (no punct.)\\ $\to$ MT};
 
-  % Local Agreement self-loop on Qwen3 ASR box
-  \draw[->, draw=green!45!black, line width=0.75pt, rounded corners=4pt]
-    ({\bR-0.20},\bYT+0.02)
-    -- ({\bR-0.20},\bYT+0.45)
-    -- ({\bL+0.20},\bYT+0.45)
-    -- ({\bL+0.20},\bYT+0.02);
-  \node[font=\tiny, text=green!30!black, anchor=south]
-    at ({(\bL+\bR)/2},\bYT+0.48)
+  % Local Agreement self-loop on Qwen3 ASR box (below)
+  \draw[->, draw=green!45!black, line width=0.55pt, rounded corners=3pt]
+    ({\bR-0.20},\bYB-0.02)
+    -- ({\bR-0.20},\bYB-0.38)
+    -- ({\bL+0.20},\bYB-0.38)
+    -- ({\bL+0.20},\bYB-0.02);
+  \node[font=\tiny, text=green!30!black, anchor=north]
+    at ({(\bL+\bR)/2},\bYB-0.40)
     {Local Agreement on prefix};
 
   %% ---- Stage 3: MT prompt with explicit layout ----
@@ -134,7 +136,7 @@
     at ({(\dL+\dR)/2},\bYT-0.52)
     {MT-side policy path};
   % Mini attention matrix (3 rows draft x 7 cols source)
-  \def\matL{9.60}\def\matB{1.85}
+  \def\matL{9.60}\def\matB{2.55}
   \def\cellw{0.19}
   \foreach \r/\c/\k in {
     0/0/0, 0/1/1, 0/2/2, 0/3/1, 0/4/0, 0/5/0, 0/6/0,
@@ -215,7 +217,7 @@
   %% ========================================================
   %% Feedback: committed target -> target-prefix slot of next step
   %% ========================================================
-  \def\fbY{0.38}
+  \def\fbY{1.28}
   \draw[feed, rounded corners=4pt]
     ({(\eL+\eR)/2},\bYB-0.03)
     -- ({(\eL+\eR)/2},\fbY)
@@ -224,6 +226,8 @@
   \node[font=\tiny\itshape, text=teal!45!black, anchor=south]
     at ({(\ypSlotCx+(\eL+\eR)/2)/2},\fbY+0.04)
     {accepted target $\rightarrow$ target-prefix slot, step $k{+}1$};
+
+  \end{scope}
 
 \end{tikzpicture}
 }%
