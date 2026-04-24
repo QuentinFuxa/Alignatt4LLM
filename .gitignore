@@ -168,5 +168,6 @@ acl-speech/*
 *.zip
 *.pdf
 !paper/main.pdf
+!paper/generated/asr_reference_tail_risk_curve.pdf
 *.jsonl
 *.wav

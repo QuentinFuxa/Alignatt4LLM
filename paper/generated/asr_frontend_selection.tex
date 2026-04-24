@@ -1,0 +1,20 @@
+\begin{center}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.0pt}
+\begin{tabular}{lrrrl}
+\toprule
+ASR front end & WER $\downarrow$ & CU $\downarrow$ & RTF $\downarrow$ & Decision \\
+\midrule
+Qwen3 forced & 8.91 & 0.87\,s & 0.34 & keep \\
+Voxtral RT 4B & 7.15 & 1.16\,s & 1.34 & reject \\
+Gemma E4B LA & 16.69 & $\sim$1.8\,s$^\dagger$ & 0.51 & reject \\
+\bottomrule
+\end{tabular}
+\vspace{-0.6em}
+\captionof{table}{\textbf{ASR front-end comparison on 21 MCIF dev talks.}
+WER is percent and CU is CU-LongYAAL. $^\dagger$Gemma's raw 0.32\,s LongYAAL
+is prompt-leak-contaminated; clipping or discarding negative emissions gives
+about 1.8\,s.}
+\label{tab:asr-frontends}
+\end{center}

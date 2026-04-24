@@ -1,0 +1,12 @@
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{generated/asr_reference_tail_risk_curve.pdf}
+\vspace{-1.0em}
+\caption{\textbf{Live-tail ASR reference error.}
+Reference-error rate by distance to the current ASR tail; bands are 90\%
+audio-bootstrap intervals. Qwen3 drops from 17.1\% at the tail to 8.3\% at
+250\,ms and then stays flat. Voxtral is shifted by +290\,ms CU-LongYAAL;
+Gemma remains unshifted because its timestamps/LongYAAL are unreliable under
+prompt leakage.}
+\label{fig:asr-tail-risk}
+\end{figure}

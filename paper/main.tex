@@ -156,8 +156,11 @@ timestamp output enabled; the word times are therefore produced online inside
 our simulation run, not added later as an offline post-processing step. Each
 request returns an updated transcript prefix together with per-word end times.
 We retain this dedicated aligner because it performed better than the Gemma
-AlignAtt ASR variants tested during development. Appendix~\ref{sec:appendix-asr}
-summarizes that comparison.
+AlignAtt ASR variants tested during development, and because it is the only
+tested front end that jointly provides low WER, online word-end times, and a
+comfortable real-time margin. Appendix~\ref{sec:appendix-asr} summarizes the
+ASR front-end comparison and the tail-reliability analysis that motivated a
+small future source hold-back.
 
 \paragraph{MT.}
 The translation side uses Gemma-4 E4B-it \citep{gemma4card26} served through
@@ -444,6 +447,20 @@ setting with $\Delta_{\mathrm{chunk}}=1500$ ms.}
 \label{tab:e2e}
 \end{table}
 
+\subsection{Additional Analysis: ASR Tail Reliability}
+\label{sec:asr-tail-analysis}
+
+The submitted bundles expose each Qwen3 ASR word to MT as soon as its aligned
+end time is observed. A post-hoc reliability analysis suggests a slightly more
+conservative default for future runs: clip the last 250\,ms of the live ASR
+tail before passing the source prefix to MT. This is a policy-level timing
+margin rather than a lexical repair. On the 21 MCIF dev talks, the reference
+error rate of words at the current Qwen3 ASR tail end is 17.1\%, but drops to
+8.3\% at 250\,ms and then remains nearly flat. We therefore keep the submitted
+numbers unchanged, but recommend a 250\,ms ASR-tail hold-back as the maintained
+default going forward. Appendix~\ref{sec:appendix-asr} gives the comparison
+with the alternative ASR front ends and the full tail-risk curve.
+
 \subsection{Head Filtering Matters End-to-End}
 \label{sec:head-filtering}
 
@@ -502,30 +519,37 @@ BLEU and XCOMET-XL.
 
 \bibliography{references}
 
-\clearpage
-
 \appendix
 
 \section{Additional ASR Analyses}
 \label{sec:appendix-asr}
 
-The analyses below summarize the all-Gemma ASR results that informed the final
-system choice but are no longer central to the retained submission narrative.
+The analyses below justify the source front end used by the submitted cascade
+and the recommended source-tail default for future runs.
 
-\paragraph{Gemma AlignAtt ASR is feasible but not competitive.}
-We verified that the same AlignAtt toolkit can be made to run on the ASR side,
-but the resulting Gemma-ASR path is not competitive enough for submission. The
-limiting factor is poor Gemma-4 ASR quality itself, and this weakness appears
-to be shared by the current multimodal family rather than by one particular
-size variant: the same qualitative limitation is present for both E2B and E4B.
-On the diagnostic clip \texttt{ccpXHNfaoy} (360\,s), Qwen3 forced clearly
-dominates the exploratory Gemma AlignAtt ASR path: WER drops from 0.269 to
-0.113, CER from 0.122 to 0.046, mean absolute boundary lag from 0.403\,s to
-0.145\,s, load time from 123.0\,s to 63.7\,s, and wall-clock RTF from 0.628
-to 0.306. We therefore keep Gemma AlignAtt ASR only as an exploratory result
-and retain Qwen3 forced ASR for the submitted system. If a future multimodal
-LLM closes that ASR gap, the same overall design could support a double-AlignAtt
-cascade in which AlignAtt governs both the ASR stage and the MT stage.
+\paragraph{ASR front-end selection.}
+We tested three ASR front ends during development: Qwen3-ASR with the Qwen3
+forced aligner, Voxtral Realtime 4B, and a direct Gemma E4B ASR local-agreement
+probe. Table~\ref{tab:asr-frontends} summarizes the 21-talk MCIF comparison.
+Voxtral gives the lowest final WER, but it is not real-time in our serialized
+single-GPU loop and its CU-LongYAAL is higher than Qwen3. It also advances the
+transcript with a more regular lag, whereas Qwen3 often exposes compact
+multi-word updates, which better matches our chunk-synchronous MT policy.
+Gemma E4B would be attractive as a single-model substrate, but its WER, prompt
+leakage on long talks, and unstable raw latency make it unsuitable here. We
+therefore retain Qwen3 forced ASR.
+
+\input{generated/asr_frontend_selection.tex}
+
+\paragraph{ASR tail clipping.}
+Even with Qwen3, words at the live tail are less reliable than words slightly
+behind it. Figure~\ref{fig:asr-tail-risk} shows that most of the reference
+error reduction happens within the first 250\,ms, supporting a future default
+that hides the final 250\,ms from MT. This is a timing margin over word-end
+times, not a lexical correction or dataset-specific rule.
+
+\input{generated/asr_tail_risk_curve.tex}
+\clearpage
 
 \section{Coordination Regimes and Additional MT Alignment-Head Diagnostics}
 \label{sec:appendix-alignatt}
