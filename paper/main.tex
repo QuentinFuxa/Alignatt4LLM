@@ -40,6 +40,7 @@ Charles University, MFF, \'{U}FAL \\
 
 \def\Aref#1{Appendix~\ref{#1}}
 \def\AAName{AlignAtt4LLM}
+\newcommand{\offlinecell}[1]{\textcolor{gray}{\emph{#1}}}
 
 \begin{document}
 \maketitle
@@ -405,7 +406,7 @@ measurements, and qualitative probe.
 \subsection{Experimental Setup}
 \label{sec:setup}
 
-All experiments run on a single NVIDIA A40. The MT component uses Gemma-4 E4B-it
+The submitted streaming experiments run on a single NVIDIA A40. The MT component uses Gemma-4 E4B-it
 in bfloat16 through vLLM; the speech component uses Qwen3-ASR with
 forced alignment. In evaluation, we use the official IWSLT 2026 MCIF dev set
 ($\sim 2.1$ hours total, 21 long academic talks) resegmented by OmniSTEval
@@ -452,23 +453,26 @@ Pair & System & Regime & BLEU & chrF & XCOMET-XL & \multicolumn{2}{c}{LongYAAL (
 \cmidrule(lr){7-8}
 & & & & & & CU & CA \\
 \midrule
-\multirow{4}{*}{en$\to$de}
+\multirow{5}{*}{en$\to$de}
 & Org. baseline & low  & $22.35$ & $56.7$ & $0.748$ & \textbf{1.81} & -- \\
 & Ours          & low  & \textbf{28.76} & \textbf{62.1} & \textbf{0.875} & $2.00$ & $1.63$ \\
 & Org. baseline & high & $26.31$ & $59.2$ & $0.819$ & \textbf{2.63} & -- \\
 & Ours          & high & \textbf{32.63} & \textbf{64.2} & \textbf{0.902} & $3.53$ & $3.14$ \\
+& \offlinecell{Our cascade -- offline} & \offlinecell{ref.} & \offlinecell{38.57} & \offlinecell{67.1} & \offlinecell{0.938} & \offlinecell{--} & \offlinecell{--} \\
 \midrule
-\multirow{4}{*}{en$\to$zh}
+\multirow{5}{*}{en$\to$zh}
 & Org. baseline & low  & \textbf{40.85} & $34.1$ & \textbf{0.750} & \textbf{1.91} & -- \\
 & Ours          & low  & $36.01$ & \textbf{35.0} & $0.743$ & $1.95$ & $1.77$ \\
 & Org. baseline & high & \textbf{43.85} & \textbf{37.8} & \textbf{0.795} & $3.48$ & -- \\
 & Ours          & high & $39.86$ & \textbf{37.8} & $0.778$ & \textbf{3.27} & $3.09$ \\
+& \offlinecell{Our cascade -- offline} & \offlinecell{ref.} & \offlinecell{48.53} & \offlinecell{43.4} & \offlinecell{0.848} & \offlinecell{--} & \offlinecell{--} \\
 \midrule
-\multirow{4}{*}{en$\to$it}
+\multirow{5}{*}{en$\to$it}
 & Org. baseline & low  & $30.63$ & $62.0$ & $0.683$ & \textbf{1.76} & -- \\
 & Ours          & low  & \textbf{40.10} & \textbf{68.0} & \textbf{0.805} & $1.98$ & $1.62$ \\
 & Org. baseline & high & $37.28$ & $65.4$ & $0.781$ & \textbf{3.30} & -- \\
 & Ours          & high & \textbf{44.46} & \textbf{70.1} & \textbf{0.841} & $3.48$ & $3.10$ \\
+& \offlinecell{Our cascade -- offline} & \offlinecell{ref.} & \offlinecell{49.88} & \offlinecell{73.0} & \offlinecell{0.895} & \offlinecell{--} & \offlinecell{--} \\
 \bottomrule
 \end{tabular}
 }
@@ -477,7 +481,9 @@ Pair & System & Regime & BLEU & chrF & XCOMET-XL & \multicolumn{2}{c}{LongYAAL (
 submitted setting with $\Delta_{\mathrm{chunk}}=850$ ms; Ours high rows
 use $\Delta_{\mathrm{chunk}}=1500$ ms. Organizer baseline rows are
 the no-context baseline outputs provided with CU LongYAAL; their
-computation-aware LongYAAL was not available.}
+computation-aware LongYAAL was not available. Offline rows are diagnostic
+quality-only cascades with Qwen full-audio ASR followed by Gemma final-mode MT;
+they have no streaming latency score.}
 \label{tab:e2e}
 \end{table}
 
@@ -486,6 +492,11 @@ the $<2$\,s and $<4$\,s latency regimes for EN$\to$DE and EN$\to$IT.
 EN$\to$ZH is mixed: our system reaches comparable chrF at high latency and
 slightly higher chrF at low latency, but the organizers' baseline remains ahead
 on BLEU and XCOMET-XL.
+The offline diagnostic rows show substantial backbone headroom once online
+commitment is removed. They are not latency-comparable to the submitted
+streaming systems, but they help separate model capacity from the cost of the
+simultaneous policy. \Aref{sec:appendix-offline} gives the minimal setup
+details.
 
 \subsection{Additional Analysis: ASR Tail Reliability}
 \label{sec:asr-tail-analysis}
@@ -569,10 +580,7 @@ BLEU and XCOMET-XL still favor the baseline. This appears partly tied to the Gem
 whose Chinese generations were weaker in our runs; because \AAName{} only
 requires a deterministic prompt layout, calibrated heads, and Q/K capture, the
 same policy can be ported to other decoder-only LLMs, making a Qwen-family MT
-backbone a natural next target for EN$\to$ZH. We also did not test document
-context injection or Czech speech-to-English, but both fit the same cascade:
-context can be added as an explicit prompt span, and the ASR side already
-supports Czech.
+backbone a natural next target for EN$\to$ZH.
 
 %\section*{Acknowledgements} % Dominik can't forget to add ack to his grant!
 
@@ -608,7 +616,58 @@ behind it. Figure~\ref{fig:asr-tail-risk} shows that most of the reference
 error reduction happens within the first 250\,ms, supporting a future default
 that hides the final 250\,ms from MT.
 
-\clearpage
+\subsection{Offline Cascade Diagnostic}
+\label{sec:appendix-offline}
+To estimate the quality headroom of the backbone pair without online
+commitment, we also ran an offline cascade on the same 21 MCIF dev talks:
+Qwen3-ASR was applied once to each complete audio file, then Gemma-4 was run in
+final/offline mode with \texttt{is\_partial=False}. The full-audio ASR
+transcripts have 7.40\% weighted corpus WER against the English reference
+under lowercase, punctuation-stripped word normalization; a 90\% audio-bootstrap
+interval is [6.27, 8.59]. The ASR run therefore introduces visible but not
+catastrophic source noise.
+
+For MT, we translate sentence-level chunks from the final ASR transcript and
+then apply the same long-form resegmentation as in the streaming evaluation.
+This avoids context-window pressure without using lexical repairs, phrase
+tables, or target-specific post-processing.
+
+\paragraph{Role of the offline diagnostic.}
+The offline cascade is not a system we submit; it is a development tool that
+brackets the streaming numbers from above. Differences between offline and
+streaming output isolate the cost of the AlignAtt commit policy and the
+chunk-synchronous schedule from the intrinsic quality of the Qwen3-ASR plus
+Gemma-4 backbone. In particular, drops on EN$\to$ZH that already appear in
+this offline mode point to the Gemma backbone rather than to the simultaneous
+policy, which matches the conclusion drawn from the dev-set submission in
+\Cref{tab:e2e}. Conversely, dev-set degradations that are present in
+streaming but absent offline are attributable to either the AlignAtt accept
+gate or to the live ASR tail rather than to translation capacity.
+
+\paragraph{Interaction with ASR tail noise.}
+Because the offline run sees only the final, fully revised ASR transcript, the
+MT input is much closer to the reference English than it is in any online
+chunk. The 7.40\,\% offline WER is therefore a lower bound on the WER seen by
+the live MT module, and the gap between live and offline WER is roughly the
+quantity that the 250\,ms tail-clipping recommendation in
+\Cref{sec:asr-tail-analysis} is designed to absorb. A more aggressive tail
+hold-back tightens this gap at the cost of MT-side latency; the submitted
+operating points keep the hold-back at zero and let the AlignAtt policy itself
+absorb most of the residual tail risk by stopping generation before unstable
+source words are translated.
+
+\paragraph{Limitations of the offline comparison.}
+The offline cascade does not exercise the prompt-cache reuse, the
+draft-suffix capture, or the sliding-window MT context that the streaming
+runtime maintains across chunks; it also commits target output only once per
+sentence rather than incrementally. Two effects therefore do not appear in the
+offline numbers: first, the partial-prefix retranslation pressure that Gemma-4
+sees online when the source prefix is updated mid-sentence; second, the
+short-term reordering windows that the AlignAtt scan handles via the
+backward-mobile $\hat{s}_t$ described in \Cref{sec:appendix-observer}. We
+read the offline diagnostic as a translation-quality ceiling under perfectly
+informed source input, not as a fair latency-free analogue of the deployed
+streaming system.
 
 \section{Coordination Regimes and Additional MT Alignment-Head Diagnostics}
 \label{sec:appendix-alignatt}

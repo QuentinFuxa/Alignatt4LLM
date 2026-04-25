@@ -1,16 +1,8 @@
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[x=0.42cm,y=0.26cm, every node/.style={font=\scriptsize}]
-\draw[rounded corners=2pt, fill=black!2, draw=black!20] (-1.55,-1.50) rectangle (12.55,45.20);
+\draw[rounded corners=2pt, fill=black!2, draw=black!20] (-1.55,-1.50) rectangle (13.10,45.20);
 \node[anchor=west, font=\bfseries\scriptsize] at (-1.45,44.20) {MT alignment heads (en$\to\{$de,\,it,\,zh$\}$ mean TS)};
-% Full-attention layer markers (left margin).
-\fill[black!10] (-0.95,5.00) rectangle (-0.55,6.00);
-\fill[black!10] (-0.95,11.00) rectangle (-0.55,12.00);
-\fill[black!10] (-0.95,17.00) rectangle (-0.55,18.00);
-\fill[black!10] (-0.95,23.00) rectangle (-0.55,24.00);
-\fill[black!10] (-0.95,29.00) rectangle (-0.55,30.00);
-\fill[black!10] (-0.95,35.00) rectangle (-0.55,36.00);
-\fill[black!10] (-0.95,41.00) rectangle (-0.55,42.00);
 % Heatmap cells: x=head (H0..H7), y=layer (L0..L41).
 \filldraw[fill={rgb,255:red,243; green,246; blue,250}, draw=black!55, line width=0.18pt] (0.00,0.00) rectangle (1.00,1.00);
 \filldraw[fill={rgb,255:red,251; green,236; blue,203}, draw=black!55, line width=0.18pt] (1.00,0.00) rectangle (2.00,1.00);
@@ -352,7 +344,7 @@
 \draw[blue!55!black, line width=0.7pt] (8.35,24.00) -- (8.35,42.00);
 \draw[blue!55!black, line width=0.7pt] (8.18,24.00) -- (8.52,24.00);
 \draw[blue!55!black, line width=0.7pt] (8.18,42.00) -- (8.52,42.00);
-\node[rotate=90, anchor=south, font=\tiny, text=blue!55!black] at (9.10,33.00) {late shared-KV block (L24--L41)};
+\node[rotate=90, anchor=south, font=\tiny, text=blue!55!black] at (9.40,33.00) {late shared-KV block (L24--L41)};
 % Retained-head overlays.
 \draw[draw=green!55!black, line width=0.65pt] (4.08,23.08) rectangle (4.92,23.92);
 \draw[draw=green!55!black, line width=0.65pt] (1.08,23.08) rectangle (1.92,23.92);
@@ -387,47 +379,47 @@
 \node[anchor=east, text=black!70, font=\tiny] at (-0.20,35.50) {L35};
 \node[anchor=east, text=black!70, font=\tiny] at (-0.20,41.50) {L41};
 % TS color scale (vertical).
-\node[anchor=south, font=\tiny, text=black!70] at (10.55,30.40) {TS scale};
-\filldraw[fill={rgb,255:red,243; green,246; blue,250}, draw={rgb,255:red,243; green,246; blue,250}] (10.40,14.00) rectangle (10.70,14.50);
-\filldraw[fill={rgb,255:red,250; green,230; blue,193}, draw={rgb,255:red,250; green,230; blue,193}] (10.40,14.50) rectangle (10.70,15.00);
-\filldraw[fill={rgb,255:red,249; green,224; blue,184}, draw={rgb,255:red,249; green,224; blue,184}] (10.40,15.00) rectangle (10.70,15.50);
-\filldraw[fill={rgb,255:red,248; green,219; blue,176}, draw={rgb,255:red,248; green,219; blue,176}] (10.40,15.50) rectangle (10.70,16.00);
-\filldraw[fill={rgb,255:red,247; green,214; blue,168}, draw={rgb,255:red,247; green,214; blue,168}] (10.40,16.00) rectangle (10.70,16.50);
-\filldraw[fill={rgb,255:red,246; green,209; blue,160}, draw={rgb,255:red,246; green,209; blue,160}] (10.40,16.50) rectangle (10.70,17.00);
-\filldraw[fill={rgb,255:red,246; green,204; blue,153}, draw={rgb,255:red,246; green,204; blue,153}] (10.40,17.00) rectangle (10.70,17.50);
-\filldraw[fill={rgb,255:red,245; green,199; blue,145}, draw={rgb,255:red,245; green,199; blue,145}] (10.40,17.50) rectangle (10.70,18.00);
-\filldraw[fill={rgb,255:red,244; green,195; blue,138}, draw={rgb,255:red,244; green,195; blue,138}] (10.40,18.00) rectangle (10.70,18.50);
-\filldraw[fill={rgb,255:red,243; green,190; blue,131}, draw={rgb,255:red,243; green,190; blue,131}] (10.40,18.50) rectangle (10.70,19.00);
-\filldraw[fill={rgb,255:red,242; green,185; blue,124}, draw={rgb,255:red,242; green,185; blue,124}] (10.40,19.00) rectangle (10.70,19.50);
-\filldraw[fill={rgb,255:red,242; green,181; blue,116}, draw={rgb,255:red,242; green,181; blue,116}] (10.40,19.50) rectangle (10.70,20.00);
-\filldraw[fill={rgb,255:red,241; green,176; blue,109}, draw={rgb,255:red,241; green,176; blue,109}] (10.40,20.00) rectangle (10.70,20.50);
-\filldraw[fill={rgb,255:red,240; green,172; blue,102}, draw={rgb,255:red,240; green,172; blue,102}] (10.40,20.50) rectangle (10.70,21.00);
-\filldraw[fill={rgb,255:red,239; green,168; blue,95}, draw={rgb,255:red,239; green,168; blue,95}] (10.40,21.00) rectangle (10.70,21.50);
-\filldraw[fill={rgb,255:red,239; green,163; blue,89}, draw={rgb,255:red,239; green,163; blue,89}] (10.40,21.50) rectangle (10.70,22.00);
-\filldraw[fill={rgb,255:red,238; green,159; blue,82}, draw={rgb,255:red,238; green,159; blue,82}] (10.40,22.00) rectangle (10.70,22.50);
-\filldraw[fill={rgb,255:red,234; green,150; blue,79}, draw={rgb,255:red,234; green,150; blue,79}] (10.40,22.50) rectangle (10.70,23.00);
-\filldraw[fill={rgb,255:red,230; green,142; blue,75}, draw={rgb,255:red,230; green,142; blue,75}] (10.40,23.00) rectangle (10.70,23.50);
-\filldraw[fill={rgb,255:red,226; green,134; blue,72}, draw={rgb,255:red,226; green,134; blue,72}] (10.40,23.50) rectangle (10.70,24.00);
-\filldraw[fill={rgb,255:red,221; green,126; blue,69}, draw={rgb,255:red,221; green,126; blue,69}] (10.40,24.00) rectangle (10.70,24.50);
-\filldraw[fill={rgb,255:red,217; green,118; blue,66}, draw={rgb,255:red,217; green,118; blue,66}] (10.40,24.50) rectangle (10.70,25.00);
-\filldraw[fill={rgb,255:red,213; green,109; blue,63}, draw={rgb,255:red,213; green,109; blue,63}] (10.40,25.00) rectangle (10.70,25.50);
-\filldraw[fill={rgb,255:red,209; green,101; blue,60}, draw={rgb,255:red,209; green,101; blue,60}] (10.40,25.50) rectangle (10.70,26.00);
-\filldraw[fill={rgb,255:red,205; green,93; blue,56}, draw={rgb,255:red,205; green,93; blue,56}] (10.40,26.00) rectangle (10.70,26.50);
-\filldraw[fill={rgb,255:red,201; green,85; blue,53}, draw={rgb,255:red,201; green,85; blue,53}] (10.40,26.50) rectangle (10.70,27.00);
-\filldraw[fill={rgb,255:red,198; green,77; blue,50}, draw={rgb,255:red,198; green,77; blue,50}] (10.40,27.00) rectangle (10.70,27.50);
-\filldraw[fill={rgb,255:red,194; green,69; blue,47}, draw={rgb,255:red,194; green,69; blue,47}] (10.40,27.50) rectangle (10.70,28.00);
-\filldraw[fill={rgb,255:red,190; green,62; blue,44}, draw={rgb,255:red,190; green,62; blue,44}] (10.40,28.00) rectangle (10.70,28.50);
-\filldraw[fill={rgb,255:red,186; green,54; blue,41}, draw={rgb,255:red,186; green,54; blue,41}] (10.40,28.50) rectangle (10.70,29.00);
-\filldraw[fill={rgb,255:red,182; green,46; blue,38}, draw={rgb,255:red,182; green,46; blue,38}] (10.40,29.00) rectangle (10.70,29.50);
-\filldraw[fill={rgb,255:red,178; green,38; blue,35}, draw={rgb,255:red,178; green,38; blue,35}] (10.40,29.50) rectangle (10.70,30.00);
-\draw[draw=black!35, line width=0.25pt] (10.40,14.00) rectangle (10.70,30.00);
-\node[anchor=west, font=\tiny, text=black!60] at (10.78,29.50) {0.85};
-\node[anchor=west, font=\tiny, text=black!60] at (10.78,14.50) {0.00};
+\node[anchor=south, font=\tiny, text=black!70] at (10.07,26.40) {TS scale};
+\filldraw[fill={rgb,255:red,243; green,246; blue,250}, draw={rgb,255:red,243; green,246; blue,250}] (9.95,18.00) rectangle (10.20,18.25);
+\filldraw[fill={rgb,255:red,250; green,230; blue,193}, draw={rgb,255:red,250; green,230; blue,193}] (9.95,18.25) rectangle (10.20,18.50);
+\filldraw[fill={rgb,255:red,249; green,224; blue,184}, draw={rgb,255:red,249; green,224; blue,184}] (9.95,18.50) rectangle (10.20,18.75);
+\filldraw[fill={rgb,255:red,248; green,219; blue,176}, draw={rgb,255:red,248; green,219; blue,176}] (9.95,18.75) rectangle (10.20,19.00);
+\filldraw[fill={rgb,255:red,247; green,214; blue,168}, draw={rgb,255:red,247; green,214; blue,168}] (9.95,19.00) rectangle (10.20,19.25);
+\filldraw[fill={rgb,255:red,246; green,209; blue,160}, draw={rgb,255:red,246; green,209; blue,160}] (9.95,19.25) rectangle (10.20,19.50);
+\filldraw[fill={rgb,255:red,246; green,204; blue,153}, draw={rgb,255:red,246; green,204; blue,153}] (9.95,19.50) rectangle (10.20,19.75);
+\filldraw[fill={rgb,255:red,245; green,199; blue,145}, draw={rgb,255:red,245; green,199; blue,145}] (9.95,19.75) rectangle (10.20,20.00);
+\filldraw[fill={rgb,255:red,244; green,195; blue,138}, draw={rgb,255:red,244; green,195; blue,138}] (9.95,20.00) rectangle (10.20,20.25);
+\filldraw[fill={rgb,255:red,243; green,190; blue,131}, draw={rgb,255:red,243; green,190; blue,131}] (9.95,20.25) rectangle (10.20,20.50);
+\filldraw[fill={rgb,255:red,242; green,185; blue,124}, draw={rgb,255:red,242; green,185; blue,124}] (9.95,20.50) rectangle (10.20,20.75);
+\filldraw[fill={rgb,255:red,242; green,181; blue,116}, draw={rgb,255:red,242; green,181; blue,116}] (9.95,20.75) rectangle (10.20,21.00);
+\filldraw[fill={rgb,255:red,241; green,176; blue,109}, draw={rgb,255:red,241; green,176; blue,109}] (9.95,21.00) rectangle (10.20,21.25);
+\filldraw[fill={rgb,255:red,240; green,172; blue,102}, draw={rgb,255:red,240; green,172; blue,102}] (9.95,21.25) rectangle (10.20,21.50);
+\filldraw[fill={rgb,255:red,239; green,168; blue,95}, draw={rgb,255:red,239; green,168; blue,95}] (9.95,21.50) rectangle (10.20,21.75);
+\filldraw[fill={rgb,255:red,239; green,163; blue,89}, draw={rgb,255:red,239; green,163; blue,89}] (9.95,21.75) rectangle (10.20,22.00);
+\filldraw[fill={rgb,255:red,238; green,159; blue,82}, draw={rgb,255:red,238; green,159; blue,82}] (9.95,22.00) rectangle (10.20,22.25);
+\filldraw[fill={rgb,255:red,234; green,150; blue,79}, draw={rgb,255:red,234; green,150; blue,79}] (9.95,22.25) rectangle (10.20,22.50);
+\filldraw[fill={rgb,255:red,230; green,142; blue,75}, draw={rgb,255:red,230; green,142; blue,75}] (9.95,22.50) rectangle (10.20,22.75);
+\filldraw[fill={rgb,255:red,226; green,134; blue,72}, draw={rgb,255:red,226; green,134; blue,72}] (9.95,22.75) rectangle (10.20,23.00);
+\filldraw[fill={rgb,255:red,221; green,126; blue,69}, draw={rgb,255:red,221; green,126; blue,69}] (9.95,23.00) rectangle (10.20,23.25);
+\filldraw[fill={rgb,255:red,217; green,118; blue,66}, draw={rgb,255:red,217; green,118; blue,66}] (9.95,23.25) rectangle (10.20,23.50);
+\filldraw[fill={rgb,255:red,213; green,109; blue,63}, draw={rgb,255:red,213; green,109; blue,63}] (9.95,23.50) rectangle (10.20,23.75);
+\filldraw[fill={rgb,255:red,209; green,101; blue,60}, draw={rgb,255:red,209; green,101; blue,60}] (9.95,23.75) rectangle (10.20,24.00);
+\filldraw[fill={rgb,255:red,205; green,93; blue,56}, draw={rgb,255:red,205; green,93; blue,56}] (9.95,24.00) rectangle (10.20,24.25);
+\filldraw[fill={rgb,255:red,201; green,85; blue,53}, draw={rgb,255:red,201; green,85; blue,53}] (9.95,24.25) rectangle (10.20,24.50);
+\filldraw[fill={rgb,255:red,198; green,77; blue,50}, draw={rgb,255:red,198; green,77; blue,50}] (9.95,24.50) rectangle (10.20,24.75);
+\filldraw[fill={rgb,255:red,194; green,69; blue,47}, draw={rgb,255:red,194; green,69; blue,47}] (9.95,24.75) rectangle (10.20,25.00);
+\filldraw[fill={rgb,255:red,190; green,62; blue,44}, draw={rgb,255:red,190; green,62; blue,44}] (9.95,25.00) rectangle (10.20,25.25);
+\filldraw[fill={rgb,255:red,186; green,54; blue,41}, draw={rgb,255:red,186; green,54; blue,41}] (9.95,25.25) rectangle (10.20,25.50);
+\filldraw[fill={rgb,255:red,182; green,46; blue,38}, draw={rgb,255:red,182; green,46; blue,38}] (9.95,25.50) rectangle (10.20,25.75);
+\filldraw[fill={rgb,255:red,178; green,38; blue,35}, draw={rgb,255:red,178; green,38; blue,35}] (9.95,25.75) rectangle (10.20,26.00);
+\draw[draw=black!35, line width=0.25pt] (9.95,18.00) rectangle (10.20,26.00);
+\node[anchor=west, font=\tiny, text=black!60] at (10.28,25.50) {0.85};
+\node[anchor=west, font=\tiny, text=black!60] at (10.28,18.50) {0.00};
 % Marker legend (retained MT, ASR heads).
-\filldraw[fill=white, draw=blue!55!black, line width=0.65pt] (10.40,10.50) rectangle (10.70,11.30);
-\node[anchor=west, font=\tiny, text=black!70] at (10.78,10.90) {retained MT};
-\filldraw[fill=white, draw=green!55!black, line width=0.65pt] (10.40,8.50) rectangle (10.70,9.30);
-\node[anchor=west, font=\tiny, text=black!70] at (10.78,8.90) {ASR heads};
+\filldraw[fill=white, draw=blue!55!black, line width=0.65pt] (9.10,10.50) rectangle (9.35,11.30);
+\node[anchor=west, font=\tiny, text=black!70] at (9.43,10.90) {retained MT};
+\filldraw[fill=white, draw=green!55!black, line width=0.65pt] (9.10,8.50) rectangle (9.35,9.30);
+\node[anchor=west, font=\tiny, text=black!70] at (9.43,8.90) {ASR heads};
 \end{tikzpicture}
 \caption{\textbf{Architecture-aware view of retained MT alignment heads.} The useful MT heads are sparse, late, and only partly overlap with the ASR set, which highlights role-specific specialization. Their clustering inside the late shared-KV block is favorable because observer cost follows KV-group ownership rather than raw query-head count.}
 \label{fig:mt-alignatt-heads}
