@@ -56,7 +56,7 @@ LLM, where the encoder--decoder cross-attention used by earlier AlignAtt
 systems is absent. We recover a usable policy by proposing (1) an explicit source
 span in the prompt, (2) offline selection of translation-specific
 alignment heads, (3) selective \emph{qk-fast} replay of the draft-to-source
-attention block, and (4) an engine-native query/key capture path that preserves
+attention block, and (4) runtime query/key capture that preserves
 model outputs bit-identically.
 
 On the IWSLT 2026 development set, \AAName{} reaches a low-latency operating
@@ -64,7 +64,7 @@ point near two seconds of compute-unaware LongYAAL and trades 1.32--1.53
 additional seconds for clear gains in BLEU and XCOMET-XL in the high-latency
 regime. Head selection remains an end-to-end quality/latency trade-off, and
 the deployed \emph{qk-fast} path keeps the MT observer cheap enough to run in
-the same serialized GPU schedule as ASR.
+the same serialized GPU as ASR.
 \end{abstract}
 
 \section{Introduction}
@@ -85,16 +85,14 @@ online MT module. Standard AlignAtt reads encoder--decoder cross-attention, but
 Gemma-4 has no such cross-attention. We instead expose the source transcript as
 a known prompt span, select a small set of translation-specific self-attention
 heads offline, and accept only draft prefixes whose reconstructed attention
-signal remains within the currently available source frontier. This gives the
-offline Gemma translator an online policy without adding lexical repairs,
-phrase tables, or language-pair-specific streaming heuristics.
+signal remains within the currently available source frontier.
 
-The second contribution is making this policy fast enough for the submitted
-runtime and its computation-aware evaluation mode. Both ASR and MT are served through vLLM \citep{vllm23}, which gives
-the cascade one high-throughput inference stack, CUDA-graph compilation, and
-hot model reuse across chunks. On the MT side, this also means the policy
-cannot inspect a Python-visible attention matrix: self-attention is hidden
-inside fused compiled kernels. We therefore capture the exact query/key tensors
+The second contribution is making the implementation fast enough for
+computation-aware mode. Both ASR and MT are served through vLLM \citep{vllm23},
+which gives the cascade one high-throughput inference stack and hot model reuse
+across chunks. On the MT side, this also means the policy cannot inspect a
+Python-visible attention matrix: self-attention is hidden inside fused kernels.
+We therefore capture the exact query/key tensors
 consumed by the deployed Gemma attention module and replay only the
 draft-to-source block needed by AlignAtt.
 
@@ -153,7 +151,7 @@ allows re-translation at the evaluation interface, but \AAName{} itself emits
 append-only incremental output.
 
 \textbf{Development data.} We use the official IWSLT 2026 MCIF development
-set for the experiments in Section~\ref{sec:setup}.
+set.
 We report translation quality with BLEU
 \citep{papineni-etal-2002-bleu}, chrF \citep{popovic-2015-chrf}, and
 XCOMET-XL \citep{xcometxl24}. Translation latency is reported with LongYAAL
@@ -183,7 +181,7 @@ We retain this dedicated aligner because it performed better than all the altern
 
 \paragraph{MT.}
 The translation component uses Gemma-4 E4B-it \citep{gemma4card26} served through
-graph-compiled vLLM \citep{vllm23}.
+vLLM \citep{vllm23}.
 With every source update, Gemma receives the current transcript prefix, the already accepted
 target prefix, and a fixed translation instruction, then greedily generates a
 draft continuation capped at 16 new tokens in the partial streaming mode used
@@ -196,9 +194,7 @@ transcript prefix, and then launches one MT request. Source words are considered
 accessible only once their end time is older than a hold-back margin; in the
 submitted systems, this margin is 0 ms, so a word becomes accessible as
 soon as its aligned end time is observed. Both submitted regimes also delay the
-first MT emission until 2 seconds of source audio have accumulated. MT output is
-incremental-only: once a target token is accepted, it is reused as causal prefill
-for the next MT step and is never retracted.
+first MT emission until 2 seconds of source audio have accumulated.
 
 \paragraph{Latency-quality parameters.}
 We keep two official submission regimes. The low-latency submission uses
@@ -211,12 +207,13 @@ margin $b=1$.
 
 
 
-\input{generated/submitted_cascade.tex}
 The submitted cascade itself is
 synchronous and single-GPU: each chunk triggers ASR first and MT second. This
-conservative regime cleanly separates policy behavior from scheduler overlap.
-\Cref{fig:system} summarizes this chunk-synchronous runtime path; the
-computation-aware latency measurements are reported in Section~\ref{sec:main-results}.
+conservative regime cleanly separates policy behavior from scheduler overlap
+and defines the computation-aware setting used in our submitted measurements.
+\Cref{fig:system} summarizes this chunk-synchronous runtime path.
+
+\input{generated/submitted_cascade.tex}
 
 \Cref{fig:alignatt-substrates} summarizes the conceptual shift. The
 policy intuition remains the same as in encoder--decoder AlignAtt, but the
@@ -225,7 +222,7 @@ substrate rather than read directly from cross-attention.
 
 \input{generated/alignatt_substrates.tex}
 
-\section{Engine-Native AlignAtt for Decoder-Only LLMs}
+\section{AlignAtt for Decoder-Only LLMs}
 \label{sec:method}
 
 This section focuses on the method that enables AlignAtt for decoder-only LLMs.
@@ -369,14 +366,14 @@ whitespace-delimited lexical word in spacing scripts such as EN$\to$DE/IT, or
 a single CJK character in EN$\to$ZH, so partial subword fragments are never
 emitted.
 
-\subsection{Engine-Native Capture under Compiled Inference}
+\subsection{Runtime Query/Key Capture}
 
 Equation~\eqref{eq:mt-qk-fast} is only useful if the deployed runtime exposes
-the exact queries and keys consumed by attention. Under fused, graph-compiled
-vLLM, those tensors never appear as ordinary Python-visible objects. We
-therefore install a per-layer observer before compilation, copy prompt keys and
-draft-row queries into fixed-shape buffers, and route capture through a
-custom-op-style call that survives graph lowering. A zero-valued sentinel
+the exact queries and keys consumed by attention. In the deployed vLLM path,
+those tensors never appear as ordinary Python-visible objects. We therefore
+install a per-layer observer, copy prompt keys and draft-row queries into
+fixed-shape buffers, and route capture through a custom-op-style call that
+survives runtime graph lowering. A zero-valued sentinel
 dependency keeps the observer in the transitive fan-in of the graph output:
 \begin{equation}
   \mathbf{o}'_\ell =
@@ -389,8 +386,8 @@ dependency keeps the observer in the transitive fan-in of the graph output:
 \input{generated/appendix_observer_lifecycle.tex}
 
 Figure~\ref{fig:observer-lifecycle} separates the capture path into three
-stages. At compile time, we patch the attention forward and install fixed-shape
-observer slots before graph capture. During each compiled forward, the live
+stages. During setup, we patch the attention forward and install fixed-shape
+observer slots before the graph is captured. During each forward, the live
 observer records prompt keys and draft-row queries for the selected heads after
 the module's $q/k$ normalization and rotary embedding, then returns
 $\Phi \equiv \mathbf{0}$ back into the attention output. After the forward, a
@@ -409,7 +406,7 @@ measurements, and qualitative probe.
 \label{sec:setup}
 
 All experiments run on a single NVIDIA A40. The MT component uses Gemma-4 E4B-it
-in bfloat16 through graph-compiled vLLM; the speech component uses Qwen3-ASR with
+in bfloat16 through vLLM; the speech component uses Qwen3-ASR with
 forced alignment. In evaluation, we use the official IWSLT 2026 MCIF dev set
 ($\sim 2.1$ hours total, 21 long academic talks) resegmented by OmniSTEval
 v0.1.7. We report BLEU and chrF against the dev references, XCOMET-XL for
@@ -456,38 +453,39 @@ Pair & System & Regime & BLEU & chrF & XCOMET-XL & \multicolumn{2}{c}{LongYAAL (
 & & & & & & CU & CA \\
 \midrule
 \multirow{4}{*}{en$\to$de}
-& Org. baseline & low  & $22.35$ & $56.7$ & $0.748$ & $1.81$ & -- \\
-& \AAName{}     & low  & $28.76$ & $62.1$ & $0.875$ & $2.00$ & $1.63$ \\
-& Org. baseline & high & $26.31$ & $59.2$ & $0.819$ & $2.63$ & -- \\
-& \AAName{}     & high & $32.63$ & $64.2$ & $0.902$ & $3.53$ & $3.14$ \\
+& Org. baseline & low  & $22.35$ & $56.7$ & $0.748$ & \textbf{1.81} & -- \\
+& Ours          & low  & \textbf{28.76} & \textbf{62.1} & \textbf{0.875} & $2.00$ & $1.63$ \\
+& Org. baseline & high & $26.31$ & $59.2$ & $0.819$ & \textbf{2.63} & -- \\
+& Ours          & high & \textbf{32.63} & \textbf{64.2} & \textbf{0.902} & $3.53$ & $3.14$ \\
 \midrule
 \multirow{4}{*}{en$\to$zh}
-& Org. baseline & low  & $40.85$ & $34.1$ & $0.750$ & $1.91$ & -- \\
-& \AAName{}     & low  & $36.01$ & $35.0$ & $0.743$ & $1.95$ & $1.77$ \\
-& Org. baseline & high & $43.85$ & $37.8$ & $0.795$ & $3.48$ & -- \\
-& \AAName{}     & high & $39.86$ & $37.8$ & $0.778$ & $3.27$ & $3.09$ \\
+& Org. baseline & low  & \textbf{40.85} & $34.1$ & \textbf{0.750} & \textbf{1.91} & -- \\
+& Ours          & low  & $36.01$ & \textbf{35.0} & $0.743$ & $1.95$ & $1.77$ \\
+& Org. baseline & high & \textbf{43.85} & \textbf{37.8} & \textbf{0.795} & $3.48$ & -- \\
+& Ours          & high & $39.86$ & \textbf{37.8} & $0.778$ & \textbf{3.27} & $3.09$ \\
 \midrule
 \multirow{4}{*}{en$\to$it}
-& Org. baseline & low  & $30.63$ & $62.0$ & $0.683$ & $1.76$ & -- \\
-& \AAName{}     & low  & $40.10$ & $68.0$ & $0.805$ & $1.98$ & $1.62$ \\
-& Org. baseline & high & $37.28$ & $65.4$ & $0.781$ & $3.30$ & -- \\
-& \AAName{}     & high & $44.46$ & $70.1$ & $0.841$ & $3.48$ & $3.10$ \\
+& Org. baseline & low  & $30.63$ & $62.0$ & $0.683$ & \textbf{1.76} & -- \\
+& Ours          & low  & \textbf{40.10} & \textbf{68.0} & \textbf{0.805} & $1.98$ & $1.62$ \\
+& Org. baseline & high & $37.28$ & $65.4$ & $0.781$ & \textbf{3.30} & -- \\
+& Ours          & high & \textbf{44.46} & \textbf{70.1} & \textbf{0.841} & $3.48$ & $3.10$ \\
 \bottomrule
 \end{tabular}
 }
 \caption{\textbf{Submitted cascade on the IWSLT 2026 dev set}
-(21 clips, OmniSTEval long-form resegmentation). \AAName{} low rows use the
-submitted setting with $\Delta_{\mathrm{chunk}}=850$ ms; \AAName{} high rows
+(21 clips, OmniSTEval long-form resegmentation). Ours low rows use the
+submitted setting with $\Delta_{\mathrm{chunk}}=850$ ms; Ours high rows
 use $\Delta_{\mathrm{chunk}}=1500$ ms. Organizer baseline rows are
 the no-context baseline outputs provided with CU LongYAAL; their
 computation-aware LongYAAL was not available.}
 \label{tab:e2e}
 \end{table}
 
-Relative to these baseline points, \AAName{} is substantially stronger on
-EN$\to$DE and EN$\to$IT in both latency regimes. EN$\to$ZH is mixed: our
-system reaches comparable chrF at high latency and slightly higher chrF at low
-latency, but the organizers' baseline remains ahead on BLEU and XCOMET-XL.
+Against the supplied organizers' no-context baselines, \AAName{} clearly wins
+the $<2$\,s and $<4$\,s latency regimes for EN$\to$DE and EN$\to$IT.
+EN$\to$ZH is mixed: our system reaches comparable chrF at high latency and
+slightly higher chrF at low latency, but the organizers' baseline remains ahead
+on BLEU and XCOMET-XL.
 
 \subsection{Additional Analysis: ASR Tail Reliability}
 \label{sec:asr-tail-analysis}
@@ -498,12 +496,17 @@ conservative default for future runs: clip the last 250\,ms of the live ASR
 tail before passing the source prefix to MT. This is a policy-level timing
 margin rather than a lexical repair. Because the Qwen path re-transcribes the
 live utterance tail from scratch at each chunk, the final ASR words are exactly
-the part most likely to be revised on the next chunk. On the 21 MCIF dev talks,
+the part most likely to be revised on the next chunk. This instability is partly
+masked by AlignAtt, which often stops MT before translating the newest source
+words near the frontier. Reducing tail noise could therefore allow a less
+conservative acceptance policy, not only a longer hold-back. On the 21 MCIF dev talks,
 the reference error rate of words at the current Qwen3 ASR tail end is 17.1\%,
 but drops to 8.3\% at 250\,ms and then remains nearly flat. We therefore keep
 the submitted numbers unchanged, but recommend a 250\,ms ASR-tail hold-back as
 the maintained default going forward. \Aref{app:appendix-asr} gives
-the comparison with the alternative ASR front ends and the full tail-risk curve.
+the comparison with the alternative ASR component parameters.
+
+\input{generated/asr_tail_risk_curve.tex}
 
 \subsection{Head Filtering Matters End-to-End}
 \label{sec:head-filtering}
@@ -526,14 +529,14 @@ behind the retained head sets.
 \subsection{Runtime Cost of the MT Component}
 \label{sec:runtime}
 
-The MT policy component must be inexpensive enough to justify deployment.
-Figure~\ref{fig:mt-capture-speed} shows that the engine-native vLLM replay path is
+The MT component must require low computational resources to justify deployment.
+Figure~\ref{fig:mt-capture-speed} shows that the vLLM replay path is
 much cheaper than the minimal eager seam we use as an inspection reference:
 median cost drops from 63.7 to 25.4 ms/token, while the Transformers
 SDPA $-$\,\emph{qk-fast} replay remains close to the eager baseline at
 59.0 ms/token.
 This confirms that the MT contribution is not merely inspectable in principle;
-it is practical inside the compiled runtime we actually deploy.
+it is practical inside the runtime we actually deploy.
 
 \input{generated/mt_capture_speed_benchmark.tex}
 
@@ -553,16 +556,23 @@ work.
 \label{sec:conclusion}
 
 The retained IWSLT 2026 system is a Qwen3 forced ASR + Gemma-4 MT cascade, and
-its key technical ingredient is an engine-native implementation of AlignAtt for
-decoder-only MT under compiled inference. Deterministic prompt layout, offline
-head selection, selective \emph{qk-fast} replay, and compile-safe query/key
-capture make the MT policy usable without leaving the deployed runtime. On the
+its key technical ingredient is an AlignAtt policy adapted to decoder-only MT.
+Deterministic prompt layout, offline head selection, selective \emph{qk-fast}
+replay, and runtime query/key capture make the MT policy usable on the deployed
+vLLM path. On the
 dev set, this yields a low-latency operating point near 2\,s CU-LongYAAL and a
 high-latency regime that is roughly 1.5\,s slower but clearly stronger in
 BLEU and XCOMET-XL. Compared with the supplied organizers' no-context
-baselines, the system improves quality clearly on EN$\to$DE and EN$\to$IT,
-while EN$\to$ZH remains mixed: chrF is competitive, but BLEU and XCOMET-XL
-still favor the baseline.
+baselines, the system clearly wins the $<2$\,s and $<4$\,s latency regimes for
+EN$\to$DE and EN$\to$IT, while EN$\to$ZH remains mixed: chrF is competitive, but
+BLEU and XCOMET-XL still favor the baseline. This appears partly tied to the Gemma-4 MT backbone,
+whose Chinese generations were weaker in our runs; because \AAName{} only
+requires a deterministic prompt layout, calibrated heads, and Q/K capture, the
+same policy can be ported to other decoder-only LLMs, making a Qwen-family MT
+backbone a natural next target for EN$\to$ZH. We also did not test document
+context injection or Czech speech-to-English, but both fit the same cascade:
+context can be added as an explicit prompt span, and the ASR side already
+supports Czech.
 
 %\section*{Acknowledgements} % Dominik can't forget to add ack to his grant!
 
@@ -596,10 +606,8 @@ therefore retain Qwen3 forced ASR.
 Even with Qwen3, words at the live tail are less reliable than words slightly
 behind it. Figure~\ref{fig:asr-tail-risk} shows that most of the reference
 error reduction happens within the first 250\,ms, supporting a future default
-that hides the final 250\,ms from MT. This is a timing margin over word-end
-times, not a lexical correction or dataset-specific rule.
+that hides the final 250\,ms from MT.
 
-\input{generated/asr_tail_risk_curve.tex}
 \clearpage
 
 \section{Coordination Regimes and Additional MT Alignment-Head Diagnostics}
@@ -615,7 +623,7 @@ times, not a lexical correction or dataset-specific rule.
 \label{sec:appendix-observer}
 
 Below we report the prompt/suffix replay equations, one qualitative probe, and
-the numerical parity measurements on the engine-native path.
+the numerical parity measurements on the deployed vLLM path.
 
 \paragraph{Prompt-space replay details.}
 After capture, we replay prompt-side and suffix-side logits separately from the
@@ -666,7 +674,7 @@ formulation.
 
 \paragraph{Numerical parity.}
 Let $\mathbf{A}^{(\mathrm{TF})}$ denote the reference attention tensor produced
-by an uncompiled Transformers forward on the identical prompt. On a curated
+by a Transformers reference forward on the identical prompt. On a curated
 parity set, we observe
 \begin{equation}
   \begin{aligned}
@@ -675,7 +683,7 @@ parity set, we observe
   \end{aligned}
   \label{eq:parity}
 \end{equation}
-with bit-identical acceptance decisions between the eager and compiled paths.
+with bit-identical acceptance decisions between the reference and deployed paths.
 The observer is therefore not just fast enough to keep, but faithful enough to
 support controlled MT ablations.
 

@@ -8,16 +8,15 @@
   panel/.style={draw=black!35, rounded corners=2.5pt, line width=0.6pt, fill=white},
   box/.style       ={draw=black!50,        rounded corners=2.5pt, line width=0.5pt,  fill=white},
   audiobox/.style  ={box, draw=black!50,   fill=black!3},
-  asrbox/.style    ={box, draw=green!45!black, fill=green!5},
-  mtbox/.style     ={box, draw=blue!50!black,  fill=blue!4},
-  obsbox/.style    ={box, draw=orange!75!black, fill=orange!7,
-                     line width=1.0pt},
-  outbox/.style    ={box, draw=teal!60!black,  fill=teal!6},
+  asrbox/.style    ={box, draw=black!50, fill=black!3},
+  mtbox/.style     ={box, draw=black!50,  fill=black!3},
+  obsbox/.style    ={box, draw=black!55, fill=black!3},
+  outbox/.style    ={box, draw=black!50,  fill=black!3},
   hdr/.style       ={font=\scriptsize\bfseries, align=center, inner sep=0pt},
   sub/.style       ={font=\tiny, text=black!55, align=center, inner sep=0pt},
   tagL/.style      ={font=\tiny, text=black!70, align=left,   inner sep=0pt},
   arr/.style       ={->, line width=0.9pt, draw=black!72},
-  feed/.style      ={->, line width=0.8pt, draw=teal!55!black, dashed},
+  feed/.style      ={->, line width=0.8pt, draw=black!72, dashed},
   chunktick/.style ={draw=black!45, line width=0.5pt},
 ]
 
@@ -59,7 +58,7 @@
 
   %% ---- Stage 2: Qwen3 ASR ----
   \filldraw[asrbox] (\bL,\bYB) rectangle (\bR,\bYT);
-  \node[hdr, text=green!30!black, anchor=north] at ({(\bL+\bR)/2},\bYT-0.18)
+  \node[hdr, text=black!85, anchor=north] at ({(\bL+\bR)/2},\bYT-0.18)
     {Qwen3 forced ASR};
   \node[sub, anchor=north] at ({(\bL+\bR)/2},\bYT-0.52)
     {transcript $+$ word-end times};
@@ -80,18 +79,18 @@
     {full hypothesis (no punct.)\\ $\to$ MT};
 
   % Local Agreement self-loop on Qwen3 ASR box (below)
-  \draw[->, draw=green!45!black, line width=0.55pt, rounded corners=3pt]
+  \draw[->, draw=black!72, line width=0.55pt, rounded corners=3pt]
     ({\bR-0.20},\bYB-0.02)
     -- ({\bR-0.20},\bYB-0.38)
     -- ({\bL+0.20},\bYB-0.38)
     -- ({\bL+0.20},\bYB-0.02);
-  \node[font=\tiny, text=green!30!black, anchor=north]
+  \node[font=\tiny, text=black!70, anchor=north]
     at ({(\bL+\bR)/2},\bYB-0.40)
     {Local Agreement on prefix};
 
   %% ---- Stage 3: MT prompt with explicit layout ----
   \filldraw[mtbox] (\cL,\bYB) rectangle (\cR,\bYT);
-  \node[hdr, text=blue!40!black, anchor=north] at ({(\cL+\cR)/2},\bYT-0.18)
+  \node[hdr, text=black!85, anchor=north] at ({(\cL+\cR)/2},\bYT-0.18)
     {Gemma-4 MT prompt};
   \node[sub, anchor=north] at ({(\cL+\cR)/2},\bYT-0.52)
     {deterministic causal layout};
@@ -128,10 +127,10 @@
   \node[sub, anchor=south] at ({(\cL+\cR)/2},\bYB+0.10)
     {source $+$ target history, one causal stream};
 
-  %% ---- Stage 4: Engine-native AlignAtt observer (HERO) ----
+  %% ---- Stage 4: AlignAtt observer (HERO) ----
   \filldraw[obsbox] (\dL,\bYB) rectangle (\dR,\bYT);
-  \node[hdr, text=orange!55!black, anchor=north] at ({(\dL+\dR)/2},\bYT-0.18)
-    {Engine-native AlignAtt observer};
+  \node[hdr, text=black!85, anchor=north] at ({(\dL+\dR)/2},\bYT-0.18)
+    {AlignAtt observer};
   \node[sub, anchor=north, font=\tiny\itshape, text=orange!55!black]
     at ({(\dL+\dR)/2},\bYT-0.52)
     {MT-side policy path};
@@ -176,7 +175,7 @@
   \node[tagL, anchor=west] at (\hintX,3.45)
     {\textbullet\ \ selective \emph{qk-fast} replay};
   \node[tagL, anchor=west] at (\hintX,3.11)
-    {\textbullet\ \ compile-safe $q/k$ capture};
+    {\textbullet\ \ runtime $q/k$ capture};
   \node[tagL, anchor=west] at (\hintX,2.77)
     {\textbullet\ \ policy gates the draft};
   \node[sub, anchor=south, text=orange!55!black] at ({(\dL+\dR)/2},\bYB+0.10)
@@ -184,7 +183,7 @@
 
   %% ---- Stage 5: Committed target ----
   \filldraw[outbox] (\eL,\bYB) rectangle (\eR,\bYT);
-  \node[hdr, text=teal!45!black, anchor=north] at ({(\eL+\eR)/2},\bYT-0.18)
+  \node[hdr, text=black!85, anchor=north] at ({(\eL+\eR)/2},\bYT-0.18)
     {committed target};
   \node[sub, anchor=north] at ({(\eL+\eR)/2},\bYT-0.52)
     {$\mathbf{y}_{1:m_k}$, append-only};
@@ -223,7 +222,7 @@
     -- ({(\eL+\eR)/2},\fbY)
     -- (\ypSlotCx,\fbY)
     -- (\ypSlotCx,\bYB-0.03);
-  \node[font=\tiny\itshape, text=teal!45!black, anchor=south]
+  \node[font=\tiny\itshape, text=black!70, anchor=south]
     at ({(\ypSlotCx+(\eL+\eR)/2)/2},\fbY+0.04)
     {accepted target $\rightarrow$ target-prefix slot, step $k{+}1$};
 
@@ -234,7 +233,7 @@
 \caption{\textbf{Submitted cascade, one chunk-synchronous step.} Each chunk
 first updates the source prefix with Qwen3 forced ASR, then runs one Gemma-4
 MT step. The MT prompt keeps the ASR transcript explicit inside the
-decoder-only causal layout, so the engine-native observer can capture the
+decoder-only causal layout, so the observer can capture the
 selected heads' queries and keys on the deployed vLLM path and reconstruct only
 the draft-to-source block
 $\widehat{\mathbf{A}}_{\mathcal{D},\mathcal{S}^{(k)}}$ used by the acceptance

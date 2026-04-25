@@ -62,9 +62,9 @@
   \node[rowlbl] at (\pxL-0.25,\ryA+0.08) {Transformers eager};
   \node[rowsub] at (\pxL-0.25,\ryA-0.15) {reference};
   \node[rowlbl] at (\pxL-0.25,\ryB+0.08) {Transformers SDPA - qk-fast};
-  \node[rowsub] at (\pxL-0.25,\ryB-0.15) {paper replay};
+  \node[rowsub] at (\pxL-0.25,\ryB-0.15) {reference};
   \node[rowlbl] at (\pxL-0.25,\ryC+0.08) {vLLM qk-fast};
-  \node[rowsub] at (\pxL-0.25,\ryC-0.15) {shipped backend};
+  \node[rowsub] at (\pxL-0.25,\ryC-0.15) {presented system};
 
   %% Bar A: eager, 63.7 ms
   \pgfmathsetmacro\xA{\pxL + \xScale*63.7}
@@ -89,8 +89,8 @@
 latency per generated token on a fixed 16-prompt text-only suite, for a
 minimal Transformers eager reference, a Transformers SDPA
 $-$\,\emph{qk-fast} reference that reconstructs source rows from captured
-layer inputs, and the engine-native vLLM \emph{qk-fast} path used by the
-shipped backend. Each seam uses one unmeasured warmup pass followed by three
+layer inputs, and the deployed vLLM \emph{qk-fast} path used by the
+presented system. Each seam uses one unmeasured warmup pass followed by three
 hot repeats, greedy decode, a fixed AlignAtt head set, and subprocess
 isolation; per-prompt results and divergences are stored in the generated JSON
 artifact.}

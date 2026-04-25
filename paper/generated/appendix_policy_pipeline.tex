@@ -6,14 +6,14 @@
   >={Latex[length=2.4mm]},
   every node/.style={font=\small, inner sep=0pt},
   panel/.style={draw=black!45, rounded corners=3pt, line width=0.6pt, fill=white},
-  branchL/.style={draw=teal!60!black, line width=0.6pt, rounded corners=2.5pt,
-                  fill=teal!6},
-  branchR/.style={draw=orange!70!black, line width=0.6pt, rounded corners=2.5pt,
-                  fill=orange!5},
-  gatebox/.style={draw=green!45!black, line width=0.7pt, rounded corners=2.5pt,
-                  fill=green!7},
-  tensorbox/.style={draw=teal!60!black, line width=0.7pt, rounded corners=2pt,
-                    fill=teal!9},
+  branchL/.style={draw=black!45, line width=0.6pt, rounded corners=2.5pt,
+                  fill=black!2},
+  branchR/.style={draw=black!45, line width=0.6pt, rounded corners=2.5pt,
+                  fill=black!2},
+  gatebox/.style={draw=black!50, line width=0.7pt, rounded corners=2.5pt,
+                  fill=black!2},
+  tensorbox/.style={draw=black!50, line width=0.7pt, rounded corners=2pt,
+                    fill=black!2},
   flow/.style={->, draw=black!75, line width=0.9pt},
   sectitle/.style={font=\scriptsize\bfseries, align=left, inner sep=0pt},
   caption/.style={font=\scriptsize, align=left, text=black!60, inner sep=0pt},
@@ -68,9 +68,9 @@
   \def\aL{3.55}\def\aR{10.70}\def\aB{3.00}\def\aT{5.00}
   \draw[branchL] (\aL,\aB) rectangle (\aR,\aT);
 
-  \node[sectitle, text=teal!35!black, anchor=north west] at (\aL+0.20,\aT-0.15)
+  \node[sectitle, text=black!85, anchor=north west] at (\aL+0.20,\aT-0.15)
     {A.~Accessible-source mass};
-  \node[caption, text=teal!40!black, anchor=north west,
+  \node[caption, text=black!60, anchor=north west,
         text width=6.75cm] at (\aL+0.20,\aT-0.50)
     {sum the head-averaged row on the accessible side of the frontier};
 
@@ -84,9 +84,9 @@
   \def\bL{3.55}\def\bR{10.70}\def\bB{0.40}\def\bT{2.60}
   \draw[branchR] (\bL,\bB) rectangle (\bR,\bT);
 
-  \node[sectitle, text=orange!38!black, anchor=north west] at (\bL+0.20,\bT-0.15)
+  \node[sectitle, text=black!85, anchor=north west] at (\bL+0.20,\bT-0.15)
     {B.~Stabilized source peak};
-  \node[caption, text=orange!42!black, anchor=north west,
+  \node[caption, text=black!60, anchor=north west,
         text width=6.75cm] at (\bL+0.20,\bT-0.50)
     {argmax on a normalized, smoothed row $\tilde z$ of the same heads};
 
@@ -102,9 +102,9 @@
   \def\gL{11.30}\def\gR{14.35}\def\gB{0.40}\def\gT{5.00}
   \draw[gatebox] (\gL,\gB) rectangle (\gR,\gT);
 
-  \node[sectitle, text=green!28!black, anchor=north west] at (\gL+0.20,\gT-0.15)
+  \node[sectitle, text=black!85, anchor=north west] at (\gL+0.20,\gT-0.15)
     {Gate $g_t$};
-  \node[caption, text=green!32!black, anchor=north west,
+  \node[caption, text=black!60, anchor=north west,
         text width=2.65cm] at (\gL+0.20,\gT-0.50)
     {emit $y_t$ iff all three hold:};
 

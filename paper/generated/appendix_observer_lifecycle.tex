@@ -17,10 +17,10 @@
   bufnode/.style={draw=teal!60!black, fill=teal!14, rounded corners=2pt,
                   line width=0.7pt, inner sep=3pt, font=\scriptsize,
                   align=center},
-  outnode/.style={draw=green!45!black, fill=green!14, rounded corners=2pt,
+  outnode/.style={draw=black!55, fill=black!3, rounded corners=2pt,
                   line width=0.7pt, inner sep=3pt, font=\scriptsize,
                   align=center},
-  tagbox/.style={draw=green!45!black, fill=green!7, rounded corners=2pt,
+  tagbox/.style={draw=black!45, fill=black!2, rounded corners=2pt,
                  line width=0.4pt, inner sep=3pt, font=\scriptsize, align=left},
   tflow/.style={->, draw=black!75, line width=0.9pt},
   dflow/.style={->, draw=teal!55!black, line width=0.8pt},
@@ -41,12 +41,12 @@
   \draw[black!30, dashed, line width=0.45pt] (8.20,0.30) -- (8.20,7.50);
 
   % ========================================================================
-  % LEFT: Compile-time setup
+  % LEFT: Setup
   % ========================================================================
   \node[sectitle, text=black!85, anchor=north west] at (0.20,7.65)
-    {A.~Compile-time: install observer before graph capture};
+    {A.~Setup: install observer before graph capture};
   \node[sub, anchor=north west, text width=7.80cm] at (0.20,7.30)
-    {runs once, before \texttt{torch.compile}\,/\,cudagraph freezes the graph};
+    {runs once, before the deployed graph is fixed};
 
   % --- Inner graph-fragment box ---
   \def\xLL{0.30}\def\xLR{8.00}\def\xLB{3.75}\def\xLT{6.80}
@@ -115,7 +115,7 @@
      into the attention output};
 
   \node[prose, anchor=north west, text width=7.60cm] at (0.20,1.10)
-    {\emph{Why this survives compilation}: fixed shapes let AOT resolve every
+    {\emph{Why this path is retained}: fixed shapes let AOT resolve every
      attribute; the add-back keeps $\phi_{\mathrm{cap}}$ in the live fan-in,
      so dead-code elimination cannot remove it; outputs are bit-identical to
      the unpatched model.};
@@ -126,7 +126,7 @@
   \node[sectitle, text=black!85, anchor=north west] at (8.40,7.65)
     {B.~Runtime: capture during the forward, replay after};
   \node[sub, anchor=north west, text width=8.40cm] at (8.40,7.30)
-    {observer ops run inside the compiled graph; replay runs in Python on the
+    {observer ops run inside the deployed graph; replay runs in Python on the
      stored slots};
 
   % --- Inner runtime box ---
@@ -157,9 +157,12 @@
     {$\widehat{\mathbf{A}}^{(\ell,h)}_{\mathcal{D},\mathcal{S}^{(k)}}$};
   \node[cen, anchor=north] at (15.85,4.75) {keep source cols};
 
-  % Edges
-  \draw[dflow] (bK.east) -- (replay.west |- bK);
-  \draw[dflow] (bQ.east) -- (replay.west |- bQ);
+  % Edges -- L-shape elbows so arrows enter the west edge of the softmax box
+  % cleanly, away from the top/bottom corners.
+  \draw[dflow] (bK.east) -| ([xshift=-0.40cm, yshift=0.35cm]replay.west)
+               -- ([yshift=0.35cm]replay.west);
+  \draw[dflow] (bQ.east) -| ([xshift=-0.40cm, yshift=-0.35cm]replay.west)
+               -- ([yshift=-0.35cm]replay.west);
   \draw[dflow] (replay.east) -- (slice.west);
 
   % --- Consumer tags (with room above the tagbox row) ---
@@ -183,23 +186,23 @@
 
 \end{tikzpicture}
 }%
-\caption{\textbf{Compile-safe observer lifecycle on the deployed vLLM path.}
+\caption{\textbf{Observer lifecycle on the deployed vLLM path.}
 \emph{Left (A), once, before graph capture:} the forward of
 \texttt{GemmaAttention} is patched so that for each selected head
 $(\ell,h)\in\mathcal{H}$ the query and key tensors also pass through an
 observer custom op $\phi_{\mathrm{cap}}$ (dashed orange side path). The op
 writes the selected slices into fixed-shape, pre-allocated slots and returns
 a zero tensor that is added back into the attention output; this keeps the op
-in the live fan-in of the graph so the compiler cannot dead-code-eliminate
+in the live fan-in of the graph so graph optimization cannot dead-code-eliminate
 it, while the numerical output of the layer is unchanged.
-\emph{Right (B), every forward:} after the compiled forward finishes, the
+\emph{Right (B), every forward:} after the forward finishes, the
 observer slots hold $\mathbf{K}^{(\ell,h)}_{\mathcal{P}}$ for the full prompt
 and $\mathbf{Q}^{(\ell,h)}_{\mathcal{D}}$ for the draft rows; a short
 Python-side replay reapplies the module scaling and the same prompt/suffix
 masks used by the deployed attention kernel, then keeps the source columns to
 yield the selective block
 $\widehat{\mathbf{A}}^{(\ell,h)}_{\mathcal{D},\mathcal{S}^{(k)}}$ that feeds
-the policy, the parity check against an uncompiled Transformers reference,
+the policy, the parity check against a Transformers reference,
 and the qualitative probe.}
 \label{fig:observer-lifecycle}
 \end{figure*}
