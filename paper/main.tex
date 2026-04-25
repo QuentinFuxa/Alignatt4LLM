@@ -31,20 +31,12 @@ Independent Researcher \\
 \texttt{quentin.fuxa@gmail.com}
 \And
 Dominik Mach\'a\v{c}ek \\
-Charles University, MFF, ÚFAL \\
+Charles University, MFF, \'{U}FAL \\
 \& University of Edinburgh \\
 \texttt{machacek@ufal.mff.cuni.cz}
 }
 
-\usepackage[normalem]{ulem}% for strike-through in \repl
 \usepackage{cleveref} % for \Cref{tab:abc} instead of guessing what it is and then Section~\ref{tab:abc}
-
-% when resolved, either comment in text, or change this repo to:
-% \def\XXX#1{} % which hides all XXX 
-\def\XXX#1{\textcolor{red}{XXX #1}}
-
-% similarly with this
-\def\repl#1#2{\textcolor{orange}{\sout{#1}}\textcolor{blue}{#2}}
 
 \def\Aref#1{Appendix~\ref{#1}}
 \def\AAName{AlignAtt4LLM}
@@ -61,8 +53,8 @@ translates that prefix under an MT-side AlignAtt policy.
 
 To our knowledge, this is the first application of AlignAtt to a decoder-only
 LLM, where the encoder--decoder cross-attention used by earlier AlignAtt
-systems is absent. We recover a usable policy through \repl{}{proposing} (1) an explicit source
-span in the \repl{causal}{} prompt, (2) offline selection of translation-specific
+systems is absent. We recover a usable policy by proposing (1) an explicit source
+span in the prompt, (2) offline selection of translation-specific
 alignment heads, (3) selective \emph{qk-fast} replay of the draft-to-source
 attention block, and (4) an engine-native query/key capture path that preserves
 model outputs bit-identically.
@@ -72,7 +64,7 @@ point near two seconds of compute-unaware LongYAAL and trades 1.32--1.53
 additional seconds for clear gains in BLEU and XCOMET-XL in the high-latency
 regime. Head selection remains an end-to-end quality/latency trade-off, and
 the deployed \emph{qk-fast} path keeps the MT observer cheap enough to run in
-the same serialized GPU \repl{loop}{} as ASR.
+the same serialized GPU schedule as ASR.
 \end{abstract}
 
 \section{Introduction}
@@ -80,7 +72,8 @@ the same serialized GPU \repl{loop}{} as ASR.
 
 This paper describes the \AAName{} IWSLT 2026 submission system for
 English-to-German, English-to-Italian, and English-to-Chinese simultaneous
-speech translation. The system is a synchronous cascade: Qwen3-ASR with the
+speech translation \citep{anastasopoulos-etal-2026-findings}. The system is a
+synchronous cascade: Qwen3-ASR with the
 Qwen3 forced aligner \citep{qwen3asr26} produces an incrementally updated
 source transcript with word end times, and Gemma-4 E4B-it \citep{gemma4card26}
 translates the current source prefix under an MT-side AlignAtt policy. We keep
@@ -92,12 +85,12 @@ online MT module. Standard AlignAtt reads encoder--decoder cross-attention, but
 Gemma-4 has no such cross-attention. We instead expose the source transcript as
 a known prompt span, select a small set of translation-specific self-attention
 heads offline, and accept only draft prefixes whose reconstructed attention
-signal remains within the currently available source frontier. \repl{This gives the
+signal remains within the currently available source frontier. This gives the
 offline Gemma translator an online policy without adding lexical repairs,
-phrase tables, or language-pair-specific streaming heuristics.}{}
+phrase tables, or language-pair-specific streaming heuristics.
 
-The second contribution is making that \repl{policy cheap enough for the submitted
-runtime.}{implementation as fast as possible in computational aware mode}. Both ASR and MT are served through vLLM \citep{vllm23}, which gives
+The second contribution is making this policy fast enough for the submitted
+runtime and its computation-aware evaluation mode. Both ASR and MT are served through vLLM \citep{vllm23}, which gives
 the cascade one high-throughput inference stack, CUDA-graph compilation, and
 hot model reuse across chunks. On the MT side, this also means the policy
 cannot inspect a Python-visible attention matrix: self-attention is hidden
@@ -117,11 +110,20 @@ Our implementation will be released with the camera-ready version at
 \label{sec:background}
 
 \textbf{AlignAtt} \citep{alignatt23,streamatt24} is a simultaneous policy that
-lets an offline model operate in streaming mode. It has been recenlty applied in the state-of-the-art 
-simultaneous system \citep{cuniiwslt25} at IWSLT 2025. At each generation step, the
+lets an offline model operate in streaming mode. It was recently applied in the
+state-of-the-art simultaneous system \citep{cuniiwslt25} at IWSLT 2025. At each generation step, the
 policy reads an attention-derived source position for the next target token and
 stops generation when that position is not yet safely available. Previous
 AlignAtt systems obtained this signal from encoder--decoder cross-attention.
+
+\textbf{Offline models with online policies.} Repurposing offline models for
+simultaneous translation is attractive because it reuses high-quality,
+multilingual, instruction-following models without training a new streaming
+architecture for every latency regime. The cost is that an offline model is not
+trained to decide when a partial source prefix is sufficient, and naive
+re-translation can flicker or hallucinate on incomplete input. Online policies
+such as AlignAtt provide the missing commit decision while preserving the
+offline model's quality and flexibility \citep{alignatt23,cuniiwslt25}.
 
 \textbf{Decoder-only LLMs} have recently become central in high-quality
 text-to-text MT systems \citep{kocmi-etal-2024-findings,kocmi-etal-2025-findings}.
@@ -129,20 +131,18 @@ Prior simultaneous systems have already used instruction-tuned decoder-only
 LLMs by prompting them with the translation direction, current source prefix,
 and already emitted target prefix \citep{cuniiwslt25}. Long context,
 instruction following, and in-context examples make this family attractive for
-robust MT, but previous decoder-only simultaneous implementations did not use
-AlignAtt, but LocalAgreement \cite{polak-etal-2022-cuni,polak23_interspeech}, the most state-of-the-art simultaneous policy that did not require access to attention.
+robust MT, but previous decoder-only simultaneous implementations used
+LocalAgreement \citep{polak-etal-2022-cuni,polak23_interspeech} rather than
+AlignAtt. LocalAgreement is a strong simultaneous policy, but it does not
+exploit model-internal attention.
 
 \textbf{Translation-specific attention heads.} \citet{tokenheads26} show that
 multilingual decoder-only LLMs contain a sparse set of heads whose attention
 argmaxes track source--target word alignments. This suggests a decoder-only
 AlignAtt path, but only if two runtime conditions are met: the source span must
-be identifiable in the \repl{causal}{} prompt, and the policy-visible attention rows
+be identifiable in the prompt, and the policy-visible attention rows
 must be reconstructed from the same tensors used by the deployed inference
 engine. The method below supplies both conditions.
-
-\XXX{nice to have, not necessary: a section why to use offline models + policies. Refer to the same arguments as in Aziz's paper.}
-
-\XXX{baselines + offline variants: if you have time to include them to Table 1}
 
 \subsection{IWSLT 2026 Simultaneous Task}
 
@@ -152,8 +152,8 @@ translation sessions. We follow the long-form, unsegmented task setup, which
 allows re-translation at the evaluation interface, but \AAName{} itself emits
 append-only incremental output.
 
-\textbf{\repl{Evaluation}{Development data}.} We \repl{evaluate on}{use} the official IWSLT 2026 MCIF development
-set. \repl{used in ref{sec:setup}.}{}
+\textbf{Development data.} We use the official IWSLT 2026 MCIF development
+set for the experiments in Section~\ref{sec:setup}.
 We report translation quality with BLEU
 \citep{papineni-etal-2002-bleu}, chrF \citep{popovic-2015-chrf}, and
 XCOMET-XL \citep{xcometxl24}. Translation latency is reported with LongYAAL
@@ -167,10 +167,12 @@ XCOMET-XL \citep{xcometxl24}. Translation latency is reported with LongYAAL
 The speech component of the submitted cascade uses two upstream Qwen components:
 Qwen3-ASR-1.7B transcribes the live audio tail, and Qwen3-ForcedAligner-0.6B
 assigns word-level start and end times to that transcript \citep{qwen3asr26}.
-The cascade invokes this combined Qwen path itself at every chunk boundary with
-timestamp output enabled; the word times are therefore produced online inside
-our simulation run, not added later as an offline post-processing step. Each
-request returns an updated transcript prefix together with per-word end times.
+At every chunk boundary, the cascade re-transcribes the current live utterance
+tail and invokes the forced aligner with timestamp output enabled; the word
+times are therefore produced online inside our simulation run, not added later
+as an offline post-processing step. Adjacent ASR hypotheses are stabilized by a
+longest-common-prefix commit rule up to sentence-final punctuation, while the
+remaining live tail is allowed to change on the next chunk.
 We retain this dedicated aligner because it performed better than all the alternative candidates summarized in \Aref{app:appendix-asr}.
 % from all candidate than another candidatethe Gemma
 %AlignAtt ASR variants tested during development, and because it is the only
@@ -185,34 +187,36 @@ graph-compiled vLLM \citep{vllm23}.
 With every source update, Gemma receives the current transcript prefix, the already accepted
 target prefix, and a fixed translation instruction, then greedily generates a
 draft continuation capped at 16 new tokens in the partial streaming mode used
-by the submitted bundles. AlignAtt accepts the longest draft prefix whose
+by the submitted systems. AlignAtt accepts the longest draft prefix whose
 alignment signal stays on the currently accessible side of the source frontier.
 
 \paragraph{Streaming loop.}
 The cascade is synchronous and chunk-based. Each chunk first updates the ASR
 transcript prefix, and then launches one MT request. Source words are considered
 accessible only once their end time is older than a hold-back margin; in the
-\repl{frozen submitted bundles}{submitted systems}, this margin is 0 ms, so a word becomes accessible as
+submitted systems, this margin is 0 ms, so a word becomes accessible as
 soon as its aligned end time is observed. Both submitted regimes also delay the
-first MT emission until 2 seconds of source audio have accumulated. \repl{MT output is
+first MT emission until 2 seconds of source audio have accumulated. MT output is
 incremental-only: once a target token is accepted, it is reused as causal prefill
-for the next MT step and is never retracted.}{}
+for the next MT step and is never retracted.
 
 \paragraph{Latency-quality parameters.}
 We keep two official submission regimes. The low-latency submission uses
 $\Delta_{\mathrm{chunk}}=850$ ms and the high-latency submission uses
 $\Delta_{\mathrm{chunk}}=1500$ ms. Both use the same ASR backend, Gemma-4 MT
-backbone, and MT-side AlignAtt realization. The \repl{frozen submitted bundles}{submitted systems} use
-the same per-direction top-8 MT head sets, a width-7 source-axis median filter \XXX{is it for determining the most attended part of source? instead of max?},
-and a border margin $b=1$.\XXX{what is the unit?}
+backbone, and MT-side AlignAtt realization. The submitted systems use
+the same per-direction top-8 MT head sets, a width-7 source-axis median filter
+applied before taking the source-side argmax, and a one-source-token border
+margin $b=1$.
 
 
 
 \input{generated/submitted_cascade.tex}
-\XXX{Is this "Computational aware parameters:"?}
 The submitted cascade itself is
 synchronous and single-GPU: each chunk triggers ASR first and MT second. This
-conservative regime cleanly separates policy behavior from scheduler overlap.\XXX{\Cref{fig:system} is not referred}
+conservative regime cleanly separates policy behavior from scheduler overlap.
+\Cref{fig:system} summarizes this chunk-synchronous runtime path; the
+computation-aware latency measurements are reported in Section~\ref{sec:main-results}.
 
 \Cref{fig:alignatt-substrates} summarizes the conceptual shift. The
 policy intuition remains the same as in encoder--decoder AlignAtt, but the
@@ -255,8 +259,9 @@ Following \citet{tokenheads26}, we operationalize this
 with a two-stage offline calibration procedure under the exact prompt layout of
 Eq.~\eqref{eq:mt-prompt}: GPT-5-mini \citep{openai2025gpt5developers} first
 provides word-level source-target alignments on held-out parallel text, then
-every Gemma head is scored with Translation Score (TS)\XXX{can you specify/refer?} on those aligned
-examples. We retain the top $k=8$ heads per language pair. This head set is
+every Gemma head is scored with Translation Score (TS), the aligned-token
+argmax accuracy used by \citet{tokenheads26}, on those aligned examples. We
+retain the top $k=8$ heads per language pair. This head set is
 fixed at inference time and is the only part of the policy that depends on
 offline calibration.
 Appendix~\ref{sec:appendix-alignatt} reports the calibration details, corpus
@@ -267,7 +272,7 @@ spread uniformly; Appendix~\ref{sec:appendix-alignatt} further visualizes that p
 
 The policy only reads the source slice of each draft attention row,
 $\mathbf{A}^{(\ell,h)}_{t,\phi^{(k)}(s)}$, but unlike encoder--decoder
-cross-attention\repl{}{,} this slice is not source-normalized. Off-source mass on the
+cross-attention, this slice is not source-normalized. Off-source mass on the
 accepted target prefix, prompt template, and speculative suffix is therefore
 structural rather than implementation noise. On the 78 text-only qualitative
 probes used for diagnostics, drafted units allocate on average 9\%
@@ -293,8 +298,9 @@ positions $t$, and source positions $s$, we reconstruct
 \right)},
 \label{eq:mt-qk-fast}
 \end{equation}
-where $q$ and $k$ are the captured post-normalization, post-RoPE tensors
-actually consumed by the deployed attention module, $\gamma^{(\ell)}$ is that
+where $q$ and $k$ are the captured post-normalization tensors after rotary
+position embedding (RoPE; \citealp{su2021roformer}) actually consumed by the
+deployed attention module, $\gamma^{(\ell)}$ is that
 module's runtime scaling factor, and $m_{t,j}$ replays the same causal and
 sliding-window masks as the fused forward. We call this replay path
 \emph{qk-fast}: it reconstructs only the policy-visible block and matches the
@@ -343,7 +349,7 @@ of three conditions first fires:
   &\pi_t^{\mathrm{acc}} < \tau_{\mathrm{src}}.
   \label{eq:mt-stop-prov}
 \end{align}
-In the frozen 850/1500 submission bundles, $b=1$,
+In the submitted 850/1500 ms operating points, $b=1$,
 $\tau_{\mathrm{argmax}}=0$, and $\tau_{\mathrm{src}}=0$, so the optional
 argmax-mass and minimum-source-mass gates are present in the runtime but
 inactive in the submitted operating points.
@@ -423,7 +429,8 @@ same head set, one warmup pass, and repeated hot runs in isolated subprocesses.
 \subsection{Submitted System Results}
 \label{sec:main-results}
 
-Table~\ref{tab:e2e} reports the submitted \repl{operating points}{system candidates}. The pattern is
+Table~\ref{tab:e2e} reports the submitted system candidates together with the
+organizers' no-context baseline points supplied for comparison. The pattern is
 consistent across EN$\to$DE, EN$\to$ZH, and EN$\to$IT: the low-latency regime
 stays near a 2\,s CU-LongYAAL point, while the high-latency regime moves to a
 clearly stronger quality point at the expected latency cost. CA-LongYAAL is
@@ -439,47 +446,64 @@ same decoder-only Gemma backend.
 
 \begin{table}[t]
 \centering
-\small
-\setlength{\tabcolsep}{3pt}
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{l l c c c r r}
+\begin{tabular}{l l l c c c r r}
 \toprule
-Pair & Regime & BLEU & chrF & XCOMET-XL & \multicolumn{2}{c}{LongYAAL (s)} \\
-\cmidrule(lr){6-7}
-& & & & & CU & CA \\
+Pair & System & Regime & BLEU & chrF & XCOMET-XL & \multicolumn{2}{c}{LongYAAL (s)} \\
+\cmidrule(lr){7-8}
+& & & & & & CU & CA \\
 \midrule
-\multirow{2}{*}{en$\to$de} & low     & $28.76$ & $62.1$ & $0.875$ & $2.00$ & $1.63$ \\
-                           & high    & $32.63$ & $64.2$ & $0.902$ & $3.53$ & $3.14$ \\
+\multirow{4}{*}{en$\to$de}
+& Org. baseline & low  & $22.35$ & $56.7$ & $0.748$ & $1.81$ & -- \\
+& \AAName{}     & low  & $28.76$ & $62.1$ & $0.875$ & $2.00$ & $1.63$ \\
+& Org. baseline & high & $26.31$ & $59.2$ & $0.819$ & $2.63$ & -- \\
+& \AAName{}     & high & $32.63$ & $64.2$ & $0.902$ & $3.53$ & $3.14$ \\
 \midrule
-\multirow{2}{*}{en$\to$zh} & low     & $36.01$ & $35.0$ & $0.743$ & $1.95$ & $1.77$ \\
-                           & high    & $39.86$ & $37.8$ & $0.778$ & $3.27$ & $3.09$ \\
+\multirow{4}{*}{en$\to$zh}
+& Org. baseline & low  & $40.85$ & $34.1$ & $0.750$ & $1.91$ & -- \\
+& \AAName{}     & low  & $36.01$ & $35.0$ & $0.743$ & $1.95$ & $1.77$ \\
+& Org. baseline & high & $43.85$ & $37.8$ & $0.795$ & $3.48$ & -- \\
+& \AAName{}     & high & $39.86$ & $37.8$ & $0.778$ & $3.27$ & $3.09$ \\
 \midrule
-\multirow{2}{*}{en$\to$it} & low     & $40.10$ & $68.0$ & $0.805$ & $1.98$ & $1.62$ \\
-                           & high    & $44.46$ & $70.1$ & $0.841$ & $3.48$ & $3.10$ \\
+\multirow{4}{*}{en$\to$it}
+& Org. baseline & low  & $30.63$ & $62.0$ & $0.683$ & $1.76$ & -- \\
+& \AAName{}     & low  & $40.10$ & $68.0$ & $0.805$ & $1.98$ & $1.62$ \\
+& Org. baseline & high & $37.28$ & $65.4$ & $0.781$ & $3.30$ & -- \\
+& \AAName{}     & high & $44.46$ & $70.1$ & $0.841$ & $3.48$ & $3.10$ \\
 \bottomrule
 \end{tabular}
 }
 \caption{\textbf{Submitted cascade on the IWSLT 2026 dev set}
-(21 clips, OmniSTEval long-form resegmentation). Low rows use the submitted
-setting with $\Delta_{\mathrm{chunk}}=850$ ms. High rows use the submitted
-setting with $\Delta_{\mathrm{chunk}}=1500$ ms.}
+(21 clips, OmniSTEval long-form resegmentation). \AAName{} low rows use the
+submitted setting with $\Delta_{\mathrm{chunk}}=850$ ms; \AAName{} high rows
+use $\Delta_{\mathrm{chunk}}=1500$ ms. Organizer baseline rows are
+the no-context baseline outputs provided with CU LongYAAL; their
+computation-aware LongYAAL was not available.}
 \label{tab:e2e}
 \end{table}
+
+Relative to these baseline points, \AAName{} is substantially stronger on
+EN$\to$DE and EN$\to$IT in both latency regimes. EN$\to$ZH is mixed: our
+system reaches comparable chrF at high latency and slightly higher chrF at low
+latency, but the organizers' baseline remains ahead on BLEU and XCOMET-XL.
 
 \subsection{Additional Analysis: ASR Tail Reliability}
 \label{sec:asr-tail-analysis}
 
-The submitted \repl{bundles}{systems} expose each Qwen3 ASR word to MT as soon as its aligned
+The submitted systems expose each Qwen3 ASR word to MT as soon as its aligned
 end time is observed. A post-hoc reliability analysis suggests a slightly more
 conservative default for future runs: clip the last 250\,ms of the live ASR
 tail before passing the source prefix to MT. This is a policy-level timing
-margin rather than a lexical repair. On the 21 MCIF dev talks, the reference
-error rate of words at the current Qwen3 ASR tail end is 17.1\%, but drops to
-8.3\% at 250\,ms and then remains nearly flat. We therefore keep the submitted
-numbers unchanged, but recommend a 250\,ms ASR-tail hold-back as the maintained
-default going forward. Appendix~\ref{sec:appendix-asr} gives the comparison
-with the alternative ASR \repl{front ends}{component parameters} and the full tail-risk curve.
-\XXX{so, when this is possible, then the ASR is actually re-translating? It's not mentioned so far, or is it?}
+margin rather than a lexical repair. Because the Qwen path re-transcribes the
+live utterance tail from scratch at each chunk, the final ASR words are exactly
+the part most likely to be revised on the next chunk. On the 21 MCIF dev talks,
+the reference error rate of words at the current Qwen3 ASR tail end is 17.1\%,
+but drops to 8.3\% at 250\,ms and then remains nearly flat. We therefore keep
+the submitted numbers unchanged, but recommend a 250\,ms ASR-tail hold-back as
+the maintained default going forward. \Aref{app:appendix-asr} gives
+the comparison with the alternative ASR front ends and the full tail-risk curve.
 
 \subsection{Head Filtering Matters End-to-End}
 \label{sec:head-filtering}
@@ -499,10 +523,11 @@ behind the retained head sets.
 
 \input{generated/mt_e2e_head_ablation.tex}
 
-\subsection{Runtime Cost of the MT \repl{Observer}{Component}}
+\subsection{Runtime Cost of the MT Component}
 \label{sec:runtime}
 
-The MT \repl{observer}{component} must \repl{be cheap enough}{require low computational resources} to justify deployment. Figure~\ref{fig:mt-capture-speed} shows that the engine-native vLLM replay path is
+The MT policy component must be inexpensive enough to justify deployment.
+Figure~\ref{fig:mt-capture-speed} shows that the engine-native vLLM replay path is
 much cheaper than the minimal eager seam we use as an inspection reference:
 median cost drops from 63.7 to 25.4 ms/token, while the Transformers
 SDPA $-$\,\emph{qk-fast} replay remains close to the eager baseline at
@@ -534,8 +559,10 @@ head selection, selective \emph{qk-fast} replay, and compile-safe query/key
 capture make the MT policy usable without leaving the deployed runtime. On the
 dev set, this yields a low-latency operating point near 2\,s CU-LongYAAL and a
 high-latency regime that is roughly 1.5\,s slower but clearly stronger in
-BLEU and XCOMET-XL.
-\XXX{summarize comparison to baseline}
+BLEU and XCOMET-XL. Compared with the supplied organizers' no-context
+baselines, the system improves quality clearly on EN$\to$DE and EN$\to$IT,
+while EN$\to$ZH remains mixed: chrF is competitive, but BLEU and XCOMET-XL
+still favor the baseline.
 
 %\section*{Acknowledgements} % Dominik can't forget to add ack to his grant!
 
