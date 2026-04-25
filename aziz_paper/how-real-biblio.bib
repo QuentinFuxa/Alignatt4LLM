@@ -1,0 +1,3532 @@
+@inproceedings{kocmi-etal-2024-navigating,
+    title = "Navigating the Metrics Maze: Reconciling Score Magnitudes and Accuracies",
+    author = "Kocmi, Tom  and
+      Zouhar, Vil{\'e}m  and
+      Federmann, Christian  and
+      Post, Matt",
+    editor = "Ku, Lun-Wei  and
+      Martins, Andre  and
+      Srikumar, Vivek",
+    booktitle = "Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-long.110",
+    pages = "1999--2014",
+}
+
+
+
+@INPROCEEDINGS{9414897,
+  author={Ma, Xutai and Wang, Yongqiang and Dousti, Mohammad Javad and Koehn, Philipp and Pino, Juan},
+  booktitle={ICASSP 2021 - 2021 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={Streaming Simultaneous Speech Translation with Augmented Memory Transformer}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={7523-7527},
+  keywords={Computational modeling;Conferences;Computer architecture;Signal processing;Real-time systems;Computational efficiency;Task analysis;End-to-end speech translation;Simultaneous speech translation;Streaming speech translation},
+  doi={10.1109/ICASSP39728.2021.9414897}}
+
+@article{tan2024streaming,
+  title={Streaming Sequence Transduction through Dynamic Compression},
+  author={Tan, Weiting and Chen, Yunmo and Chen, Tongfei and Qin, Guanghui and Xu, Haoran and Zhang, Heidi C and Van Durme, Benjamin and Koehn, Philipp},
+  journal={arXiv preprint arXiv:2402.01172},
+  year={2024}
+}
+
+@inproceedings{weller-etal-2021-streaming,
+    title = "Streaming Models for Joint Speech Recognition and Translation",
+    author = "Weller, Orion  and
+      Sperber, Matthias  and
+      Gollan, Christian  and
+      Kluivers, Joris",
+    editor = "Merlo, Paola  and
+      Tiedemann, Jorg  and
+      Tsarfaty, Reut",
+    booktitle = "Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics: Main Volume",
+    month = apr,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.eacl-main.216",
+    doi = "10.18653/v1/2021.eacl-main.216",
+    pages = "2533--2539",
+    abstract = "Using end-to-end models for speech translation (ST) has increasingly been the focus of the ST community. These models condense the previously cascaded systems by directly converting sound waves into translated text. However, cascaded models have the advantage of including automatic speech recognition output, useful for a variety of practical ST systems that often display transcripts to the user alongside the translations. To bridge this gap, recent work has shown initial progress into the feasibility for end-to-end models to produce both of these outputs. However, all previous work has only looked at this problem from the consecutive perspective, leaving uncertainty on whether these approaches are effective in the more challenging streaming setting. We develop an end-to-end streaming ST model based on a re-translation approach and compare against standard cascading approaches. We also introduce a novel inference method for the joint case, interleaving both transcript and translation in generation and removing the need to use separate decoders. Our evaluation across a range of metrics capturing accuracy, latency, and consistency shows that our end-to-end models are statistically similar to cascading models, while having half the number of parameters. We also find that both systems provide strong translation quality at low latency, keeping 99{\%} of consecutive quality at a lag of just under a second.",
+}
+
+@inproceedings{deng22b_interspeech,
+  author={Keqi Deng and Shinji Watanabe and Jiatong Shi and Siddhant Arora},
+  title={{Blockwise Streaming Transformer for Spoken Language Understanding and Simultaneous Speech Translation}},
+  year=2022,
+  booktitle={Proc. Interspeech 2022},
+  pages={1746--1750},
+  doi={10.21437/Interspeech.2022-933},
+  issn={2308-457X}
+}
+
+@inproceedings{ma-etal-2020-simulmt,
+    title = "{S}imul{MT} to {S}imul{ST}: Adapting Simultaneous Text Translation to End-to-End Simultaneous Speech Translation",
+    author = "Ma, Xutai  and
+      Pino, Juan  and
+      Koehn, Philipp",
+    editor = "Wong, Kam-Fai  and
+      Knight, Kevin  and
+      Wu, Hua",
+    booktitle = "Proceedings of the 1st Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics and the 10th International Joint Conference on Natural Language Processing",
+    month = dec,
+    year = "2020",
+    address = "Suzhou, China",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.aacl-main.58",
+    pages = "582--587",
+    abstract = "We investigate how to adapt simultaneous text translation methods such as wait-$k$ and monotonic multihead attention to end-to-end simultaneous speech translation by introducing a pre-decision module. A detailed analysis is provided on the latency-quality trade-offs of combining fixed and flexible pre-decision with fixed and flexible policies. We also design a novel computation-aware latency metric, adapted from Average Lagging.",
+}
+
+@inproceedings{ren-etal-2020-simulspeech,
+    title = "{S}imul{S}peech: End-to-End Simultaneous Speech to Text Translation",
+    author = "Ren, Yi  and
+      Liu, Jinglin  and
+      Tan, Xu  and
+      Zhang, Chen  and
+      Qin, Tao  and
+      Zhao, Zhou  and
+      Liu, Tie-Yan",
+    editor = "Jurafsky, Dan  and
+      Chai, Joyce  and
+      Schluter, Natalie  and
+      Tetreault, Joel",
+    booktitle = "Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.acl-main.350",
+    doi = "10.18653/v1/2020.acl-main.350",
+    pages = "3787--3796",
+    abstract = "In this work, we develop SimulSpeech, an end-to-end simultaneous speech to text translation system which translates speech in source language to text in target language concurrently. SimulSpeech consists of a speech encoder, a speech segmenter and a text decoder, where 1) the segmenter builds upon the encoder and leverages a connectionist temporal classification (CTC) loss to split the input streaming speech in real time, 2) the encoder-decoder attention adopts a wait-$k$ strategy for simultaneous translation. SimulSpeech is more challenging than previous cascaded systems (with simultaneous automatic speech recognition (ASR) and simultaneous neural machine translation (NMT)). We introduce two novel knowledge distillation methods to ensure the performance: 1) Attention-level knowledge distillation transfers the knowledge from the multiplication of the attention matrices of simultaneous NMT and ASR models to help the training of the attention mechanism in SimulSpeech; 2) Data-level knowledge distillation transfers the knowledge from the full-sentence NMT model and also reduces the complexity of data distribution to help on the optimization of SimulSpeech. Experiments on MuST-C English-Spanish and English-German spoken language translation datasets show that SimulSpeech achieves reasonable BLEU scores and lower delay compared to full-sentence end-to-end speech to text translation (without simultaneous translation), and better performance than the two-stage cascaded simultaneous translation model in terms of BLEU scores and translation delay.",
+}
+
+@INPROCEEDINGS{10446050,
+  author={Yang, Mu and Kanda, Naoyuki and Wang, Xiaofei and Chen, Junkun and Wang, Peidong and Xue, Jian and Li, Jinyu and Yoshioka, Takuya},
+  booktitle={ICASSP 2024 - 2024 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={Diarist: Streaming Speech Translation with Speaker Diarization}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={10866-10870},
+  keywords={Measurement;Training;Speech recognition;Oral communication;Recording;Speech processing;Task analysis;Speech translation;speaker diarization;streaming inference;overlapping speech},
+  doi={10.1109/ICASSP48485.2024.10446050}}
+
+@inproceedings{dong-etal-2022-learning,
+    title = "Learning When to Translate for Streaming Speech",
+    author = "Dong, Qian  and
+      Zhu, Yaoming  and
+      Wang, Mingxuan  and
+      Li, Lei",
+    booktitle = "Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.acl-long.50",
+    doi = "10.18653/v1/2022.acl-long.50",
+    pages = "680--694",
+}
+
+@inproceedings{fu-etal-2023-adapting,
+    title = "Adapting Offline Speech Translation Models for Streaming with Future-Aware Distillation and Inference",
+    author = "Fu, Biao  and
+      Liao, Minpeng  and
+      Fan, Kai  and
+      Huang, Zhongqiang  and
+      Chen, Boxing  and
+      Chen, Yidong  and
+      Shi, Xiaodong",
+    booktitle = "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing",
+    month = dec,
+    year = "2023",
+    address = "Singapore",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.emnlp-main.1033",
+    doi = "10.18653/v1/2023.emnlp-main.1033",
+    pages = "16600--16619",
+}
+
+@inproceedings{xue22d_interspeech,
+  author={Jian Xue and Peidong Wang and Jinyu Li and Matt Post and Yashesh Gaur},
+  title={{Large-Scale Streaming End-to-End Speech Translation with Neural Transducers}},
+  year=2022,
+  booktitle={Proc. Interspeech 2022},
+  pages={3263--3267},
+  doi={10.21437/Interspeech.2022-10953},
+  issn={2308-457X}
+}
+
+@INPROCEEDINGS{9414276,
+  author={Nguyen, Ha and Estève, Yannick and Besacier, Laurent},
+  booktitle={ICASSP 2021 - 2021 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={An Empirical Study of End-To-End Simultaneous Speech Translation Decoding Strategies}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={7528-7532},
+  keywords={Conferences;Signal processing;Encoding;Acoustics;Decoding;Speech processing;Task analysis;Simultaneous speech translation;end-to-end models;low-latency decoding},
+  doi={10.1109/ICASSP39728.2021.9414276}}
+
+@inproceedings{papi-etal-2022-simultaneous,
+    title = "Does Simultaneous Speech Translation need Simultaneous Models?",
+    author = "Papi, Sara  and
+      Gaido, Marco  and
+      Negri, Matteo  and
+      Turchi, Marco",
+    editor = "Goldberg, Yoav  and
+      Kozareva, Zornitsa  and
+      Zhang, Yue",
+    booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2022",
+    month = dec,
+    year = "2022",
+    address = "Abu Dhabi, United Arab Emirates",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.findings-emnlp.11",
+    doi = "10.18653/v1/2022.findings-emnlp.11",
+    pages = "141--153",
+    abstract = "In simultaneous speech translation (SimulST), finding the best trade-off between high output quality and low latency is a challenging task. To meet the latency constraints posed by different application scenarios, multiple dedicated SimulST models are usually trained and maintained, generating high computational costs. In this paper, also motivated by the increased sensitivity towards sustainable AI, we investigate whether a single model trained offline can serve both offline and simultaneous applications under different latency regimes without additional training or adaptation. Experiments on en-{\textgreater}de, es show that, aside from facilitating the adoption of well-established offline architectures and training strategies without affecting latency, offline training achieves similar or better quality compared to the standard SimulST training protocol, also being competitive with the state-of-the-art system.",
+}
+
+@inproceedings{zeng-etal-2021-realtrans,
+    title = "{R}eal{T}ran{S}: End-to-End Simultaneous Speech Translation with Convolutional Weighted-Shrinking Transformer",
+    author = "Zeng, Xingshan  and
+      Li, Liangyou  and
+      Liu, Qun",
+    editor = "Zong, Chengqing  and
+      Xia, Fei  and
+      Li, Wenjie  and
+      Navigli, Roberto",
+    booktitle = "Findings of the Association for Computational Linguistics: ACL-IJCNLP 2021",
+    month = aug,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.findings-acl.218",
+    doi = "10.18653/v1/2021.findings-acl.218",
+    pages = "2461--2474",
+}
+
+@article{Chen_Fan_Luo_Zhang_Zhao_Liu_Huang_2024, title={Divergence-Guided Simultaneous Speech Translation}, volume={38}, url={https://ojs.aaai.org/index.php/AAAI/article/view/29733}, DOI={10.1609/aaai.v38i16.29733}, abstractNote={To achieve high-quality translation with low latency, a Simultaneous Speech Translation (SimulST) system relies on a policy module to decide whether to translate immediately or wait for additional streaming input, along with a translation model capable of effectively handling partial speech input. Prior research has tackled these components separately, either using ``wait-k’’ policies based on fixed-length segments or detected word boundaries, or dynamic policies based on different strategies (e.g., meaningful units), while employing offline models for prefix-to-prefix translation. In this paper, we propose Divergence-Guided Simultaneous Speech Translation (DiG-SST), a tightly integrated approach focusing on both translation quality and latency for streaming input. Specifically, we introduce a simple yet effective prefix-based strategy for training translation models with partial speech input, and develop an adaptive policy that makes read/write decisions for the translation model based on the expected divergence in translation distributions resulting from future input. Our experiments on multiple translation directions of the MuST-C benchmark demonstrate that our approach achieves a better trade-off between translation quality and latency compared to existing methods.}, number={16}, journal={Proceedings of the AAAI Conference on Artificial Intelligence}, author={Chen, Xinjie and Fan, Kai and Luo, Wei and Zhang, Linlin and Zhao, Libo and Liu, Xinggao and Huang, Zhongqiang}, year={2024}, month={Mar.}, pages={17799-17807} }
+
+@inproceedings{chen-etal-2021-direct,
+    title = "Direct Simultaneous Speech-to-Text Translation Assisted by Synchronized Streaming {ASR}",
+    author = "Chen, Junkun  and
+      Ma, Mingbo  and
+      Zheng, Renjie  and
+      Huang, Liang",
+    editor = "Zong, Chengqing  and
+      Xia, Fei  and
+      Li, Wenjie  and
+      Navigli, Roberto",
+    booktitle = "Findings of the Association for Computational Linguistics: ACL-IJCNLP 2021",
+    month = aug,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.findings-acl.406",
+    doi = "10.18653/v1/2021.findings-acl.406",
+    pages = "4618--4624",
+}
+
+@inproceedings{papi-etal-2023-attention,
+    title = "Attention as a Guide for Simultaneous Speech Translation",
+    author = "Papi, Sara  and
+      Negri, Matteo  and
+      Turchi, Marco",
+    editor = "Rogers, Anna  and
+      Boyd-Graber, Jordan  and
+      Okazaki, Naoaki",
+    booktitle = "Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.acl-long.745",
+    doi = "10.18653/v1/2023.acl-long.745",
+    pages = "13340--13356",
+    abstract = "In simultaneous speech translation (SimulST), effective policies that determine when to write partial translations are crucial to reach high output quality with low latency. Towards this objective, we propose EDAtt (Encoder-Decoder Attention), an adaptive policy that exploits the attention patterns between audio source and target textual translation to guide an offline-trained ST model during simultaneous inference. EDAtt exploits the attention scores modeling the audio-translation relation to decide whether to emit a partial hypothesis or wait for more audio input. This is done under the assumption that, if attention is focused towards the most recently received speech segments, the information they provide can be insufficient to generate the hypothesis (indicating that the system has to wait for additional audio input). Results on en-{\textgreater}de, es show that EDAtt yields better results compared to the SimulST state of the art, with gains respectively up to 7 and 4 BLEU points for the two languages, and with a reduction in computational-aware latency up to 1.4s and 0.7s compared to existing SimulST policies applied to offline-trained models.",
+}
+
+@inproceedings{wilken-etal-2020-neural,
+    title = "Neural Simultaneous Speech Translation Using Alignment-Based Chunking",
+    author = "Wilken, Patrick  and
+      Alkhouli, Tamer  and
+      Matusov, Evgeny  and
+      Golik, Pavel",
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.iwslt-1.29",
+    doi = "10.18653/v1/2020.iwslt-1.29",
+    pages = "237--246",
+}
+
+@inproceedings{karakanta-etal-2021-simultaneous,
+    title = "Simultaneous Speech Translation for Live Subtitling: from Delay to Display",
+    author = "Karakanta, Alina  and
+      Papi, Sara  and
+      Negri, Matteo  and
+      Turchi, Marco",
+    editor = "Turchi, Marco  and
+      Fantinuoli, Claudio",
+    booktitle = "Proceedings of the 1st Workshop on Automatic Spoken Language Translation in Real-World Settings (ASLTRW)",
+    month = aug,
+    year = "2021",
+    address = "Virtual",
+    publisher = "Association for Machine Translation in the Americas",
+    url = "https://aclanthology.org/2021.mtsummit-asltrw.4",
+    pages = "35--48",
+    abstract = "With the increased audiovisualisation of communication, the need for live subtitles in multilingual events is more relevant than ever. In an attempt to automatise the process, we aim at exploring the feasibility of simultaneous speech translation (SimulST) for live subtitling. However, the word-for-word rate of generation of SimulST systems is not optimal for displaying the subtitles in a comprehensible and readable way. In this work, we adapt SimulST systems to predict subtitle breaks along with the translation. We then propose a display mode that exploits the predicted break structure by presenting the subtitles in scrolling lines. We compare our proposed mode with a display 1) word-for-word and 2) in blocks, in terms of reading speed and delay. Experiments on three language pairs (en→it, de, fr) show that scrolling lines is the only mode achieving an acceptable reading speed while keeping delay close to a 4-second threshold. We argue that simultaneous translation for readable live subtitles still faces challenges, the main one being poor translation quality, and propose directions for steering future research.",
+}
+
+@article{nguyen2020low,
+  title={Low latency asr for simultaneous speech translation},
+  author={Nguyen, Thai Son and Niehues, Jan and Cho, Eunah and Ha, Thanh-Le and Kilgour, Kevin and Muller, Markus and Sperber, Matthias and Stueker, Sebastian and Waibel, Alex},
+  journal={arXiv preprint arXiv:2003.09891},
+  year={2020}
+}
+
+@inproceedings{muller-etal-2016-lecture,
+    title = "Lecture Translator - Speech translation framework for simultaneous lecture translation",
+    author = {M{\"u}ller, Markus  and
+      Nguyen, Thai Son  and
+      Niehues, Jan  and
+      Cho, Eunah  and
+      Kr{\"u}ger, Bastian  and
+      Ha, Thanh-Le  and
+      Kilgour, Kevin  and
+      Sperber, Matthias  and
+      Mediani, Mohammed  and
+      St{\"u}ker, Sebastian  and
+      Waibel, Alex},
+    editor = "DeNero, John  and
+      Finlayson, Mark  and
+      Reddy, Sravana",
+    booktitle = "Proceedings of the 2016 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Demonstrations",
+    month = jun,
+    year = "2016",
+    address = "San Diego, California",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/N16-3017",
+    doi = "10.18653/v1/N16-3017",
+    pages = "82--86",
+}
+
+@inproceedings{chang22f_interspeech,
+  author={Chih-Chiang Chang and Hung-yi Lee},
+  title={{Exploring Continuous Integrate-and-Fire for Adaptive Simultaneous Speech Translation}},
+  year=2022,
+  booktitle={Proc. Interspeech 2022},
+  pages={5175--5179},
+  doi={10.21437/Interspeech.2022-10627},
+  issn={2308-457X}
+}
+
+@inproceedings{zhang-etal-2023-training,
+    title = "Training Simultaneous Speech Translation with Robust and Random Wait-k-Tokens Strategy",
+    author = "Zhang, Linlin  and
+      Fan, Kai  and
+      Bu, Jiajun  and
+      Huang, Zhongqiang",
+    editor = "Bouamor, Houda  and
+      Pino, Juan  and
+      Bali, Kalika",
+    booktitle = "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing",
+    month = dec,
+    year = "2023",
+    address = "Singapore",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.emnlp-main.484",
+    doi = "10.18653/v1/2023.emnlp-main.484",
+    pages = "7814--7831",
+    abstract = "Simultaneous Speech Translation (SimulST) is a task focused on ensuring high-quality translation of speech in low-latency situations. Despite this, the modality gap (\textit{e.g.}, unknown word boundaries) between audio and text presents a challenge. This gap hinders the effective application of policies from simultaneous text translation (SimulMT) and compromises the performance of offline speech translation. To address this issue, we first leverage the Montreal Forced Aligner (MFA) and utilize audio transcription pairs in pre-training the acoustic encoder, and introduce a token-level cross-modal alignment that allows the wait-$k$ policy from SimulMT to better adapt to SimulST. This token-level boundary alignment simplifies the decision-making process for predicting read/write actions, as if the decoder were directly processing text tokens. Subsequently, to optimize the SimulST task, we propose a robust and random wait-$k$-tokens strategy. This strategy allows a single model to meet various latency requirements and minimizes error accumulation of boundary alignment during inference. Our experiments on the MuST-C dataset show that our method achieves better trade-off between translation quality and latency.",
+}
+
+@inproceedings{zhang-feng-2023-end,
+    title = "End-to-End Simultaneous Speech Translation with Differentiable Segmentation",
+    author = "Zhang, Shaolei  and
+      Feng, Yang",
+    editor = "Rogers, Anna  and
+      Boyd-Graber, Jordan  and
+      Okazaki, Naoaki",
+    booktitle = "Findings of the Association for Computational Linguistics: ACL 2023",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.findings-acl.485",
+    doi = "10.18653/v1/2023.findings-acl.485",
+    pages = "7659--7680",
+    abstract = "End-to-end simultaneous speech translation (SimulST) outputs translation while receiving the streaming speech inputs (a.k.a. streaming speech translation), and hence needs to segment the speech inputs and then translate based on the current received speech. However, segmenting the speech inputs at unfavorable moments can disrupt the acoustic integrity and adversely affect the performance of the translation model. Therefore, learning to segment the speech inputs at those moments that are beneficial for the translation model to produce high-quality translation is the key to SimulST. Existing SimulST methods, either using the fixed-length segmentation or external segmentation model, always separate segmentation from the underlying translation model, where the gap results in segmentation outcomes that are not necessarily beneficial for the translation process. In this paper, we propose Differentiable Segmentation (DiSeg) for SimulST to directly learn segmentation from the underlying translation model. DiSeg turns hard segmentation into differentiable through the proposed expectation training, enabling it to be jointly trained with the translation model and thereby learn translation-beneficial segmentation. Experimental results demonstrate that DiSeg achieves state-of-the-art performance and exhibits superior segmentation capability.",
+}
+
+@inproceedings{polak-2023-long,
+    title = "Long-form Simultaneous Speech Translation: Thesis Proposal",
+    author = "Pol{\'a}k, Peter",
+    editor = "Li, Dongfang  and
+      Mahendra, Rahmad  and
+      Tang, Zilu Peter  and
+      Jang, Hyeju  and
+      Murawaki, Yugo  and
+      Wong, Derek Fai",
+    booktitle = "Proceedings of the 13th International Joint Conference on Natural Language Processing and the 3rd Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics: Student Research Workshop",
+    month = nov,
+    year = "2023",
+    address = "Nusa Dua, Bali",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.ijcnlp-srw.9",
+    doi = "10.18653/v1/2023.ijcnlp-srw.9",
+    pages = "64--74",
+}
+
+@inproceedings{polak23_interspeech,
+  author={Peter Polák and Brian Yan and Shinji Watanabe and Alex Waibel and Ondřej Bojar},
+  title={{Incremental Blockwise Beam Search for Simultaneous Speech Translation with Controllable Quality-Latency Tradeoff}},
+  year=2023,
+  booktitle={Proc. INTERSPEECH 2023},
+  pages={3979--3983},
+  doi={10.21437/Interspeech.2023-2225},
+  issn={2308-457X}
+}
+
+@article{polak2023long,
+  title={Long-Form End-to-End Speech Translation via Latent Alignment Segmentation},
+  author={Pol{\'a}k, Peter and Bojar, Ond{\v{r}}ej},
+  journal={arXiv preprint arXiv:2309.11384},
+  year={2023}
+}
+
+@inproceedings{gaido23_interspeech,
+  author={Marco Gaido and Sara Papi and Matteo Negri and Marco Turchi},
+  title={{Joint Speech Translation and Named Entity Recognition}},
+  year=2023,
+  booktitle={Proc. INTERSPEECH 2023},
+  pages={47--51},
+  doi={10.21437/Interspeech.2023-1767},
+  issn={2958-1796}
+}
+
+@inproceedings{HIDEpapi23_interspeech,
+  author={Sara Papi and Marco Turchi and Matteo Negri},
+  title={{AlignAtt: Using Attention-based Audio-Translation Alignments as a Guide for Simultaneous Speech Translation}},
+  year=2023,
+  booktitle={Proc. INTERSPEECH 2023},
+  pages={3974--3978},
+  doi={10.21437/Interspeech.2023-170},
+  issn={2958-1796}
+}
+
+@INPROCEEDINGS{papi2023token,
+  author={Papi, Sara and Wang, Peidong and Chen, Junkun and Xue, Jian and Li, Jinyu and Gaur, Yashesh},
+  booktitle={2023 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)}, 
+  title={Token-Level Serialized Output Training for Joint Streaming ASR and ST Leveraging Textual Alignments}, 
+  year={2023},
+  volume={},
+  number={},
+  pages={1-8},
+  keywords={Training;Degradation;Transducers;Costs;Conferences;Speech enhancement;Transformers;automatic speech recognition;speech translation;streaming;serialized output training},
+  doi={10.1109/ASRU57964.2023.10389715}}
+
+
+@INPROCEEDINGS{papi2024leveraging,
+  author={Papi, Sara and Wang, Peidong and Chen, Junkun and Xue, Jian and Kanda, Naoyuki and Li, Jinyu and Gaur, Yashesh},
+  booktitle={ICASSP 2024 - 2024 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={Leveraging Timestamp Information for Serialized Joint Streaming Recognition and Translation}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={10381-10385},
+  keywords={Training;Costs;Signal processing;Transformers;Real-time systems;Decoding;Synchronization;speech recognition;speech translation;streaming;joint;timestamp},
+  doi={10.1109/ICASSP48485.2024.10447565}}
+
+
+@article{zaidi2021decision,
+  title={Decision attentive regularization to improve simultaneous speech translation systems},
+  author={Zaidi, Mohd Abbas and Lee, Beomseok and Kim, Sangha and Kim, Chanwoo},
+  journal={arXiv preprint arXiv:2110.15729},
+  year={2021}
+}
+
+@inproceedings{rangarajan-sridhar-etal-2013-segmentation,
+    title = "Segmentation Strategies for Streaming Speech Translation",
+    author = "Rangarajan Sridhar, Vivek Kumar  and
+      Chen, John  and
+      Bangalore, Srinivas  and
+      Ljolje, Andrej  and
+      Chengalvarayan, Rathinavelu",
+    editor = "Vanderwende, Lucy  and
+      Daum{\'e} III, Hal  and
+      Kirchhoff, Katrin",
+    booktitle = "Proceedings of the 2013 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Human Language Technologies",
+    month = jun,
+    year = "2013",
+    address = "Atlanta, Georgia",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/N13-1023",
+    pages = "230--238",
+}
+
+@inproceedings{oda-etal-2014-optimizing,
+    title = "Optimizing Segmentation Strategies for Simultaneous Speech Translation",
+    author = "Oda, Yusuke  and
+      Neubig, Graham  and
+      Sakti, Sakriani  and
+      Toda, Tomoki  and
+      Nakamura, Satoshi",
+    editor = "Toutanova, Kristina  and
+      Wu, Hua",
+    booktitle = "Proceedings of the 52nd Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers)",
+    month = jun,
+    year = "2014",
+    address = "Baltimore, Maryland",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P14-2090",
+    doi = "10.3115/v1/P14-2090",
+    pages = "551--556",
+}
+
+@inproceedings{yarmohammadi-etal-2013-incremental,
+    title = "Incremental Segmentation and Decoding Strategies for Simultaneous Translation",
+    author = "Yarmohammadi, Mahsa  and
+      Rangarajan Sridhar, Vivek Kumar  and
+      Bangalore, Srinivas  and
+      Sankaran, Baskaran",
+    editor = "Mitkov, Ruslan  and
+      Park, Jong C.",
+    booktitle = "Proceedings of the Sixth International Joint Conference on Natural Language Processing",
+    month = oct,
+    year = "2013",
+    address = "Nagoya, Japan",
+    publisher = "Asian Federation of Natural Language Processing",
+    url = "https://aclanthology.org/I13-1141",
+    pages = "1032--1036",
+}
+
+@inproceedings{siahbani-etal-2018-simultaneous,
+    title = "Simultaneous Translation using Optimized Segmentation",
+    author = "Siahbani, Maryam  and
+      Shavarani, Hassan  and
+      Alinejad, Ashkan  and
+      Sarkar, Anoop",
+    editor = "Cherry, Colin  and
+      Neubig, Graham",
+    booktitle = "Proceedings of the 13th Conference of the Association for Machine Translation in the {A}mericas (Volume 1: Research Track)",
+    month = mar,
+    year = "2018",
+    address = "Boston, MA",
+    publisher = "Association for Machine Translation in the Americas",
+    url = "https://aclanthology.org/W18-1815",
+    pages = "154--167",
+}
+
+@inproceedings{dessloch-etal-2018-kit,
+    title = "{KIT} Lecture Translator: Multilingual Speech Translation with One-Shot Learning",
+    author = {Dessloch, Florian  and
+      Ha, Thanh-Le  and
+      M{\"u}ller, Markus  and
+      Niehues, Jan  and
+      Nguyen, Thai-Son  and
+      Pham, Ngoc-Quan  and
+      Salesky, Elizabeth  and
+      Sperber, Matthias  and
+      St{\"u}ker, Sebastian  and
+      Zenkel, Thomas  and
+      Waibel, Alexander},
+    editor = "Zhao, Dongyan",
+    booktitle = "Proceedings of the 27th International Conference on Computational Linguistics: System Demonstrations",
+    month = aug,
+    year = "2018",
+    address = "Santa Fe, New Mexico",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/C18-2020",
+    pages = "89--93",
+}
+
+@inproceedings{cho17_interspeech,
+  author={Eunah Cho and Jan Niehues and Alex Waibel},
+  title={{NMT-Based Segmentation and Punctuation Insertion for Real-Time Spoken Language Translation}},
+  year=2017,
+  booktitle={Proc. Interspeech 2017},
+  pages={2645--2649},
+  doi={10.21437/Interspeech.2017-1320},
+  issn={2958-1796}
+}
+
+@inproceedings{NiehuesPhamHa2018_1000087584,
+  title     = {Low-Latency Neural Speech Translation},
+  author    = {Jan Niehues and Ngoc-Quan Pham and Thanh-Le Ha and Matthias Sperber and Alex Waibel},
+  year      = {2018},
+  booktitle = {Interspeech 2018},
+  pages     = {1293--1297},
+  doi       = {10.21437/Interspeech.2018-1055},
+  issn      = {2958-1796},
+}
+
+@inproceedings{arivazhagan-etal-2020-translation,
+    title = "Re-translation versus Streaming for Simultaneous Translation",
+    author = "Arivazhagan, Naveen  and
+      Cherry, Colin  and
+      Macherey, Wolfgang  and
+      Foster, George",
+    editor = {Federico, Marcello  and
+      Waibel, Alex  and
+      Knight, Kevin  and
+      Nakamura, Satoshi  and
+      Ney, Hermann  and
+      Niehues, Jan  and
+      St{\"u}ker, Sebastian  and
+      Wu, Dekai  and
+      Mariani, Joseph  and
+      Yvon, Francois},
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.iwslt-1.27",
+    doi = "10.18653/v1/2020.iwslt-1.27",
+    pages = "220--227",
+}
+
+@article{cho2016can,
+  title={Can neural machine translation do simultaneous translation?},
+  author={Cho, Kyunghyun and Esipova, Masha},
+  journal={arXiv preprint arXiv:1606.02012},
+  year={2016}
+}
+
+@inproceedings{dalvi-etal-2018-incremental,
+    title = "Incremental Decoding and Training Methods for Simultaneous Translation in Neural Machine Translation",
+    author = "Dalvi, Fahim  and
+      Durrani, Nadir  and
+      Sajjad, Hassan  and
+      Vogel, Stephan",
+    editor = "Walker, Marilyn  and
+      Ji, Heng  and
+      Stent, Amanda",
+    booktitle = "Proceedings of the 2018 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 2 (Short Papers)",
+    month = jun,
+    year = "2018",
+    address = "New Orleans, Louisiana",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/N18-2079",
+    doi = "10.18653/v1/N18-2079",
+    pages = "493--499",
+}
+
+@inproceedings{liu-etal-2021-cross,
+    title = "Cross Attention Augmented Transducer Networks for Simultaneous Translation",
+    author = "Liu, Dan  and
+      Du, Mengge  and
+      Li, Xiaoxi  and
+      Li, Ya  and
+      Chen, Enhong",
+    booktitle = "Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing",
+    month = nov,
+    year = "2021",
+    address = "Online and Punta Cana, Dominican Republic",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.emnlp-main.4",
+    doi = "10.18653/v1/2021.emnlp-main.4",
+    pages = "39--55",
+}
+
+@inproceedings{polak-etal-2022-cuni,
+    title = "{CUNI}-{KIT} System for Simultaneous Speech Translation Task at {IWSLT} 2022",
+    author = "Polák, Peter  and
+      Pham, Ngoc-Quan  and
+      Nguyen, Tuan Nam  and
+      Liu, Danni  and
+      Mullov, Carlos  and
+      Niehues, Jan  and
+      Bojar, Ond{\v{r}}ej  and
+      Waibel, Alexander",
+    editor = "Salesky, Elizabeth  and
+      Federico, Marcello  and
+      Costa-juss{\`a}, Marta",
+    booktitle = "Proceedings of the 19th International Conference on Spoken Language Translation (IWSLT 2022)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.iwslt-1.24",
+    doi = "10.18653/v1/2022.iwslt-1.24",
+    pages = "277--285",
+}
+
+@inproceedings{ko-etal-2023-tagged,
+    title = "Tagged End-to-End Simultaneous Speech Translation Training Using Simultaneous Interpretation Data",
+    author = "Ko, Yuka  and
+      Fukuda, Ryo  and
+      Nishikawa, Yuta  and
+      Kano, Yasumasa  and
+      Sudoh, Katsuhito  and
+      Nakamura, Satoshi",
+    editor = "Salesky, Elizabeth  and
+      Federico, Marcello  and
+      Carpuat, Marine",
+    booktitle = "Proceedings of the 20th International Conference on Spoken Language Translation (IWSLT 2023)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.iwslt-1.34",
+    doi = "10.18653/v1/2023.iwslt-1.34",
+    pages = "363--375",
+}
+
+@inproceedings{yan-etal-2023-cmus,
+    title = "{CMU}{'}s {IWSLT} 2023 Simultaneous Speech Translation System",
+    author = "Yan, Brian  and
+      Shi, Jiatong  and
+      Maiti, Soumi  and
+      Chen, William  and
+      Li, Xinjian  and
+      Peng, Yifan  and
+      Arora, Siddhant  and
+      Watanabe, Shinji",
+    booktitle = "Proceedings of the 20th International Conference on Spoken Language Translation (IWSLT 2023)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.iwslt-1.20",
+    doi = "10.18653/v1/2023.iwslt-1.20",
+    pages = "235--240",
+}
+
+@inproceedings{raffel-chen-2023-implicit,
+    title = "Implicit Memory Transformer for Computationally Efficient Simultaneous Speech Translation",
+    author = "Raffel, Matthew  and
+      Chen, Lizhong",
+    booktitle = "Findings of the Association for Computational Linguistics: ACL 2023",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.findings-acl.816",
+    doi = "10.18653/v1/2023.findings-acl.816",
+    pages = "12900--12907",
+}
+
+@inproceedings{10.5555/3618408.3619591,
+author = {Raffel, Matthew and Penney, Drew and Chen, Lizhong},
+title = {Shiftable context: addressing training-inference context mismatch in simultaneous speech translation},
+year = {2023},
+publisher = {JMLR.org},
+booktitle = {Proceedings of the 40th International Conference on Machine Learning},
+articleno = {1183},
+numpages = {12},
+location = {<conf-loc>, <city>Honolulu</city>, <state>Hawaii</state>, <country>USA</country>, </conf-loc>},
+series = {ICML'23}
+}
+
+@inproceedings{polak-etal-2023-towards,
+    title = "Towards Efficient Simultaneous Speech Translation: {CUNI}-{KIT} System for Simultaneous Track at {IWSLT} 2023",
+    author = "Pol{\'a}k, Peter  and
+      Liu, Danni  and
+      Pham, Ngoc-Quan  and
+      Niehues, Jan  and
+      Waibel, Alexander  and
+      Bojar, Ond{\v{r}}ej",
+    editor = "Salesky, Elizabeth  and
+      Federico, Marcello  and
+      Carpuat, Marine",
+    booktitle = "Proceedings of the 20th International Conference on Spoken Language Translation (IWSLT 2023)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.iwslt-1.37",
+    doi = "10.18653/v1/2023.iwslt-1.37",
+    pages = "389--396",
+}
+
+@inproceedings{bangalore-etal-2012-real,
+    title = "Real-time Incremental Speech-to-Speech Translation of Dialogs",
+    author = "Bangalore, Srinivas  and
+      Rangarajan Sridhar, Vivek Kumar  and
+      Kolan, Prakash  and
+      Golipour, Ladan  and
+      Jimenez, Aura",
+    editor = "Fosler-Lussier, Eric  and
+      Riloff, Ellen  and
+      Bangalore, Srinivas",
+    booktitle = "Proceedings of the 2012 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Human Language Technologies",
+    month = jun,
+    year = "2012",
+    address = "Montr{\'e}al, Canada",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/N12-1048",
+    pages = "437--445",
+}
+
+@book{laplante1992real,
+  title={Real-time systems design and analysis: an engineer's handbook},
+  author={Laplante, Phillip A},
+  year={1992},
+  publisher={IEEE press}
+}
+
+@article{fugen2007simultaneous,
+  title={Simultaneous translation of lectures and speeches},
+  author={F{\"u}gen, Christian and Waibel, Alex and Kolss, Muntsin},
+  journal={Machine translation},
+  volume={21},
+  pages={209--252},
+  year={2007},
+  publisher={Springer}
+}
+
+@inproceedings{sperber-paulik-2020-speech,
+    title = "Speech Translation and the End-to-End Promise: Taking Stock of Where We Are",
+    author = "Sperber, Matthias  and
+      Paulik, Matthias",
+    editor = "Jurafsky, Dan  and
+      Chai, Joyce  and
+      Schluter, Natalie  and
+      Tetreault, Joel",
+    booktitle = "Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.acl-main.661",
+    doi = "10.18653/v1/2020.acl-main.661",
+    pages = "7409--7421",
+}
+
+@inproceedings{44928,title	= {Multi-task Sequence to Sequence Learning},author	= {Thang Luong and Quoc V. Le and Ilya Sutskever and Oriol Vinyals and Lukasz Kaiser},year	= {2016},booktitle	= {International Conference on Learning Representations}}
+
+@inproceedings{bansal-etal-2019-pre,
+    title = "Pre-training on high-resource speech recognition improves low-resource speech-to-text translation",
+    author = "Bansal, Sameer  and
+      Kamper, Herman  and
+      Livescu, Karen  and
+      Lopez, Adam  and
+      Goldwater, Sharon",
+    editor = "Burstein, Jill  and
+      Doran, Christy  and
+      Solorio, Thamar",
+    booktitle = "Proceedings of the 2019 Conference of the North {A}merican Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers)",
+    month = jun,
+    year = "2019",
+    address = "Minneapolis, Minnesota",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/N19-1006",
+    doi = "10.18653/v1/N19-1006",
+    pages = "58--68",
+}
+
+@inproceedings{bansal18_interspeech,
+  author={Sameer Bansal and Herman Kamper and Karen Livescu and Adam Lopez and Sharon Goldwater},
+  title={{Low-Resource Speech-to-Text Translation}},
+  year=2018,
+  booktitle={Proc. Interspeech 2018},
+  pages={1298--1302},
+  doi={10.21437/Interspeech.2018-1326},
+  issn={2958-1796}
+}
+
+@inproceedings{bahar2019comparative,
+  title={A comparative study on end-to-end speech to text translation},
+  author={Bahar, Parnia and Bieschke, Tobias and Ney, Hermann},
+  booktitle={2019 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)},
+  pages={792--799},
+  year={2019},
+  organization={IEEE}
+}
+
+@inproceedings{10.1145/1143844.1143891,
+author = {Graves, Alex and Fern\'{a}ndez, Santiago and Gomez, Faustino and Schmidhuber, J\"{u}rgen},
+title = {Connectionist temporal classification: labelling unsegmented sequence data with recurrent neural networks},
+year = {2006},
+isbn = {1595933832},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1143844.1143891},
+doi = {10.1145/1143844.1143891},
+booktitle = {Proceedings of the 23rd International Conference on Machine Learning},
+pages = {369–376},
+numpages = {8},
+location = {Pittsburgh, Pennsylvania, USA},
+series = {ICML '06}
+}
+
+@inproceedings{bentivogli-etal-2021-cascade,
+    title = "Cascade versus Direct Speech Translation: Do the Differences Still Make a Difference?",
+    author = "Bentivogli, Luisa  and
+      Cettolo, Mauro  and
+      Gaido, Marco  and
+      Karakanta, Alina  and
+      Martinelli, Alberto  and
+      Negri, Matteo  and
+      Turchi, Marco",
+    editor = "Zong, Chengqing  and
+      Xia, Fei  and
+      Li, Wenjie  and
+      Navigli, Roberto",
+    booktitle = "Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers)",
+    month = aug,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.acl-long.224",
+    doi = "10.18653/v1/2021.acl-long.224",
+    pages = "2873--2887",
+}
+
+@inproceedings{niehues-etal-2018-iwslt,
+    title = "The {IWSLT} 2018 Evaluation Campaign",
+    author = {Niehues, Jan  and
+      Cattoni, Rolando  and
+      St{\"u}ker, Sebastian  and
+      Cettolo, Mauro  and
+      Turchi, Marco  and
+      Federico, Marcello},
+    editor = "Turchi, Marco  and
+      Niehues, Jan  and
+      Frederico, Marcello",
+    booktitle = "Proceedings of the 15th International Conference on Spoken Language Translation",
+    month = oct # " 29-30",
+    year = "2018",
+    address = "Brussels",
+    publisher = "International Conference on Spoken Language Translation",
+    url = "https://aclanthology.org/2018.iwslt-1.1",
+    pages = "2--6",
+}
+
+@inproceedings{niehues-etal-2019-iwslt,
+    title = "The {IWSLT} 2019 Evaluation Campaign",
+    author = {Niehues, Jan  and
+      Cattoni, Rolando  and
+      St{\"u}ker, Sebastian  and
+      Negri, Matteo  and
+      Turchi, Marco  and
+      Ha, Thanh-Le  and
+      Salesky, Elizabeth  and
+      Sanabria, Ramon  and
+      Barrault, Loic  and
+      Specia, Lucia  and
+      Federico, Marcello},
+    editor = {Niehues, Jan  and
+      Cattoni, Rolando  and
+      St{\"u}ker, Sebastian  and
+      Negri, Matteo  and
+      Turchi, Marco  and
+      Ha, Thanh-Le  and
+      Salesky, Elizabeth  and
+      Sanabria, Ramon  and
+      Barrault, Loic  and
+      Specia, Lucia  and
+      Federico, Marcello},
+    booktitle = "Proceedings of the 16th International Conference on Spoken Language Translation",
+    month = nov # " 2-3",
+    year = "2019",
+    address = "Hong Kong",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2019.iwslt-1.1",
+}
+
+@article{cascade,
+  title={Machine translation of speech},
+  author={Stentiford, Fred WM and Steer, Martin G},
+  journal={British Telecom technology journal},
+  volume={6},
+  number={2},
+  pages={116--122},
+  year={1988}
+}
+
+@article{Waibel1991JANUSAS,
+  title={JANUS: a speech-to-speech translation system using connectionist and symbolic processing strategies},
+  author={Alexander H. Waibel and Ajay N. Jain and Arthur E. McNair and Hiroaki Saito and Alexander Hauptmann and Joe Tebelskis},
+  journal={[Proceedings] ICASSP 91: 1991 International Conference on Acoustics, Speech, and Signal Processing},
+  year={1991},
+  pages={793-796 vol.2},
+  url={https://api.semanticscholar.org/CorpusID:17834225}
+}
+
+@inproceedings{Berard2016ListenAT,
+  title={Listen and Translate: A Proof of Concept for End-to-End Speech-to-Text Translation},
+  author={B{\'e}rard, Alexandre and Pietquin, Olivier and Besacier, Laurent and Servan, Christophe},
+  booktitle={NIPS Workshop on end-to-end learning for speech and audio processing},
+  year={2016}
+}
+
+@inproceedings{Weiss2017SequencetoSequenceMC,
+  title     = {Sequence-to-Sequence Models Can Directly Translate Foreign Speech},
+  author    = {Ron J. Weiss and Jan Chorowski and Navdeep Jaitly and Yonghui Wu and Zhifeng Chen},
+  year      = {2017},
+  booktitle = {Interspeech 2017},
+  pages     = {2625--2629},
+  doi       = {10.21437/Interspeech.2017-503},
+  issn      = {2958-1796},
+}
+
+@inproceedings{Waibel2004SpeechTP,
+  title={Speech translation: past, present and future},
+  author={Alexander H. Waibel},
+  booktitle={Interspeech},
+  year={2004},
+  url={https://api.semanticscholar.org/CorpusID:18867313}
+}
+
+@article{latif2023sparks,
+  title={Sparks of large audio models: A survey and outlook},
+  author={Latif, Siddique and Shoukat, Moazzam and Shamshad, Fahad and Usama, Muhammad and Cuay{\'a}huitl, Heriberto and Schuller, Bj{\"o}rn W},
+  journal={arXiv preprint arXiv:2308.12792},
+  year={2023}
+}
+
+@inproceedings{gaido2024speech,
+    title = "Speech Translation with Speech Foundation Models and Large Language Models: What is There and What is Missing?",
+    author = "Gaido, Marco  and
+      Papi, Sara  and
+      Negri, Matteo  and
+      Bentivogli, Luisa",
+    editor = "Ku, Lun-Wei  and
+      Martins, Andre  and
+      Srikumar, Vivek",
+    booktitle = "Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-long.789",
+    doi = "10.18653/v1/2024.acl-long.789",
+    pages = "14760--14778",
+}
+
+@inproceedings{grissom-ii-etal-2014-dont,
+    title = "Don{'}t Until the Final Verb Wait: Reinforcement Learning for Simultaneous Machine Translation",
+    author = "Grissom II, Alvin  and
+      He, He  and
+      Boyd-Graber, Jordan  and
+      Morgan, John  and
+      Daum{\'e} III, Hal",
+    editor = "Moschitti, Alessandro  and
+      Pang, Bo  and
+      Daelemans, Walter",
+    booktitle = "Proceedings of the 2014 Conference on Empirical Methods in Natural Language Processing ({EMNLP})",
+    month = oct,
+    year = "2014",
+    address = "Doha, Qatar",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/D14-1140",
+    doi = "10.3115/v1/D14-1140",
+    pages = "1342--1352",
+}
+
+@inproceedings{lu2010better,
+    title = "Better Punctuation Prediction with Dynamic Conditional Random Fields",
+    author = "Lu, Wei  and
+      Ng, Hwee Tou",
+    booktitle = "Proceedings of the 2010 Conference on Empirical Methods in Natural Language Processing",
+    month = oct,
+    year = "2010",
+    address = "Cambridge, MA",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/D10-1018",
+    pages = "177--186",
+}
+
+@inproceedings{iranzo-sanchez-etal-2020-direct,
+    title = "Direct Segmentation Models for Streaming Speech Translation",
+    author = "Iranzo-S{\'a}nchez, Javier  and
+      Gim{\'e}nez Pastor, Adri{\`a}  and
+      Silvestre-Cerd{\`a}, Joan Albert  and
+      Baquero-Arnal, Pau  and
+      Civera Saiz, Jorge  and
+      Juan, Alfons",
+    editor = "Webber, Bonnie  and
+      Cohn, Trevor  and
+      He, Yulan  and
+      Liu, Yang",
+    booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)",
+    month = nov,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.emnlp-main.206",
+    doi = "10.18653/v1/2020.emnlp-main.206",
+    pages = "2599--2611",
+}
+
+@inproceedings{gaido2021beyond,
+    title = "Beyond Voice Activity Detection: Hybrid Audio Segmentation for Direct Speech Translation",
+    author = "Gaido, Marco  and
+      Negri, Matteo  and
+      Cettolo, Mauro  and
+      Turchi, Marco",
+    booktitle = "Proceedings of the 4th International Conference on Natural Language and Speech Processing (ICNLSP 2021)",
+    month = "12--13 " # nov,
+    year = "2021",
+    address = "Trento, Italy",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.icnlsp-1.7",
+    pages = "55--62",
+}
+
+@inproceedings{potapczyk-przybysz-2020-srpols,
+    title = "{SRPOL}{'}s System for the {IWSLT} 2020 End-to-End Speech Translation Task",
+    author = "Potapczyk, Tomasz  and
+      Przybysz, Pawel",
+    editor = {Federico, Marcello  and
+      Waibel, Alex  and
+      Knight, Kevin  and
+      Nakamura, Satoshi  and
+      Ney, Hermann  and
+      Niehues, Jan  and
+      St{\"u}ker, Sebastian  and
+      Wu, Dekai  and
+      Mariani, Joseph  and
+      Yvon, Francois},
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.iwslt-1.9",
+    doi = "10.18653/v1/2020.iwslt-1.9",
+    pages = "89--94",
+    abstract = "We took part in the offline End-to-End English to German TED lectures translation task. We based our solution on our last year{'}s submission. We used a slightly altered Transformer architecture with ResNet-like convolutional layer preparing the audio input to Transformer encoder. To improve the model{'}s quality of translation we introduced two regularization techniques and trained on machine translated Librispeech corpus in addition to iwslt-corpus, TEDLIUM2 andMust{\_}C corpora. Our best model scored almost 3 BLEU higher than last year{'}s model. To segment 2020 test set we used exactly the same procedure as last year.",
+}
+
+@inproceedings{inaguma-etal-2021-espnet,
+    title = "{ESP}net-{ST} {IWSLT} 2021 Offline Speech Translation System",
+    author = "Inaguma, Hirofumi  and
+      Yan, Brian  and
+      Dalmia, Siddharth  and
+      Guo, Pengcheng  and
+      Shi, Jiatong  and
+      Duh, Kevin  and
+      Watanabe, Shinji",
+    editor = "Federico, Marcello  and
+      Waibel, Alex  and
+      Costa-juss{\`a}, Marta R.  and
+      Niehues, Jan  and
+      Stuker, Sebastian  and
+      Salesky, Elizabeth",
+    booktitle = "Proceedings of the 18th International Conference on Spoken Language Translation (IWSLT 2021)",
+    month = aug,
+    year = "2021",
+    address = "Bangkok, Thailand (online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.iwslt-1.10",
+    doi = "10.18653/v1/2021.iwslt-1.10",
+    pages = "100--109",
+}
+
+@article{goldman1958speech,
+  title={Speech production and the predictability of words in context},
+  author={Goldman-Eisler, Frieda},
+  journal={Quarterly Journal of Experimental Psychology},
+  volume={10},
+  number={2},
+  pages={96--106},
+  year={1958},
+  publisher={SAGE Publications Sage UK: London, England}
+}
+
+@inproceedings{tsiamas22_interspeech,
+  author={Ioannis Tsiamas and Gerard I. Gállego and José A. R. Fonollosa and Marta R. Costa-jussà},
+  title={{SHAS: Approaching optimal Segmentation for End-to-End Speech Translation}},
+  year=2022,
+  booktitle={Proc. Interspeech 2022},
+  pages={106--110},
+  doi={10.21437/Interspeech.2022-59},
+  issn={2958-1796}
+}
+
+@inproceedings{fukuda22b_interspeech,
+  author={Ryo Fukuda and Katsuhito Sudoh and Satoshi Nakamura},
+  title={{Speech Segmentation Optimization using Segmented Bilingual Speech Corpus for End-to-end Speech Translation}},
+  year=2022,
+  booktitle={Proc. Interspeech 2022},
+  pages={121--125},
+  doi={10.21437/Interspeech.2022-11382},
+  issn={2958-1796}
+}
+
+@inproceedings{niehues16_interspeech,
+  author={Jan Niehues and Thai Son Nguyen and Eunah Cho and Thanh-Le Ha and Kevin Kilgour and Markus Müller and Matthias Sperber and Sebastian Stüker and Alex Waibel},
+  title={{Dynamic Transcription for Low-Latency Speech Translation}},
+  year=2016,
+  booktitle={Proc. Interspeech 2016},
+  pages={2513--2517},
+  doi={10.21437/Interspeech.2016-154},
+  issn={2958-1796}
+}
+
+@INPROCEEDINGS{10389709,
+  author={Chen, Junkun and Xue, Jian and Wang, Peidong and Pan, Jing and Li, Jinyu},
+  booktitle={2023 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)}, 
+  title={Improving Stability in Simultaneous Speech Translation: A Revision-Controllable Decoding Approach}, 
+  year={2023},
+  volume={},
+  number={},
+  pages={1-7},
+  keywords={Limiting;Conferences;User experience;Real-time systems;Decoding;Automatic speech recognition;Flickering reduction;simultaneous speech translation;decoding stability;beam search},
+  doi={10.1109/ASRU57964.2023.10389709}}
+
+@inproceedings{wang-etal-2022-hw-tscs,
+    title = "The {HW}-{TSC}{'}s Simultaneous Speech Translation System for {IWSLT} 2022 Evaluation",
+    author = "Wang, Minghan  and
+      Guo, Jiaxin  and
+      Li, Yinglu  and
+      Qiao, Xiaosong  and
+      Wang, Yuxia  and
+      Li, Zongyao  and
+      Su, Chang  and
+      Chen, Yimeng  and
+      Zhang, Min  and
+      Tao, Shimin  and
+      Yang, Hao  and
+      Qin, Ying",
+    editor = "Salesky, Elizabeth  and
+      Federico, Marcello  and
+      Costa-juss{\`a}, Marta",
+    booktitle = "Proceedings of the 19th International Conference on Spoken Language Translation (IWSLT 2022)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.iwslt-1.21",
+    doi = "10.18653/v1/2022.iwslt-1.21",
+    pages = "247--254",
+}
+
+@inproceedings{zaidi22_interspeech,
+  author={Mohd Abbas Zaidi and Beomseok Lee and Sangha Kim and Chanwoo Kim},
+  title={{Cross-Modal Decision Regularization for Simultaneous Speech Translation}},
+  year=2022,
+  booktitle={Proc. Interspeech 2022},
+  pages={116--120},
+  doi={10.21437/Interspeech.2022-10617},
+  issn={2958-1796}
+}
+
+@inproceedings{zeng-etal-2022-end,
+    title = "End-to-End Simultaneous Speech Translation with Pretraining and Distillation: Huawei {N}oah{'}s System for {A}uto{S}im{T}ran{S} 2022",
+    author = "Zeng, Xingshan  and
+      Li, Pengfei  and
+      Li, Liangyou  and
+      Liu, Qun",
+    editor = "Ive, Julia  and
+      Zhang, Ruiqing",
+    booktitle = "Proceedings of the Third Workshop on Automatic Simultaneous Translation",
+    month = jul,
+    year = "2022",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.autosimtrans-1.5",
+    doi = "10.18653/v1/2022.autosimtrans-1.5",
+    pages = "25--33",
+}
+
+@inproceedings{liu-etal-2021-ustc,
+    title = "The {USTC}-{NELSLIP} Systems for Simultaneous Speech Translation Task at {IWSLT} 2021",
+    author = "Liu, Dan  and
+      Du, Mengge  and
+      Li, Xiaoxi  and
+      Hu, Yuchen  and
+      Dai, Lirong",
+    editor = "Federico, Marcello  and
+      Waibel, Alex  and
+      Costa-juss{\`a}, Marta R.  and
+      Niehues, Jan  and
+      Stuker, Sebastian  and
+      Salesky, Elizabeth",
+    booktitle = "Proceedings of the 18th International Conference on Spoken Language Translation (IWSLT 2021)",
+    month = aug,
+    year = "2021",
+    address = "Bangkok, Thailand (online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.iwslt-1.2",
+    doi = "10.18653/v1/2021.iwslt-1.2",
+    pages = "30--38",
+}
+
+@inproceedings{guo-etal-2022-xiaomi,
+    title = "The Xiaomi Text-to-Text Simultaneous Speech Translation System for {IWSLT} 2022",
+    author = "Guo, Bao  and
+      Liu, Mengge  and
+      Zhang, Wen  and
+      Chen, Hexuan  and
+      Mu, Chang  and
+      Li, Xiang  and
+      Cui, Jianwei  and
+      Wang, Bin  and
+      Guo, Yuhang",
+    editor = "Salesky, Elizabeth  and
+      Federico, Marcello  and
+      Costa-juss{\`a}, Marta",
+    booktitle = "Proceedings of the 19th International Conference on Spoken Language Translation (IWSLT 2022)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.iwslt-1.17",
+    doi = "10.18653/v1/2022.iwslt-1.17",
+    pages = "216--224",
+}
+
+@inproceedings{iranzo-sanchez-etal-2022-mllp,
+    title = "{MLLP}-{VRAIN} {UPV} systems for the {IWSLT} 2022 Simultaneous Speech Translation and Speech-to-Speech Translation tasks",
+    author = "Iranzo-S{\'a}nchez, Javier  and
+      Jorge Cano, Javier  and
+      P{\'e}rez-Gonz{\'a}lez-de-Martos, Alejandro  and
+      Gim{\'e}nez Pastor, Adri{\'a}n  and
+      Garc{\'e}s D{\'\i}az-Mun{\'\i}o, Gon{\c{c}}al  and
+      Baquero-Arnal, Pau  and
+      Silvestre-Cerd{\`a}, Joan Albert  and
+      Civera Saiz, Jorge  and
+      Sanchis, Albert  and
+      Juan, Alfons",
+    editor = "Salesky, Elizabeth  and
+      Federico, Marcello  and
+      Costa-juss{\`a}, Marta",
+    booktitle = "Proceedings of the 19th International Conference on Spoken Language Translation (IWSLT 2022)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.iwslt-1.22",
+    doi = "10.18653/v1/2022.iwslt-1.22",
+    pages = "255--264",
+}
+
+@article{subramanya2022multilingual,
+  title={Multilingual Simultaneous Speech Translation},
+  author={Subramanya, Shashank and Niehues, Jan},
+  journal={arXiv preprint arXiv:2203.14835},
+  year={2022}
+}
+
+@inproceedings{bahar-etal-2021-without,
+    title = "Without Further Ado: Direct and Simultaneous Speech Translation by {A}pp{T}ek in 2021",
+    author = "Bahar, Parnia  and
+      Wilken, Patrick  and
+      Di Gangi, Mattia A.  and
+      Matusov, Evgeny",
+    booktitle = "Proceedings of the 18th International Conference on Spoken Language Translation (IWSLT 2021)",
+    month = aug,
+    year = "2021",
+    address = "Bangkok, Thailand (online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.iwslt-1.5",
+    doi = "10.18653/v1/2021.iwslt-1.5",
+    pages = "52--63",
+}
+
+@inproceedings{nguyen2021impact,
+  title     = {Impact of Encoding and Segmentation Strategies on End-to-End Simultaneous Speech Translation},
+  author    = {Ha Nguyen and Yannick Estève and Laurent Besacier},
+  year      = {2021},
+  booktitle = {Interspeech 2021},
+  pages     = {2371--2375},
+  doi       = {10.21437/Interspeech.2021-608},
+  issn      = {2958-1796},
+}
+
+@article{guo2024r,
+  title={R-BI: Regularized Batched Inputs enhance Incremental Decoding Framework for Low-Latency Simultaneous Speech Translation},
+  author={Guo, Jiaxin and Wu, Zhanglin and Li, Zongyao and Shang, Hengchao and Wei, Daimeng and Chen, Xiaoyu and Rao, Zhiqiang and Li, Shaojun and Yang, Hao},
+  journal={arXiv preprint arXiv:2401.05700},
+  year={2024}
+}
+
+@inproceedings{deng2024label,
+    title = "Label-Synchronous Neural Transducer for {E}2{E} Simultaneous Speech Translation",
+    author = "Deng, Keqi  and
+      Woodland, Phil",
+    editor = "Ku, Lun-Wei  and
+      Martins, Andre  and
+      Srikumar, Vivek",
+    booktitle = "Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-long.448",
+    doi = "10.18653/v1/2024.acl-long.448",
+    pages = "8235--8251",
+}
+
+@inproceedings{elbayad-etal-2020-trac,
+    title = "{ON}-{TRAC} Consortium for End-to-End and Simultaneous Speech Translation Challenge Tasks at {IWSLT} 2020",
+    author = "Elbayad, Maha  and
+      Nguyen, Ha  and
+      Bougares, Fethi  and
+      Tomashenko, Natalia  and
+      Caubri{\`e}re, Antoine  and
+      Lecouteux, Benjamin  and
+      Est{\`e}ve, Yannick  and
+      Besacier, Laurent",
+    editor = {Federico, Marcello  and
+      Waibel, Alex  and
+      Knight, Kevin  and
+      Nakamura, Satoshi  and
+      Ney, Hermann  and
+      Niehues, Jan  and
+      St{\"u}ker, Sebastian  and
+      Wu, Dekai  and
+      Mariani, Joseph  and
+      Yvon, Francois},
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.iwslt-1.2",
+    doi = "10.18653/v1/2020.iwslt-1.2",
+    pages = "35--43",
+}
+
+@inproceedings{ko2024naist,
+    title = "{NAIST} Simultaneous Speech Translation System for {IWSLT} 2024",
+    author = "Ko, Yuka  and
+      Fukuda, Ryo  and
+      Nishikawa, Yuta  and
+      Kano, Yasumasa  and
+      Yanagita, Tomoya  and
+      Doi, Kosuke  and
+      Makinae, Mana  and
+      Tan, Haotian  and
+      Sakai, Makoto  and
+      Sakti, Sakriani  and
+      Sudoh, Katsuhito  and
+      Nakamura, Satoshi",
+    booktitle = "Proceedings of the 21st International Conference on Spoken Language Translation (IWSLT 2024)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.iwslt-1.23",
+    doi = "10.18653/v1/2024.iwslt-1.23",
+    pages = "170--182",
+}
+
+@inproceedings{papi2024simulseamless,
+    title = "{S}imul{S}eamless: {FBK} at {IWSLT} 2024 Simultaneous Speech Translation",
+    author = "Papi, Sara  and
+      Gaido, Marco  and
+      Negri, Matteo  and
+      Bentivogli, Luisa",
+    editor = "Salesky, Elizabeth  and
+      Federico, Marcello  and
+      Carpuat, Marine",
+    booktitle = "Proceedings of the 21st International Conference on Spoken Language Translation (IWSLT 2024)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.iwslt-1.11",
+    doi = "10.18653/v1/2024.iwslt-1.11",
+    pages = "72--79",
+}
+
+@inproceedings{huang-etal-2023-xiaomi,
+    title = "The Xiaomi {AI} Lab{'}s Speech Translation Systems for {IWSLT} 2023 Offline Task, Simultaneous Task and Speech-to-Speech Task",
+    author = "Huang, Wuwei  and
+      Liu, Mengge  and
+      Li, Xiang  and
+      Tian, Yanzhi  and
+      Yang, Fengyu  and
+      Zhang, Wen  and
+      Luan, Jian  and
+      Wang, Bin  and
+      Guo, Yuhang  and
+      Su, Jinsong",
+    booktitle = "Proceedings of the 20th International Conference on Spoken Language Translation (IWSLT 2023)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.iwslt-1.39",
+    doi = "10.18653/v1/2023.iwslt-1.39",
+    pages = "411--419",
+}
+
+@inproceedings{guo-etal-2023-hw,
+    title = "The {HW}-{TSC}{'}s Simultaneous Speech-to-Text Translation System for {IWSLT} 2023 Evaluation",
+    author = "Guo, Jiaxin  and
+      Wei, Daimeng  and
+      Wu, Zhanglin  and
+      Li, Zongyao  and
+      Rao, Zhiqiang  and
+      Wang, Minghan  and
+      Shang, Hengchao  and
+      Chen, Xiaoyu  and
+      Yu, Zhengzhe  and
+      Li, Shaojun  and
+      Xie, Yuhao  and
+      Lei, Lizhi  and
+      Yang, Hao",
+    editor = "Salesky, Elizabeth  and
+      Federico, Marcello  and
+      Carpuat, Marine",
+    booktitle = "Proceedings of the 20th International Conference on Spoken Language Translation (IWSLT 2023)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.iwslt-1.35",
+    doi = "10.18653/v1/2023.iwslt-1.35",
+    pages = "376--382",
+}
+
+@inproceedings{gaido-etal-2022-efficient,
+    title = "Efficient yet Competitive Speech Translation: {FBK}@{IWSLT}2022",
+    author = "Gaido, Marco  and
+      Papi, Sara  and
+      Fucci, Dennis  and
+      Fiameni, Giuseppe  and
+      Negri, Matteo  and
+      Turchi, Marco",
+    booktitle = "Proceedings of the 19th International Conference on Spoken Language Translation (IWSLT 2022)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.iwslt-1.13",
+    doi = "10.18653/v1/2022.iwslt-1.13",
+    pages = "177--189",
+}
+
+@inproceedings{fukuda-etal-2023-naist,
+    title = "{NAIST} Simultaneous Speech-to-speech Translation System for {IWSLT} 2023",
+    author = "Fukuda, Ryo  and
+      Nishikawa, Yuta  and
+      Kano, Yasumasa  and
+      Ko, Yuka  and
+      Yanagita, Tomoya  and
+      Doi, Kosuke  and
+      Makinae, Mana  and
+      Sakti, Sakriani  and
+      Sudoh, Katsuhito  and
+      Nakamura, Satoshi",
+    booktitle = "Proceedings of the 20th International Conference on Spoken Language Translation (IWSLT 2023)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.iwslt-1.31",
+    doi = "10.18653/v1/2023.iwslt-1.31",
+    pages = "330--340",
+}
+
+@inproceedings{zhang-feng-2022-information,
+    title = "Information-Transport-based Policy for Simultaneous Translation",
+    author = "Zhang, Shaolei  and
+      Feng, Yang",
+    booktitle = "Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing",
+    month = dec,
+    year = "2022",
+    address = "Abu Dhabi, United Arab Emirates",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.emnlp-main.65",
+    doi = "10.18653/v1/2022.emnlp-main.65",
+    pages = "992--1013",
+}
+
+@inproceedings{zhang-etal-2022-learning,
+    title = "Learning Adaptive Segmentation Policy for End-to-End Simultaneous Translation",
+    author = "Zhang, Ruiqing  and
+      He, Zhongjun  and
+      Wu, Hua  and
+      Wang, Haifeng",
+    booktitle = "Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.acl-long.542",
+    doi = "10.18653/v1/2022.acl-long.542",
+    pages = "7862--7874",
+}
+
+@inproceedings{han-etal-2020-end,
+    title = "End-to-End Simultaneous Translation System for {IWSLT}2020 Using Modality Agnostic Meta-Learning",
+    author = "Han, Hou Jeung  and
+      Zaidi, Mohd Abbas  and
+      Indurthi, Sathish Reddy  and
+      Lakumarapu, Nikhil Kumar  and
+      Lee, Beomseok  and
+      Kim, Sangha",
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.iwslt-1.5",
+    doi = "10.18653/v1/2020.iwslt-1.5",
+    pages = "62--68",
+}
+
+@article{doi:10.1080/0907676X.2018.1498531,
+author = {Qianxi Lv and Junying Liang},
+title = {Is consecutive interpreting easier than simultaneous interpreting? – a corpus-based study of lexical simplification in interpretation},
+journal = {Perspectives},
+volume = {27},
+number = {1},
+pages = {91--106},
+year = {2019},
+publisher = {Routledge},
+doi = {10.1080/0907676X.2018.1498531},
+URL = {https://doi.org/10.1080/0907676X.2018.1498531}
+}
+
+@article{barrault2023seamless,
+  title={Seamless: Multilingual Expressive and Streaming Speech Translation},
+  author={Barrault, Lo{\"\i}c and Chung, Yu-An and Meglioli, Mariano Coria and Dale, David and Dong, Ning and Duppenthaler, Mark and Duquenne, Paul-Ambroise and Ellis, Brian and Elsahar, Hady and Haaheim, Justin and others},
+  journal={arXiv preprint arXiv:2312.05187},
+  year={2023}
+}
+
+@inproceedings{papi2024streamatt,
+    title = "{S}tream{A}tt: Direct Streaming Speech-to-Text Translation with Attention-based Audio History Selection",
+    author = "Papi, Sara  and
+      Gaido, Marco  and
+      Negri, Matteo  and
+      Bentivogli, Luisa",
+    editor = "Ku, Lun-Wei  and
+      Martins, Andre  and
+      Srikumar, Vivek",
+    booktitle = "Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-long.202",
+    doi = "10.18653/v1/2024.acl-long.202",
+    pages = "3692--3707",
+}
+
+@inproceedings{paulik10_interspeech,
+  author={Matthias Paulik and Alex Waibel},
+  title={{Rapid development of speech translation using consecutive interpretation}},
+  year=2010,
+  booktitle={Proc. Interspeech 2010},
+  pages={2534--2537},
+  doi={10.21437/Interspeech.2010-680},
+  issn={2958-1796}
+}
+
+@inproceedings{papi-etal-2023-direct,
+    title = "Direct Models for Simultaneous Translation and Automatic Subtitling: {FBK}@{IWSLT}2023",
+    author = "Papi, Sara  and
+      Gaido, Marco  and
+      Negri, Matteo",
+    booktitle = "Proceedings of the 20th International Conference on Spoken Language Translation (IWSLT 2023)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.iwslt-1.11",
+    doi = "10.18653/v1/2023.iwslt-1.11",
+    pages = "159--168",
+}
+
+@INPROCEEDINGS{10095896,
+  author={Omachi, Motoi and Yan, Brian and Dalmia, Siddharth and Fujita, Yuya and Watanabe, Shinji},
+  booktitle={ICASSP 2023 - 2023 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={Align, Write, Re-Order: Explainable End-to-End Speech Translation via Operation Sequence Generation}, 
+  year={2023},
+  volume={},
+  number={},
+  pages={1-5},
+  keywords={Out of order;Closed box;Signal processing;Real-time systems;Acoustics;Task analysis;Speech processing;speech recognition;speech-to-text translation},
+  doi={10.1109/ICASSP49357.2023.10095896}}
+
+@inproceedings{ryu-etal-2006-simultaneous,
+    title = "Simultaneous {E}nglish-{J}apanese Spoken Language Translation Based on Incremental Dependency Parsing and Transfer",
+    author = "Ryu, Koichiro  and
+      Matsubara, Shigeki  and
+      Inagaki, Yasuyoshi",
+    booktitle = "Proceedings of the {COLING}/{ACL} 2006 Main Conference Poster Sessions",
+    month = jul,
+    year = "2006",
+    address = "Sydney, Australia",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P06-2088",
+    pages = "683--690",
+}
+
+@article{ma2023efficient,
+  title={Efficient Monotonic Multihead Attention},
+  author={Ma, Xutai and Sun, Anna and Ouyang, Siqi and Inaguma, Hirofumi and Tomasello, Paden},
+  journal={arXiv preprint arXiv:2312.04515},
+  year={2023}
+}
+
+@inproceedings{cho13_interspeech,
+  author={Eunah Cho and Christian Fügen and Teresa Hermann and Kevin Kilgour and Mohammed Mediani and Christian Mohr and Jan Niehues and Kay Rottmann and Christian Saam and Sebastian Stüker and Alex Waibel},
+  title={{A real-world system for simultaneous translation of German lectures}},
+  year=2013,
+  booktitle={Proc. Interspeech 2013},
+  pages={3473--3477},
+  doi={10.21437/Interspeech.2013-612},
+  issn={2958-1796}
+}
+
+@phdthesis{Fuegen2009_1000013594,
+    author       = {Fügen, Christian},
+    year         = {2009},
+    title        = {A System for Simultaneous Translation of Lectures and Speeches},
+    doi          = {10.5445/IR/1000013594},
+    publisher    = {{Universität Karlsruhe (TH)}},
+    keywords     = {Simultaneous Translation, Lecture Translation, Lecture Recognition, Speech-to-Speech Translation, Spoken Language Translation},
+    language     = {english},
+    school       = {{Universität Karlsruhe (TH)}}
+}
+
+@article{zhang2024unified,
+  title={Unified segment-to-segment framework for simultaneous sequence generation},
+  author={Zhang, Shaolei and Feng, Yang},
+  journal={Advances in Neural Information Processing Systems},
+  volume={36},
+  year={2024}
+}
+
+@inproceedings{soky22_interspeech,
+  author={Kak Soky and Sheng Li and Masato Mimura and Chenhui Chu and Tatsuya Kawahara},
+  title={{Leveraging Simultaneous Translation for Enhancing Transcription of Low-resource Language via Cross Attention Mechanism}},
+  year=2022,
+  booktitle={Proc. Interspeech 2022},
+  pages={1362--1366},
+  doi={10.21437/Interspeech.2022-343},
+  issn={2958-1796}
+}
+
+@inproceedings{bojar-etal-2021-operating,
+    title = "Operating a Complex {SLT} System with Speakers and Human Interpreters",
+    author = "Bojar, Ond{\v{r}}ej  and
+      Srde{\v{c}}n{\'y}, Vojt{\v{e}}ch  and
+      Kumar, Rishu  and
+      Smr{\v{z}}, Otakar  and
+      Schneider, Felix  and
+      Haddow, Barry  and
+      Williams, Phil  and
+      Canton, Chiara",
+    editor = "Turchi, Marco  and
+      Fantinuoli, Claudio",
+    booktitle = "Proceedings of the 1st Workshop on Automatic Spoken Language Translation in Real-World Settings (ASLTRW)",
+    month = aug,
+    year = "2021",
+    address = "Virtual",
+    publisher = "Association for Machine Translation in the Americas",
+    url = "https://aclanthology.org/2021.mtsummit-asltrw.3",
+    pages = "23--34",
+}
+
+@inproceedings{yang2024diarist,
+  title={Diarist: Streaming Speech Translation with Speaker Diarization},
+  author={Yang, Mu and Kanda, Naoyuki and Wang, Xiaofei and Chen, Junkun and Wang, Peidong and Xue, Jian and Li, Jinyu and Yoshioka, Takuya},
+  booktitle={ICASSP 2024-2024 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages={10866--10870},
+  year={2024},
+  organization={IEEE}
+}
+
+@inproceedings{alastruey-etal-2023-towards,
+    title = "Towards Real-World Streaming Speech Translation for Code-Switched Speech",
+    author = "Alastruey, Belen  and
+      Sperber, Matthias  and
+      Gollan, Christian  and
+      Telaar, Dominic  and
+      Ng, Tim  and
+      Agarwal, Aashish",
+    booktitle = "Proceedings of the 6th Workshop on Computational Approaches to Linguistic Code-Switching",
+    month = dec,
+    year = "2023",
+    address = "Singapore",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.calcs-1.2",
+    pages = "14--22",
+}
+
+@article{IRANZOSANCHEZ2021303,
+title = {Streaming cascade-based speech translation leveraged by a direct segmentation model},
+journal = {Neural Networks},
+volume = {142},
+pages = {303-315},
+year = {2021},
+issn = {0893-6080},
+doi = {https://doi.org/10.1016/j.neunet.2021.05.013},
+url = {https://www.sciencedirect.com/science/article/pii/S0893608021002057},
+author = {Javier Iranzo-Sánchez and Javier Jorge and Pau Baquero-Arnal and Joan Albert Silvestre-Cerdà and Adrià Giménez and Jorge Civera and Albert Sanchis and Alfons Juan},
+keywords = {Streaming Cascade Speech Translation, Segmentation Model},
+}
+
+@inproceedings{wang23oa_interspeech,
+  author={Peidong Wang and Eric Sun and Jian Xue and Yu Wu and Long Zhou and Yashesh Gaur and Shujie Liu and Jinyu Li},
+  title={{LAMASSU: A Streaming Language-Agnostic Multilingual Speech Recognition and Translation Model Using Neural Transducers}},
+  year=2023,
+  booktitle={Proc. INTERSPEECH 2023},
+  pages={57--61},
+  doi={10.21437/Interspeech.2023-2004},
+  issn={2958-1796}
+}
+
+@article{iranzo2023segmentation,
+    author = {Iranzo-Sánchez, Javier and Iranzo-Sánchez, Jorge and Giménez, Adrià and Civera, Jorge and Juan, Alfons},
+    title = "{Segmentation-Free Streaming Machine Translation}",
+    journal = {Transactions of the Association for Computational Linguistics},
+    volume = {12},
+    pages = {1104-1121},
+    year = {2024},
+    month = {09},
+    issn = {2307-387X},
+    doi = {10.1162/tacl_a_00691},
+    url = {https://doi.org/10.1162/tacl\_a\_00691},
+    eprint = {https://direct.mit.edu/tacl/article-pdf/doi/10.1162/tacl\_a\_00691/2468656/tacl\_a\_00691.pdf},
+}
+
+@INPROCEEDINGS{10389799,
+  author={Xue, Jian and Wang, Peidong and Li, Jinyu and Sun, Eric},
+  booktitle={2023 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)}, 
+  title={A Weakly-Supervised Streaming Multilingual Speech Model with Truly Zero-Shot Capability}, 
+  year={2023},
+  volume={},
+  number={},
+  pages={1-7},
+  keywords={Training;Transducers;Text recognition;Merging;Training data;Drives;Transformers;automatic speech recognition;speech translation;multilingual;zero-shot;streaming},
+  doi={10.1109/ASRU57964.2023.10389799}}
+
+@inproceedings{behre2022streaming,
+  title={Streaming Punctuation for Long-Form Dictation with Transformers},
+  author={Behre, Piyush and Tan, Sharman and Varadharajan, Padma and Chang, Shuangyu},
+  booktitle={CS \& IT Conference Proceedings},
+  volume={12},
+  number={20},
+  year={2022},
+  organization={CS \& IT Conference Proceedings}
+}
+
+@inproceedings{li-etal-2022-system,
+    title = "System Description on Automatic Simultaneous Translation Workshop",
+    author = "Li, Zecheng  and
+      Sun, Yue  and
+      Li, Haoze",
+    booktitle = "Proceedings of the Third Workshop on Automatic Simultaneous Translation",
+    month = jul,
+    year = "2022",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.autosimtrans-1.3",
+    doi = "10.18653/v1/2022.autosimtrans-1.3",
+    pages = "18--21",
+}
+
+@inproceedings{tang-etal-2023-hybrid,
+    title = "Hybrid Transducer and Attention based Encoder-Decoder Modeling for Speech-to-Text Tasks",
+    author = "Tang, Yun  and
+      Sun, Anna  and
+      Inaguma, Hirofumi  and
+      Chen, Xinyue  and
+      Dong, Ning  and
+      Ma, Xutai  and
+      Tomasello, Paden  and
+      Pino, Juan",
+    editor = "Rogers, Anna  and
+      Boyd-Graber, Jordan  and
+      Okazaki, Naoaki",
+    booktitle = "Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.acl-long.695",
+    doi = "10.18653/v1/2023.acl-long.695",
+    pages = "12441--12455",
+    abstract = "Transducer and Attention based Encoder-Decoder (AED) are two widely used frameworks for speech-to-text tasks. They are designed for different purposes and each has its own benefits and drawbacks for speech-to-text tasks. In order to leverage strengths of both modeling methods, we propose a solution by combining Transducer and Attention based Encoder-Decoder (TAED) for speech-to-text tasks. The new method leverages AED{'}s strength in non-monotonic sequence to sequence learning while retaining Transducer{'}s streaming property. In the proposed framework, Transducer and AED share the same speech encoder. The predictor in Transducer is replaced by the decoder in the AED model, and the outputs of the decoder are conditioned on the speech inputs instead of outputs from an unconditioned language model. The proposed solution ensures that the model is optimized by covering all possible read/write scenarios and creates a matched environment for streaming applications. We evaluate the proposed approach on the MuST-C dataset and the findings demonstrate that TAED performs significantly better than Transducer for offline automatic speech recognition (ASR) and speech-to-text translation (ST) tasks. In the streaming case, TAED outperforms Transducer in the ASR task and one ST direction while comparable results are achieved in another translation direction.",
+}
+
+@article{sen2022simultaneous,
+  title={Simultaneous translation for unsegmented input: A sliding window approach},
+  author={Sen, Sukanta and Bojar, Ond{\v{r}}ej and Haddow, Barry},
+  journal={arXiv preprint arXiv:2210.09754},
+  year={2022}
+}
+
+@inproceedings{elbayad20_interspeech,
+  author={Maha Elbayad and Laurent Besacier and Jakob Verbeek},
+  title={{Efficient Wait-k Models for Simultaneous Machine Translation}},
+  year=2020,
+  booktitle={Proc. Interspeech 2020},
+  pages={1461--1465},
+  doi={10.21437/Interspeech.2020-1241},
+  issn={2958-1796}
+}
+
+@inproceedings{sen-etal-2021-university,
+    title = "The {U}niversity of {E}dinburgh{'}s Submission to the {IWSLT}21 Simultaneous Translation Task",
+    author = "Sen, Sukanta  and
+      Germann, Ulrich  and
+      Haddow, Barry",
+    booktitle = "Proceedings of the 18th International Conference on Spoken Language Translation (IWSLT 2021)",
+    month = aug,
+    year = "2021",
+    address = "Bangkok, Thailand (online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.iwslt-1.4",
+    doi = "10.18653/v1/2021.iwslt-1.4",
+    pages = "46--51",
+}
+
+@inproceedings{kolss-etal-2008-simultaneous,
+    title = "Simultaneous {G}erman-{E}nglish lecture translation.",
+    author = {Kolss, Muntsin  and
+      W{\"o}lfel, Matthias  and
+      Kraft, Florian  and
+      Niehues, Jan  and
+      Paulik, Matthias  and
+      Waibel, Alex},
+    booktitle = "Proceedings of the 5th International Workshop on Spoken Language Translation: Papers",
+    month = oct # " 20-21",
+    year = "2008",
+    address = "Waikiki, Hawaii",
+    url = "https://aclanthology.org/2008.iwslt-papers.5",
+    pages = "174--181",
+}
+
+@INPROCEEDINGS{9054585,
+  author={Arivazhagan, Naveen and Cherry, Colin and Te, I and Macherey, Wolfgang and Baljekar, Pallavi and Foster, George},
+  booktitle={ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={Re-Translation Strategies for Long Form, Simultaneous, Spoken Language Translation}, 
+  year={2020},
+  volume={},
+  number={},
+  pages={7919-7923},
+  keywords={Signal processing algorithms;Speech recognition;Tools;Signal processing;Stability analysis;Machine translation;Speech processing;Speech Recognition Neural Machine Translation},
+  doi={10.1109/ICASSP40776.2020.9054585}}
+
+@inproceedings{huang19k_interspeech,
+  author={Shen Huang and Bojie Hu and Shan Huang and Pengfei Hu and Jian Kang and Zhiqiang Lv and Jinghao Yan and Qi Ju and Shiyin Kang and Deyi Tuo and Guangzhi Li and Nurmemet Yolwas},
+  title={{Multimedia Simultaneous Translation System for Minority Language Communication with Mandarin}},
+  year=2019,
+  booktitle={Proc. Interspeech 2019},
+  pages={4628--4629},
+  issn={2958-1796}
+}
+
+@inproceedings{cho-etal-2015-punctuation,
+    title = "Punctuation insertion for real-time spoken language translation",
+    author = "Cho, Eunah  and
+      Niehues, Jan  and
+      Kilgour, Kevin  and
+      Waibel, Alex",
+    editor = {Federico, Marcello  and
+      St{\"u}ker, Sebastian  and
+      Niehues, Jan},
+    booktitle = "Proceedings of the 12th International Workshop on Spoken Language Translation: Papers",
+    month = dec # " 3-4",
+    year = "2015",
+    address = "Da Nang, Vietnam",
+    url = "https://aclanthology.org/2015.iwslt-papers.8",
+    pages = "173--179",
+}
+
+@article{xiong2019dutongchuan,
+  title={Dutongchuan: Context-aware translation model for simultaneous interpreting},
+  author={Xiong, Hao and Zhang, Ruiqing and Zhang, Chuanqiang and He, Zhongjun and Wu, Hua and Wang, Haifeng},
+  journal={arXiv preprint arXiv:1907.12984},
+  year={2019}
+}
+
+@inproceedings{schneider-waibel-2020-towards,
+    title = "Towards Stream Translation: Adaptive Computation Time for Simultaneous Machine Translation",
+    author = "Schneider, Felix  and
+      Waibel, Alexander",
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.iwslt-1.28",
+    doi = "10.18653/v1/2020.iwslt-1.28",
+    pages = "228--236",
+}
+
+@inproceedings{wang-etal-2016-efficient,
+    title = "An Efficient and Effective Online Sentence Segmenter for Simultaneous Interpretation",
+    author = "Wang, Xiaolin  and
+      Finch, Andrew  and
+      Utiyama, Masao  and
+      Sumita, Eiichiro",
+    booktitle = "Proceedings of the 3rd Workshop on {A}sian Translation ({WAT}2016)",
+    month = dec,
+    year = "2016",
+    address = "Osaka, Japan",
+    publisher = "The COLING 2016 Organizing Committee",
+    url = "https://aclanthology.org/W16-4613",
+    pages = "139--148",
+}
+
+@inproceedings{zhang2024streamspeech,
+    title = "{S}tream{S}peech: Simultaneous Speech-to-Speech Translation with Multi-task Learning",
+    author = "Zhang, Shaolei  and
+      Fang, Qingkai  and
+      Guo, Shoutao  and
+      Ma, Zhengrui  and
+      Zhang, Min  and
+      Feng, Yang",
+    booktitle = "Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-long.485",
+    doi = "10.18653/v1/2024.acl-long.485",
+    pages = "8964--8986",
+}
+
+@inproceedings{takezawa98b_icslp,
+  author={Toshiyuki Takezawa and Tsuyoshi Morimoto and Yoshinori Sagisaka and Nick Campbell and Hitoshi Iida and Fumiaki Sugaya and Akio Yokoo and Seiichi Yamamoto},
+  title={{A Japanese-to-English speech translation system: ATR-MATRIX}},
+  year=1998,
+  booktitle={Proc. 5th International Conference on Spoken Language Processing (ICSLP 1998)},
+  pages={paper 0957},
+  doi={10.21437/ICSLP.1998-581},
+  issn={2958-1796}
+}
+
+@inproceedings{lewis-2015-skype,
+    title = "Skype Translator: Breaking down language and hearing barriers. A behind the scenes look at near real-time speech translation",
+    author = "Lewis, William",
+    booktitle = "Proceedings of Translating and the Computer 37",
+    month = nov # " 26-27",
+    year = "2015",
+    address = "London, UK",
+    publisher = "AsLing",
+    url = "https://aclanthology.org/2015.tc-1.9",
+}
+
+@inproceedings{wolk2014real,
+  title={Real-time statistical speech translation},
+  author={Wo{\l}k, Krzysztof and Marasek, Krzysztof},
+  booktitle={New Perspectives in Information Systems and Technologies, Volume 1},
+  pages={107--113},
+  year={2014},
+  organization={Springer}
+}
+
+@inproceedings{machacek-etal-2020-elitr,
+    title = "{ELITR} Non-Native Speech Translation at {IWSLT} 2020",
+    author = "Mach{\'a}{\v{c}}ek, Dominik  and
+      Kratochv{\'\i}l, Jon{\'a}{\v{s}}  and
+      Sagar, Sangeet  and
+      {\v{Z}}ilinec, Mat{\'u}{\v{s}}  and
+      Bojar, Ond{\v{r}}ej  and
+      Nguyen, Thai-Son  and
+      Schneider, Felix  and
+      Williams, Philip  and
+      Yao, Yuekun",
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.iwslt-1.25",
+    doi = "10.18653/v1/2020.iwslt-1.25",
+    pages = "200--208",
+}
+
+@article{NOVITASARI20212021EDP7014,
+  title={Neural Incremental Speech Recognition Toward Real-Time Machine Speech Translation},
+  author={Sashi Novitasari and Sakriani Sakti and Satoshi Nakamura},
+  journal={IEICE Transactions on Information and Systems},
+  volume={E104.D},
+  number={12},
+  pages={2195-2208},
+  year={2021},
+  doi={10.1587/transinf.2021EDP7014}
+}
+
+@INPROCEEDINGS{1660084,
+  author={F{\"u}gen, Christian and Kolss, Muntsin and Bernreuther, Dietmar and Paulik, Matthias and Stuker, Sebastian and Vogel, Stephan and Waibel, Alex},
+  booktitle={2006 IEEE International Conference on Acoustics Speech and Signal Processing Proceedings}, 
+  title={Open Domain Speech Recognition \& Translation:Lectures and Speeches}, 
+  year={2006},
+  doi={10.1109/ICASSP.2006.1660084}}
+
+@inproceedings{bahar-etal-2020-start,
+    title = "Start-Before-End and End-to-End: Neural Speech Translation by {A}pp{T}ek and {RWTH} {A}achen {U}niversity",
+    author = "Bahar, Parnia  and
+      Wilken, Patrick  and
+      Alkhouli, Tamer  and
+      Guta, Andreas  and
+      Golik, Pavel  and
+      Matusov, Evgeny  and
+      Herold, Christian",
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.iwslt-1.3",
+    doi = "10.18653/v1/2020.iwslt-1.3",
+    pages = "44--54",
+}
+
+@inproceedings{indurthi-etal-2022-language,
+    title = "Language Model Augmented Monotonic Attention for Simultaneous Translation",
+    author = "Indurthi, Sathish Reddy  and
+      Zaidi, Mohd Abbas  and
+      Lee, Beomseok  and
+      Lakumarapu, Nikhil Kumar  and
+      Kim, Sangha",
+    booktitle = "Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies",
+    month = jul,
+    year = "2022",
+    address = "Seattle, United States",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.naacl-main.3",
+    doi = "10.18653/v1/2022.naacl-main.3",
+    pages = "38--45",
+}
+
+@inproceedings{vilar-etal-1995-spoken,
+    title = "Spoken-Language Machine Translation in Limited Domains: Can it be Achieved by Finite-State Models?",
+    author = "Vilar, Juan Miguel  and
+      Castellanos, Antonio  and
+      Jimenez, Juan Miguel  and
+      Sanchez, J. A.  and
+      Vidal, E.  and
+      Oncina, J.  and
+      Rulot, H.",
+    booktitle = "Proceedings of the Sixth Conference on Theoretical and Methodological Issues in Machine Translation of Natural Languages",
+    month = jul # " 5-7",
+    year = "1995",
+    address = "Katholieke Universiteit, Leuven",
+    url = "https://aclanthology.org/1995.tmi-1.26",
+}
+
+@inproceedings{zhu-etal-2022-aisp,
+    title = "The {AISP}-{SJTU} Simultaneous Translation System for {IWSLT} 2022",
+    author = "Zhu, Qinpei  and
+      Wu, Renshou  and
+      Liu, Guangfeng  and
+      Zhu, Xinyu  and
+      Chen, Xingyu  and
+      Zhou, Yang  and
+      Miao, Qingliang  and
+      Wang, Rui  and
+      Yu, Kai",
+    booktitle = "Proceedings of the 19th International Conference on Spoken Language Translation (IWSLT 2022)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.iwslt-1.16",
+    doi = "10.18653/v1/2022.iwslt-1.16",
+    pages = "208--215",
+}
+
+@inproceedings{amrhein-haddow-2022-dont,
+    title = "Don{'}t Discard Fixed-Window Audio Segmentation in Speech-to-Text Translation",
+    author = "Amrhein, Chantal  and
+      Haddow, Barry",
+    booktitle = "Proceedings of the Seventh Conference on Machine Translation (WMT)",
+    month = dec,
+    year = "2022",
+    address = "Abu Dhabi, United Arab Emirates (Hybrid)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.wmt-1.13",
+    pages = "203--219",
+}
+
+@inproceedings{shimizu-etal-2013-constructing,
+    title = "Constructing a speech translation system using simultaneous interpretation data",
+    author = "Shimizu, Hiroaki  and
+      Neubig, Graham  and
+      Sakti, Sakriani  and
+      Toda, Tomoki  and
+      Nakamura, Satoshi",
+    booktitle = "Proceedings of the 10th International Workshop on Spoken Language Translation: Papers",
+    month = dec # " 5-6",
+    year = "2013",
+    address = "Heidelberg, Germany",
+    url = "https://aclanthology.org/2013.iwslt-papers.3",
+}
+
+@inproceedings{bojar-etal-2020-elitr,
+    title = "{ELITR}: {E}uropean Live Translator",
+    author = {Bojar, Ond{\v{r}}ej  and
+      Mach{\'a}{\v{c}}ek, Dominik  and
+      Sagar, Sangeet  and
+      Smr{\v{z}}, Otakar  and
+      Kratochv{\'\i}l, Jon{\'a}{\v{s}}  and
+      Ansari, Ebrahim  and
+      Franceschini, Dario  and
+      Canton, Chiara  and
+      Simonini, Ivan  and
+      Nguyen, Thai-Son  and
+      Schneider, Felix  and
+      St{\"u}cker, Sebastian  and
+      Waibel, Alex  and
+      Haddow, Barry  and
+      Sennrich, Rico  and
+      Williams, Philip},
+    booktitle = "Proceedings of the 22nd Annual Conference of the European Association for Machine Translation",
+    month = nov,
+    year = "2020",
+    address = "Lisboa, Portugal",
+    publisher = "European Association for Machine Translation",
+    url = "https://aclanthology.org/2020.eamt-1.53",
+    pages = "463--464",
+}
+
+@inproceedings{zhao-etal-2021-volctrans,
+    title = "The Volctrans Neural Speech Translation System for {IWSLT} 2021",
+    author = "Zhao, Chengqi  and
+      Liu, Zhicheng  and
+      Tong, Jian  and
+      Wang, Tao  and
+      Wang, Mingxuan  and
+      Ye, Rong  and
+      Dong, Qianqian  and
+      Cao, Jun  and
+      Li, Lei",
+    booktitle = "Proceedings of the 18th International Conference on Spoken Language Translation (IWSLT 2021)",
+    month = aug,
+    year = "2021",
+    address = "Bangkok, Thailand (online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.iwslt-1.6",
+    doi = "10.18653/v1/2021.iwslt-1.6",
+    pages = "64--74",
+}
+
+@inproceedings{fukuda-etal-2022-naist,
+    title = "{NAIST} Simultaneous Speech-to-Text Translation System for {IWSLT} 2022",
+    author = "Fukuda, Ryo  and
+      Ko, Yuka  and
+      Kano, Yasumasa  and
+      Doi, Kosuke  and
+      Tokuyama, Hirotaka  and
+      Sakti, Sakriani  and
+      Sudoh, Katsuhito  and
+      Nakamura, Satoshi",
+    booktitle = "Proceedings of the 19th International Conference on Spoken Language Translation (IWSLT 2022)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.iwslt-1.25",
+    doi = "10.18653/v1/2022.iwslt-1.25",
+    pages = "286--292",
+}
+
+@inproceedings{ma2024non,
+    title = "A Non-autoregressive Generation Framework for End-to-End Simultaneous Speech-to-Any Translation",
+    author = "Ma, Zhengrui  and
+      Fang, Qingkai  and
+      Zhang, Shaolei  and
+      Guo, Shoutao  and
+      Feng, Yang  and
+      Zhang, Min",
+    booktitle = "Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-long.85",
+    doi = "10.18653/v1/2024.acl-long.85",
+    pages = "1557--1575",
+}
+
+@inproceedings{wang-etal-2019-online,
+    title = "Online Sentence Segmentation for Simultaneous Interpretation using Multi-Shifted Recurrent Neural Network",
+    author = "Wang, Xiaolin  and
+      Utiyama, Masao  and
+      Sumita, Eiichiro",
+    booktitle = "Proceedings of Machine Translation Summit XVII: Research Track",
+    month = aug,
+    year = "2019",
+    address = "Dublin, Ireland",
+    publisher = "European Association for Machine Translation",
+    url = "https://aclanthology.org/W19-6601",
+    pages = "1--11",
+}
+
+@inproceedings{fujita13_interspeech,
+  author={Tomoki Fujita and Graham Neubig and Sakriani Sakti and Tomoki Toda and Satoshi Nakamura},
+  title={{Simple, lexicalized choice of translation timing for simultaneous speech translation}},
+  year=2013,
+  booktitle={Proc. Interspeech 2013},
+  pages={3487--3491},
+  doi={10.21437/Interspeech.2013-615},
+  issn={2958-1796}
+}
+
+@inproceedings{sumita-iida-1995-heterogeneous,
+    title = "Heterogeneous Computing for Example-Based Translation of Spoken Language",
+    author = "Sumita, Eiichiro  and
+      Iida, Hitoshi",
+    booktitle = "Proceedings of the Sixth Conference on Theoretical and Methodological Issues in Machine Translation of Natural Languages",
+    month = jul # " 5-7",
+    year = "1995",
+    address = "Katholieke Universiteit, Leuven",
+    url = "https://aclanthology.org/1995.tmi-1.20",
+}
+
+@INPROCEEDINGS{4777883,
+  author={Wolfel, Matthias and Kolss, Muntsin and Kraft, Florian and Niehues, Jan and Paulik, Matthias and Waibel, Alex},
+  booktitle={2008 IEEE Spoken Language Technology Workshop}, 
+  title={Simultaneous machine translation of german lectures into english: Investigating research challenges for the future}, 
+  year={2008},
+  volume={},
+  number={},
+  pages={233-236},
+  keywords={Natural languages;Automatic speech recognition;Microphones;Humans;Robustness;Space technology;Acoustic distortion;Prototypes;Vocabulary;Performance analysis;automatic speech recognition;machine translation;speech-to-speech translation},
+  doi={10.1109/SLT.2008.4777883}}
+
+@inproceedings{finch-etal-2014-exploration,
+    title = "An exploration of segmentation strategies in stream decoding",
+    author = "Finch, Andrew  and
+      Wang, Xiaolin  and
+      Sumita, Eiichiro",
+    booktitle = "Proceedings of the 11th International Workshop on Spoken Language Translation: Papers",
+    month = dec # " 4-5",
+    year = "2014",
+    address = "Lake Tahoe, California",
+    url = "https://aclanthology.org/2014.iwslt-papers.8",
+    pages = "206--213",
+}
+
+@inproceedings{yao-haddow-2020-dynamic,
+    title = "Dynamic Masking for Improved Stability in Online Spoken Language Translation",
+    author = "Yao, Yuekun  and
+      Haddow, Barry",
+    booktitle = "Proceedings of the 14th Conference of the Association for Machine Translation in the Americas (Volume 1: Research Track)",
+    month = oct,
+    year = "2020",
+    address = "Virtual",
+    publisher = "Association for Machine Translation in the Americas",
+    url = "https://aclanthology.org/2020.amta-research.12",
+    pages = "123--136",
+}
+
+@inproceedings{oi-etal-1994-real,
+    title = "Real-Time Spoken Language Translation Using Associative Processors",
+    author = "Oi, Kozo  and
+      Sumita, Eiichiro  and
+      Furuse, Osamu  and
+      Iida, Hitoshi  and
+      Higuchi, Tetsuya",
+    booktitle = "Fourth Conference on Applied Natural Language Processing",
+    month = oct,
+    year = "1994",
+    address = "Stuttgart, Germany",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/A94-1017",
+    doi = "10.3115/974358.974381",
+    pages = "101--106",
+}
+
+@inproceedings{shavarani-etal-2015-learning,
+    title = "Learning segmentations that balance latency versus quality in spoken language translation",
+    author = "Shavarani, Hassan  and
+      Siahbani, Maryam  and
+      Seraj, Ramtin Mehdizadeh  and
+      Sarkar, Anoop",
+    editor = {Federico, Marcello  and
+      St{\"u}ker, Sebastian  and
+      Niehues, Jan},
+    booktitle = "Proceedings of the 12th International Workshop on Spoken Language Translation: Papers",
+    month = dec # " 3-4",
+    year = "2015",
+    address = "Da Nang, Vietnam",
+    url = "https://aclanthology.org/2015.iwslt-papers.14",
+    pages = "217--224",
+}
+
+@article{huber2022code,
+  title={Code-Switching without Switching: Language Agnostic End-to-End Speech Translation},
+  author={Huber, Christian and Ugan, Enes Yavuz and Waibel, Alexander},
+  journal={arXiv preprint arXiv:2210.01512},
+  year={2022}
+}
+
+@inproceedings{weller-etal-2022-end,
+    title = "End-to-End Speech Translation for Code Switched Speech",
+    author = "Weller, Orion  and
+      Sperber, Matthias  and
+      Pires, Telmo  and
+      Setiawan, Hendra  and
+      Gollan, Christian  and
+      Telaar, Dominic  and
+      Paulik, Matthias",
+    booktitle = "Findings of the Association for Computational Linguistics: ACL 2022",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.findings-acl.113",
+    doi = "10.18653/v1/2022.findings-acl.113",
+    pages = "1435--1448",
+}
+
+@INPROCEEDINGS{9746873,
+  author={Wang, Jinhan and Tong, Xiaosu and Guo, Jinxi and He, Di and Maas, Roland},
+  booktitle={ICASSP 2022 - 2022 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={VADOI: Voice-Activity-Detection Overlapping Inference for End-To-End Long-Form Speech Recognition}, 
+  year={2022},
+  volume={},
+  number={},
+  pages={6977-6981},
+  keywords={Costs;Error analysis;Conferences;Computational modeling;Signal processing algorithms;Signal processing;Inference algorithms;Long-form Speech Recognition;Over-lapping Inference;VAD},
+  doi={10.1109/ICASSP43922.2022.9746873}}
+
+@inproceedings{machavcek2020presenting,
+  author    = {Dominik Macháček and Ondřej Bojar},
+  year      = 2020,
+  title     = {Presenting Simultaneous Translation in Limited Space},
+  booktitle = { Proceedings of the 20th Conference Information Technologies - Applications and Theory (ITAT 2020)},
+  pages     = {32--37},
+  publisher = {Tomáš Horváth},
+  address   = {Košice, Slovakia},
+}
+
+
+@inproceedings{papi2021visualization,
+  title={Visualization: The missing factor in simultaneous speech translation},
+  author={Papi, Sara and Negri, Matteo and Turchi, Marco},
+  booktitle={CEUR WORKSHOP PROCEEDINGS},
+  volume={3033},
+  year={2021}
+}
+
+@article{doi:10.1080/0907676X.2012.722651,
+author = {Dhevi J. Rajendran and Andrew T. Duchowski and Pilar Orero and Juan Martínez and Pablo Romero-Fresco},
+title = {Effects of text chunking on subtitling: A quantitative and qualitative examination},
+journal = {Perspectives},
+volume = {21},
+number = {1},
+pages = {5--21},
+year = {2013},
+publisher = {Routledge},
+doi = {10.1080/0907676X.2012.722651},
+URL = {https://doi.org/10.1080/0907676X.2012.722651},
+eprint = {https://doi.org/10.1080/0907676X.2012.722651}}
+
+
+@incollection{eyefixation,
+  title={Standing on quicksand: Hearing viewers' comprehension and reading patterns of respoken subtitles for the news},
+  author={Romero-Fresco, Pablo},
+  booktitle={New insights into audiovisual translation and media accessibility},
+  pages={175--194},
+  year={2010},
+  publisher={Brill}
+}
+
+@book{respeaking,
+author = {Romero-Fresco, Pablo},
+year = {2011},
+month = {01},
+pages = {},
+publisher={Routledge},
+title = {Subtitling through Speech Recognition: Respeaking},
+isbn = {978-1-905763-28-3},
+doi = {10.4324/9781003073147}
+}
+
+@article{doi:10.1080/15213269.2010.502873,
+author = {Elisa Perego and Fabio Del Missier and Marco Porta and Mauro Mosconi},
+title = {The Cognitive Effectiveness of Subtitle Processing},
+journal = {Media Psychology},
+volume = {13},
+number = {3},
+pages = {243--272},
+year = {2010},
+publisher = {Routledge},
+doi = {10.1080/15213269.2010.502873},
+URL = {https://doi.org/10.1080/15213269.2010.502873},
+eprint = {https://doi.org/10.1080/15213269.2010.502873}
+}
+
+@article{javorsky2022comprehension,
+  title={Comprehension of Subtitles from Re-Translating Simultaneous Speech Translation},
+  author={Javorsk{\'y}, D{\'a}vid and Mach{\'a}{\v{c}}ek, Dominik and Bojar, Ond{\v{r}}ej},
+  journal={arXiv preprint arXiv:2203.02458},
+  year={2022}
+}
+
+@inproceedings{javorsky-etal-2022-continuous,
+    title = "Continuous Rating as Reliable Human Evaluation of Simultaneous Speech Translation",
+    author = "Javorsk{\'y}, D{\'a}vid  and
+      Mach{\'a}{\v{c}}ek, Dominik  and
+      Bojar, Ond{\v{r}}ej",
+    booktitle = "Proceedings of the Seventh Conference on Machine Translation (WMT)",
+    month = dec,
+    year = "2022",
+    address = "Abu Dhabi, United Arab Emirates (Hybrid)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.wmt-1.9",
+    pages = "154--164",
+}
+
+@inproceedings{machacek-etal-2023-mt,
+    title = "{MT} Metrics Correlate with Human Ratings of Simultaneous Speech Translation",
+    author = "Mach{\'a}{\v{c}}ek, Dominik  and
+      Bojar, Ond{\v{r}}ej  and
+      Dabre, Raj",
+    booktitle = "Proceedings of the 20th International Conference on Spoken Language Translation (IWSLT 2023)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.iwslt-1.12",
+    doi = "10.18653/v1/2023.iwslt-1.12",
+    pages = "169--179",
+}
+
+@inproceedings{fantinuoli-prandi-2021-towards,
+    title = "Towards the evaluation of automatic simultaneous speech translation from a communicative perspective",
+    author = "Fantinuoli, Claudio  and
+      Prandi, Bianca",
+    booktitle = "Proceedings of the 18th International Conference on Spoken Language Translation (IWSLT 2021)",
+    month = aug,
+    year = "2021",
+    address = "Bangkok, Thailand (online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.iwslt-1.29",
+    doi = "10.18653/v1/2021.iwslt-1.29",
+    pages = "245--254",
+}
+
+
+@inproceedings{wang2024exploring,
+    title = "Exploring the Correlation between Human and Machine Evaluation of Simultaneous Speech Translation",
+    author = "Fantinuoli, Claudio  and
+      Wang, Xiaoman",
+    editor = "Scarton, Carolina  and
+      Prescott, Charlotte  and
+      Bayliss, Chris  and
+      Oakley, Chris  and
+      Wright, Joanna  and
+      Wrigley, Stuart  and
+      Song, Xingyi  and
+      Gow-Smith, Edward  and
+      Bawden, Rachel  and
+      S{\'a}nchez-Cartagena, V{\'\i}ctor M  and
+      Cadwell, Patrick  and
+      Lapshinova-Koltunski, Ekaterina  and
+      Cabarr{\~a}o, Vera  and
+      Chatzitheodorou, Konstantinos  and
+      Nurminen, Mary  and
+      Kanojia, Diptesh  and
+      Moniz, Helena",
+    booktitle = "Proceedings of the 25th Annual Conference of the European Association for Machine Translation (Volume 1)",
+    month = jun,
+    year = "2024",
+    address = "Sheffield, UK",
+    publisher = "European Association for Machine Translation (EAMT)",
+    url = "https://aclanthology.org/2024.eamt-1.28",
+    pages = "327--336",
+}
+
+@article{Irvin2021StudentIR,
+  title={Student Insights Related to the Use of Simultaneous Speech Translation for Video Lectures in a University English Course},
+  author={Christopher Irvin},
+  journal={STEM Journal},
+  year={2021},
+}
+
+@inproceedings{bizzoni-etal-2020-human,
+    title = "How Human is Machine Translationese? Comparing Human and Machine Translations of Text and Speech",
+    author = "Bizzoni, Yuri  and
+      Juzek, Tom S  and
+      Espa{\~n}a-Bonet, Cristina  and
+      Dutta Chowdhury, Koel  and
+      van Genabith, Josef  and
+      Teich, Elke",
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.iwslt-1.34",
+    doi = "10.18653/v1/2020.iwslt-1.34",
+    pages = "280--290",
+}
+
+@inproceedings{sakamoto-etal-2013-evaluation,
+    title = "Evaluation of a simultaneous interpretation system and analysis of speech log for user experience assessment",
+    author = "Sakamoto, Akiko  and
+      Abe, Kazuhiko  and
+      Sumita, Kazuo  and
+      Kamatani, Satoshi",
+    booktitle = "Proceedings of the 10th International Workshop on Spoken Language Translation: Papers",
+    month = dec # " 5-6",
+    year = "2013",
+    address = "Heidelberg, Germany",
+    url = "https://aclanthology.org/2013.iwslt-papers.18",
+}
+
+@inproceedings{ma-etal-2020-simuleval,
+    title = "{SIMULEVAL}: An Evaluation Toolkit for Simultaneous Translation",
+    author = "Ma, Xutai  and
+      Dousti, Mohammad Javad  and
+      Wang, Changhan  and
+      Gu, Jiatao  and
+      Pino, Juan",
+    booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+    month = oct,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.emnlp-demos.19",
+    doi = "10.18653/v1/2020.emnlp-demos.19",
+    pages = "144--150",
+}
+
+@inproceedings{papi-etal-2022-generation,
+    title = "Over-Generation Cannot Be Rewarded: Length-Adaptive Average Lagging for Simultaneous Speech Translation",
+    author = "Papi, Sara  and
+      Gaido, Marco  and
+      Negri, Matteo  and
+      Turchi, Marco",
+    booktitle = "Proceedings of the Third Workshop on Automatic Simultaneous Translation",
+    month = jul,
+    year = "2022",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.autosimtrans-1.2",
+    doi = "10.18653/v1/2022.autosimtrans-1.2",
+    pages = "12--17",
+}
+
+@article{cherry2019thinking,
+  title={Thinking slow about latency evaluation for simultaneous machine translation},
+  author={Cherry, Colin and Foster, George},
+  journal={arXiv preprint arXiv:1906.00048},
+  year={2019}
+}
+
+@inproceedings{ma-etal-2019-stacl,
+    title = "{STACL}: Simultaneous Translation with Implicit Anticipation and Controllable Latency using Prefix-to-Prefix Framework",
+    author = "Ma, Mingbo  and
+      Huang, Liang  and
+      Xiong, Hao  and
+      Zheng, Renjie  and
+      Liu, Kaibo  and
+      Zheng, Baigong  and
+      Zhang, Chuanqiang  and
+      He, Zhongjun  and
+      Liu, Hairong  and
+      Li, Xing  and
+      Wu, Hua  and
+      Wang, Haifeng",
+    booktitle = "Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2019",
+    address = "Florence, Italy",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P19-1289",
+    doi = "10.18653/v1/P19-1289",
+    pages = "3025--3036",
+}
+
+@inproceedings{kano23_interspeech,
+  author={Yasumasa Kano and Katsuhito Sudoh and Satoshi Nakamura},
+  title={{Average Token Delay: A Latency Metric for Simultaneous Translation}},
+  year=2023,
+  booktitle={Proc. INTERSPEECH 2023},
+  pages={4469--4473},
+  doi={10.21437/Interspeech.2023-933},
+  issn={2958-1796}
+}
+
+@inproceedings{matusov-etal-2005-evaluating,
+    title = "Evaluating Machine Translation Output with Automatic Sentence Segmentation",
+    author = "Matusov, Evgeny  and
+      Leusch, Gregor  and
+      Bender, Oliver  and
+      Ney, Hermann",
+    booktitle = "Proceedings of the Second International Workshop on Spoken Language Translation",
+    month = oct # " 24-25",
+    year = "2005",
+    address = "Pittsburgh, Pennsylvania, USA",
+    url = "https://aclanthology.org/2005.iwslt-1.19",
+}
+
+@inproceedings{agrawal-etal-2023-findings,
+    title = "{FINDINGS} {OF} {THE} {IWSLT} 2023 {EVALUATION} {CAMPAIGN}",
+    author = {Agarwal, Milind  and
+      Agrawal, Sweta  and
+      Anastasopoulos, Antonios  and
+      Bentivogli, Luisa  and
+      Bojar, Ond{\v{r}}ej  and
+      Borg, Claudia  and
+      Carpuat, Marine  and
+      Cattoni, Roldano  and
+      Cettolo, Mauro  and
+      Chen, Mingda  and
+      Chen, William  and
+      Choukri, Khalid  and
+      Chronopoulou, Alexandra  and
+      Currey, Anna  and
+      Declerck, Thierry  and
+      Dong, Qianqian  and
+      Duh, Kevin  and
+      Est{\`e}ve, Yannick  and
+      Federico, Marcello  and
+      Gahbiche, Souhir  and
+      Haddow, Barry  and
+      Hsu, Benjamin  and
+      Mon Htut, Phu  and
+      Inaguma, Hirofumi  and
+      Javorsk{\'y}, D{\'a}vid  and
+      Judge, John  and
+      Kano, Yasumasa  and
+      Ko, Tom  and
+      Kumar, Rishu  and
+      Li, Pengwei  and
+      Ma, Xutai  and
+      Mathur, Prashant  and
+      Matusov, Evgeny  and
+      McNamee, Paul  and
+      P. McCrae, John  and
+      Murray, Kenton  and
+      Nadejde, Maria  and
+      Nakamura, Satoshi  and
+      Negri, Matteo  and
+      Nguyen, Ha  and
+      Niehues, Jan  and
+      Niu, Xing  and
+      Kr. Ojha, Atul  and
+      E. Ortega, John  and
+      Pal, Proyag  and
+      Pino, Juan  and
+      van der Plas, Lonneke  and
+      Pol{\'a}k, Peter  and
+      Rippeth, Elijah  and
+      Salesky, Elizabeth  and
+      Shi, Jiatong  and
+      Sperber, Matthias  and
+      St{\"u}ker, Sebastian  and
+      Sudoh, Katsuhito  and
+      Tang, Yun  and
+      Thompson, Brian  and
+      Tran, Kevin  and
+      Turchi, Marco  and
+      Waibel, Alex  and
+      Wang, Mingxuan  and
+      Watanabe, Shinji  and
+      Zevallos, Rodolfo},
+    booktitle = "Proceedings of the 20th International Conference on Spoken Language Translation (IWSLT 2023)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.iwslt-1.1",
+    doi = "10.18653/v1/2023.iwslt-1.1",
+    pages = "1--61",
+}
+
+@inproceedings{anastasopoulos-etal-2022-findings,
+    title = "Findings of the {IWSLT} 2022 Evaluation Campaign",
+    author = {Anastasopoulos, Antonios  and
+      Barrault, Lo{\"\i}c  and
+      Bentivogli, Luisa  and
+      Zanon Boito, Marcely  and
+      Bojar, Ond{\v{r}}ej  and
+      Cattoni, Roldano  and
+      Currey, Anna  and
+      Dinu, Georgiana  and
+      Duh, Kevin  and
+      Elbayad, Maha  and
+      Emmanuel, Clara  and
+      Est{\`e}ve, Yannick  and
+      Federico, Marcello  and
+      Federmann, Christian  and
+      Gahbiche, Souhir  and
+      Gong, Hongyu  and
+      Grundkiewicz, Roman  and
+      Haddow, Barry  and
+      Hsu, Benjamin  and
+      Javorsk{\'y}, D{\'a}vid  and
+      Kloudov{\'a}, V{\u{e}}ra  and
+      Lakew, Surafel  and
+      Ma, Xutai  and
+      Mathur, Prashant  and
+      McNamee, Paul  and
+      Murray, Kenton  and
+      N{\v{a}}dejde, Maria  and
+      Nakamura, Satoshi  and
+      Negri, Matteo  and
+      Niehues, Jan  and
+      Niu, Xing  and
+      Ortega, John  and
+      Pino, Juan  and
+      Salesky, Elizabeth  and
+      Shi, Jiatong  and
+      Sperber, Matthias  and
+      St{\"u}ker, Sebastian  and
+      Sudoh, Katsuhito  and
+      Turchi, Marco  and
+      Virkar, Yogesh  and
+      Waibel, Alexander  and
+      Wang, Changhan  and
+      Watanabe, Shinji},
+    booktitle = "Proceedings of the 19th International Conference on Spoken Language Translation (IWSLT 2022)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.iwslt-1.10",
+    doi = "10.18653/v1/2022.iwslt-1.10",
+    pages = "98--157",
+}
+
+@inproceedings{anastasopoulos-etal-2021-findings,
+    title = "{FINDINGS} {OF} {THE} {IWSLT} 2021 {EVALUATION} {CAMPAIGN}",
+    author = {Anastasopoulos, Antonios  and
+      Bojar, Ond{\v{r}}ej  and
+      Bremerman, Jacob  and
+      Cattoni, Roldano  and
+      Elbayad, Maha  and
+      Federico, Marcello  and
+      Ma, Xutai  and
+      Nakamura, Satoshi  and
+      Negri, Matteo  and
+      Niehues, Jan  and
+      Pino, Juan  and
+      Salesky, Elizabeth  and
+      St{\"u}ker, Sebastian  and
+      Sudoh, Katsuhito  and
+      Turchi, Marco  and
+      Waibel, Alexander  and
+      Wang, Changhan  and
+      Wiesner, Matthew},
+    booktitle = "Proceedings of the 18th International Conference on Spoken Language Translation (IWSLT 2021)",
+    month = aug,
+    year = "2021",
+    address = "Bangkok, Thailand (online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.iwslt-1.1",
+    doi = "10.18653/v1/2021.iwslt-1.1",
+    pages = "1--29",
+}
+
+@inproceedings{ansari-etal-2020-findings,
+    title = "{FINDINGS} {OF} {THE} {IWSLT} 2020 {EVALUATION} {CAMPAIGN}",
+    author = {Ansari, Ebrahim  and
+      Axelrod, Amittai  and
+      Bach, Nguyen  and
+      Bojar, Ond{\v{r}}ej  and
+      Cattoni, Roldano  and
+      Dalvi, Fahim  and
+      Durrani, Nadir  and
+      Federico, Marcello  and
+      Federmann, Christian  and
+      Gu, Jiatao  and
+      Huang, Fei  and
+      Knight, Kevin  and
+      Ma, Xutai  and
+      Nagesh, Ajay  and
+      Negri, Matteo  and
+      Niehues, Jan  and
+      Pino, Juan  and
+      Salesky, Elizabeth  and
+      Shi, Xing  and
+      St{\"u}ker, Sebastian  and
+      Turchi, Marco  and
+      Waibel, Alexander  and
+      Wang, Changhan},
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.iwslt-1.1",
+    doi = "10.18653/v1/2020.iwslt-1.1",
+    pages = "1--34",
+}
+
+@inproceedings{papineni-etal-2002-bleu,
+    title = "{B}leu: a Method for Automatic Evaluation of Machine Translation",
+    author = "Papineni, Kishore  and
+      Roukos, Salim  and
+      Ward, Todd  and
+      Zhu, Wei-Jing",
+    booktitle = "Proceedings of the 40th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2002",
+    address = "Philadelphia, Pennsylvania, USA",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P02-1040",
+    doi = "10.3115/1073083.1073135",
+    pages = "311--318",
+}
+
+@inproceedings{sltev:eacl:2021,
+    title = "{SLTEV}: Comprehensive Evaluation of Spoken Language Translation",
+    author = "Ansari, Ebrahim  and
+      Bojar, Ond{\v{r}}ej  and
+      Haddow, Barry  and
+      Mahmoudi, Mohammad",
+    booktitle = "Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics: System Demonstrations",
+    month = apr,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.eacl-demos.9",
+    doi = "10.18653/v1/2021.eacl-demos.9",
+    pages = "71--79",
+}
+
+@inproceedings{rei-etal-2020-comet,
+    address = {Online},
+    author = {Rei, Ricardo  and
+Stewart, Craig  and
+Farinha, Ana C  and
+Lavie, Alon},
+    booktitle = {Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
+    doi = {10.18653/v1/2020.emnlp-main.213},
+    month = {November},
+    pages = {2685--2702},
+    publisher = {Association for Computational Linguistics},
+    title = {{COMET}: A Neural Framework for {MT} Evaluation},
+    url = {https://aclanthology.org/2020.emnlp-main.213},
+    year = {2020}
+}
+
+@inproceedings{rei-etal-2022-comet,
+    address = {Abu Dhabi, United Arab Emirates (Hybrid)},
+    author = {Rei, Ricardo  and
+C. de Souza, Jos{\'e} G.  and
+Alves, Duarte  and
+Zerva, Chrysoula  and
+Farinha, Ana C  and
+Glushkova, Taisiya  and
+Lavie, Alon  and
+Coheur, Luisa  and
+Martins, Andr{\'e} F. T.},
+    booktitle = {Proceedings of the Seventh Conference on Machine Translation (WMT)},
+    month = {December},
+    pages = {578--585},
+    publisher = {Association for Computational Linguistics},
+    title = {{COMET}-22: Unbabel-{IST} 2022 Submission for the Metrics Shared Task},
+    url = {https://aclanthology.org/2022.wmt-1.52},
+    year = {2022}
+}
+
+
+@inproceedings{dai-etal-2019-transformer,
+    title = "Transformer-{XL}: Attentive Language Models beyond a Fixed-Length Context",
+    author = "Dai, Zihang  and
+      Yang, Zhilin  and
+      Yang, Yiming  and
+      Carbonell, Jaime  and
+      Le, Quoc  and
+      Salakhutdinov, Ruslan",
+    editor = "Korhonen, Anna  and
+      Traum, David  and
+      M{\`a}rquez, Llu{\'\i}s",
+    booktitle = "Proceedings of the 57th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2019",
+    address = "Florence, Italy",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P19-1285",
+    doi = "10.18653/v1/P19-1285",
+    pages = "2978--2988",
+    abstract = "Transformers have a potential of learning longer-term dependency, but are limited by a fixed-length context in the setting of language modeling. We propose a novel neural architecture Transformer-XL that enables learning dependency beyond a fixed length without disrupting temporal coherence. It consists of a segment-level recurrence mechanism and a novel positional encoding scheme. Our method not only enables capturing longer-term dependency, but also resolves the context fragmentation problem. As a result, Transformer-XL learns dependency that is 80{\%} longer than RNNs and 450{\%} longer than vanilla Transformers, achieves better performance on both short and long sequences, and is up to 1,800+ times faster than vanilla Transformers during evaluation. Notably, we improve the state-of-the-art results of bpc/perplexity to 0.99 on enwiki8, 1.08 on text8, 18.3 on WikiText-103, 21.8 on One Billion Word, and 54.5 on Penn Treebank (without finetuning). When trained only on WikiText-103, Transformer-XL manages to generate reasonably coherent, novel text articles with thousands of tokens. Our code, pretrained models, and hyperparameters are available in both Tensorflow and PyTorch.",
+}
+
+@article{PARK2022101317,
+title = {A review of speaker diarization: Recent advances with deep learning},
+journal = {Computer Speech \& Language},
+volume = {72},
+pages = {101317},
+year = {2022},
+issn = {0885-2308},
+doi = {https://doi.org/10.1016/j.csl.2021.101317},
+url = {https://www.sciencedirect.com/science/article/pii/S0885230821001121},
+author = {Tae Jin Park and Naoyuki Kanda and Dimitrios Dimitriadis and Kyu J. Han and Shinji Watanabe and Shrikanth Narayanan},
+keywords = {Speaker diarization, Automatic speech recognition, Deep learning},
+abstract = {Speaker diarization is a task to label audio or video recordings with classes that correspond to speaker identity, or in short, a task to identify “who spoke when”. In the early years, speaker diarization algorithms were developed for speech recognition on multispeaker audio recordings to enable speaker adaptive processing. These algorithms also gained their own value as a standalone application over time to provide speaker-specific metainformation for downstream tasks such as audio retrieval. More recently, with the emergence of deep learning technology, which has driven revolutionary changes in research and practices across speech application domains, rapid advancements have been made for speaker diarization. In this paper, we review not only the historical development of speaker diarization technology but also the recent advancements in neural speaker diarization approaches. Furthermore, we discuss how speaker diarization systems have been integrated with speech recognition applications and how the recent surge of deep learning is leading the way of jointly modeling these two components to be complementary to each other. By considering such exciting technical trends, we believe that this paper is a valuable contribution to the community to provide a survey work by consolidating the recent developments with neural methods and thus facilitating further progress toward a more efficient speaker diarization.}
+}
+
+@INPROCEEDINGS{9053896,
+  author={Zhang, Qian and Lu, Han and Sak, Hasim and Tripathi, Anshuman and McDermott, Erik and Koo, Stephen and Kumar, Shankar},
+  booktitle={ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={Transformer Transducer: A Streamable Speech Recognition Model with Transformer Encoders and RNN-T Loss}, 
+  year={2020},
+  volume={},
+  number={},
+  pages={7829-7833},
+  keywords={Transducers;Recurrent neural networks;Limiting;Computational modeling;Speech recognition;Encoding;Decoding;Transformer;RNN-T;sequence-to-sequence;encoder-decoder;end-to-end;speech recognition},
+  doi={10.1109/ICASSP40776.2020.9053896}}
+
+@INPROCEEDINGS{9054476,
+  author={Moritz, Niko and Hori, Takaaki and Le, Jonathan},
+  booktitle={ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={Streaming Automatic Speech Recognition with the Transformer Model}, 
+  year={2020},
+  volume={},
+  number={},
+  pages={6074-6078},
+  keywords={Recurrent neural networks;Systems architecture;Signal processing algorithms;Decoding;Task analysis;Speech processing;Automatic speech recognition;automatic speech recognition;streaming;end-to-end;transformer;triggered attention},
+  doi={10.1109/ICASSP40776.2020.9054476}}
+
+@inproceedings{hwang2024textless,
+    title = "Textless Acoustic Model with Self-Supervised Distillation for Noise-Robust Expressive Speech-to-Speech Translation",
+    author = "Hwang, Min-Jae  and
+      Kulikov, Ilia  and
+      Peloquin, Benjamin  and
+      Gong, Hongyu  and
+      Chen, Peng-Jen  and
+      Lee, Ann",
+    booktitle = "Findings of the Association for Computational Linguistics ACL 2024",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand and virtual meeting",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.findings-acl.917",
+    doi = "10.18653/v1/2024.findings-acl.917",
+    pages = "15524--15541",
+}
+
+@INPROCEEDINGS{9747755,
+  author={Chen, Chen and Hou, Nana and Hu, Yuchen and Shirol, Shashank and Chng, Eng Siong},
+  booktitle={ICASSP 2022 - 2022 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={Noise-Robust Speech Recognition With 10 Minutes Unparalleled In-Domain Data}, 
+  year={2022},
+  volume={},
+  number={},
+  pages={4298-4302},
+  keywords={Error analysis;Face recognition;Training data;Speech recognition;Signal processing;Generative adversarial networks;Robustness;Generative adversarial network;contrastive learning;automatic speech recognition},
+  doi={10.1109/ICASSP43922.2022.9747755}}
+
+@inproceedings{liu2024recent,
+  title     = {Recent Advances in End-to-End Simultaneous Speech Translation},
+  author    = {Liu, Xiaoqian and Hu, Guoqiang and Du, Yangfan and He, Erfeng and Luo, YingFeng and Xu, Chen and Xiao, Tong and Zhu, Jingbo},
+  booktitle = {Proceedings of the Thirty-Third International Joint Conference on
+               Artificial Intelligence, {IJCAI-24}},
+  publisher = {International Joint Conferences on Artificial Intelligence Organization},
+  editor    = {Kate Larson},
+  pages     = {8142--8150},
+  year      = {2024},
+  month     = {8},
+  note      = {Survey Track},
+  doi       = {10.24963/ijcai.2024/900},
+  url       = {https://doi.org/10.24963/ijcai.2024/900},
+}
+
+
+@article{10.1145/3530811,
+author = {Tay, Yi and Dehghani, Mostafa and Bahri, Dara and Metzler, Donald},
+title = {Efficient Transformers: A Survey},
+year = {2022},
+issue_date = {June 2023},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {55},
+number = {6},
+issn = {0360-0300},
+url = {https://doi.org/10.1145/3530811},
+doi = {10.1145/3530811},
+journal = {ACM Comput. Surv.},
+month = {dec},
+articleno = {109},
+numpages = {28},
+keywords = {Transformers, attention, deep learning, neural networks}
+}
+
+@article{doi:10.1177/0301006616657097,
+author = {Karl R. Gegenfurtner},
+title ={The Interaction Between Vision and Eye Movements},
+journal = {Perception},
+volume = {45},
+number = {12},
+pages = {1333-1357},
+year = {2016},
+doi = {10.1177/0301006616657097},
+    note ={PMID: 27383394},
+URL = {https://doi.org/10.1177/0301006616657097},
+eprint = {https://doi.org/10.1177/0301006616657097}
+}
+
+@inproceedings{zheng-etal-2020-opportunistic,
+    title = "Opportunistic Decoding with Timely Correction for Simultaneous Translation",
+    author = "Zheng, Renjie  and
+      Ma, Mingbo  and
+      Zheng, Baigong  and
+      Liu, Kaibo  and
+      Huang, Liang",
+    editor = "Jurafsky, Dan  and
+      Chai, Joyce  and
+      Schluter, Natalie  and
+      Tetreault, Joel",
+    booktitle = "Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.acl-main.42",
+    doi = "10.18653/v1/2020.acl-main.42",
+    pages = "437--442",
+}
+
+@inproceedings{huber-etal-2023-end,
+    title = "End-to-End Evaluation for Low-Latency Simultaneous Speech Translation",
+    author = "Huber, Christian  and
+      Dinh, Tu Anh  and
+      Mullov, Carlos  and
+      Pham, Ngoc-Quan  and
+      Nguyen, Thai Binh  and
+      Retkowski, Fabian  and
+      Constantin, Stefan  and
+      Ugan, Enes  and
+      Liu, Danni  and
+      Li, Zhaolin  and
+      Koneru, Sai  and
+      Niehues, Jan  and
+      Waibel, Alexander",
+    editor = "Feng, Yansong  and
+      Lefever, Els",
+    booktitle = "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+    month = dec,
+    year = "2023",
+    address = "Singapore",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.emnlp-demo.2",
+    doi = "10.18653/v1/2023.emnlp-demo.2",
+    pages = "12--20",
+}
+
+@inproceedings{gaido20_interspeech,
+  author={Marco Gaido and Mattia A. Di Gangi and Matteo Negri and Mauro Cettolo and Marco Turchi},
+  title={{Contextualized Translation of Automatically Segmented Speech}},
+  year=2020,
+  booktitle={Proc. Interspeech 2020},
+  pages={1471--1475},
+  doi={10.21437/Interspeech.2020-2860},
+  issn={2958-1796}
+}
+
+@inproceedings{zhang-etal-2021-beyond,
+    title = "Beyond Sentence-Level End-to-End Speech Translation: Context Helps",
+    author = "Zhang, Biao  and
+      Titov, Ivan  and
+      Haddow, Barry  and
+      Sennrich, Rico",
+    editor = "Zong, Chengqing  and
+      Xia, Fei  and
+      Li, Wenjie  and
+      Navigli, Roberto",
+    booktitle = "Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers)",
+    month = aug,
+    year = "2021",
+    address = "Online",
+    url = "https://aclanthology.org/2021.acl-long.200",
+    doi = "10.18653/v1/2021.acl-long.200",
+    pages = "2566--2578",
+}
+
+@inproceedings{wu20i_interspeech,
+  author={Chunyang Wu and Yongqiang Wang and Yangyang Shi and Ching-Feng Yeh and Frank Zhang},
+  title={{Streaming Transformer-Based Acoustic Models Using Self-Attention with Augmented Memory}},
+  year=2020,
+  booktitle={Proc. Interspeech 2020},
+  pages={2132--2136},
+  doi={10.21437/Interspeech.2020-2079},
+  issn={2958-1796}
+}
+
+@inproceedings{NEURIPS2020_1457c0d6,
+ author = {Brown, Tom and Mann, Benjamin and Ryder, Nick and Subbiah, Melanie and Kaplan, Jared D and Dhariwal, Prafulla and Neelakantan, Arvind and Shyam, Pranav and Sastry, Girish and Askell, Amanda and Agarwal, Sandhini and Herbert-Voss, Ariel and Krueger, Gretchen and Henighan, Tom and Child, Rewon and Ramesh, Aditya and Ziegler, Daniel and Wu, Jeffrey and Winter, Clemens and Hesse, Chris and Chen, Mark and Sigler, Eric and Litwin, Mateusz and Gray, Scott and Chess, Benjamin and Clark, Jack and Berner, Christopher and McCandlish, Sam and Radford, Alec and Sutskever, Ilya and Amodei, Dario},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {H. Larochelle and M. Ranzato and R. Hadsell and M.F. Balcan and H. Lin},
+ pages = {1877--1901},
+ publisher = {Curran Associates, Inc.},
+ title = {Language Models are Few-Shot Learners},
+ url = {https://proceedings.neurips.cc/paper_files/paper/2020/file/1457c0d6bfcb4967418bfb8ac142f64a-Paper.pdf},
+ volume = {33},
+ year = {2020}
+}
+
+@ARTICLE{sohn1999statistical,
+  author={Jongseo Sohn and Nam Soo Kim and Wonyong Sung},
+  journal={IEEE Signal Processing Letters}, 
+  title={A statistical model-based voice activity detection}, 
+  year={1999},
+  volume={6},
+  number={1},
+  pages={1-3},
+  doi={10.1109/97.736233}}
+
+
+@inproceedings{sinclair14_interspeech,
+  author={Mark Sinclair and Peter Bell and Alexandra Birch and Fergus McInnes},
+  title={{A semi-Markov model for speech segmentation with an utterance-break prior}},
+  year=2014,
+  booktitle={Proc. Interspeech 2014},
+  pages={2351--2355},
+  doi={10.21437/Interspeech.2014-511},
+  issn={2958-1796}
+}
+
+@inproceedings{woszczyna1998modular,
+  title={A modular approach to spoken language translation for large domains},
+  author={Woszczyna, Monika and Broadhead, Matthew and Gates, Donna and Gavalda, Marsal and Lavie, Alon and Levin, Lori and Waibel, Alex},
+  booktitle={Machine Translation and the Information Soup: Third Conference of the Association for Machine Translation in the Americas AMTA’98 Langhorne, PA, USA, October 28--31, 1998 Proceedings 3},
+  pages={31--40},
+  year={1998},
+  organization={Springer}
+}
+
+@inproceedings{fugen2006open,
+  title={Open domain speech translation: from seminars and speeches to lectures},
+  author={F{\"u}gen, Christian and Kolss, Muntsin and Paulik, Matthias and Waibel, Alex},
+  booktitle={TC-STAR workshop on speech to speech translation, Barcelona, Spain},
+  pages={81--86},
+  year={2006}
+}
+
+@inproceedings{ferrer2003prosody,
+  title={A prosody-based approach to end-of-utterance detection that does not require speech recognition},
+  author={Ferrer, Luciana and Shriberg, Elizabeth and Stolcke, Andreas},
+  booktitle={2003 IEEE International Conference on Acoustics, Speech, and Signal Processing, 2003 (ICASSP'03).},
+  year={2003},
+  organization={IEEE},
+  doi={10.1109/ICASSP.2003.1198854}
+}
+
+
+@ARTICLE{1162800,
+  author={Atal, Bishnu and Rabiner, Lawrence},
+  journal={IEEE Transactions on Acoustics, Speech, and Signal Processing}, 
+  title={A pattern recognition approach to voiced-unvoiced-silence classification with applications to speech recognition}, 
+  year={1976},
+  volume={24},
+  number={3},
+  pages={201-212},
+  keywords={Pattern recognition;Speech recognition;Speech analysis;Speech coding;Linear predictive coding;Performance analysis;Joining processes;Energy measurement;Density measurement;Particle measurements},
+  doi={10.1109/TASSP.1976.1162800}}
+
+@inproceedings{novitasari2022improving,
+  title     = {Improving ASR Robustness in Noisy Condition Through VAD Integration},
+  author    = {Sashi Novitasari and Takashi Fukuda and Gakuto Kurata},
+  year      = {2022},
+  booktitle = {Interspeech 2022},
+  pages     = {3784--3788},
+  doi       = {10.21437/Interspeech.2022-260},
+  issn      = {2958-1796},
+}
+
+@INPROCEEDINGS{yoshimura2020end,
+  author={Yoshimura, Takenori and Hayashi, Tomoki and Takeda, Kazuya and Watanabe, Shinji},
+  booktitle={ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={End-to-End Automatic Speech Recognition Integrated with CTC-Based Voice Activity Detection}, 
+  year={2020},
+  volume={},
+  number={},
+  pages={6999-7003},
+  keywords={Voice activity detection;Conferences;Detectors;Signal processing;Audio recording;Acoustics;Automatic speech recognition;Speech recognition;end-to-end;voice activity detection;streaming;CTC greedy search},
+  doi={10.1109/ICASSP40776.2020.9054358}}
+
+
+@inproceedings{huang2022e2e,
+  title     = {E2E Segmenter: Joint Segmenting and Decoding for Long-Form ASR},
+  author    = {W. Ronny Huang and Shuo-Yiin Chang and David Rybach and Tara Sainath and Rohit Prabhavalkar and Cal Peyser and Zhiyun Lu and Cyril Allauzen},
+  year      = {2022},
+  booktitle = {Interspeech 2022},
+  pages     = {4995--4999},
+  doi       = {10.21437/Interspeech.2022-38},
+  issn      = {2958-1796},
+}
+
+@INPROCEEDINGS{narayanan2019recognizing,
+  author={Narayanan, Arun and Prabhavalkar, Rohit and Chiu, Chung-Cheng and Rybach, David and Sainath, Tara N. and Strohman, Trevor},
+  booktitle={2019 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)}, 
+  title={Recognizing Long-Form Speech Using Streaming End-to-End Models}, 
+  year={2019},
+  volume={},
+  number={},
+  pages={920-927},
+  keywords={Training;Acoustics;Speech recognition;Training data;Recurrent neural networks;Acoustic beams;Predictive models;speech recognition;rnnt;end-to-end;sequence-to-sequence;long-form},
+  doi={10.1109/ASRU46091.2019.9003913}}
+
+@INPROCEEDINGS{chiu2019comparison,
+  author={Chiu, Chung-Cheng and Han, Wei and Zhang, Yu and Pang, Ruoming and Kishchenko, Sergey and Nguyen, Patrick and Narayanan, Arun and Liao, Hank and Zhang, Shuyuan and Kannan, Anjuli and Prabhavalkar, Rohit and Chen, Zhifeng and Sainath, Tara and Wu, Yonghui},
+  booktitle={2019 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)}, 
+  title={A Comparison of End-to-End Models for Long-Form Speech Recognition}, 
+  year={2019},
+  volume={},
+  number={},
+  pages={889-896},
+  doi={10.1109/ASRU46091.2019.9003854}}
+
+
+@article{lu2021input,
+  title={Input length matters: Improving RNN-T and MWER training for long-form telephony speech recognition},
+  author={Lu, Zhiyun and Pan, Yanwei and Doutre, Thibault and Haghani, Parisa and Cao, Liangliang and Prabhavalkar, Rohit and Zhang, Chao and Strohman, Trevor},
+  journal={arXiv preprint arXiv:2110.03841},
+  year={2021}
+}
+
+@article{zhang2023google,
+  title={Google usm: Scaling automatic speech recognition beyond 100 languages},
+  author={Zhang, Yu and Han, Wei and Qin, James and Wang, Yongqiang and Bapna, Ankur and Chen, Zhehuai and Chen, Nanxin and Li, Bo and Axelrod, Vera and Wang, Gary and others},
+  journal={arXiv preprint arXiv:2303.01037},
+  year={2023}
+}
+
+@inproceedings{radford2023robust,
+  title={Robust speech recognition via large-scale weak supervision},
+  author={Radford, Alec and Kim, Jong Wook and Xu, Tao and Brockman, Greg and McLeavey, Christine and Sutskever, Ilya},
+  booktitle={International Conference on Machine Learning},
+  pages={28492--28518},
+  year={2023},
+  organization={PMLR}
+}
+
+@inproceedings{tiedemann-scherrer-2017-neural,
+    title = "Neural Machine Translation with Extended Context",
+    author = {Tiedemann, J{\"o}rg  and
+      Scherrer, Yves},
+    editor = {Webber, Bonnie  and
+      Popescu-Belis, Andrei  and
+      Tiedemann, J{\"o}rg},
+    booktitle = "Proceedings of the Third Workshop on Discourse in Machine Translation",
+    month = sep,
+    year = "2017",
+    address = "Copenhagen, Denmark",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/W17-4811",
+    doi = "10.18653/v1/W17-4811",
+    pages = "82--92",
+    abstract = "We investigate the use of extended context in attention-based neural machine translation. We base our experiments on translated movie subtitles and discuss the effect of increasing the segments beyond single translation units. We study the use of extended source language context as well as bilingual context extensions. The models learn to distinguish between information from different segments and are surprisingly robust with respect to translation quality. In this pilot study, we observe interesting cross-sentential attention patterns that improve textual coherence in translation at least in some selected cases.",
+}
+
+@inproceedings{agrawal-etal-2018-contextual,
+    title = "Contextual Handling in Neural Machine Translation: Look behind, ahead and on both sides",
+    author = "Agrawal, Ruchit  and
+      Turchi, Marco  and
+      Negri, Matteo",
+    booktitle = "Proceedings of the 21st Annual Conference of the European Association for Machine Translation",
+    month = may,
+    year = "2018",
+    address = "Alicante, Spain",
+    url = "https://aclanthology.org/2018.eamt-main.1",
+    pages = "31--40",
+    abstract = "A salient feature of Neural Machine Translation (NMT) is the end-to-end nature of training employed, eschewing the need of separate components to model different linguistic phenomena. Rather, an NMT model learns to translate individual sentences from the labeled data itself. However, traditional NMT methods trained on large parallel corpora with a one-to-one sentence mapping make an implicit assumption of sentence independence. This makes it challenging for current NMT systems to model inter-sentential discourse phenomena. While recent research in this direction mainly leverages a single previous source sentence to model discourse, this paper proposes the incorporation of a context window spanning previous as well as next sentences as source-side context and previously generated output as target-side context, using an effective non-recurrent architecture based on self-attention. Experiments show improvement over non-contextual models as well as contextual methods using only previous context.",
+}
+
+ @inproceedings{Kim_Tran_Ney_2019, address={Hong Kong, China}, title={When and Why is Document-level Context Useful in Neural Machine Translation?}, url={https://aclanthology.org/D19-6503}, DOI={10.18653/v1/D19-6503}, abstractNote={Document-level context has received lots of attention for compensating neural machine translation (NMT) of isolated sentences. However, recent advances in document-level NMT focus on sophisticated integration of the context, explaining its improvement with only a few selected examples or targeted test sets. We extensively quantify the causes of improvements by a document-level model in general test sets, clarifying the limit of the usefulness of document-level context in NMT. We show that most of the improvements are not interpretable as utilizing the context. We also show that a minimal encoding is sufficient for the context modeling and very long context is not helpful for NMT.}, booktitle={Proceedings of the Fourth Workshop on Discourse in Machine Translation (DiscoMT 2019)}, publisher={Association for Computational Linguistics}, author={Kim, Yunsu and Tran, Duc Thanh and Ney, Hermann}, year={2019}, month={Nov}, pages={24–34} }
+
+@inproceedings{donato-etal-2021-diverse,
+    title = "Diverse Pretrained Context Encodings Improve Document Translation",
+    author = "Donato, Domenic  and
+      Yu, Lei  and
+      Dyer, Chris",
+    editor = "Zong, Chengqing  and
+      Xia, Fei  and
+      Li, Wenjie  and
+      Navigli, Roberto",
+    booktitle = "Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers)",
+    month = aug,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.acl-long.104",
+    doi = "10.18653/v1/2021.acl-long.104",
+    pages = "1299--1311",
+    abstract = "We propose a new architecture for adapting a sentence-level sequence-to-sequence transformer by incorporating multiple pre-trained document context signals and assess the impact on translation performance of (1) different pretraining approaches for generating these signals, (2) the quantity of parallel data for which document context is available, and (3) conditioning on source, target, or source and target contexts. Experiments on the NIST Chinese-English, and IWSLT and WMT English-German tasks support four general conclusions: that using pre-trained context representations markedly improves sample efficiency, that adequate parallel data resources are crucial for learning to use document context, that jointly conditioning on multiple context representations outperforms any single representation, and that source context is more valuable for translation performance than target side context. Our best multi-context model consistently outperforms the best existing context-aware transformers.",
+}
+
+@inproceedings{fernandes-etal-2021-measuring,
+    title = "Measuring and Increasing Context Usage in Context-Aware Machine Translation",
+    author = "Fernandes, Patrick  and
+      Yin, Kayo  and
+      Neubig, Graham  and
+      Martins, Andr{\'e} F. T.",
+    editor = "Zong, Chengqing  and
+      Xia, Fei  and
+      Li, Wenjie  and
+      Navigli, Roberto",
+    booktitle = "Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers)",
+    month = aug,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.acl-long.505",
+    doi = "10.18653/v1/2021.acl-long.505",
+    pages = "6467--6478",
+    abstract = "Recent work in neural machine translation has demonstrated both the necessity and feasibility of using inter-sentential context, context from sentences other than those currently being translated. However, while many current methods present model architectures that theoretically can use this extra context, it is often not clear how much they do actually utilize it at translation time. In this paper, we introduce a new metric, conditional cross-mutual information, to quantify usage of context by these models. Using this metric, we measure how much document-level machine translation systems use particular varieties of context. We find that target context is referenced more than source context, and that including more context has a diminishing affect on results. We then introduce a new, simple training method, context-aware word dropout, to increase the usage of context by context-aware models. Experiments show that our method not only increases context usage, but also improves the translation quality according to metrics such as BLEU and COMET, as well as performance on anaphoric pronoun resolution and lexical cohesion contrastive datasets.",
+}
+
+@inproceedings{feng-etal-2022-learn,
+    title = "Learn To Remember: Transformer with Recurrent Memory for Document-Level Machine Translation",
+    author = "Feng, Yukun  and
+      Li, Feng  and
+      Song, Ziang  and
+      Zheng, Boyuan  and
+      Koehn, Philipp",
+    editor = "Carpuat, Marine  and
+      de Marneffe, Marie-Catherine  and
+      Meza Ruiz, Ivan Vladimir",
+    booktitle = "Findings of the Association for Computational Linguistics: NAACL 2022",
+    month = jul,
+    year = "2022",
+    address = "Seattle, United States",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.findings-naacl.105",
+    doi = "10.18653/v1/2022.findings-naacl.105",
+    pages = "1409--1420",
+    abstract = "The Transformer architecture has led to significant gains in machine translation. However, most studies focus on only sentence-level translation without considering the context dependency within documents, leading to the inadequacy of document-level coherence. Some recent research tried to mitigate this issue by introducing an additional context encoder or translating with multiple sentences or even the entire document. Such methods may lose the information on the target side or have an increasing computational complexity as documents get longer. To address such problems, we introduce a recurrent memory unit to the vanilla Transformer, which supports the information exchange between the sentence and previous context. The memory unit is recurrently updated by acquiring information from sentences, and passing the aggregated knowledge back to subsequent sentence states. We follow a two-stage training strategy, in which the model is first trained at the sentence level and then finetuned for document-level translation. We conduct experiments on three popular datasets for document-level machine translation and our model has an average improvement of 0.91 s-BLEU over the sentence-level baseline. We also achieve state-of-the-art results on TED and News, outperforming the previous work by 0.36 s-BLEU and 1.49 d-BLEU on average.",
+}
+
+@inproceedings{ahmad-etal-2024-findings,
+    title = "{FINDINGS} {OF} {THE} {IWSLT} 2024 {EVALUATION} {CAMPAIGN}",
+    author = {Ahmad, Ibrahim Said  and
+      Anastasopoulos, Antonios  and
+      Bojar, Ond{\v{r}}ej  and
+      Borg, Claudia  and
+      Carpuat, Marine  and
+      Cattoni, Roldano  and
+      Cettolo, Mauro  and
+      Chen, William  and
+      Dong, Qianqian  and
+      Federico, Marcello  and
+      Haddow, Barry  and
+      Javorsk{\'y}, D{\'a}vid  and
+      Krubi{\'n}ski, Mateusz  and
+      Kim Lam, Tsz  and
+      Ma, Xutai  and
+      Mathur, Prashant  and
+      Matusov, Evgeny  and
+      Maurya, Chandresh  and
+      McCrae, John  and
+      Murray, Kenton  and
+      Nakamura, Satoshi  and
+      Negri, Matteo  and
+      Niehues, Jan  and
+      Niu, Xing  and
+      Ojha, Atul Kr.  and
+      Ortega, John  and
+      Papi, Sara  and
+      Pol{\'a}k, Peter  and
+      Posp{\'\i}{\v{s}}il, Adam  and
+      Pecina, Pavel  and
+      Salesky, Elizabeth  and
+      Sethiya, Nivedita  and
+      Sarkar, Balaram  and
+      Shi, Jiatong  and
+      Sikasote, Claytone  and
+      Sperber, Matthias  and
+      St{\"u}ker, Sebastian  and
+      Sudoh, Katsuhito  and
+      Thompson, Brian  and
+      Waibel, Alex  and
+      Watanabe, Shinji  and
+      Wilken, Patrick  and
+      Zem{\'a}nek, Petr  and
+      Zevallos, Rodolfo},
+    editor = "Salesky, Elizabeth  and
+      Federico, Marcello  and
+      Carpuat, Marine",
+    booktitle = "Proceedings of the 21st International Conference on Spoken Language Translation (IWSLT 2024)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand (in-person and online)",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.iwslt-1.1",
+    pages = "1--11",
+    abstract = "This paper reports on the shared tasks organized by the 21st IWSLT Conference. The shared tasks address 7 scientific challenges in spoken language translation: simultaneous and offline translation, automatic subtitling and dubbing, speech-to-speech translation, dialect and low-resource speech translation, and Indic languages. The shared tasks attracted 17 teams whose submissions are documented in 27 system papers. The growing interest towards spoken language translation is also witnessed by the constantly increasing number of shared task organizers and contributors to the overview paper, almost evenly distributed across industry and academia.",
+}
+
+@misc{Arkhangorodsky_2023, 
+author={Arkhangorodsky, Arkady and others}, 
+year={2023}, 
+title={ Method and system for evaluating and improving live translation captioning systems},
+month={Aug},
+note={US Patent US20230089902A1},
+publisher={United States Patent Office}
+}
+
+@inproceedings{papi-etal-2022-dodging,
+    title = "Dodging the Data Bottleneck: Automatic Subtitling with Automatically Segmented {ST} Corpora",
+    author = "Papi, Sara  and
+      Karakanta, Alina  and
+      Negri, Matteo  and
+      Turchi, Marco",
+    editor = "He, Yulan  and
+      Ji, Heng  and
+      Li, Sujian  and
+      Liu, Yang  and
+      Chang, Chua-Hui",
+    booktitle = "Proceedings of the 2nd Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics and the 12th International Joint Conference on Natural Language Processing (Volume 2: Short Papers)",
+    month = nov,
+    year = "2022",
+    address = "Online only",
+    url = "https://aclanthology.org/2022.aacl-short.59",
+    pages = "480--487",
+}
+
+@inproceedings{matusov-etal-2019-customizing,
+    title = "Customizing Neural Machine Translation for Subtitling",
+    author = "Matusov, Evgeny  and
+      Wilken, Patrick  and
+      Georgakopoulou, Yota",
+    booktitle = "Proceedings of the Fourth Conference on Machine Translation (Volume 1: Research Papers)",
+    month = aug,
+    year = "2019",
+    address = "Florence, Italy",
+    url = "https://aclanthology.org/W19-5209",
+    doi = "10.18653/v1/W19-5209",
+    pages = "82--93",
+}
+
+@inproceedings{karakanta-etal-2020-42,
+    title = "Is 42 the Answer to Everything in Subtitling-oriented Speech Translation?",
+    author = "Karakanta, Alina  and
+      Negri, Matteo  and
+      Turchi, Marco",
+    booktitle = "Proceedings of the 17th International Conference on Spoken Language Translation",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    url = "https://aclanthology.org/2020.iwslt-1.26",
+    doi = "10.18653/v1/2020.iwslt-1.26",
+    pages = "209--219",
+}
+
+@INPROCEEDINGS{940906,
+  author={Casacuberta, Francisco and Llorens, David and Martinez, Carlos and Molau, Sirko and Nevado, Francisco and Ney, Hermann and Pastor, Moisés and Pico, David and Sanchis, Alberto and Vidal, Enrique and Vilar, Juan M.},
+  booktitle={2001 IEEE International Conference on Acoustics, Speech, and Signal Processing. Proceedings (Cat. No.01CH37221)}, 
+  title={Speech-to-speech translation based on finite-state transducers}, 
+  year={2001},
+  volume={1},
+  number={},
+  pages={613-616 vol.1},
+  keywords={Hidden Markov models;Stochastic processes;Speech recognition;Acoustic transducers;Stochastic systems;Telephony;Acoustic applications;Natural languages;Viterbi algorithm;Search engines},
+  doi={10.1109/ICASSP.2001.940906}}
+
+@INPROCEEDINGS{1661501,
+  author={Matusov, Evgeny and Kanthak, Stephan and Ney, Hermann},
+  booktitle={2006 IEEE International Conference on Acoustics Speech and Signal Processing Proceedings}, 
+  title={Integrating Speech Recognition and Machine Translation: Where do We Stand?}, 
+  year={2006},
+  volume={5},
+  number={},
+  pages={V-V},
+  keywords={Speech recognition;Automatic speech recognition;Lattices;Natural languages;Computer science;Acoustic transducers},
+  doi={10.1109/ICASSP.2006.1661501}}
