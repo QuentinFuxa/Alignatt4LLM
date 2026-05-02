@@ -25,16 +25,7 @@
 \newtheorem{proposition}{Proposition}
 
 \title{AlignAtt4LLM: Fast AlignAtt for Decoder-Only LLMs \\ in an IWSLT 2026 Simultaneous Speech Translation System}
-\author{
-Quentin Fuxa \\
-Independent Researcher \\
-\texttt{quentin.fuxa@gmail.com}
-\And
-Dominik Mach\'a\v{c}ek \\
-Charles University, MFF, \'{U}FAL \\
-\& University of Edinburgh \\
-\texttt{machacek@ufal.mff.cuni.cz}
-}
+\author{Anonymous ACL Submission}
 
 \usepackage{cleveref} % for \Cref{tab:abc} instead of guessing what it is and then Section~\ref{tab:abc}
 
@@ -53,7 +44,7 @@ incrementally updated source transcript with word end times, and Gemma-4 E4B-it
 translates that prefix under an MT-side AlignAtt policy.
 
 To our knowledge, this is the first application of AlignAtt to a decoder-only
-LLM, where the encoder--decoder cross-attention used by earlier AlignAtt
+LLM, where the encoder-decoder cross-attention used by earlier AlignAtt
 systems is absent. We recover a usable policy by proposing (1) an explicit source
 span in the prompt, (2) offline selection of translation-specific
 alignment heads, (3) selective \emph{qk-fast} replay of the draft-to-source
@@ -61,7 +52,7 @@ attention block, and (4) runtime query/key capture that preserves
 model outputs bit-identically.
 
 On the IWSLT 2026 development set, \AAName{} reaches a low-latency operating
-point near two seconds of compute-unaware LongYAAL and trades 1.32--1.53
+point near two seconds of compute-unaware LongYAAL and trades 1.32 to 1.53
 additional seconds for clear gains in BLEU and XCOMET-XL in the high-latency
 regime. Head selection remains an end-to-end quality/latency trade-off, and
 the deployed \emph{qk-fast} path keeps the MT observer cheap enough to run in
@@ -82,7 +73,7 @@ two latency-quality regimes, one tuned near the low-latency boundary and one
 tuned for higher translation quality.
 
 The central contribution is to make an offline decoder-only LLM usable as an
-online MT module. Standard AlignAtt reads encoder--decoder cross-attention, but
+online MT module. Standard AlignAtt reads encoder-decoder cross-attention, but
 Gemma-4 has no such cross-attention. We instead expose the source transcript as
 a known prompt span, select a small set of translation-specific self-attention
 heads offline, and accept only draft prefixes whose reconstructed attention
@@ -97,8 +88,8 @@ We therefore capture the exact query/key tensors
 consumed by the deployed Gemma attention module and replay only the
 draft-to-source block needed by AlignAtt.
 
-Our implementation will be released with the camera-ready version at
-\url{https://github.com/QuentinFuxa/Alignatt4LLM}.
+We will release a public version of the implementation with the camera-ready
+version.
 
 \Cref{sec:background} gives the task and prior-work context,
 \Cref{sec:system} describes the submitted cascade,
@@ -113,7 +104,7 @@ lets an offline model operate in streaming mode. It was recently applied in the
 state-of-the-art simultaneous system \citep{cuniiwslt25} at IWSLT 2025. At each generation step, the
 policy reads an attention-derived source position for the next target token and
 stops generation when that position is not yet safely available. Previous
-AlignAtt systems obtained this signal from encoder--decoder cross-attention.
+AlignAtt systems obtained this signal from encoder-decoder cross-attention.
 
 \textbf{Offline models with online policies.} Repurposing offline models for
 simultaneous translation is attractive because it reuses high-quality,
@@ -137,7 +128,7 @@ exploit model-internal attention.
 
 \textbf{Translation-specific attention heads.} \citet{tokenheads26} show that
 multilingual decoder-only LLMs contain a sparse set of heads whose attention
-argmaxes track source--target word alignments. This suggests a decoder-only
+argmaxes track source-target word alignments. This suggests a decoder-only
 AlignAtt path, but only if two runtime conditions are met: the source span must
 be identifiable in the prompt, and the policy-visible attention rows
 must be reconstructed from the same tensors used by the deployed inference
@@ -217,7 +208,7 @@ and defines the computation-aware setting used in our submitted measurements.
 \input{generated/submitted_cascade.tex}
 
 \Cref{fig:alignatt-substrates} summarizes the conceptual shift. The
-policy intuition remains the same as in encoder--decoder AlignAtt, but the
+policy intuition remains the same as in encoder-decoder AlignAtt, but the
 alignment signal must now be recovered from a prompt-structured self-attention
 substrate rather than read directly from cross-attention.
 
@@ -269,7 +260,7 @@ spread uniformly; Appendix~\ref{sec:appendix-alignatt} further visualizes that p
 %in Figure~\ref{fig:mt-alignatt-heads}.
 
 The policy only reads the source slice of each draft attention row,
-$\mathbf{A}^{(\ell,h)}_{t,\phi^{(k)}(s)}$, but unlike encoder--decoder
+$\mathbf{A}^{(\ell,h)}_{t,\phi^{(k)}(s)}$, but unlike encoder-decoder
 cross-attention, this slice is not source-normalized. Off-source mass on the
 accepted target prefix, prompt template, and speculative suffix is therefore
 structural rather than implementation noise. On the 78 text-only qualitative
@@ -359,7 +350,7 @@ averages the retained heads and sums accessible-source mass to obtain
 $\pi_t^{\mathrm{acc}}$. The other normalizes and smooths the same replayed rows
 before taking the source-side argmax $\hat{s}_t$. The gate accepts token $t$
 if the three tests in
-Eqs.~\eqref{eq:mt-stop-frontier}--\eqref{eq:mt-stop-prov} all pass; a
+Eqs.~\eqref{eq:mt-stop-frontier} to~\eqref{eq:mt-stop-prov} all pass; a
 left-to-right first-failure scan then emits the longest accepting draft prefix
 and rounds back to the last completed stability unit. Here a stability unit is
 the smallest target fragment that the tokenizer treats as safe to commit: a
@@ -409,8 +400,8 @@ measurements, and qualitative probe.
 The submitted streaming experiments run on a single NVIDIA A40. The MT component uses Gemma-4 E4B-it
 in bfloat16 through vLLM; the speech component uses Qwen3-ASR with
 forced alignment. In evaluation, we use the official IWSLT 2026 MCIF dev set
-($\sim 2.1$ hours total, 21 long academic talks) resegmented by OmniSTEval
-v0.1.7. We report BLEU and chrF against the dev references, XCOMET-XL for
+($\sim 2.1$ hours total, 21 long academic talks) resegmented by OmniSTEval.
+We report BLEU and chrF against the dev references, XCOMET-XL for
 translation adequacy \citep{xcometxl24}, and compute-unaware and aware
 LongYAAL for latency \citep{longyaal25}. The streaming loop follows the
 Simulstream setting of unsegmented long-form audio with revision-capable
@@ -420,9 +411,9 @@ not confounded with scheduler overlap.
 
 For the auxiliary runtime study in Section~\ref{sec:runtime}, we compare three
 MT seams on a fixed suite of 16 text-only prompts: a minimal Transformers eager
-reference, a Transformers SDPA $-$\,\emph{qk-fast} replay reference, and the
+reference, a Transformers SDPA \emph{qk-fast} replay reference, and the
 deployed vLLM \emph{qk-fast} path. Each seam uses greedy decoding with the
-same head set, one warmup pass, and repeated hot runs in isolated subprocesses.
+same retained head set.
 
 \subsection{Submitted System Results}
 \label{sec:main-results}
@@ -434,7 +425,7 @@ stays near a 2\,s CU-LongYAAL point, while the high-latency regime moves to a
 clearly stronger quality point at the expected latency cost. CA-LongYAAL is
 consistently below CU-LongYAAL here because OmniSTEval's computation-aware mode
 replaces each chunk-boundary audio increment by the actual wall-clock increment
-spent processing that chunk. Since the hot A40 system runs faster than real
+spent processing that chunk. Since the deployed system runs faster than real
 time, the computation-aware timestamps can be earlier than the
 compute-unaware chunk-boundary timestamps. The columns are therefore not
 inverted. We read Table~\ref{tab:e2e} as evidence that the \AAName{}
@@ -454,25 +445,25 @@ Pair & System & Regime & BLEU & chrF & XCOMET-XL & \multicolumn{2}{c}{LongYAAL (
 & & & & & & CU & CA \\
 \midrule
 \multirow{5}{*}{en$\to$de}
-& Org. baseline & low  & $22.35$ & $56.7$ & $0.748$ & \textbf{1.81} & -- \\
+& Org. baseline & low  & $22.35$ & $56.7$ & $0.748$ & \textbf{1.81} & n/a \\
 & Ours          & low  & \textbf{28.76} & \textbf{62.1} & \textbf{0.875} & $2.00$ & $1.63$ \\
-& Org. baseline & high & $26.31$ & $59.2$ & $0.819$ & \textbf{2.63} & -- \\
+& Org. baseline & high & $26.31$ & $59.2$ & $0.819$ & \textbf{2.63} & n/a \\
 & Ours          & high & \textbf{32.63} & \textbf{64.2} & \textbf{0.902} & $3.53$ & $3.14$ \\
-& \offlinecell{Our cascade -- offline} & \offlinecell{ref.} & \offlinecell{38.57} & \offlinecell{67.1} & \offlinecell{0.938} & \offlinecell{--} & \offlinecell{--} \\
+& \offlinecell{Our cascade (offline)} & \offlinecell{ref.} & \offlinecell{38.57} & \offlinecell{67.1} & \offlinecell{0.938} & \offlinecell{n/a} & \offlinecell{n/a} \\
 \midrule
 \multirow{5}{*}{en$\to$zh}
-& Org. baseline & low  & \textbf{40.85} & $34.1$ & \textbf{0.750} & \textbf{1.91} & -- \\
+& Org. baseline & low  & \textbf{40.85} & $34.1$ & \textbf{0.750} & \textbf{1.91} & n/a \\
 & Ours          & low  & $36.01$ & \textbf{35.0} & $0.743$ & $1.95$ & $1.77$ \\
-& Org. baseline & high & \textbf{43.85} & \textbf{37.8} & \textbf{0.795} & $3.48$ & -- \\
+& Org. baseline & high & \textbf{43.85} & \textbf{37.8} & \textbf{0.795} & $3.48$ & n/a \\
 & Ours          & high & $39.86$ & \textbf{37.8} & $0.778$ & \textbf{3.27} & $3.09$ \\
-& \offlinecell{Our cascade -- offline} & \offlinecell{ref.} & \offlinecell{48.53} & \offlinecell{43.4} & \offlinecell{0.848} & \offlinecell{--} & \offlinecell{--} \\
+& \offlinecell{Our cascade (offline)} & \offlinecell{ref.} & \offlinecell{48.53} & \offlinecell{43.4} & \offlinecell{0.848} & \offlinecell{n/a} & \offlinecell{n/a} \\
 \midrule
 \multirow{5}{*}{en$\to$it}
-& Org. baseline & low  & $30.63$ & $62.0$ & $0.683$ & \textbf{1.76} & -- \\
+& Org. baseline & low  & $30.63$ & $62.0$ & $0.683$ & \textbf{1.76} & n/a \\
 & Ours          & low  & \textbf{40.10} & \textbf{68.0} & \textbf{0.805} & $1.98$ & $1.62$ \\
-& Org. baseline & high & $37.28$ & $65.4$ & $0.781$ & \textbf{3.30} & -- \\
+& Org. baseline & high & $37.28$ & $65.4$ & $0.781$ & \textbf{3.30} & n/a \\
 & Ours          & high & \textbf{44.46} & \textbf{70.1} & \textbf{0.841} & $3.48$ & $3.10$ \\
-& \offlinecell{Our cascade -- offline} & \offlinecell{ref.} & \offlinecell{49.88} & \offlinecell{73.0} & \offlinecell{0.895} & \offlinecell{--} & \offlinecell{--} \\
+& \offlinecell{Our cascade (offline)} & \offlinecell{ref.} & \offlinecell{49.88} & \offlinecell{73.0} & \offlinecell{0.895} & \offlinecell{n/a} & \offlinecell{n/a} \\
 \bottomrule
 \end{tabular}
 }
@@ -544,7 +535,7 @@ The MT component must require low computational resources to justify deployment.
 Figure~\ref{fig:mt-capture-speed} shows that the vLLM replay path is
 much cheaper than the minimal eager seam we use as an inspection reference:
 median cost drops from 63.7 to 25.4 ms/token, while the Transformers
-SDPA $-$\,\emph{qk-fast} replay remains close to the eager baseline at
+SDPA \emph{qk-fast} replay remains close to the eager baseline at
 59.0 ms/token.
 This confirms that the MT contribution is not merely inspectable in principle;
 it is practical inside the runtime we actually deploy.
@@ -582,10 +573,6 @@ requires a deterministic prompt layout, calibrated heads, and Q/K capture, the
 same policy can be ported to other decoder-only LLMs, making a Qwen-family MT
 backbone a natural next target for EN$\to$ZH.
 
-%\section*{Acknowledgements} % Dominik can't forget to add ack to his grant!
-
-%This work 
-
 \bibliography{references}
 
 \appendix
@@ -618,56 +605,16 @@ that hides the final 250\,ms from MT.
 
 \subsection{Offline Cascade Diagnostic}
 \label{sec:appendix-offline}
-To estimate the quality headroom of the backbone pair without online
-commitment, we also ran an offline cascade on the same 21 MCIF dev talks:
-Qwen3-ASR was applied once to each complete audio file, then Gemma-4 was run in
-final/offline mode with \texttt{is\_partial=False}. The full-audio ASR
-transcripts have 7.40\% weighted corpus WER against the English reference
-under lowercase, punctuation-stripped word normalization; a 90\% audio-bootstrap
-interval is [6.27, 8.59]. The ASR run therefore introduces visible but not
-catastrophic source noise.
-
-For MT, we translate sentence-level chunks from the final ASR transcript and
-then apply the same long-form resegmentation as in the streaming evaluation.
-This avoids context-window pressure without using lexical repairs, phrase
-tables, or target-specific post-processing.
-
-\paragraph{Role of the offline diagnostic.}
-The offline cascade is not a system we submit; it is a development tool that
-brackets the streaming numbers from above. Differences between offline and
-streaming output isolate the cost of the AlignAtt commit policy and the
-chunk-synchronous schedule from the intrinsic quality of the Qwen3-ASR plus
-Gemma-4 backbone. In particular, drops on EN$\to$ZH that already appear in
-this offline mode point to the Gemma backbone rather than to the simultaneous
-policy, which matches the conclusion drawn from the dev-set submission in
-\Cref{tab:e2e}. Conversely, dev-set degradations that are present in
-streaming but absent offline are attributable to either the AlignAtt accept
-gate or to the live ASR tail rather than to translation capacity.
-
-\paragraph{Interaction with ASR tail noise.}
-Because the offline run sees only the final, fully revised ASR transcript, the
-MT input is much closer to the reference English than it is in any online
-chunk. The 7.40\,\% offline WER is therefore a lower bound on the WER seen by
-the live MT module, and the gap between live and offline WER is roughly the
-quantity that the 250\,ms tail-clipping recommendation in
-\Cref{sec:asr-tail-analysis} is designed to absorb. A more aggressive tail
-hold-back tightens this gap at the cost of MT-side latency; the submitted
-operating points keep the hold-back at zero and let the AlignAtt policy itself
-absorb most of the residual tail risk by stopping generation before unstable
-source words are translated.
-
-\paragraph{Limitations of the offline comparison.}
-The offline cascade does not exercise the prompt-cache reuse, the
-draft-suffix capture, or the sliding-window MT context that the streaming
-runtime maintains across chunks; it also commits target output only once per
-sentence rather than incrementally. Two effects therefore do not appear in the
-offline numbers: first, the partial-prefix retranslation pressure that Gemma-4
-sees online when the source prefix is updated mid-sentence; second, the
-short-term reordering windows that the AlignAtt scan handles via the
-backward-mobile $\hat{s}_t$ described in \Cref{sec:appendix-observer}. We
-read the offline diagnostic as a translation-quality ceiling under perfectly
-informed source input, not as a fair latency-free analogue of the deployed
-streaming system.
+As a development tool that brackets the streaming numbers from above, we also
+ran an offline cascade on the same 21 MCIF dev talks: Qwen3-ASR was applied
+once to each complete audio file, then Gemma-4 was run in final mode on
+sentence-level chunks resegmented as in the streaming evaluation. The full-audio ASR transcripts have 7.40\% weighted
+corpus WER against the English reference (90\% audio-bootstrap interval
+$[6.27, 8.59]$), so the offline run sees source much closer to the reference
+than any online chunk. Differences between offline and streaming output
+therefore isolate the cost of the AlignAtt commit policy and the live ASR tail
+from the intrinsic quality of the backbone: drops on EN$\to$ZH that already
+appear here point to Gemma-4 rather than to the simultaneous policy.
 
 \section{Coordination Regimes and Additional MT Alignment-Head Diagnostics}
 \label{sec:appendix-alignatt}

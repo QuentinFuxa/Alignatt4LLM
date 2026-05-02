@@ -22,13 +22,13 @@
 ]
 
   %% ================================================================
-  %% LEFT PANEL: a. Standard encoder--decoder AlignAtt
+  %% LEFT PANEL: a. Standard encoder-decoder AlignAtt
   %% ================================================================
   \def\aL{0.00}\def\aR{8.40}\def\aB{2.30}\def\aT{6.20}
   \draw[panel] (\aL,\aB) rectangle (\aR,\aT);
 
   \node[title, anchor=north west] at (\aL+0.25,\aT-0.15)
-    {a.~Standard encoder--decoder AlignAtt};
+    {a.~Standard encoder-decoder AlignAtt};
   \node[sub, anchor=north west, text width=7.90cm] at (\aL+0.25,\aT-0.52)
     {decoder cross-attention already returns a source-only row; the policy
      reads it directly.};
@@ -167,8 +167,8 @@
 
 \end{tikzpicture}
 }%
-\caption{\textbf{How AlignAtt changes substrate between encoder--decoder and
-decoder-only models.} \emph{(a)} In the original encoder--decoder setting,
+\caption{\textbf{How AlignAtt changes substrate between encoder-decoder and
+decoder-only models.} \emph{(a)} In the original encoder-decoder setting,
 the decoder already exposes a source-only cross-attention row, so the policy
 can gate tokens directly against the accessible source frontier: if the peak
 of the row falls on the accessible side, the draft token is accepted.

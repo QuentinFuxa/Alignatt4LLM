@@ -110,7 +110,7 @@
   \draw[panel] (0.00, 4.75) rectangle (15.30, 6.35);
   \node[panelhdr] at (0.25, 6.15) {(c) Full sync};
   \node[panelsub] at (2.00, 6.15)
-    {\,: strict ASR--MT alternation; the configuration used for our IWSLT~2026 submission};
+    {\,: strict ASR/MT alternation; the configuration used for our IWSLT~2026 submission};
 
   % Single alternating row; ASR(i) and MT(i) are glued together (tight pair)
   \node[asr, minimum width=1.55cm, anchor=west] at (1.25, 5.60) {ASR$(t)$};
@@ -132,15 +132,7 @@
     {Regimes (a) and (b) require a non-blocking scheduler (e.g.\ the vLLM async engine \citep{vllm23}) with request abort on stale MT decodes; our current implementation is (c) with two blocking \texttt{LLM} instances sharing a single GPU. The gaps between ASR chunks in (a) and (b) reflect an ASR real-time factor below~1. This design axis mainly affects \emph{compute-aware} latency; our central submitted comparisons remain on the serialized regime in (c).};
 
 \end{tikzpicture}
-\captionof{figure}{Three coordination regimes for ASR and MT sharing one GPU. The submitted system uses the strict ASR--MT alternation in~(c). In full async mode~(a), successive MT launches need not correspond to comparable source-time increments: a long MT decode can absorb several incoming ASR updates, while the next relaunch may cover much less newly available audio. That makes history-dependent policies such as local agreement \citep{liu20s_interspeech} less natural to calibrate there than an attention-only policy such as AlignAtt, which scores each draft directly against the currently accessible source prefix.}
+\captionof{figure}{Three coordination regimes for ASR and MT sharing one GPU. The submitted system uses the strict ASR/MT alternation in~(c). In full async mode~(a), successive MT launches need not correspond to comparable source-time increments: a long MT decode can absorb several incoming ASR updates, while the next relaunch may cover much less newly available audio. That makes history-dependent policies such as local agreement \citep{liu20s_interspeech} less natural to calibrate there than an attention-only policy such as AlignAtt, which scores each draft directly against the currently accessible source prefix.}
 \label{fig:coord-regimes}
 
-\vspace{0.4em}
-\par\noindent\raggedright
-Figure~\ref{fig:mt-alignatt-heads} shows the architecture-aware score map
-behind the retained MT head set: useful heads are sparse, clustered late in
-the backbone, and overlap the late shared-KV region where observer cost is
-governed by KV ownership rather than raw query-head count. Table
-~\ref{tab:mt-head-filtering} then reports the held-out calibration gap between
-the retained top-8 heads and uniform all-head averaging.
 \end{strip}
