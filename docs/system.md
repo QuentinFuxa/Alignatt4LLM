@@ -29,6 +29,7 @@
 - Extra-context code now lives in `cascade/paper_context/`
 - Default is still `paper_context_mode=off`
 - Paper artifacts stay in `data/paper_artifacts/`
+- Extra-context presets are not part of the maintained DockerHub submission surface
 
 ## Operational notes
 

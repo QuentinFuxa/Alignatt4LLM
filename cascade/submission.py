@@ -1,7 +1,55 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from types import SimpleNamespace
+
+
+SUPPORTED_SOURCE_LANG_CODES = ("en",)
+SUPPORTED_TARGET_LANG_CODES = ("de", "it", "zh")
+SUPPORTED_DIRECTION_PAIRS = frozenset(
+    ("en", target) for target in SUPPORTED_TARGET_LANG_CODES
+)
+
+
+def translation_heads_path_for_direction(
+    source_lang_code: str,
+    target_lang_code: str,
+) -> Path:
+    return Path(
+        "data/alignatt_heads/"
+        f"translation_heads_google_gemma-4-E4B-it_{source_lang_code}-{target_lang_code}.json"
+    )
+
+
+def validate_submission_direction(
+    *,
+    source_lang_code: str,
+    target_lang_code: str,
+    repo_root: Path | None = None,
+) -> None:
+    source_lang_code = source_lang_code.strip().lower()
+    target_lang_code = target_lang_code.strip().lower()
+    if (source_lang_code, target_lang_code) not in SUPPORTED_DIRECTION_PAIRS:
+        valid = ", ".join(
+            f"{source}-{target}"
+            for source, target in sorted(SUPPORTED_DIRECTION_PAIRS)
+        )
+        raise ValueError(
+            f"Unsupported submission direction {source_lang_code}-{target_lang_code}. "
+            f"The maintained IWSLT Docker surface supports only: {valid}."
+        )
+    if repo_root is None:
+        return
+    heads_path = repo_root / translation_heads_path_for_direction(
+        source_lang_code,
+        target_lang_code,
+    )
+    if not heads_path.is_file():
+        raise FileNotFoundError(
+            f"Missing AlignAtt translation heads for {source_lang_code}-{target_lang_code}: "
+            f"{heads_path}"
+        )
 
 
 @dataclass(frozen=True)
@@ -35,7 +83,20 @@ class SubmissionPreset:
         source_lang_code: str,
         target_lang_code: str,
         paper_context_path: str | None = None,
+        repo_root: Path | None = None,
     ) -> SimpleNamespace:
+        source_lang_code = source_lang_code.strip().lower()
+        target_lang_code = target_lang_code.strip().lower()
+        validate_submission_direction(
+            source_lang_code=source_lang_code,
+            target_lang_code=target_lang_code,
+            repo_root=repo_root,
+        )
+        if paper_context_path is not None:
+            raise ValueError(
+                "Paper-context artifacts are not part of the maintained main-track "
+                "Docker submission surface."
+            )
         return SimpleNamespace(
             type="cascade.simulstream_processor.CascadeAlignAttProcessor",
             source_lang_code=source_lang_code,
@@ -68,11 +129,11 @@ SUBMISSION_PRESETS = {
         name="main_low_latency",
         track="main",
         latency_regime="low",
-        chunk_ms=1100,
+        chunk_ms=850,
         translation_alignatt_border_margin=1,
         description=(
             "Main-track low-latency preset: qwen_forced ASR + gemma_vllm_alignatt "
-            "MT with chunk_ms=1100 and AlignAtt border margin=1. Validated on "
+            "MT with chunk_ms=850 and AlignAtt border margin=1. Validated on "
             "the dev-set inside the LOW LongYAAL regime."
         ),
     ),
@@ -85,32 +146,6 @@ SUBMISSION_PRESETS = {
         description=(
             "Main-track high-latency preset: same mechanism as main_low_latency "
             "with larger chunk_ms=1500, validated inside the HIGH LongYAAL regime."
-        ),
-    ),
-    "context_low_latency": SubmissionPreset(
-        name="context_low_latency",
-        track="extra_context",
-        latency_regime="low",
-        chunk_ms=1100,
-        translation_alignatt_border_margin=1,
-        paper_context_mode="title_abstract",
-        translation_alignatt_min_source_mass=0.3,
-        description=(
-            "Extra-context low-latency preset: main_low_latency plus the "
-            "title+abstract prompt with min_source_mass=0.3 guardrail."
-        ),
-    ),
-    "context_high_latency": SubmissionPreset(
-        name="context_high_latency",
-        track="extra_context",
-        latency_regime="high",
-        chunk_ms=1500,
-        translation_alignatt_border_margin=1,
-        paper_context_mode="title_abstract",
-        translation_alignatt_min_source_mass=0.3,
-        description=(
-            "Extra-context high-latency preset: main_high_latency plus the "
-            "title+abstract prompt with min_source_mass=0.3 guardrail."
         ),
     ),
 }

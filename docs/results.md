@@ -3,7 +3,7 @@
 ## Current maintained surfaces
 
 - Batch runner default: `chunk_ms=800`
-- Submission low regime: `chunk_ms=1100`
+- Submission low regime: `chunk_ms=850`
 - Submission high regime: `chunk_ms=1500`
 
 ## Reference point
@@ -19,7 +19,7 @@ Historical en→de reference on `data/devset/audio/ccpXHNfaoy.wav` at `chunk_ms=
 
 ## Submission dev-log anchors
 
-Frozen low-regime dev logs (historical `chunk_ms=850` evidence):
+Frozen low-regime dev logs (`chunk_ms=850`):
 
 - en→de: BLEU `28.76`, chrF `62.14`, XCOMET-XL `0.8752`, LongYAAL CU `1997.8 ms`
 - en→it: BLEU `40.10`, chrF `68.02`, XCOMET-XL `0.8052`, LongYAAL CU `1983.7 ms`

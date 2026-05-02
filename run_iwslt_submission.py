@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+from pathlib import Path
 
 from cascade.server import serve_submission_processor
 from cascade.submission import VALID_SUBMISSION_PRESET_NAMES, get_submission_preset
@@ -18,6 +19,7 @@ logging.basicConfig(
     level=logging.INFO,
 )
 LOGGER = logging.getLogger("run_iwslt_submission")
+REPO_ROOT = Path(__file__).resolve().parent
 
 
 def _add_shared_submission_args(parser: argparse.ArgumentParser) -> None:
@@ -29,19 +31,6 @@ def _add_shared_submission_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument("--source", default="en", help="Source language code.")
     parser.add_argument("--target", default="de", help="Target language code.")
-    parser.add_argument(
-        "--paper-context-path",
-        default=None,
-        help="Single PaperArtifact JSON for one-stream extra-context runs.",
-    )
-    parser.add_argument(
-        "--paper-context-dir",
-        default=None,
-        help=(
-            "Directory of PaperArtifact JSON files matched by input stem. "
-            "Only used by the batch subcommand."
-        ),
-    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -67,7 +56,7 @@ def parse_args() -> argparse.Namespace:
 
     server = subparsers.add_parser(
         "server",
-        help="Start a websocket server with a frozen submission preset for Docker evaluation.",
+        help="Start the legacy websocket server with a frozen submission preset.",
     )
     _add_shared_submission_args(server)
     server.add_argument("--host", default="0.0.0.0")
@@ -85,41 +74,26 @@ def main() -> None:
     LOGGER.info("Using preset %s: %s", preset.name, preset.description)
 
     if args.command == "batch":
-        if args.paper_context_path is not None and args.paper_context_dir is not None:
-            raise ValueError("Use either --paper-context-path or --paper-context-dir, not both.")
-        if (
-            preset.track == "extra_context"
-            and args.paper_context_path is None
-            and args.paper_context_dir is None
-        ):
-            raise ValueError(
-                "Extra-context presets require --paper-context-path or --paper-context-dir "
-                "for offline batch generation."
-            )
         processor_config = preset.build_speech_processor_config(
-            source_lang_code=args.source,
-            target_lang_code=args.target,
-            paper_context_path=args.paper_context_path,
+            source_lang_code=args.source.lower(),
+            target_lang_code=args.target.lower(),
+            repo_root=REPO_ROOT,
         )
         input_paths = resolve_input_paths(inputs=args.inputs, input_dir=args.input_dir)
         run_batch_inference(
             processor_config=processor_config,
             input_paths=input_paths,
             output_dir=args.output_dir,
-            source_lang_code=args.source,
-            target_lang_code=args.target,
-            explicit_paper_context_path=args.paper_context_path,
-            paper_context_dir=args.paper_context_dir,
+            source_lang_code=args.source.lower(),
+            target_lang_code=args.target.lower(),
         )
         return
 
     if args.command == "server":
-        if args.paper_context_dir is not None:
-            raise ValueError("--paper-context-dir is only supported by the batch subcommand.")
         processor_config = preset.build_speech_processor_config(
-            source_lang_code=args.source,
-            target_lang_code=args.target,
-            paper_context_path=args.paper_context_path,
+            source_lang_code=args.source.lower(),
+            target_lang_code=args.target.lower(),
+            repo_root=REPO_ROOT,
         )
         asyncio.run(
             serve_submission_processor(

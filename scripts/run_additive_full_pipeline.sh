@@ -2,7 +2,6 @@
 # Orchestrate the remaining additive-chunk pipeline:
 #   1. chunk_ms=1900 dev-set inference (all 3 directions)
 #   2. score every additive dev-set output (chunk850 + chunk1900)
-#   3. re-materialize submission/ with additive bundles appended
 #
 # chunk_ms=850 inference is expected to have already finished before this
 # script starts; it re-runs idempotently for anything that is missing.
@@ -45,8 +44,5 @@ done
 
 echo "[$(date -Iseconds)] scoring additive dev-set outputs"
 bash scripts/score_additive_chunks.sh
-
-echo "[$(date -Iseconds)] syncing submission bundle"
-"${PYTHON_BIN}" submission/sync_artifacts.py
 
 echo "[$(date -Iseconds)] additive pipeline done"

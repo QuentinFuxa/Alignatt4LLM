@@ -18,8 +18,6 @@
       },
       "files": {
         "manifest.json": "submission/dev_logs/low/en-de/manifest.json",
-        "hypothesis.jsonl": "submission/dev_logs/low/en-de/hypothesis.jsonl",
-        "stream_updates.jsonl": "submission/dev_logs/low/en-de/stream_updates.jsonl",
         "evaluation.json": "submission/dev_logs/low/en-de/evaluation.json",
         "evaluation.report.txt": "submission/dev_logs/low/en-de/evaluation.report.txt",
         "scores.tsv": "submission/dev_logs/low/en-de/scores.tsv"
@@ -43,8 +41,6 @@
       },
       "files": {
         "manifest.json": "submission/dev_logs/low/en-it/manifest.json",
-        "hypothesis.jsonl": "submission/dev_logs/low/en-it/hypothesis.jsonl",
-        "stream_updates.jsonl": "submission/dev_logs/low/en-it/stream_updates.jsonl",
         "evaluation.json": "submission/dev_logs/low/en-it/evaluation.json",
         "evaluation.report.txt": "submission/dev_logs/low/en-it/evaluation.report.txt",
         "scores.tsv": "submission/dev_logs/low/en-it/scores.tsv"
@@ -68,8 +64,6 @@
       },
       "files": {
         "manifest.json": "submission/dev_logs/low/en-zh/manifest.json",
-        "hypothesis.jsonl": "submission/dev_logs/low/en-zh/hypothesis.jsonl",
-        "stream_updates.jsonl": "submission/dev_logs/low/en-zh/stream_updates.jsonl",
         "evaluation.json": "submission/dev_logs/low/en-zh/evaluation.json",
         "evaluation.report.txt": "submission/dev_logs/low/en-zh/evaluation.report.txt",
         "scores.tsv": "submission/dev_logs/low/en-zh/scores.tsv"
@@ -93,8 +87,6 @@
       },
       "files": {
         "manifest.json": "submission/dev_logs/high/en-de/manifest.json",
-        "hypothesis.jsonl": "submission/dev_logs/high/en-de/hypothesis.jsonl",
-        "stream_updates.jsonl": "submission/dev_logs/high/en-de/stream_updates.jsonl",
         "evaluation.json": "submission/dev_logs/high/en-de/evaluation.json",
         "evaluation.report.txt": "submission/dev_logs/high/en-de/evaluation.report.txt",
         "scores.tsv": "submission/dev_logs/high/en-de/scores.tsv"
@@ -118,8 +110,6 @@
       },
       "files": {
         "manifest.json": "submission/dev_logs/high/en-it/manifest.json",
-        "hypothesis.jsonl": "submission/dev_logs/high/en-it/hypothesis.jsonl",
-        "stream_updates.jsonl": "submission/dev_logs/high/en-it/stream_updates.jsonl",
         "evaluation.json": "submission/dev_logs/high/en-it/evaluation.json",
         "evaluation.report.txt": "submission/dev_logs/high/en-it/evaluation.report.txt",
         "scores.tsv": "submission/dev_logs/high/en-it/scores.tsv"
@@ -143,8 +133,6 @@
       },
       "files": {
         "manifest.json": "submission/dev_logs/high/en-zh/manifest.json",
-        "hypothesis.jsonl": "submission/dev_logs/high/en-zh/hypothesis.jsonl",
-        "stream_updates.jsonl": "submission/dev_logs/high/en-zh/stream_updates.jsonl",
         "evaluation.json": "submission/dev_logs/high/en-zh/evaluation.json",
         "evaluation.report.txt": "submission/dev_logs/high/en-zh/evaluation.report.txt",
         "scores.tsv": "submission/dev_logs/high/en-zh/scores.tsv"

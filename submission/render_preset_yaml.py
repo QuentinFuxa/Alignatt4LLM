@@ -21,15 +21,20 @@ def main() -> None:
     parser.add_argument("--preset", required=True, choices=VALID_SUBMISSION_PRESET_NAMES)
     parser.add_argument("--source-lang-code", required=True)
     parser.add_argument("--target-lang-code", required=True)
-    parser.add_argument("--paper-context-path", default=None)
+    parser.add_argument(
+        "--paper-context-path",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
     preset = get_submission_preset(args.preset)
     cfg = preset.build_speech_processor_config(
-        source_lang_code=args.source_lang_code,
-        target_lang_code=args.target_lang_code,
+        source_lang_code=args.source_lang_code.lower(),
+        target_lang_code=args.target_lang_code.lower(),
         paper_context_path=args.paper_context_path,
+        repo_root=REPO_ROOT,
     )
     Path(args.output).write_text(
         yaml.safe_dump(vars(cfg), sort_keys=False),

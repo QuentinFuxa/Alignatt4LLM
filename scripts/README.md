@@ -21,7 +21,7 @@ Maintained utility scripts that sit next to the active runtime.
 
 - `run_testset_submission.sh` — sequential test-set submission wrapper derived from preset metadata
 - `run_additive_chunk_sweep.py` — additive `chunk_ms` calibration over `data/devset/`
-- `run_additive_full_pipeline.sh` — orchestrate additive inference + scoring + submission sync
+- `run_additive_full_pipeline.sh` — orchestrate additive inference + scoring
 - `score_additive_chunks.sh` — score additive outputs already present on disk
 
 ## Runtime resources
