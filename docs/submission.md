@@ -21,9 +21,21 @@ The root `Dockerfile` builds the submission image from the active runtime only:
 Model snapshots are downloaded during the H100 build with a BuildKit secret:
 
 ```bash
-DOCKER_BUILDKIT=1 docker build \
-  --secret id=hf_token,src="$HF_TOKEN_FILE" \
-  -t "$DOCKERHUB_REPO:latest" .
+export DOCKERHUB_REPO="dockerhub-user/cascade-simul-iwslt26"
+export HF_TOKEN_FILE="$HOME/.cache/huggingface/token"
+submission/build_push_dockerhub_h100.sh
+```
+
+The helper tags both `$DOCKERHUB_REPO:$IMAGE_TAG` and
+`$DOCKERHUB_REPO:latest`, validates one clip when `VALIDATION_WAV` exists, and
+pushes by default. Use `PUSH=0` to keep the image local.
+
+For JarvisLabs CLI 0.2.0b13, the bare VM is exposed as the `vm` template:
+
+```bash
+jl instance create --gpu H100 --template vm --storage 300 --region IN2 --name alignatt-iwslt26-h100 --yes
+jl instance upload <machine_id> .
+jl instance ssh <machine_id>
 ```
 
 The image bundles these revisions and runs offline afterwards:
@@ -37,7 +49,7 @@ The image bundles these revisions and runs offline afterwards:
 Direct inference is the default mode:
 
 ```bash
-docker run --gpus all --rm \
+docker run --gpus all --rm --ipc=host \
   -e PRESET=main_low_latency \
   -e TGT_LANG_CODE=de \
   -v /host/wavs:/io/wavs:ro \
@@ -49,7 +61,7 @@ docker run --gpus all --rm \
 HTTP server mode exposes the same speech processor on port `8080`:
 
 ```bash
-docker run --gpus all --rm -p 8080:8080 \
+docker run --gpus all --rm --ipc=host -p 8080:8080 \
   -e PRESET=main_low_latency \
   -e TGT_LANG_CODE=de \
   "$DOCKERHUB_REPO:latest" serve

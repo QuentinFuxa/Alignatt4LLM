@@ -28,18 +28,21 @@ ASR-to-MT cascade.
 ## Docker submission
 
 Build on an NVIDIA H100 host with a Hugging Face token available as a BuildKit
-secret:
+secret. The maintained helper builds, optionally validates on one WAV, and pushes
+both a commit tag and `latest`:
 
 ```bash
-DOCKER_BUILDKIT=1 docker build \
-  --secret id=hf_token,src="$HF_TOKEN_FILE" \
-  -t "$DOCKERHUB_REPO:latest" .
+export DOCKERHUB_REPO="dockerhub-user/cascade-simul-iwslt26"
+export HF_TOKEN_FILE="$HOME/.cache/huggingface/token"
+submission/build_push_dockerhub_h100.sh
 ```
+
+Set `PUSH=0` to stop after the local build.
 
 Direct inference is the default container mode:
 
 ```bash
-docker run --gpus all --rm \
+docker run --gpus all --rm --ipc=host \
   -e PRESET=main_low_latency \
   -e TGT_LANG_CODE=de \
   -v /host/wavs:/io/wavs:ro \
@@ -51,7 +54,7 @@ docker run --gpus all --rm \
 The same image can expose a SimulStream HTTP speech processor:
 
 ```bash
-docker run --gpus all --rm -p 8080:8080 \
+docker run --gpus all --rm --ipc=host -p 8080:8080 \
   -e PRESET=main_low_latency \
   -e TGT_LANG_CODE=de \
   "$DOCKERHUB_REPO:latest" serve

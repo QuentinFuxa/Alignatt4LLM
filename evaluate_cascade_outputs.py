@@ -281,6 +281,7 @@ def compute_comet_system_score(
                 batch_size=8,
                 gpus=gpus,
                 accelerator=accelerator,
+                num_workers=1,
                 progress_bar=False,
             )
             return float(output.system_score)

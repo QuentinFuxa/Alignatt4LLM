@@ -10,7 +10,16 @@ tmp
 dist
 data/devset
 data/testset
+data/alignment_corpora
+data/paper_artifacts
+data/smoke
 zip_downloaded
 docs/archive
+docs/reference
 dedicated_audio_gemma_aligner
 SimulStreaming
+mcif-long-trans
+paper
+scripts
+submission/dev_logs
+submission/DEV_LOG_INDEX.json
