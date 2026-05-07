@@ -18,11 +18,12 @@ All three are fixed-shape tensor buffers, scattered via ``scatter_add_``-style
 ops so the capture path is compatible with ``torch.compile`` / cudagraph
 capture (no ``nonzero`` / Python-level conditionals on tensor values).
 
-The patched ``Gemma4Attention.forward`` is intentionally separate from the ASR
+The patched Gemma-family ``Attention.forward`` is intentionally separate from the ASR
 version so the two observers never alias the same attribute. If the ASR
-Gemma backend and the MT Gemma backend ever need to coexist in one process,
-this module would need a shared dispatcher — today PLAN.md's target pairs
-``qwen_forced`` ASR with ``gemma_vllm_alignatt`` MT, so they do not.
+Gemma ASR backend and the MT Gemma-family backend ever need to coexist in one
+process, this module would need a shared dispatcher. The submitted target pairs
+``qwen_forced`` ASR with ``gemma_vllm_alignatt`` MT; MiLMMT uses this observer
+only when selected explicitly.
 """
 from __future__ import annotations
 
@@ -278,7 +279,7 @@ def _capture_mt_qk_into_tensor_buffers(attn_module, positions, q, k) -> None:
     # NOTE (commit 2a818d0 / 5e557a8 / 4ebfee0 / this diff): an
     # earlier attempt wrapped this function with
     # ``@torch.compiler.disable`` to keep the observer-capture out of
-    # the AOT-compiled Gemma4 forward graph. That patch is not
+    # the AOT-compiled Gemma-family forward graph. That patch is not
     # shippable: vLLM compiles the model in fullgraph mode, which
     # does not permit graph breaks, and
     # ``@torch.compiler.disable`` requires one. The dynamo error is
@@ -404,7 +405,7 @@ def _capture_mt_qk_into_tensor_buffers(attn_module, positions, q, k) -> None:
 # Global registry mapping layer index -> observer. Used by the
 # custom op below so the per-layer observer lookup is a Python
 # dict access in the op implementation, not a traced attribute
-# access inside the AOT-compiled Gemma4 forward graph.
+# access inside the AOT-compiled Gemma-family forward graph.
 _LAYER_OBSERVER_REGISTRY: dict[int, "_MTPromptDecodeQKTensorObserver | None"] = {}
 
 
@@ -611,8 +612,31 @@ def _capture_mt_qk_into_tensor_buffers_from_observer(
     observer.decode_written_buffer.logical_or_(decode_write_mask)
 
 
-def _make_mt_tensor_buffer_gemma4_attention_forward():
+def _assert_supported_gemma_attention_module(attn_module) -> None:
+    required = (
+        "qkv_proj",
+        "q_size",
+        "kv_size",
+        "num_heads",
+        "num_kv_heads",
+        "head_dim",
+        "q_norm",
+        "k_norm",
+        "rotary_emb",
+        "attn",
+        "o_proj",
+    )
+    missing = [name for name in required if not hasattr(attn_module, name)]
+    if missing:
+        raise RuntimeError(
+            "Gemma-family MT AlignAtt requires a vLLM Gemma3/Gemma4 attention module "
+            f"with Q/K/V projection access; missing attributes: {missing}"
+        )
+
+
+def _make_mt_tensor_buffer_gemma_attention_forward():
     def _patched_forward(self, positions, hidden_states, **kwargs):
+        _assert_supported_gemma_attention_module(self)
         qkv, _ = self.qkv_proj(hidden_states)
         q, k, v = qkv.split([self.q_size, self.kv_size, self.kv_size], dim=-1)
 
@@ -620,17 +644,27 @@ def _make_mt_tensor_buffer_gemma4_attention_forward():
         q = self.q_norm(q)
         q = q.flatten(-2, -1)
 
-        if not self.is_kv_shared_layer:
+        if hasattr(self, "is_kv_shared_layer"):
+            if not hasattr(self, "v_norm"):
+                raise RuntimeError(
+                    "Gemma4 MT AlignAtt expected v_norm on the vLLM attention module."
+                )
+            if not self.is_kv_shared_layer:
+                k = k.unflatten(-1, (self.num_kv_heads, self.head_dim))
+                k = self.k_norm(k)
+                k = k.flatten(-2, -1)
+                q, k = self.rotary_emb(positions, q, k)
+
+                v = v.unflatten(-1, (self.num_kv_heads, self.head_dim))
+                v = self.v_norm(v)
+                v = v.flatten(-2, -1)
+            else:
+                q = self.rotary_emb(positions, q, k)[0]
+        else:
             k = k.unflatten(-1, (self.num_kv_heads, self.head_dim))
             k = self.k_norm(k)
             k = k.flatten(-2, -1)
             q, k = self.rotary_emb(positions, q, k)
-
-            v = v.unflatten(-1, (self.num_kv_heads, self.head_dim))
-            v = self.v_norm(v)
-            v = v.flatten(-2, -1)
-        else:
-            q = self.rotary_emb(positions, q, k)[0]
 
         # Dispatch the observer capture through the custom op so
         # AOT-compile sees a single opaque node rather than tracing
@@ -657,20 +691,46 @@ def _make_mt_tensor_buffer_gemma4_attention_forward():
     return _patched_forward
 
 
-def install_global_gemma4_attention_mt_patch() -> None:
-    from vllm.model_executor.models.gemma4 import Gemma4Attention
-
+def install_global_gemma_attention_mt_patch() -> None:
     _ensure_custom_op_registered()
 
-    if not hasattr(Gemma4Attention, "_alignatt_mt_qk_original_forward"):
+    try:
+        from vllm.model_executor.models.gemma3 import Gemma3Attention
+    except Exception:
+        Gemma3Attention = None
+
+    try:
+        from vllm.model_executor.models.gemma4 import Gemma4Attention
+    except Exception:
+        Gemma4Attention = None
+
+    if Gemma3Attention is None and Gemma4Attention is None:
+        raise RuntimeError(
+            "Gemma-family MT AlignAtt requires vLLM Gemma3Attention or "
+            "Gemma4Attention support."
+        )
+
+    if Gemma3Attention is not None and not hasattr(
+        Gemma3Attention, "_alignatt_mt_qk_original_forward"
+    ):
+        Gemma3Attention._alignatt_mt_qk_original_forward = Gemma3Attention.forward
+        Gemma3Attention.forward = _make_mt_tensor_buffer_gemma_attention_forward()
+
+    if Gemma4Attention is not None and not hasattr(
+        Gemma4Attention, "_alignatt_mt_qk_original_forward"
+    ):
         Gemma4Attention._alignatt_mt_qk_original_forward = Gemma4Attention.forward
-        Gemma4Attention.forward = _make_mt_tensor_buffer_gemma4_attention_forward()
+        Gemma4Attention.forward = _make_mt_tensor_buffer_gemma_attention_forward()
+
+
+def install_global_gemma4_attention_mt_patch() -> None:
+    install_global_gemma_attention_mt_patch()
 
 
 def install_stub_observers_on_model(model) -> int:
-    """Install a ``None`` stub on every Gemma4Attention's observer attr.
+    """Install a ``None`` stub on every Gemma-family attention observer attr.
 
-    The AOT-compiled ``Gemma4Attention.forward`` traces an attribute
+    The AOT-compiled Gemma attention ``forward`` traces an attribute
     access to ``_alignatt_mt_qk_tensor_observer`` during first warmup
     and then, when vLLM's compile cache replays the compiled graph
     in a fresh process, performs a direct ``__dict__`` lookup on that
@@ -692,6 +752,7 @@ def install_stub_observers_on_model(model) -> int:
         attn = getattr(layer, "self_attn", None)
         if attn is None:
             continue
+        _assert_supported_gemma_attention_module(attn)
         # Use object.__setattr__ so this works even on modules that
         # otherwise reject unknown attributes. The attribute ends up
         # in attn.__dict__, which is the lookup AOT-compiled code
@@ -734,6 +795,7 @@ def _configure_mt_qk_observer_on_model(
         attn = getattr(layer, "self_attn", None)
         if attn is None:
             raise RuntimeError(f"Layer {layer_idx} has no self_attn module.")
+        _assert_supported_gemma_attention_module(attn)
         device = attn.qkv_proj.weight.device
 
         selected_kv_heads = [

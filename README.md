@@ -7,10 +7,13 @@ ASR-to-MT cascade.
 
 - ASR default: `qwen_forced`
 - MT default: `gemma_vllm_alignatt`
+- Experimental MT route: `milmmt_vllm_alignatt` (opt-in only)
 - Canonical runner: `run_simulstream_batch.py`
 - Canonical single-audio A/B: `run_simulstream_compare.py`
 - Submission presets: `main_low_latency` = `chunk_ms=850`, `main_high_latency` = `chunk_ms=1500`
 - Docker submission directions: EN->DE, EN->IT, EN->ZH only
+- Official organizer baseline: `https://github.com/owaski/iwslt-2026-baselines`
+  with score extraction via `scripts/parse_official_baseline_outputs.py`
 - MT AlignAtt no longer uses an anti-rewind threshold; legitimate EN->ZH reorderings
   make that heuristic a bad fit for streaming MT.
 

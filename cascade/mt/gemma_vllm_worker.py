@@ -1,4 +1,4 @@
-"""Custom vLLM worker for the experimental Gemma MT AlignAtt observer.
+"""Custom vLLM worker for the Gemma-family MT AlignAtt observer.
 
 Mirrors ``cascade.alignment.gemma_vllm_asr_worker.GemmaVLLMASRWorker``
 (ASR-side) but installs the
@@ -7,10 +7,10 @@ and decode positions, which is what the 4-way MT provenance partition
 requires.
 
 The two workers are kept independent because the observer state is stored on
-different attributes on ``Gemma4Attention`` and the patched forward call
-targets a different capture function. Today PLAN.md pairs ``qwen_forced`` ASR
-with ``gemma_vllm_alignatt`` MT, so only one of the two Gemma-side workers is
-ever loaded in a given process.
+different attributes on Gemma-family attention modules and the patched forward
+call targets a different capture function. The submitted route pairs
+``qwen_forced`` ASR with ``gemma_vllm_alignatt`` MT; MiLMMT is an explicit
+experimental MT route.
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ from cascade.mt.gemma_vllm_observer import (
     _fetch_mt_qk_observer_from_model,
     _prepare_mt_qk_observer_on_model,
     _resolve_mt_observer_bindings,
-    install_global_gemma4_attention_mt_patch,
+    install_global_gemma_attention_mt_patch,
     install_stub_observers_on_model,
 )
 
@@ -46,7 +46,7 @@ class GemmaVLLMMTWorker(VLLMGPUWorker):
         self._mt_observer_warm = False
 
     def load_model(self, *, load_dummy_weights: bool = False) -> None:
-        install_global_gemma4_attention_mt_patch()
+        install_global_gemma_attention_mt_patch()
         super().load_model(load_dummy_weights=load_dummy_weights)
         # Seed every attention layer with a None observer stub so the
         # AOT-compiled forward's __dict__ lookup succeeds even before
@@ -61,7 +61,7 @@ class GemmaVLLMMTWorker(VLLMGPUWorker):
         # process.
         print(
             f"[gemma_vllm_mt_worker] Installed None-observer stubs "
-            f"on {stubbed} Gemma4Attention layers.",
+            f"on {stubbed} Gemma-family attention layers.",
             flush=True,
         )
         bootstrap = _decode_mt_observer_bootstrap_from_env()

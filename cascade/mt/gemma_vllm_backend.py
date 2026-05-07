@@ -1,4 +1,4 @@
-"""Experimental Gemma MT backend via vLLM (PLAN.md Phases 1 + 2).
+"""Gemma-family MT backends via vLLM AlignAtt.
 
 Mechanics rewrite of the Transformers MT backend under vLLM. Phase 1 covered
 draft generation and prompt parity; Phase 2 adds the MT AlignAtt observer and
@@ -7,10 +7,11 @@ the 4-way provenance partition that the runtime policy needs.
 Design notes
 ------------
 
-The observer is built on the same substrate as the ASR-side vLLM seam:
+The observer is built on the same Gemma-family attention substrate as the
+ASR-side vLLM seam:
 
 - a custom ``worker_cls`` installs the observer **before** engine build so
-  compile/cudagraph capture see the patched ``Gemma4Attention.forward``;
+  compile/cudagraph capture see the patched attention ``forward``;
 - per-layer tensor buffers capture K at every prompt position *and* Q+K at
   every decode position (the MT provenance partition needs the full
   ``softmax([prompt_K | suffix_K])`` weights, not just ``softmax(prompt_K)``);
@@ -24,8 +25,9 @@ The observer is built on the same substrate as the ASR-side vLLM seam:
 plus a ``provenance_per_draft_token`` list — the same semantic surface
 the Transformers backend produces.
 
-This backend is the active MT path for the simplified runtime; the
-Transformers implementation remains available as a reference backend.
+``GemmaVLLMMTBackend`` is the submitted IWSLT MT route. ``MiLMMTVLLMMTBackend``
+is an explicit experimental route that reuses the same Q/K observer substrate
+with MiLMMT's raw translation prompt.
 """
 from __future__ import annotations
 
@@ -38,10 +40,14 @@ from cascade.mt.base import (
     AlignAttDecoderPolicy,
     BaseMTBackend,
     MTBackendResult,
+    PromptSourceMap,
+    PromptSourceUnitSpan,
     PromptCacheState,
+    RenderedPromptWithSourceMap,
     TokenProvenanceBreakdown,
     compute_prefix_online_alignatt_source_argmaxes,
     load_alignatt_heads,
+    project_char_span_to_token_indices,
     source_local_position_to_unit_index,
 )
 from cascade.translation_variants import RenderedTranslationPrompt, TranslationVariant
@@ -53,7 +59,21 @@ from cascade.mt.gemma_vllm_observer import (
 )
 
 
-class GemmaVLLMMTBackend(BaseMTBackend):
+MILMMT_NUM_TEXT_LAYERS = 34
+MILMMT_NUM_ATTENTION_HEADS = 8
+
+
+def _milmmt_language_name(language: str) -> str:
+    if language in {"Simplified Chinese", "Chinese"}:
+        return "Chinese (Simplified)"
+    return language
+
+
+class MiLMMTVLLMMTBackend(BaseMTBackend):
+    backend_name = "milmmt_vllm_alignatt"
+    model_family = "MiLMMT"
+    context_config_attr = "mt_max_model_len"
+
     def __init__(self, *, model_name: str, runtime_config: SimpleNamespace):
         super().__init__(model_name=model_name, runtime_config=runtime_config)
         self.llm = None
@@ -69,10 +89,13 @@ class GemmaVLLMMTBackend(BaseMTBackend):
         self.gpu_memory_utilization = float(
             getattr(runtime_config, "mt_vllm_gpu_memory_utilization", 0.5)
         )
-        # Observer sizing: max_prompt_tokens is bounded by gemma_max_model_len,
+        # Observer sizing: max_prompt_tokens is bounded by the active MT
+        # context cap,
         # max_decode_tokens by the per-run generation cap (we pick the larger of
         # the full and partial caps so one configuration covers both calls).
-        self.max_prompt_tokens = int(getattr(runtime_config, "gemma_max_model_len", 1024))
+        self.max_prompt_tokens = int(
+            getattr(runtime_config, self.context_config_attr, 1024)
+        )
         self.max_decode_tokens = max(
             int(getattr(runtime_config, "max_new_tokens", 160)),
             int(getattr(runtime_config, "partial_max_new_tokens", 48)),
@@ -100,9 +123,10 @@ class GemmaVLLMMTBackend(BaseMTBackend):
             top_k = int(getattr(self.runtime_config, "translation_alignatt_top_k_heads", 8))
             if heads_path:
                 self.alignatt_heads = load_alignatt_heads(heads_path, top_k=top_k)
+                self._validate_alignatt_heads()
         if not self.alignatt_heads:
             raise RuntimeError(
-                "GemmaVLLMMTBackend requires translation_alignatt_heads_path "
+                f"{type(self).__name__} requires translation_alignatt_heads_path "
                 "to load MT AlignAtt heads."
             )
 
@@ -145,7 +169,7 @@ class GemmaVLLMMTBackend(BaseMTBackend):
                 runtime_config=self.runtime_config,
             )
         print(
-            "[gemma_vllm_alignatt] experimental MT backend loaded; "
+            f"[{self.backend_name}] MT backend loaded; "
             f"heads={len(self.alignatt_heads)} "
             f"max_prompt_tokens={self.max_prompt_tokens} "
             f"max_decode_tokens={self.max_decode_tokens} "
@@ -163,6 +187,139 @@ class GemmaVLLMMTBackend(BaseMTBackend):
         top_k = int(getattr(self.runtime_config, "translation_alignatt_top_k_heads", 8))
         if heads_path:
             self.alignatt_heads = load_alignatt_heads(heads_path, top_k=top_k)
+            self._validate_alignatt_heads()
+
+    def _validate_alignatt_heads(self) -> None:
+        invalid: list[dict[str, int]] = []
+        for head in self.alignatt_heads:
+            layer = int(head.layer)
+            head_idx = int(head.head)
+            if not (0 <= layer < MILMMT_NUM_TEXT_LAYERS) or not (
+                0 <= head_idx < MILMMT_NUM_ATTENTION_HEADS
+            ):
+                invalid.append({"layer": layer, "head": head_idx})
+        if invalid:
+            raise ValueError(
+                f"{self.model_family} MT AlignAtt heads must satisfy "
+                f"0 <= layer < {MILMMT_NUM_TEXT_LAYERS} and "
+                f"0 <= head < {MILMMT_NUM_ATTENTION_HEADS}; invalid={invalid}"
+            )
+
+    def _render_milmmt_prompt_text(
+        self,
+        rendered_prompt: RenderedTranslationPrompt,
+    ) -> tuple[str, tuple[int, int]]:
+        source_lang = _milmmt_language_name(
+            str(getattr(self.runtime_config, "source_lang", "English"))
+        )
+        target_lang = _milmmt_language_name(
+            str(getattr(self.runtime_config, "target_lang", "German"))
+        )
+        source_text = rendered_prompt.source_text
+        prefix = (
+            f"Translate this from {source_lang} to {target_lang}:\n"
+            f"{source_lang}: "
+        )
+        suffix = f"\n{target_lang}:{rendered_prompt.assistant_prefill}"
+        source_start = len(prefix)
+        prompt_text = f"{prefix}{source_text}{suffix}"
+        return prompt_text, (source_start, source_start + len(source_text))
+
+    def render_prompt_token_ids(self, rendered_prompt: RenderedTranslationPrompt) -> list[int]:
+        if self.tokenizer is None:
+            raise RuntimeError(f"{self.model_family} tokenizer is not loaded. Run load() first.")
+        prompt_text, _ = self._render_milmmt_prompt_text(rendered_prompt)
+        return list(
+            self.tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
+        )
+
+    def render_prompt_text(self, rendered_prompt: RenderedTranslationPrompt) -> str:
+        prompt_text, _ = self._render_milmmt_prompt_text(rendered_prompt)
+        return prompt_text
+
+    def render_prompt_package(
+        self,
+        rendered_prompt: RenderedTranslationPrompt,
+    ) -> RenderedPromptWithSourceMap:
+        if self.tokenizer is None:
+            raise RuntimeError(f"{self.model_family} tokenizer is not loaded. Run load() first.")
+        prompt_text, source_char_span = self._render_milmmt_prompt_text(rendered_prompt)
+        prompt_token_ids = tuple(
+            self.tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
+        )
+        source_map = self._build_milmmt_source_map(
+            rendered_prompt=rendered_prompt,
+            prompt_text=prompt_text,
+            source_char_span=source_char_span,
+        )
+        return RenderedPromptWithSourceMap(
+            prompt_token_ids=prompt_token_ids,
+            prompt_text=prompt_text,
+            source_map=source_map,
+        )
+
+    def _build_milmmt_source_map(
+        self,
+        *,
+        rendered_prompt: RenderedTranslationPrompt,
+        prompt_text: str,
+        source_char_span: tuple[int, int],
+    ) -> PromptSourceMap | None:
+        if self.tokenizer is None:
+            raise RuntimeError(f"{self.model_family} tokenizer is not loaded. Run load() first.")
+        source_frontier = rendered_prompt.source_frontier
+        if source_frontier is None or not rendered_prompt.source_text:
+            return None
+
+        source_char_start, source_char_end = source_char_span
+        prompt_offsets = self.tokenizer(
+            prompt_text,
+            add_special_tokens=False,
+            return_offsets_mapping=True,
+        )["offset_mapping"]
+        normalized_offsets = [tuple(map(int, off)) for off in prompt_offsets]
+        source_token_positions = project_char_span_to_token_indices(
+            normalized_offsets,
+            source_char_start,
+            source_char_end,
+        )
+        if not source_token_positions:
+            return None
+
+        unit_spans: list[PromptSourceUnitSpan] = []
+        accessible_source_token_count = 0
+        for unit_index, unit in enumerate(source_frontier.units):
+            unit_prompt_positions = tuple(
+                project_char_span_to_token_indices(
+                    normalized_offsets,
+                    source_char_start + unit.char_start,
+                    source_char_start + unit.char_end,
+                )
+            )
+            if unit.is_accessible:
+                accessible_source_token_count += len(unit_prompt_positions)
+            unit_spans.append(
+                PromptSourceUnitSpan(
+                    unit_index=unit_index,
+                    text=unit.text,
+                    prompt_token_positions=unit_prompt_positions,
+                    is_accessible=unit.is_accessible,
+                    start_ms=unit.start_ms,
+                    end_ms=unit.end_ms,
+                )
+            )
+
+        return PromptSourceMap(
+            source_text=source_frontier.source_text,
+            source_token_positions=tuple(source_token_positions),
+            source_unit_spans=tuple(unit_spans),
+            accessible_source_token_count=accessible_source_token_count,
+            accessible_unit_count=source_frontier.accessible_unit_count,
+            total_unit_count=len(source_frontier.units),
+            current_audio_ms=source_frontier.current_audio_ms,
+            inaccessible_ms=source_frontier.inaccessible_ms,
+            is_final=source_frontier.is_final,
+        )
 
     # -- helpers for collective_rpc ----------------------------------------
     def _prepare_mt_observer(self, *, prompt_length: int) -> dict[str, Any]:
@@ -231,6 +388,7 @@ class GemmaVLLMMTBackend(BaseMTBackend):
         stop_token_ids = list(self.resolve_generation_stop_token_ids())
         sampling_params = SamplingParams(
             temperature=0.0,
+            top_k=1,
             max_tokens=int(max_new_tokens),
             repetition_penalty=float(
                 getattr(self.runtime_config, "repetition_penalty", 1.0)
@@ -522,3 +680,33 @@ class GemmaVLLMMTBackend(BaseMTBackend):
             alignatt_metadata=alignatt_metadata,
             timings_ms=timings_ms,
         )
+
+
+class GemmaVLLMMTBackend(MiLMMTVLLMMTBackend):
+    """Submitted Gemma-4 E4B-it MT AlignAtt backend.
+
+    Gemma and MiLMMT share the vLLM Q/K observer mechanics, but Gemma keeps the
+    chat-template prompt contract used by the submitted system and paper.
+    """
+
+    backend_name = "gemma_vllm_alignatt"
+    model_family = "Gemma"
+    context_config_attr = "gemma_max_model_len"
+
+    def _validate_alignatt_heads(self) -> None:
+        return None
+
+    def render_prompt_token_ids(
+        self,
+        rendered_prompt: RenderedTranslationPrompt,
+    ) -> list[int]:
+        return BaseMTBackend.render_prompt_token_ids(self, rendered_prompt)
+
+    def render_prompt_text(self, rendered_prompt: RenderedTranslationPrompt) -> str:
+        return BaseMTBackend.render_prompt_text(self, rendered_prompt)
+
+    def render_prompt_package(
+        self,
+        rendered_prompt: RenderedTranslationPrompt,
+    ) -> RenderedPromptWithSourceMap:
+        return BaseMTBackend.render_prompt_package(self, rendered_prompt)

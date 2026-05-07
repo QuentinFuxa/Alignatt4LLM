@@ -47,6 +47,7 @@ from cascade.artifacts import (
     write_text,
 )
 from cascade.emission import register_translation_timestamps, register_translation_words
+from cascade.runtime import VALID_MT_BACKEND_NAMES
 from cascade.simulstream_processor import CascadeAlignAttProcessor, LANGUAGE_CODE_TO_NAME
 from cascade.text_surface import prediction_text_from_target_surface
 from simulstream.server.speech_processors import SAMPLE_RATE
@@ -100,7 +101,7 @@ def build_processor_config(args: argparse.Namespace) -> SimpleNamespace:
         chunk_ms=args.chunk_ms,
         speech_chunk_size=args.chunk_ms / 1000.0,
         alignment_backend_name=args.alignment_backend_name,
-        mt_backend_name="gemma_vllm_alignatt",
+        mt_backend_name=args.mt_backend_name,
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         paper_context_path=args.paper_context_path,
@@ -127,7 +128,7 @@ def build_summary(
         "source_language_code": args.source,
         "target_language_code": args.target,
         "alignment_backend_name": args.alignment_backend_name,
-        "mt_backend_name": "gemma_vllm_alignatt",
+        "mt_backend_name": args.mt_backend_name,
         "chunk_ms": args.chunk_ms,
         "max_history_utterances": args.max_history_utterances,
         "paper_context_top_k": args.paper_context_top_k,
@@ -271,6 +272,12 @@ def parse_args() -> argparse.Namespace:
         "--alignment-backend-name",
         default="qwen_forced",
         choices=("qwen_forced", "gemma_vllm_qk_fast"),
+    )
+    parser.add_argument(
+        "--mt-backend-name",
+        default="gemma_vllm_alignatt",
+        choices=VALID_MT_BACKEND_NAMES,
+        help="Default is the submitted Gemma cascade; MiLMMT is experimental.",
     )
     parser.add_argument("--paper-context-top-k", type=int, default=3)
     parser.add_argument("--paper-context-max-chars", type=int, default=1200)

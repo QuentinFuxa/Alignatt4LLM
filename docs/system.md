@@ -11,7 +11,11 @@
 - ASR `qwen_forced` — stable default
 - ASR `gemma_vllm_qk_fast` — sole Gemma AlignAtt ASR path, sub-1 s CU-LongYAAL
   operating point. Standalone entrypoint: `gemma_asr_low_latency.py`.
-- MT `gemma_vllm_alignatt` — only maintained MT backend
+- MT `gemma_vllm_alignatt` — submitted and stable default; uses
+  `google/gemma-4-E4B-it` with Gemma-specific AlignAtt heads
+- MT `milmmt_vllm_alignatt` — experimental improvement route; uses
+  `xiaomi-research/MiLMMT-46-4B-v0.1` with MiLMMT-specific AlignAtt heads and
+  must be selected explicitly
 - MT partial acceptance uses frontier and confidence gating only; there is no
   MT anti-rewind threshold because legitimate target-side reorderings make it
   a poor fit for EN->ZH streaming translation.

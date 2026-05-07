@@ -4,7 +4,8 @@ Use the PDF in this directory as the algorithm reference, but treat the runnable
 
 Current repo assumptions:
 
-- We are Gemma-first.
+- We are Gemma-first for the submitted MT route; MiLMMT text-head files are
+  experimental and must be selected explicitly.
 - Word alignment annotation should use `gpt-5-mini`.
 - The detector should be rerunnable on arbitrary language pairs by passing explicit `--src-path` and `--tgt-path`.
 - For IWSLT 2026 Czech->English, use challenge-legal Czech-English parallel text for head discovery and keep the official dev set for validation.

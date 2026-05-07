@@ -45,6 +45,7 @@ from cascade.artifacts import (
 )
 from cascade.text_surface import prediction_text_from_target_surface
 from cascade.emission import register_translation_timestamps, register_translation_words
+from cascade.runtime import VALID_MT_BACKEND_NAMES
 from simulstream.server.speech_processors import SAMPLE_RATE
 
 
@@ -319,6 +320,7 @@ def run_batch_inference(
         "paper_context_max_chars", "paper_context_history_window_words",
         "mt_vllm_enforce_eager", "mt_vllm_cudagraph_mode",
         "mt_vllm_enable_prefix_caching", "mt_vllm_gpu_memory_utilization",
+        "mt_max_model_len",
     ]:
         runtime_config[key] = getattr(processor.session.config, key, None)
 
@@ -396,6 +398,15 @@ def parse_args() -> argparse.Namespace:
         choices=("qwen_forced", "gemma_vllm_qk_fast"),
     )
     parser.add_argument(
+        "--mt-backend-name",
+        default="gemma_vllm_alignatt",
+        choices=VALID_MT_BACKEND_NAMES,
+        help=(
+            "MT backend route. Default is the submitted Gemma cascade; "
+            "milmmt_vllm_alignatt is experimental."
+        ),
+    )
+    parser.add_argument(
         "--asr-alignatt-frame-threshold",
         default=4,
         type=int,
@@ -418,6 +429,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-history-utterances", default=0, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
     parser.add_argument("--translation-alignatt-min-source-mass", default=0.0, type=float)
+    parser.add_argument(
+        "--translation-alignatt-top-k-heads",
+        default=8,
+        type=int,
+        help="Number of retained MT AlignAtt heads to use.",
+    )
+    parser.add_argument(
+        "--translation-alignatt-filter-width",
+        default=7,
+        type=int,
+        help="Source-axis median filter width for MT AlignAtt rows.",
+    )
     parser.add_argument(
         "--translation-alignatt-border-margin",
         default=0,
@@ -511,11 +534,13 @@ def main() -> None:
         chunk_ms=args.chunk_ms,
         speech_chunk_size=args.chunk_ms / 1000.0,
         alignment_backend_name=args.alignment_backend_name,
-        mt_backend_name="gemma_vllm_alignatt",
+        mt_backend_name=args.mt_backend_name,
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         partial_max_new_tokens=args.partial_max_new_tokens,
         translation_alignatt_min_source_mass=args.translation_alignatt_min_source_mass,
+        translation_alignatt_top_k_heads=args.translation_alignatt_top_k_heads,
+        translation_alignatt_filter_width=args.translation_alignatt_filter_width,
         translation_alignatt_border_margin=args.translation_alignatt_border_margin,
         translation_alignatt_inaccessible_ms=args.translation_alignatt_inaccessible_ms,
         translation_alignatt_argmax_mass_threshold=args.translation_alignatt_argmax_mass_threshold,

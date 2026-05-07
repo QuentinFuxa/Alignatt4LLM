@@ -109,7 +109,9 @@ def resolve_model_name(directions: list[str], model_override: str | None) -> str
 
 
 def load_head_payload(direction: str) -> dict[str, Any]:
-    return load_json(DEFAULT_HEAD_DIR / f"translation_heads_google_gemma-4-E4B-it_{direction}.json")
+    return load_json(
+        DEFAULT_HEAD_DIR / f"translation_heads_google_gemma-4-E4B-it_{direction}.json"
+    )
 
 
 def load_alignment_rows(direction: str) -> list[dict[str, Any]]:

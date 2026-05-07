@@ -23,5 +23,8 @@
 - `cascade/submission.py` is the sole submission preset source of truth
 - The maintained Docker submission surface is the two main presets defined in `cascade/submission.py`
 - Supported Docker directions are exactly EN->DE, EN->IT, and EN->ZH
+- The submitted/default cascade is Qwen3-ASR + Gemma vLLM AlignAtt MT
+- MiLMMT vLLM AlignAtt MT is an explicit experimental route, not a submission default
+- Official organizer baseline outputs are parsed on demand instead of vendored
 - The main repo no longer vendors a second frozen copy of the runtime
 - Historical one-off scripts and notebook-era compatibility layers were removed instead of preserved in place

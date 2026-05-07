@@ -1,9 +1,7 @@
 """Single-prompt and curated-set MT backend probe harness.
 
-Retained under its historical filename, but the active repo now supports a
-single MT backend only: ``gemma_vllm_alignatt``. The harness still runs each
-prompt inside an isolated child subprocess so repeated prompt probes do not
-pollute the live vLLM allocator state.
+The harness runs each prompt inside an isolated child subprocess so repeated
+prompt probes do not pollute the live vLLM allocator state.
 
 Single-prompt shape (backward compatible):
 
@@ -37,7 +35,8 @@ defaults. ``min_source_mass`` is applied to
 ``CascadeRuntimeConfig.translation_alignatt_min_source_mass`` for that
 prompt only.
 
-``gemma_vllm_alignatt`` uses the MT AlignAtt observer from the shipped runtime.
+``gemma_vllm_alignatt`` is the submitted default. ``milmmt_vllm_alignatt`` is
+the explicit experimental MiLMMT route.
 """
 from __future__ import annotations
 
@@ -56,7 +55,7 @@ from cascade.runtime import (
     CascadeRuntimeConfig,
     LANGUAGE_CODE_TO_NAME,
     VALID_MT_BACKEND_NAMES,
-    gemma_model_name,
+    mt_model_name_for_backend,
 )
 from cascade.source_frontier import build_source_accessibility_frontier
 from cascade.translation_variants import RenderedTranslationPrompt, TRANSLATION_VARIANTS
@@ -64,7 +63,10 @@ from cascade.translation_variants import RenderedTranslationPrompt, TRANSLATION_
 
 _BACKEND_ALIASES = {
     "vllm": "gemma_vllm_alignatt",
+    "gemma": "gemma_vllm_alignatt",
     "gemma_vllm_alignatt": "gemma_vllm_alignatt",
+    "milmmt": "milmmt_vllm_alignatt",
+    "milmmt_vllm_alignatt": "milmmt_vllm_alignatt",
 }
 
 
@@ -260,7 +262,10 @@ def _run_worker(args: argparse.Namespace) -> None:
     # load() time; translation_alignatt_min_source_mass is read fresh each
     # translate(), so we override it per-prompt via apply_overrides.
     load_start = time.perf_counter()
-    backend = build_mt_backend(model_name=gemma_model_name, runtime_config=runtime_config)
+    backend = build_mt_backend(
+        model_name=mt_model_name_for_backend(backend_name),
+        runtime_config=runtime_config,
+    )
     backend.load()
     load_ms = (time.perf_counter() - load_start) * 1000.0
 

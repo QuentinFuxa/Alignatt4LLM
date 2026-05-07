@@ -1,13 +1,15 @@
-# Gemma Alignment Heads
+# AlignAtt Head Artifacts
 
-This directory is now Gemma-first.
+This directory keeps measured AlignAtt head artifacts. Text-side MT defaults are
+Gemma-specific for the submitted cascade; MiLMMT files are experimental
+post-submission artifacts.
 
 The main text-side artifact here is [`detect_translation_heads.py`](/home/fuxa/cascade_simultaneous/assets/attention_heads/detect_translation_heads.py), which implements the paper-style Translation Score pipeline for causal decoder attention heads:
 
 1. load parallel sentence pairs for a direction,
 2. annotate word alignments with `gpt-5-mini`,
 3. filter to reliable lexical anchors,
-4. run the Gemma translation model with `output_attentions=True`,
+4. run the translation model with `output_attentions=True`,
 5. score every `(layer, head)` by full-sequence argmax accuracy on aligned target tokens.
 
 ## What Lives Here
@@ -16,8 +18,10 @@ The main text-side artifact here is [`detect_translation_heads.py`](/home/fuxa/c
   Clean GPT-derived word mappings after anchor filtering.
 - `raw_alignments_<direction>.jsonl`
   Resume-friendly raw alignment annotations.
+- `translation_heads_xiaomi-research_MiLMMT-46-4B-v0_1_<direction>.json`
+  Experimental ranked text translation heads for MiLMMT.
 - `translation_heads_google_gemma-4-E4B-it_<direction>.json`
-  Ranked text translation heads for Gemma.
+  Ranked text translation heads for the submitted Gemma MT route.
 - `audio_alignment_heads_google_gemma-4-E4B-it_*.json`
   Audio-side attention-head bundles used by the current alignment probe.
 

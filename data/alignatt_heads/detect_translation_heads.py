@@ -59,6 +59,8 @@ DEFAULT_MT_MODEL = "google/gemma-4-E4B-it"
 DEFAULT_ALIGNMENT_MODEL = "gpt-5-mini"
 DEFAULT_DIRECTION = "cs-en"
 PAPER_THRESHOLD = 0.1
+MILMMT_EXPECTED_NUM_LAYERS = 34
+MILMMT_EXPECTED_NUM_HEADS = 8
 
 HYMT_PROMPTS = {
     "en-zh": "将以下文本翻译为中文，注意只需要输出翻译后的结果，不要额外解释：\n\n",
@@ -800,6 +802,19 @@ def build_translation_prompt(
 ) -> str:
     """Build the prompt text used by the translation model."""
     lowered = model_name.lower()
+    if "milmmt" in lowered:
+        src_lang, tgt_lang = direction.split("-", 1)
+        src_name = LANGUAGE_NAMES.get(src_lang, src_lang)
+        tgt_name = LANGUAGE_NAMES.get(tgt_lang, tgt_lang)
+        if src_name == "Chinese":
+            src_name = "Chinese (Simplified)"
+        if tgt_name == "Chinese":
+            tgt_name = "Chinese (Simplified)"
+        return (
+            f"Translate this from {src_name} to {tgt_name}:\n"
+            f"{src_name}: {source_text}\n"
+            f"{tgt_name}:"
+        )
 
     if "qwen" in lowered:
         src_lang, tgt_lang = direction.split("-", 1)
@@ -952,6 +967,15 @@ def detect_heads(
     num_layers = int(text_config.num_hidden_layers)
     num_heads = int(text_config.num_attention_heads)
     print(f"Model: {num_layers} layers x {num_heads} heads", flush=True)
+    if "milmmt" in model_name.lower() and (
+        num_layers != MILMMT_EXPECTED_NUM_LAYERS
+        or num_heads != MILMMT_EXPECTED_NUM_HEADS
+    ):
+        raise RuntimeError(
+            "MiLMMT head detection expected "
+            f"{MILMMT_EXPECTED_NUM_LAYERS} layers x {MILMMT_EXPECTED_NUM_HEADS} heads, "
+            f"got {num_layers} x {num_heads}."
+        )
 
     score_sum = np.zeros((num_layers, num_heads), dtype=np.float64)
     score_count = np.zeros((num_layers, num_heads), dtype=np.int64)
@@ -1297,6 +1321,17 @@ def save_word_alignments_json(rows: list[dict], output_path: Path) -> None:
 
 
 def save_heads_json(result: dict, output_path: Path) -> None:
+    if "milmmt" in str(result.get("model", "")).lower():
+        invalid = [
+            {"layer": int(head["layer"]), "head": int(head["head"])}
+            for head in result.get("token_alignment_heads", [])
+            if not (
+                0 <= int(head["layer"]) < MILMMT_EXPECTED_NUM_LAYERS
+                and 0 <= int(head["head"]) < MILMMT_EXPECTED_NUM_HEADS
+            )
+        ]
+        if invalid:
+            raise ValueError(f"Invalid MiLMMT head indices: {invalid}")
     output_path.write_text(
         json.dumps(result, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",

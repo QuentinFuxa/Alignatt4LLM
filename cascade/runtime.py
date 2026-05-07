@@ -74,8 +74,9 @@ VALID_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_vllm_qk_fast")
 # The stable set is used by default in comparison scripts.
 STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_vllm_qk_fast")
 
-# MT is now a single shipped path: Gemma AlignAtt through vLLM.
-VALID_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
+# The submitted/stable MT path remains Gemma AlignAtt through vLLM. MiLMMT is
+# an explicit experimental route for post-submission improvements.
+VALID_MT_BACKEND_NAMES = ("gemma_vllm_alignatt", "milmmt_vllm_alignatt")
 STABLE_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
 VALID_ASR_ALIGNATT_COMMIT_POLICIES = ("frontier_flush", "rewind_abort")
 
@@ -120,11 +121,26 @@ gemma_model_name = _resolve_hf_snapshot(
     "models--google--gemma-4-E4B-it/snapshots/83df0a889143b1dbfc61b591bbc639540fd9ce4c",
     env_var="CASCADE_GEMMA_SNAPSHOT",
 )
+milmmt_model_name = _resolve_hf_snapshot(
+    "models--xiaomi-research--MiLMMT-46-4B-v0.1/snapshots/1341209df846d7b2f6a077090ca957e28656e3de",
+    env_var="CASCADE_MILMMT_SNAPSHOT",
+)
 
 
-def alignatt_heads_path_for(source_lang: str, target_lang: str) -> str:
+def alignatt_heads_path_for(
+    source_lang: str,
+    target_lang: str,
+    *,
+    mt_backend_name: str = "gemma_vllm_alignatt",
+) -> str:
     source_code = LANGUAGE_NAME_TO_CODE.get(source_lang, source_lang.lower())
     target_code = LANGUAGE_NAME_TO_CODE.get(target_lang, target_lang.lower())
+    if mt_backend_name == "milmmt_vllm_alignatt":
+        return (
+            "data/alignatt_heads/"
+            "translation_heads_xiaomi-research_MiLMMT-46-4B-v0_1_"
+            f"{source_code}-{target_code}.json"
+        )
     return (
         "data/alignatt_heads/"
         f"translation_heads_google_gemma-4-E4B-it_{source_code}-{target_code}.json"
@@ -133,6 +149,14 @@ def alignatt_heads_path_for(source_lang: str, target_lang: str) -> str:
 
 def target_lang_code_for(target_lang: str) -> str:
     return LANGUAGE_NAME_TO_CODE.get(target_lang, target_lang.lower())
+
+
+def mt_model_name_for_backend(mt_backend_name: str) -> str:
+    if mt_backend_name == "milmmt_vllm_alignatt":
+        return milmmt_model_name
+    if mt_backend_name == "gemma_vllm_alignatt":
+        return gemma_model_name
+    raise ValueError(f"Unknown mt_backend_name: {mt_backend_name!r}")
 
 
 @dataclass
@@ -181,6 +205,7 @@ class CascadeRuntimeConfig:
     # diagnostics that overflowed at 1024.
     qwen_asr_max_model_len: int = 2560
     gemma_max_model_len: int = 1024
+    mt_max_model_len: int = 1024
     gemma_enable_prefix_caching: bool = True
     alignment_backend_name: str = "qwen_forced"
     mt_backend_name: str = "gemma_vllm_alignatt"
@@ -199,12 +224,10 @@ class CascadeRuntimeConfig:
     gemma_vllm_enable_prefix_caching: bool = False
     gemma_vllm_cudagraph_mode: str | None = "full"
     gemma_vllm_gpu_memory_utilization: float = 0.5
-    # vLLM-specific config for the experimental gemma_vllm_alignatt MT backend.
+    # vLLM-specific config for Gemma/MiLMMT vLLM AlignAtt MT backends.
     # Prefix caching stays off by default (observer-safety requirement); the MT
-    # backend reuses the Gemma max_model_len so prompt budgeting is identical
-    # to the Transformers MT path. 0.5 utilization matches the ASR vLLM backend:
-    # Gemma 4 E4B weights (audio tower bundled) take ~15 GiB, so anything below
-    # ~0.45 leaves no budget for the KV cache on a 40 GiB A100.
+    # backend uses the active MT model context cap. 0.5 matches the validated
+    # Gemma submission path on a 40 GiB A100.
     mt_vllm_enforce_eager: bool = False
     mt_vllm_enable_prefix_caching: bool = False
     mt_vllm_cudagraph_mode: str | None = "full"
@@ -240,7 +263,9 @@ class CascadeRuntimeConfig:
     def __post_init__(self) -> None:
         if self.translation_alignatt_heads_path is None:
             self.translation_alignatt_heads_path = alignatt_heads_path_for(
-                self.source_lang, self.target_lang
+                self.source_lang,
+                self.target_lang,
+                mt_backend_name=self.mt_backend_name,
             )
         self._validate()
 
@@ -284,16 +309,27 @@ class CascadeRuntimeConfig:
                 "qwen_asr_max_model_len must be >= 1024, got "
                 f"{self.qwen_asr_max_model_len!r}."
             )
+        if int(self.mt_max_model_len) < 128:
+            raise ValueError(
+                "mt_max_model_len must be >= 128, got "
+                f"{self.mt_max_model_len!r}."
+            )
 
     def apply_overrides(self, **overrides) -> None:
         for key, value in overrides.items():
             if not hasattr(self, key):
                 raise AttributeError(f"Unknown runtime config override: {key}")
             setattr(self, key, value)
-        lang_changed = "source_lang" in overrides or "target_lang" in overrides
-        if lang_changed and "translation_alignatt_heads_path" not in overrides:
+        route_changed = (
+            "source_lang" in overrides
+            or "target_lang" in overrides
+            or "mt_backend_name" in overrides
+        )
+        if route_changed and "translation_alignatt_heads_path" not in overrides:
             self.translation_alignatt_heads_path = alignatt_heads_path_for(
-                self.source_lang, self.target_lang
+                self.source_lang,
+                self.target_lang,
+                mt_backend_name=self.mt_backend_name,
             )
         self._validate()
 
@@ -324,14 +360,18 @@ class CascadeRuntimeConfig:
         See alignment_backend_fingerprint for the engine-vs-policy split.
         """
         name = self.mt_backend_name
-        if name == "gemma_vllm_alignatt":
+        if name in {"gemma_vllm_alignatt", "milmmt_vllm_alignatt"}:
             return (
                 name,
                 bool(self.mt_vllm_enforce_eager),
                 bool(self.mt_vllm_enable_prefix_caching),
                 self.mt_vllm_cudagraph_mode,
                 float(self.mt_vllm_gpu_memory_utilization),
-                int(self.gemma_max_model_len),
+                int(
+                    self.mt_max_model_len
+                    if name == "milmmt_vllm_alignatt"
+                    else self.gemma_max_model_len
+                ),
             )
         return (name,)
 
@@ -548,6 +588,7 @@ def _enrich_provenance(
     provenance.setdefault("source_lang", config.source_lang)
     provenance.setdefault("target_lang", config.target_lang)
     provenance.setdefault("alignment_backend_name", config.alignment_backend_name)
+    provenance.setdefault("mt_backend_name", config.mt_backend_name)
     return provenance
 
 
@@ -622,7 +663,7 @@ class LoadedModelBundle:
         current_fp = self.config.mt_backend_fingerprint()
         if self.mt_backend is None or self._mt_backend_fp != current_fp:
             self.mt_backend = build_mt_backend(
-                model_name=self.gemma_path,
+                model_name=mt_model_name_for_backend(self.config.mt_backend_name),
                 runtime_config=self.config,
             )
             self.mt_backend.load()
@@ -1732,6 +1773,7 @@ class CascadeSession:
                 "translation_variant_id": variant.variant_id,
                 "translation_variant_description": variant.description,
                 "alignment_backend_name": self.config.alignment_backend_name,
+                "mt_backend_name": self.config.mt_backend_name,
                 "translation_alignatt_heads_path": self.config.translation_alignatt_heads_path,
                 "translation_alignatt_top_k_heads": self.config.translation_alignatt_top_k_heads,
                 "translation_alignatt_filter_width": self.config.translation_alignatt_filter_width,
@@ -1755,6 +1797,7 @@ class CascadeSession:
                 "repetition_penalty": self.config.repetition_penalty,
                 "asr_gpu_memory_utilization": self.config.asr_gpu_memory_utilization,
                 "gemma_max_model_len": self.config.gemma_max_model_len,
+                "mt_max_model_len": self.config.mt_max_model_len,
                 "gemma_enable_prefix_caching": self.config.gemma_enable_prefix_caching,
                 "gemma_audio_alignment_heads_path": self.config.gemma_audio_alignment_heads_path,
                 # Aggregation is hard-coded in the maintained path on purpose:

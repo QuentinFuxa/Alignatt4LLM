@@ -307,6 +307,13 @@ def build_mt_backend(
             model_name=model_name,
             runtime_config=runtime_config,
         )
+    if backend_name == "milmmt_vllm_alignatt":
+        from cascade.mt.gemma_vllm_backend import MiLMMTVLLMMTBackend
+
+        return MiLMMTVLLMMTBackend(
+            model_name=model_name,
+            runtime_config=runtime_config,
+        )
     raise ValueError(f"Unknown mt_backend_name: {backend_name!r}")
 
 
@@ -426,14 +433,20 @@ class BaseMTBackend(ABC):
             max_token_cap = self.runtime_config.max_new_tokens
 
         available_max_tokens = (
-            self.runtime_config.gemma_max_model_len
+            getattr(
+                self.runtime_config,
+                "mt_max_model_len",
+                self.runtime_config.gemma_max_model_len,
+            )
             - prompt_tokens
             - self.runtime_config.translation_generation_margin
         )
         if available_max_tokens < 1:
             raise RuntimeError(
-                f"Gemma prompt exhausted the context window: prompt_tokens={prompt_tokens} "
-                f"gemma_max_model_len={self.runtime_config.gemma_max_model_len}"
+                "MT prompt exhausted the context window: "
+                f"prompt_tokens={prompt_tokens} "
+                "max_model_len="
+                f"{getattr(self.runtime_config, 'mt_max_model_len', self.runtime_config.gemma_max_model_len)}"
             )
         return min(max_token_cap, desired_max_tokens, available_max_tokens)
 

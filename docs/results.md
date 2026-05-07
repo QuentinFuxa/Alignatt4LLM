@@ -5,6 +5,11 @@
 - Batch runner default: `chunk_ms=800`
 - Submission low regime: `chunk_ms=850`
 - Submission high regime: `chunk_ms=1500`
+- Submitted MT route: `gemma_vllm_alignatt`
+- Experimental MT route: `milmmt_vllm_alignatt`
+- Official organizer baseline outputs are parsed by
+  `scripts/parse_official_baseline_outputs.py` from
+  `https://github.com/user-attachments/files/26411361/outputs.zip`.
 
 ## Reference point
 
@@ -32,3 +37,17 @@ Frozen high-regime dev logs (`chunk_ms=1500`):
 - en→zh: BLEU `39.86`, chrF `37.81`, XCOMET-XL `0.7781`, LongYAAL CU `3271.9 ms`
 
 Use the manifest inside each output directory as the exact provenance record.
+
+## EN->ZH MiLMMT provenance-mass calibration
+
+Single-audio microscope on `/home/dev-set/mcif-long-trans/audio/ccpXHNfaoy.wav`
+with `qwen_forced` ASR + `milmmt_vllm_alignatt` MT, `chunk_ms=750`,
+`border_margin=0`, `top_k_heads=8`, no COMET:
+
+- `min_source_mass=0.000`: BLEU `30.71`, chrF `28.05`, LongYAAL CU `1401 ms`
+- `min_source_mass=0.020`: BLEU `35.79`, chrF `31.30`, LongYAAL CU `1832 ms`
+- `min_source_mass=0.035`: BLEU `35.92`, chrF `31.74`, LongYAAL CU `1941 ms`
+- `min_source_mass=0.050`: BLEU `37.24`, chrF `32.59`, LongYAAL CU `2127 ms`
+
+These are experimental MiLMMT calibration notes only. They do not replace the
+submitted Gemma presets or the frozen submission dev-log anchors above.

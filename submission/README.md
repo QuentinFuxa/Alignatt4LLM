@@ -31,7 +31,7 @@ submission/build_push_dockerhub_h100.sh
 ```
 
 The build downloads and bundles the exact Qwen ASR, Qwen ForcedAligner, and
-Gemma snapshots used by the runtime. The resulting image runs with
+Gemma snapshots used by the submitted runtime. The resulting image runs with
 `HF_HUB_OFFLINE=1` and does not require model downloads at evaluation time.
 
 Set `PUSH=0` for a build-only dry run. Set `VALIDATION_WAV=/path/to/clip.wav`
