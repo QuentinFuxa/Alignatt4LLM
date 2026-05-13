@@ -1,0 +1,26 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l r r r r r}
+\toprule
+Policy & BLEU $\uparrow$ & chrF $\uparrow$ & XCOMET-XL $\uparrow$ & CU (s) $\downarrow$ & CA (s) $\downarrow$ \\
+\midrule
+\textsc{AlignAtt} submitted & 24.09 & 62.96 & -- & 1.81 & 1.71 \\
+\textsc{AlignAtt} tuned ($b=0,k=4,m=0.05$) & 30.12 & 65.29 & -- & 2.14 & 2.00 \\
+cut-last-0 & 19.14 & 59.87 & -- & 1.67 & 1.52 \\
+cut-last-1 & 21.42 & 61.22 & -- & 2.44 & 2.45 \\
+cut-last-2 & 26.36 & 65.21 & -- & 1.69 & 1.51 \\
+cut-last-3 & 28.85 & 65.64 & -- & 2.33 & 2.14 \\
+cut-last-4 & 30.35 & 66.53 & -- & 2.43 & 2.27 \\
+cut-last-5 & 30.74 & 66.51 & -- & 2.81 & 2.62 \\
+cut-last-6 & 32.45 & 67.69 & -- & 3.10 & 2.93 \\
+cut-last-7 & 34.20 & 68.36 & -- & 4.35 & 4.23 \\
+\bottomrule
+\end{tabular}
+}
+% source=outputs/mt_cutoff_policy_tradeoff_ende_oiq; num_inputs=1; chunk_ms=850
+\caption{\textbf{Single-clip quality--latency diagnostic for MT acceptance policies.} Each row is a real streaming run with the same ASR, Gemma draft model, chunk size, and evaluation protocol; only the partial MT acceptance policy changes. Metrics are computed by OmniSTEval after long-form resegmentation.}
+\label{tab:mt-cutoff-quality-latency}
+\end{table}

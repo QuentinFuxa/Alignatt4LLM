@@ -727,6 +727,10 @@ def install_global_gemma4_attention_mt_patch() -> None:
     install_global_gemma_attention_mt_patch()
 
 
+def install_global_gemma_attention_mt_patches() -> None:
+    install_global_gemma_attention_mt_patch()
+
+
 def install_stub_observers_on_model(model) -> int:
     """Install a ``None`` stub on every Gemma-family attention observer attr.
 

@@ -1,0 +1,24 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{l r r r r}
+\toprule
+Policy & BLEU $\uparrow$ & chrF $\uparrow$ & CU (s) $\downarrow$ & CA (s) $\downarrow$ \\
+\midrule
+\textsc{AlignAtt} tuned ($b=1,k=4,m=0.005,f=0.03,u=0.15$) & 28.57 & 60.52 & 1.92 & 1.75 \\
+cut-last-0 & 19.44 & 52.82 & 0.98 & 0.74 \\
+cut-last-1 & 23.66 & 57.75 & 1.36 & 1.15 \\
+cut-last-2 & 26.00 & 59.94 & 1.68 & 1.48 \\
+cut-last-3 & 29.49 & 61.09 & 2.06 & 1.87 \\
+cut-last-4 & 31.40 & 62.50 & 2.35 & 2.17 \\
+cut-last-5 & 34.20 & 63.83 & 2.71 & 2.53 \\
+cut-last-6 & 34.12 & 63.59 & 3.15 & 2.99 \\
+\bottomrule
+\end{tabular}
+}
+% source=outputs/mt_cutoff_policy_tradeoff_ende_heldout3_budget2s_union; num_inputs=3; chunk_ms=850
+\caption{\textbf{Quality--latency trade-off for MT acceptance policies.} Each row is a real streaming run with the same ASR, Gemma draft model, chunk size, and evaluation protocol; only the partial MT acceptance policy changes. Metrics are computed by OmniSTEval after long-form resegmentation.}
+\label{tab:mt-cutoff-quality-latency}
+\end{table}

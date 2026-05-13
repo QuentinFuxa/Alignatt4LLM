@@ -32,6 +32,7 @@ with MiLMMT's raw translation prompt.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from time import perf_counter
 from types import SimpleNamespace
 from typing import Any
@@ -61,6 +62,47 @@ from cascade.mt.gemma_vllm_observer import (
 
 MILMMT_NUM_TEXT_LAYERS = 34
 MILMMT_NUM_ATTENTION_HEADS = 8
+GEMMA4_E4B_SPECULATIVE_ASSISTANT_MODEL_ID = "google/gemma-4-E4B-it-assistant"
+
+
+def _hf_hub_roots() -> list[Path]:
+    roots: list[Path] = []
+    for candidate in (
+        os.environ.get("HF_HUB_CACHE"),
+        os.path.join(os.environ.get("HF_HOME", ""), "hub") if os.environ.get("HF_HOME") else None,
+        "/home/.cache/huggingface/hub",
+        os.path.join(os.path.expanduser("~/.cache/huggingface/hub")),
+    ):
+        if not candidate:
+            continue
+        path = Path(candidate)
+        if path not in roots:
+            roots.append(path)
+    return roots
+
+
+def _resolve_default_gemma_speculative_assistant_model() -> str:
+    """Prefer a cached Gemma assistant snapshot, fall back to the HF model id."""
+    override = os.environ.get("CASCADE_GEMMA_ASSISTANT_SNAPSHOT")
+    if override:
+        return override
+
+    for root in _hf_hub_roots():
+        snapshots_root = (
+            root
+            / "models--google--gemma-4-E4B-it-assistant"
+            / "snapshots"
+        )
+        if not snapshots_root.is_dir():
+            continue
+        snapshots = sorted(
+            (path for path in snapshots_root.iterdir() if path.is_dir()),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        if snapshots:
+            return str(snapshots[0])
+    return GEMMA4_E4B_SPECULATIVE_ASSISTANT_MODEL_ID
 
 
 def _milmmt_language_name(language: str) -> str:
@@ -89,6 +131,15 @@ class MiLMMTVLLMMTBackend(BaseMTBackend):
         self.gpu_memory_utilization = float(
             getattr(runtime_config, "mt_vllm_gpu_memory_utilization", 0.5)
         )
+        self.enable_speculative_decoding = bool(
+            getattr(runtime_config, "mt_vllm_enable_speculative_decoding", False)
+        )
+        self.num_speculative_tokens = int(
+            getattr(runtime_config, "mt_vllm_num_speculative_tokens", 4)
+        )
+        self.speculative_assistant_model = getattr(
+            runtime_config, "mt_vllm_speculative_assistant_model", None
+        )
         # Observer sizing: max_prompt_tokens is bounded by the active MT
         # context cap,
         # max_decode_tokens by the per-run generation cap (we pick the larger of
@@ -107,6 +158,85 @@ class MiLMMTVLLMMTBackend(BaseMTBackend):
         if self.enforce_eager or self.cudagraph_mode is None:
             return None
         return {"cudagraph_mode": str(self.cudagraph_mode)}
+
+    def _resolve_speculative_assistant_model(self) -> str | None:
+        configured = getattr(
+            self.runtime_config,
+            "mt_vllm_speculative_assistant_model",
+            self.speculative_assistant_model,
+        )
+        if configured:
+            return str(configured)
+        if self.model_family == "Gemma":
+            return _resolve_default_gemma_speculative_assistant_model()
+        return None
+
+    def build_speculative_config(self) -> dict[str, Any] | None:
+        enabled = bool(
+            getattr(
+                self.runtime_config,
+                "mt_vllm_enable_speculative_decoding",
+                self.enable_speculative_decoding,
+            )
+        )
+        if not enabled:
+            return None
+        num_tokens = int(
+            getattr(
+                self.runtime_config,
+                "mt_vllm_num_speculative_tokens",
+                self.num_speculative_tokens,
+            )
+        )
+        if num_tokens < 1:
+            raise ValueError(
+                "mt_vllm_num_speculative_tokens must be >= 1 when speculative "
+                f"decoding is enabled, got {num_tokens!r}."
+            )
+        assistant_model = self._resolve_speculative_assistant_model()
+        if not assistant_model:
+            raise ValueError(
+                "MT speculative decoding requires "
+                "mt_vllm_speculative_assistant_model for this backend."
+            )
+        return {
+            "model": assistant_model,
+            "num_speculative_tokens": num_tokens,
+        }
+
+    def build_llm_init_kwargs(self) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {
+            "model": self.model_name,
+            "trust_remote_code": True,
+            "dtype": "bfloat16",
+            "max_model_len": int(self.max_prompt_tokens),
+            "gpu_memory_utilization": self.gpu_memory_utilization,
+            "enforce_eager": self.enforce_eager,
+            "enable_prefix_caching": self.enable_prefix_caching,
+            "compilation_config": self._build_compilation_config(),
+            "worker_cls": "cascade.mt.gemma_vllm_worker.GemmaVLLMMTWorker",
+        }
+        speculative_config = self.build_speculative_config()
+        if speculative_config is not None:
+            kwargs["speculative_config"] = speculative_config
+        return kwargs
+
+    def build_sampling_params_kwargs(
+        self,
+        *,
+        max_new_tokens: int,
+        stop_token_ids: list[int],
+    ) -> dict[str, Any]:
+        return {
+            "temperature": 0.0,
+            "top_k": 1,
+            "max_tokens": int(max_new_tokens),
+            "repetition_penalty": float(
+                getattr(self.runtime_config, "repetition_penalty", 1.0)
+            ),
+            "stop_token_ids": stop_token_ids or None,
+            "skip_special_tokens": False,
+        }
 
     def load(self) -> None:
         from transformers import AutoTokenizer
@@ -146,17 +276,8 @@ class MiLMMTVLLMMTBackend(BaseMTBackend):
             # MT worker bootstrap needs it for the same reason the ASR one does.
             os.environ.setdefault("VLLM_ALLOW_INSECURE_SERIALIZATION", "1")
             try:
-                self.llm = LLM(
-                    model=self.model_name,
-                    trust_remote_code=True,
-                    dtype="bfloat16",
-                    max_model_len=int(self.max_prompt_tokens),
-                    gpu_memory_utilization=self.gpu_memory_utilization,
-                    enforce_eager=self.enforce_eager,
-                    enable_prefix_caching=self.enable_prefix_caching,
-                    compilation_config=self._build_compilation_config(),
-                    worker_cls="cascade.mt.gemma_vllm_worker.GemmaVLLMMTWorker",
-                )
+                llm_kwargs = self.build_llm_init_kwargs()
+                self.llm = LLM(**llm_kwargs)
             finally:
                 if bootstrap_prev is None:
                     os.environ.pop(_MT_OBSERVER_BOOTSTRAP_ENV, None)
@@ -168,6 +289,7 @@ class MiLMMTVLLMMTBackend(BaseMTBackend):
                 tokenizer=self.tokenizer,
                 runtime_config=self.runtime_config,
             )
+        speculative_config = self.build_speculative_config()
         print(
             f"[{self.backend_name}] MT backend loaded; "
             f"heads={len(self.alignatt_heads)} "
@@ -175,7 +297,10 @@ class MiLMMTVLLMMTBackend(BaseMTBackend):
             f"max_decode_tokens={self.max_decode_tokens} "
             f"enforce_eager={self.enforce_eager} "
             f"cudagraph_mode={self.cudagraph_mode} "
-            f"enable_prefix_caching={self.enable_prefix_caching}",
+            f"enable_prefix_caching={self.enable_prefix_caching} "
+            f"speculative_decoding={speculative_config is not None} "
+            f"num_speculative_tokens="
+            f"{None if speculative_config is None else speculative_config['num_speculative_tokens']}",
             flush=True,
         )
 
@@ -387,14 +512,10 @@ class MiLMMTVLLMMTBackend(BaseMTBackend):
 
         stop_token_ids = list(self.resolve_generation_stop_token_ids())
         sampling_params = SamplingParams(
-            temperature=0.0,
-            top_k=1,
-            max_tokens=int(max_new_tokens),
-            repetition_penalty=float(
-                getattr(self.runtime_config, "repetition_penalty", 1.0)
-            ),
-            stop_token_ids=stop_token_ids or None,
-            skip_special_tokens=False,
+            **self.build_sampling_params_kwargs(
+                max_new_tokens=max_new_tokens,
+                stop_token_ids=stop_token_ids,
+            )
         )
 
         prepare_start = perf_counter()
@@ -464,6 +585,56 @@ class MiLMMTVLLMMTBackend(BaseMTBackend):
                 alignatt_metadata=alignatt_metadata,
                 timings_ms=timings_ms,
             )
+
+        acceptance_policy = str(
+            getattr(self.runtime_config, "translation_acceptance_policy", "alignatt")
+        )
+        if acceptance_policy == "cut_last_target_units":
+            cutoff_units = int(
+                getattr(self.runtime_config, "translation_static_cutoff_units", 0)
+            )
+            accepted_generated_token_ids = tuple(
+                int(tid)
+                for tid in self.policy.cut_last_target_stability_units(
+                    draft_generated_ids,
+                    cutoff_units=cutoff_units,
+                )
+            )
+            acceptance_text = self.decode_candidate_text(
+                generated_ids=accepted_generated_token_ids,
+                assistant_prefill=rendered_prompt.assistant_prefill,
+                variant=variant,
+                is_partial=True,
+            )
+            accepted_token_ids = self.encode_semantic_target_token_ids(acceptance_text)
+            alignatt_metadata = {
+                "acceptance_policy": acceptance_policy,
+                "static_cutoff_units": cutoff_units,
+                "accepted_candidate_token_count": len(draft_generated_ids),
+                "accepted_token_count": len(accepted_generated_token_ids),
+                "stop_reason": finish_reason,
+            }
+            timings_ms = {
+                "prompt_render": prompt_render_ms,
+                "prepare_observer": prepare_ms,
+                "generate": generate_ms,
+                "total": (perf_counter() - total_start) * 1000.0,
+            }
+            return MTBackendResult(
+                draft_text=draft_text,
+                acceptance_text=acceptance_text,
+                draft_generated_token_ids=tuple(int(tid) for tid in draft_generated_ids),
+                accepted_generated_token_ids=accepted_generated_token_ids,
+                draft_token_ids=draft_token_ids,
+                accepted_token_ids=accepted_token_ids,
+                num_cached_tokens=None,
+                prompt_num_tokens=prompt_num_tokens,
+                stop_reason=finish_reason,
+                alignatt_metadata=alignatt_metadata,
+                timings_ms=timings_ms,
+            )
+        if acceptance_policy != "alignatt":
+            raise ValueError(f"Unknown translation_acceptance_policy: {acceptance_policy!r}")
 
         # Partial translation: fetch observer and run the AlignAtt policy.
         fetch_start = perf_counter()
@@ -579,9 +750,15 @@ class MiLMMTVLLMMTBackend(BaseMTBackend):
             for token_index, (token_id, current_source_local_position) in enumerate(
                 zip(operating_ids, aligned_source_local_positions)
             ):
+                source_accessible_mass: float | None = None
+                source_inaccessible_mass: float | None = None
+                if token_index < len(provenance_mass):
+                    source_accessible_mass = float(provenance_mass[token_index][0])
+                    source_inaccessible_mass = float(provenance_mass[token_index][1])
                 unsafe_reason, _ = self.policy.should_stop_in_loop(
                     current_source_local_position=current_source_local_position,
                     accessible_source_token_count=source_map.accessible_source_token_count,
+                    source_inaccessible_mass=source_inaccessible_mass,
                 )
                 if unsafe_reason == "source_frontier":
                     unsafe_target_token_index = token_index
@@ -605,14 +782,28 @@ class MiLMMTVLLMMTBackend(BaseMTBackend):
                     break
                 if (
                     min_source_mass > 0.0
-                    and token_index < len(provenance_mass)
-                    and provenance_mass[token_index][0] < min_source_mass
+                    and source_accessible_mass is not None
+                    and source_accessible_mass < min_source_mass
                 ):
                     unsafe_reason = "provenance_weak"
                     unsafe_target_token_index = token_index
                     unsafe_token_id = int(token_id)
                     stop_reason = "alignatt:provenance_weak"
                     break
+                if (
+                    source_accessible_mass is not None
+                    and source_inaccessible_mass is not None
+                ):
+                    provenance_stop_reason = self.policy.should_stop_for_provenance_mass(
+                        source_accessible_mass=source_accessible_mass,
+                        source_inaccessible_mass=source_inaccessible_mass,
+                    )
+                    if provenance_stop_reason is not None:
+                        unsafe_reason = provenance_stop_reason
+                        unsafe_target_token_index = token_index
+                        unsafe_token_id = int(token_id)
+                        stop_reason = f"alignatt:{provenance_stop_reason}"
+                        break
                 accepted_candidate_ids.append(int(token_id))
 
         acceptance = self.policy.finalize_partial(

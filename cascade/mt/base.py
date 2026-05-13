@@ -588,6 +588,42 @@ class AlignAttDecoderPolicy:
     def trim_to_last_complete_word(self, generated_ids: Sequence[int]) -> list[int]:
         return self.trim_to_last_stability_unit(generated_ids)
 
+    def cut_last_target_stability_units(
+        self,
+        generated_ids: Sequence[int],
+        *,
+        cutoff_units: int,
+    ) -> list[int]:
+        """Return ``generated_ids`` after dropping the last N target units.
+
+        The unit definition matches ``trim_to_last_stability_unit``: whitespace
+        languages use word starts, while CJK-style no-space scripts can advance
+        character by character.
+        """
+        ids = list(generated_ids)
+        if not ids:
+            return []
+        cutoff_units = int(cutoff_units)
+        if cutoff_units <= 0:
+            return ids
+        token_strings = self.tokenizer.convert_ids_to_tokens(ids)
+        unit_start_indices = [
+            idx
+            for idx, token in enumerate(token_strings)
+            if self.token_starts_stability_unit(str(token), is_first_token=(idx == 0))
+        ]
+        if not unit_start_indices:
+            return []
+        keep_unit_count = max(0, len(unit_start_indices) - cutoff_units)
+        if keep_unit_count <= 0:
+            return []
+        keep_end = (
+            unit_start_indices[keep_unit_count]
+            if keep_unit_count < len(unit_start_indices)
+            else len(ids)
+        )
+        return ids[:keep_end]
+
     def should_stop_in_loop(
         self,
         *,
@@ -595,7 +631,6 @@ class AlignAttDecoderPolicy:
         accessible_source_token_count: int,
         source_inaccessible_mass: float | None = None,
     ) -> tuple[str | None, int | None]:
-        del source_inaccessible_mass
         if current_source_local_position is None:
             return None, None
 
@@ -604,8 +639,57 @@ class AlignAttDecoderPolicy:
         )
         frontier = max(0, int(accessible_source_token_count)) + border_margin
         if current_source_local_position >= frontier:
+            frontier_min_inaccessible_mass = float(
+                getattr(
+                    self.runtime_config,
+                    "translation_alignatt_frontier_min_inaccessible_mass",
+                    0.0,
+                )
+            )
+            if (
+                frontier_min_inaccessible_mass > 0.0
+                and source_inaccessible_mass is not None
+                and float(source_inaccessible_mass) < frontier_min_inaccessible_mass
+            ):
+                return None, current_source_local_position
             return "source_frontier", current_source_local_position
         return None, current_source_local_position
+
+    def should_stop_for_provenance_mass(
+        self,
+        *,
+        source_accessible_mass: float,
+        source_inaccessible_mass: float,
+    ) -> str | None:
+        """Optional confidence gates from the source provenance partition.
+
+        The argmax frontier answers "where is the strongest source point?".
+        These gates answer the complementary question: "how much of this token's
+        attention is actually grounded in accessible source versus future
+        source?". Defaults preserve the historical argmax-only policy.
+        """
+        accessible = float(source_accessible_mass)
+        inaccessible = float(source_inaccessible_mass)
+        max_inaccessible = float(
+            getattr(
+                self.runtime_config,
+                "translation_alignatt_max_inaccessible_source_mass",
+                1.0,
+            )
+        )
+        if max_inaccessible < 1.0 and inaccessible > max_inaccessible:
+            return "provenance_inaccessible_high"
+
+        min_margin = float(
+            getattr(
+                self.runtime_config,
+                "translation_alignatt_min_accessible_inaccessible_margin",
+                -1.0,
+            )
+        )
+        if min_margin > -1.0 and accessible - inaccessible < min_margin:
+            return "provenance_margin_weak"
+        return None
 
     def finalize_partial(
         self,
@@ -656,6 +740,11 @@ class AlignAttDecoderPolicy:
             "accepted_token_count": len(trimmed_generated_ids),
             "word_boundary_trimmed": word_boundary_trimmed,
             "stop_reason": stop_reason,
+            "acceptance_policy": getattr(
+                self.runtime_config,
+                "translation_acceptance_policy",
+                "alignatt",
+            ),
             "current_audio_ms": None if source_map is None else source_map.current_audio_ms,
             "inaccessible_ms": None if source_map is None else source_map.inaccessible_ms,
             "probe_mode": "prefix_online_batched",
@@ -817,6 +906,25 @@ def build_prompt_source_map(
     source_rel_start, source_rel_end = rendered_prompt.source_text_char_span_in_user_message
     source_char_start = user_char_start + source_rel_start
     source_char_end = user_char_start + source_rel_end
+    return build_prompt_source_map_from_char_span(
+        tokenizer=tokenizer,
+        source_frontier=source_frontier,
+        prompt_text=prompt_text,
+        source_char_start=source_char_start,
+        source_char_end=source_char_end,
+    )
+
+
+def build_prompt_source_map_from_char_span(
+    *,
+    tokenizer,
+    source_frontier,
+    prompt_text: str,
+    source_char_start: int,
+    source_char_end: int,
+) -> PromptSourceMap | None:
+    if source_frontier is None or not source_frontier.source_text:
+        return None
 
     prompt_offsets = tokenizer(
         prompt_text,

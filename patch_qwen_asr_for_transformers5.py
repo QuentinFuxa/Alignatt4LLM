@@ -76,6 +76,10 @@ def patch_modeling_text(text: str) -> tuple[str, list[str]]:
     updated = text
     changes: list[str] = []
 
+    if "\nimport inspect\n" not in updated:
+        updated = updated.replace("\nimport math\n", "\nimport inspect\nimport math\n")
+        changes.append("added inspect import for create_causal_mask compatibility")
+
     old_import = "from transformers.utils.generic import TransformersKwargs, check_model_inputs"
     new_import = "from transformers.utils.generic import TransformersKwargs, merge_with_config_defaults"
     if old_import in updated:
@@ -119,6 +123,12 @@ if "default" not in ROPE_INIT_FUNCTIONS:
         updated = updated.replace(rope_import, rope_patch)
         changes.append("added default RoPE initializer fallback for transformers 5.x")
 
+    mask_import = "from transformers.masking_utils import create_causal_mask"
+    mask_patch = """from transformers.masking_utils import create_causal_mask as _transformers_create_causal_mask"""
+    if mask_import in updated and "_transformers_create_causal_mask" not in updated:
+        updated = updated.replace(mask_import, mask_patch)
+        changes.append("wrapped create_causal_mask import for transformers signature drift")
+
     rope_init_line = "        self.rope_init_fn = ROPE_INIT_FUNCTIONS[self.rope_type]\n"
     rope_init_replacement = """        self.rope_init_fn = ROPE_INIT_FUNCTIONS[self.rope_type]
         self.compute_default_rope_parameters = _qwen3_asr_default_rope_init
@@ -126,6 +136,71 @@ if "default" not in ROPE_INIT_FUNCTIONS:
     if rope_init_line in updated and "self.compute_default_rope_parameters = _qwen3_asr_default_rope_init" not in updated:
         updated = updated.replace(rope_init_line, rope_init_replacement)
         changes.append("attached compute_default_rope_parameters hook for transformers 5.x")
+
+    causal_mask_kwarg = "            input_embeds=inputs_embeds,\n"
+    if causal_mask_kwarg in updated:
+        updated = updated.replace(
+            causal_mask_kwarg,
+            "            inputs_embeds=inputs_embeds,\n",
+        )
+        changes.append("renamed create_causal_mask input_embeds kwarg for transformers 5.8+")
+
+    helper_anchor = """from .configuration_qwen3_asr import (
+    Qwen3ASRAudioEncoderConfig,
+    Qwen3ASRConfig,
+    Qwen3ASRThinkerConfig,
+)
+
+
+"""
+    helper_block = """from .configuration_qwen3_asr import (
+    Qwen3ASRAudioEncoderConfig,
+    Qwen3ASRConfig,
+    Qwen3ASRThinkerConfig,
+)
+
+
+_QWEN3_ASR_CREATE_CAUSAL_MASK_PARAMS = set(
+    inspect.signature(_transformers_create_causal_mask).parameters
+)
+
+
+def create_causal_mask(
+    *,
+    config,
+    inputs_embeds=None,
+    input_embeds=None,
+    attention_mask=None,
+    cache_position=None,
+    past_key_values=None,
+    position_ids=None,
+    **kwargs,
+):
+    call_kwargs = {
+        "config": config,
+        "attention_mask": attention_mask,
+        "past_key_values": past_key_values,
+    }
+    embed_arg = inputs_embeds if inputs_embeds is not None else input_embeds
+    if "inputs_embeds" in _QWEN3_ASR_CREATE_CAUSAL_MASK_PARAMS:
+        call_kwargs["inputs_embeds"] = embed_arg
+    elif "input_embeds" in _QWEN3_ASR_CREATE_CAUSAL_MASK_PARAMS:
+        call_kwargs["input_embeds"] = embed_arg
+    optional_kwargs = {
+        "cache_position": cache_position,
+        "position_ids": position_ids,
+        **kwargs,
+    }
+    for key, value in optional_kwargs.items():
+        if key in _QWEN3_ASR_CREATE_CAUSAL_MASK_PARAMS:
+            call_kwargs[key] = value
+    return _transformers_create_causal_mask(**call_kwargs)
+
+
+"""
+    if helper_anchor in updated and "_QWEN3_ASR_CREATE_CAUSAL_MASK_PARAMS" not in updated:
+        updated = updated.replace(helper_anchor, helper_block)
+        changes.append("added create_causal_mask signature compatibility wrapper")
 
     updated, removed = remove_forward_auto_docstring_blocks(updated)
     if removed:

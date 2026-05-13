@@ -1,0 +1,199 @@
+{
+  "run_dir": "outputs/mt_alignatt_cutoff_microscope/20260512T082633Z",
+  "event_count": 6,
+  "draft_token_count": 62,
+  "alignatt_accepted_token_count": 21,
+  "cutoff_units": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "policies": {
+    "AlignAtt": {
+      "accepted": 21,
+      "accepted_pct_of_draft": 33.87096774193548,
+      "unsafe_overemit": 0,
+      "safe_underemit": 0,
+      "commit_error": 0,
+      "unsafe_events": 0,
+      "exact_events": null
+    },
+    "cut-last-0": {
+      "accepted": 62,
+      "accepted_pct_of_draft": 100.0,
+      "unsafe_overemit": 24,
+      "safe_underemit": 0,
+      "commit_error": 24,
+      "unsafe_events": 6,
+      "exact_events": 0
+    },
+    "cut-last-1": {
+      "accepted": 53,
+      "accepted_pct_of_draft": 85.48387096774194,
+      "unsafe_overemit": 20,
+      "safe_underemit": 0,
+      "commit_error": 20,
+      "unsafe_events": 6,
+      "exact_events": 0
+    },
+    "cut-last-2": {
+      "accepted": 45,
+      "accepted_pct_of_draft": 72.58064516129032,
+      "unsafe_overemit": 16,
+      "safe_underemit": 0,
+      "commit_error": 16,
+      "unsafe_events": 6,
+      "exact_events": 0
+    },
+    "cut-last-3": {
+      "accepted": 35,
+      "accepted_pct_of_draft": 56.45161290322581,
+      "unsafe_overemit": 10,
+      "safe_underemit": 0,
+      "commit_error": 10,
+      "unsafe_events": 5,
+      "exact_events": 1
+    },
+    "cut-last-4": {
+      "accepted": 29,
+      "accepted_pct_of_draft": 46.774193548387096,
+      "unsafe_overemit": 6,
+      "safe_underemit": 1,
+      "commit_error": 7,
+      "unsafe_events": 5,
+      "exact_events": 0
+    },
+    "cut-last-5": {
+      "accepted": 22,
+      "accepted_pct_of_draft": 35.483870967741936,
+      "unsafe_overemit": 4,
+      "safe_underemit": 3,
+      "commit_error": 7,
+      "unsafe_events": 3,
+      "exact_events": 2
+    },
+    "cut-last-6": {
+      "accepted": 15,
+      "accepted_pct_of_draft": 24.193548387096776,
+      "unsafe_overemit": 1,
+      "safe_underemit": 7,
+      "commit_error": 8,
+      "unsafe_events": 1,
+      "exact_events": 2
+    },
+    "cut-last-7": {
+      "accepted": 10,
+      "accepted_pct_of_draft": 16.129032258064516,
+      "unsafe_overemit": 0,
+      "safe_underemit": 11,
+      "commit_error": 11,
+      "unsafe_events": 0,
+      "exact_events": 1
+    }
+  },
+  "best_static_cutoff_units": [
+    4,
+    5
+  ],
+  "best_static_commit_error": 7,
+  "first_zero_unsafe_cutoff_units": 7,
+  "required_exact_cutoff_units_by_event": [
+    5,
+    6,
+    3,
+    5,
+    7,
+    6
+  ],
+  "required_exact_cutoff_min": 3,
+  "required_exact_cutoff_max": 7,
+  "accepted_source_regression_count": 3,
+  "accepted_source_regression_events": 2,
+  "attention": {
+    "draft_token_counts_by_event": [
+      11,
+      12,
+      10,
+      7,
+      12,
+      10
+    ],
+    "alignatt_accepted_counts_by_event": [
+      5,
+      4,
+      6,
+      2,
+      2,
+      2
+    ],
+    "first_unsafe_indices_by_event": [
+      5,
+      4,
+      6,
+      2,
+      2,
+      2
+    ],
+    "alignatt_retention_mean_pct": 33.87096774193548,
+    "accepted": {
+      "count": 21,
+      "median_policy_frontier_distance": -7.0,
+      "median_argmax_mass": 0.004649978131055832,
+      "median_accessible_source_mass": 0.3979142904281616,
+      "median_inaccessible_source_mass": 0.003507069079205394,
+      "policy_frontier_distance_counts": {
+        "-28": 1,
+        "-27": 1,
+        "-22": 2,
+        "-19": 3,
+        "-16": 1,
+        "-13": 1,
+        "-11": 1,
+        "-7": 1,
+        "-5": 3,
+        "-4": 4,
+        "-3": 1,
+        "-2": 1,
+        "-1": 1
+      }
+    },
+    "first_unsafe": {
+      "count": 6,
+      "median_policy_frontier_distance": 0.5,
+      "median_argmax_mass": 0.00974089652299881,
+      "median_accessible_source_mass": 0.41888394951820374,
+      "median_inaccessible_source_mass": 0.015974218491464853,
+      "policy_frontier_distance_counts": {
+        "0": 3,
+        "1": 3
+      }
+    },
+    "cut_last_1_unsafe": {
+      "count": 20,
+      "median_policy_frontier_distance": 0.5,
+      "median_argmax_mass": 0.021641699597239494,
+      "median_accessible_source_mass": 0.23999811708927155,
+      "median_inaccessible_source_mass": 0.030377681367099285,
+      "policy_frontier_distance_counts": {
+        "0": 10,
+        "1": 10
+      }
+    },
+    "what_if_accepted_token_totals": {
+      "argmax_mass": {
+        "0.050": 1,
+        "0.100": 0,
+        "0.200": 0
+      },
+      "source_mass": {
+        "0.050": 15,
+        "0.100": 15
+      }
+    }
+  }
+}

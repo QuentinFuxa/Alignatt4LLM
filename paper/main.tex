@@ -528,6 +528,60 @@ behind the retained head sets.
 
 \input{generated/mt_e2e_head_ablation.tex}
 
+\subsection{Attention versus Static Target Cutoff}
+\label{sec:cutoff-microscope}
+
+To test whether the attention signal is useful beyond a fixed target-side
+delay, we run a controlled quality--latency diagnostic on three EN$\to$DE
+development clips held out from the microscope used to inspect the policy. All
+systems use the same Qwen ASR, Gemma MT model, 850\,ms chunks, and evaluator.
+We change only the partial MT acceptance rule: an attention policy, or a static
+policy that accepts each Gemma draft after removing the last $x$ target
+stability units. Unlike the replay-only microscope, this is scored from the
+actual streaming hypotheses, so the comparison lives directly in the BLEU/chrF
+versus LongYAAL plane.
+
+\input{generated/mt_cutoff_policy_heldout3_quality_latency.tex}
+
+The held-out diagnostic is deliberately small, but it is more informative than
+the single-clip frontier. A first tuned policy that required every emitted token
+to carry at least 0.05 accessible-source mass looked Pareto-optimal on the
+microscope clip, but failed here: most stops were caused by the
+\texttt{provenance\_weak} gate, which is too strong for target function words
+and morphology. We therefore use the attention signal primarily as a
+future-dependence test: block tokens when the selected heads show evidence that
+they still depend on inaccessible source, while keeping only a weak
+accessible-source sanity check. The reported \textsc{AlignAtt} point uses top-4
+heads, border margin 1, a soft frontier that ignores frontier crossings with
+less than 0.03 future-source mass, an upper bound of 0.15 future-source mass,
+and a small 0.005 accessible-source-mass floor.
+
+\input{generated/mt_cutoff_policy_heldout3_frontier_gap.tex}
+
+Table~\ref{tab:mt-cutoff-quality-latency} shows the target operating point:
+\textsc{AlignAtt} stays below the 2\,s CU budget at 1.92\,s and beats every
+fixed cutoff that also satisfies that budget. The best admissible fixed cutoff
+is \texttt{cut-last-2}, at 26.00 BLEU, 59.94 chrF, and 1.68\,s CU; attention
+raises this to 28.57 BLEU and 60.52 chrF while remaining under budget. The next
+fixed rule, \texttt{cut-last-3}, does improve quality, but only after crossing
+the 2\,s CU target. Thus the attention policy is not dominated by any fixed
+cutoff from \texttt{cut-last-0} to \texttt{cut-last-6}; it gives a different
+latency allocation rather than just choosing another static delay.
+
+Table~\ref{tab:mt-cutoff-frontier-gap} gives a stricter interpolation check.
+At matched latency, attention sits above the static frontier on BLEU
+(+0.37 at CU, +0.13 at CA) and slightly below it on chrF (-0.14 at CU, -0.22
+at CA). We therefore do not claim that attention uniformly dominates a
+continuous interpolation of fixed cutoffs. The stronger and better-supported
+claim is Pareto: a paired bootstrap over the 117 resegmented segments gives a
+99.5\% weakest-case probability that no fixed cutoff dominates the attention
+point in BLEU, chrF, CU, and CA. This is the mechanism we want from attention:
+not a single fixed delay, but a source-conditioned cutoff that spends latency
+only when the current target token appears to depend on future source context.
+XCOMET-XL is left blank for this diagnostic because the local checkpoint load
+was killed before scoring; the corpus-level benchmark rows above report the
+metric where it is available.
+
 \subsection{Runtime Cost of the MT Component}
 \label{sec:runtime}
 

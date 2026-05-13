@@ -9,13 +9,13 @@ Usage (from .venv-inference):
     python run_simulstream_batch.py \\
         --inputs data/devset/audio/myfXyntFYL.wav data/devset/audio/DyXpuURBMP.wav data/devset/audio/ccpXHNfaoy.wav \\
         --output-dir outputs/simulstream_batch_ende_2s \\
-        --chunk-ms 450 --target de
+        --chunk-ms 850 --target de
 
     # Full set (all supported media files in directory):
     python run_simulstream_batch.py \\
         --input-dir data/devset/audio/ \\
         --output-dir outputs/simulstream_fullset_ende_2s \\
-        --chunk-ms 450 --target de
+        --chunk-ms 850 --target de
 """
 from __future__ import annotations
 
@@ -305,12 +305,24 @@ def run_batch_inference(
         "translation_alignatt_argmax_mass_threshold": getattr(
             processor_config, "translation_alignatt_argmax_mass_threshold", 0.0
         ),
+        "translation_alignatt_frontier_min_inaccessible_mass": getattr(
+            processor_config, "translation_alignatt_frontier_min_inaccessible_mass", 0.0
+        ),
+        "translation_alignatt_max_inaccessible_source_mass": getattr(
+            processor_config, "translation_alignatt_max_inaccessible_source_mass", 1.0
+        ),
+        "translation_alignatt_min_accessible_inaccessible_margin": getattr(
+            processor_config,
+            "translation_alignatt_min_accessible_inaccessible_margin",
+            -1.0,
+        ),
         "hypothesis_elapsed_semantics": HYPOTHESIS_ELAPSED_SEMANTICS_CA_COMPATIBLE,
         "stream_update_elapsed_semantics": STREAM_UPDATE_ELAPSED_SEMANTICS_WALLCLOCK,
     }
     for key in [
         "translation_alignatt_heads_path", "translation_alignatt_top_k_heads",
         "translation_alignatt_filter_width", "translation_alignatt_probe_mode",
+        "translation_acceptance_policy", "translation_static_cutoff_units",
         "gemma_audio_alignment_heads_path",
         "translation_emit_policy", "translation_max_tail_rewrite_words",
         "temperature", "repetition_penalty",
@@ -320,6 +332,9 @@ def run_batch_inference(
         "paper_context_max_chars", "paper_context_history_window_words",
         "mt_vllm_enforce_eager", "mt_vllm_cudagraph_mode",
         "mt_vllm_enable_prefix_caching", "mt_vllm_gpu_memory_utilization",
+        "mt_vllm_enable_speculative_decoding",
+        "mt_vllm_speculative_assistant_model",
+        "mt_vllm_num_speculative_tokens",
         "mt_max_model_len",
     ]:
         runtime_config[key] = getattr(processor.session.config, key, None)
@@ -389,7 +404,7 @@ def parse_args() -> argparse.Namespace:
         help="Directory of input media files (all supported files used).",
     )
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--chunk-ms", default=800, type=int)
+    parser.add_argument("--chunk-ms", default=850, type=int)
     parser.add_argument("--source", default="en")
     parser.add_argument("--target", default="de")
     parser.add_argument(
@@ -428,10 +443,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
     parser.add_argument("--max-history-utterances", default=0, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
-    parser.add_argument("--translation-alignatt-min-source-mass", default=0.0, type=float)
+    parser.add_argument("--translation-alignatt-min-source-mass", default=0.003, type=float)
     parser.add_argument(
         "--translation-alignatt-top-k-heads",
-        default=8,
+        default=4,
         type=int,
         help="Number of retained MT AlignAtt heads to use.",
     )
@@ -443,7 +458,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--translation-alignatt-border-margin",
-        default=0,
+        default=1,
         type=int,
         help=(
             "Source-token safety margin around the accessible frontier. "
@@ -452,6 +467,52 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--translation-alignatt-inaccessible-ms", default=0.0, type=float)
+    parser.add_argument(
+        "--translation-alignatt-frontier-min-inaccessible-mass",
+        default=0.03,
+        type=float,
+        help=(
+            "Soft-frontier gate. With the default 0.0, any source argmax beyond "
+            "the accessible frontier blocks the token. Raising this allows that "
+            "argmax only when the total inaccessible-source mass is below the "
+            "threshold."
+        ),
+    )
+    parser.add_argument(
+        "--translation-alignatt-max-inaccessible-source-mass",
+        default=0.15,
+        type=float,
+        help=(
+            "Optional provenance gate: stop when attention mass on inaccessible "
+            "source exceeds this value. Default 1.0 disables the gate."
+        ),
+    )
+    parser.add_argument(
+        "--translation-alignatt-min-accessible-inaccessible-margin",
+        default=-1.0,
+        type=float,
+        help=(
+            "Optional provenance gate: require accessible-source mass minus "
+            "inaccessible-source mass to exceed this margin. Default -1.0 "
+            "disables the gate."
+        ),
+    )
+    parser.add_argument(
+        "--translation-acceptance-policy",
+        default="alignatt",
+        choices=("alignatt", "cut_last_target_units"),
+        help=(
+            "Partial MT acceptance rule. The default AlignAtt path uses the "
+            "source frontier; cut_last_target_units accepts the same Gemma draft "
+            "after removing a fixed target-side suffix."
+        ),
+    )
+    parser.add_argument(
+        "--translation-static-cutoff-units",
+        default=0,
+        type=int,
+        help="Target stability units to drop when --translation-acceptance-policy=cut_last_target_units.",
+    )
     parser.add_argument(
         "--translation-alignatt-argmax-mass-threshold",
         default=0.0,
@@ -473,6 +534,32 @@ def parse_args() -> argparse.Namespace:
             "calls within an utterance. Source tokens live after the stable "
             "prefix, so the observer still captures their K on every prefill."
         ),
+    )
+    parser.add_argument(
+        "--mt-vllm-enable-speculative-decoding",
+        action="store_true",
+        help=(
+            "Enable vLLM MTP speculative decoding for the MT engine. Off by "
+            "default; for Gemma-4 E4B the backend defaults to the official "
+            "google/gemma-4-E4B-it-assistant model unless an assistant path is supplied."
+        ),
+    )
+    parser.add_argument(
+        "--mt-vllm-speculative-assistant-model",
+        default=None,
+        help=(
+            "Assistant model id/path for MT speculative decoding. If omitted "
+            "on Gemma-4 E4B, the backend searches CASCADE_GEMMA_ASSISTANT_SNAPSHOT "
+            "and the local HF cache before falling back to the official model id."
+        ),
+    )
+    parser.add_argument(
+        "--mt-vllm-num-speculative-tokens",
+        "--mt-vllm-speculative-num-tokens",
+        dest="mt_vllm_num_speculative_tokens",
+        type=int,
+        default=4,
+        help="Number of speculative draft tokens per vLLM cycle; Gemma-4 E4B docs recommend 4.",
     )
     parser.add_argument(
         "--gemma-vllm-gpu-memory-utilization",
@@ -544,9 +631,17 @@ def main() -> None:
         translation_alignatt_border_margin=args.translation_alignatt_border_margin,
         translation_alignatt_inaccessible_ms=args.translation_alignatt_inaccessible_ms,
         translation_alignatt_argmax_mass_threshold=args.translation_alignatt_argmax_mass_threshold,
+        translation_alignatt_frontier_min_inaccessible_mass=args.translation_alignatt_frontier_min_inaccessible_mass,
+        translation_alignatt_max_inaccessible_source_mass=args.translation_alignatt_max_inaccessible_source_mass,
+        translation_alignatt_min_accessible_inaccessible_margin=args.translation_alignatt_min_accessible_inaccessible_margin,
+        translation_acceptance_policy=args.translation_acceptance_policy,
+        translation_static_cutoff_units=args.translation_static_cutoff_units,
         gemma_vllm_gpu_memory_utilization=args.gemma_vllm_gpu_memory_utilization,
         mt_vllm_enable_prefix_caching=args.mt_vllm_enable_prefix_caching,
         mt_vllm_gpu_memory_utilization=args.mt_vllm_gpu_memory_utilization,
+        mt_vllm_enable_speculative_decoding=args.mt_vllm_enable_speculative_decoding,
+        mt_vllm_speculative_assistant_model=args.mt_vllm_speculative_assistant_model,
+        mt_vllm_num_speculative_tokens=args.mt_vllm_num_speculative_tokens,
         asr_alignatt_frame_threshold=args.asr_alignatt_frame_threshold,
         asr_alignatt_rewind_threshold=args.asr_alignatt_rewind_threshold,
         paper_context_path=args.paper_context_path,

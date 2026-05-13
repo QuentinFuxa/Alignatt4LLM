@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l r r r}
+\toprule
+Diagnostic & AlignAtt & Static frontier & Gap \\
+\midrule
+BLEU at matched CU & 30.12 & 28.09 & 2.02 \\
+BLEU at matched CA & 30.12 & 28.30 & 1.82 \\
+chrF at matched CU & 65.29 & 65.51 & -0.21 \\
+chrF at matched CA & 65.29 & 65.54 & -0.25 \\
+\midrule
+Min. bootstrap $P$(not dominated) & \multicolumn{3}{r}{95.0\%} \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Robustness diagnostic against the static cutoff frontier.} The primary attention point is \textsc{AlignAtt} tuned ($b=0,k=4,m=0.05$). Static-frontier values linearly interpolate the best fixed-cutoff quality--latency curve at the AlignAtt latency; positive gaps mean the attention policy sits above that curve. The bootstrap diagnostic resamples the 30 resegmented segments and reports the weakest probability, over all fixed cutoffs, that no cutoff dominates the attention point in BLEU, chrF, CU, and CA.}
+\label{tab:mt-cutoff-frontier-gap}
+\end{table}

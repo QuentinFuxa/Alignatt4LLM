@@ -10,6 +10,8 @@ import string
 import subprocess
 import wave
 
+os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
+
 import numpy as np
 
 from cascade.alignment.base import AlignmentBackend, AlignmentResult, WordAlignment
@@ -79,6 +81,7 @@ STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_vllm_qk_fast")
 VALID_MT_BACKEND_NAMES = ("gemma_vllm_alignatt", "milmmt_vllm_alignatt")
 STABLE_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
 VALID_ASR_ALIGNATT_COMMIT_POLICIES = ("frontier_flush", "rewind_abort")
+VALID_TRANSLATION_ACCEPTANCE_POLICIES = ("alignatt", "cut_last_target_units")
 
 # Sentinel returned by the ASR commit helpers when the current chunk must not
 # produce a cascade-visible update (e.g. the word-count invariant is broken
@@ -168,12 +171,20 @@ class CascadeRuntimeConfig:
     translation_variant_id: str = FOUNDATIONAL_TRANSLATION_VARIANT_ID
     max_history_utterances: int = 0
     translation_alignatt_heads_path: str | None = None
-    translation_alignatt_top_k_heads: int = 8
+    translation_alignatt_top_k_heads: int = 4
     translation_alignatt_filter_width: int = 7
     translation_alignatt_probe_mode: str = "qk_fast"
     translation_alignatt_inaccessible_ms: float = 0.0
-    translation_alignatt_border_margin: int = 0
-    translation_alignatt_min_source_mass: float = 0.0
+    translation_alignatt_border_margin: int = 1
+    translation_alignatt_min_source_mass: float = 0.003
+    # Soft frontier: with the default 0.0, any source argmax beyond the
+    # accessible frontier blocks the token. Raising this accepts a beyond-
+    # frontier argmax only when the total attention mass on inaccessible source
+    # is still below the threshold.
+    translation_alignatt_frontier_min_inaccessible_mass: float = 0.03
+    # Provenance confidence gates. Defaults preserve the historical behavior.
+    translation_alignatt_max_inaccessible_source_mass: float = 0.15
+    translation_alignatt_min_accessible_inaccessible_margin: float = -1.0
     # Confidence-gated acceptance on top of QK-reconstruction AlignAtt.
     # For each drafted token the reconstructed source-row softmax peaks at a
     # local source position ``p``; this is the raw per-head-averaged mass at
@@ -194,6 +205,8 @@ class CascadeRuntimeConfig:
     translation_generation_margin: int = 8
     translation_emit_policy: str = RAW_PASSTHROUGH
     translation_max_tail_rewrite_words: int = 14
+    translation_acceptance_policy: str = "alignatt"
+    translation_static_cutoff_units: int = 0
     temperature: float = 0.0
     repetition_penalty: float = 1.05
     asr_gpu_memory_utilization: float = 0.2
@@ -232,6 +245,9 @@ class CascadeRuntimeConfig:
     mt_vllm_enable_prefix_caching: bool = False
     mt_vllm_cudagraph_mode: str | None = "full"
     mt_vllm_gpu_memory_utilization: float = 0.5
+    mt_vllm_enable_speculative_decoding: bool = False
+    mt_vllm_speculative_assistant_model: str | None = None
+    mt_vllm_num_speculative_tokens: int = 4
     # AlignAtt streaming ASR knobs (gemma_vllm_qk_fast only). See
     # ``cascade/alignment/gemma_alignatt_stream.py``. ``frontier_flush``
     # commits the maximal monotone prefix on every chunk and only keeps
@@ -314,6 +330,38 @@ class CascadeRuntimeConfig:
                 "mt_max_model_len must be >= 128, got "
                 f"{self.mt_max_model_len!r}."
             )
+        if self.translation_acceptance_policy not in VALID_TRANSLATION_ACCEPTANCE_POLICIES:
+            raise ValueError(
+                "translation_acceptance_policy must be one of "
+                f"{VALID_TRANSLATION_ACCEPTANCE_POLICIES}, got "
+                f"{self.translation_acceptance_policy!r}."
+            )
+        if int(self.translation_static_cutoff_units) < 0:
+            raise ValueError(
+                "translation_static_cutoff_units must be >= 0, got "
+                f"{self.translation_static_cutoff_units!r}."
+            )
+        if int(self.mt_vllm_num_speculative_tokens) < 1:
+            raise ValueError(
+                "mt_vllm_num_speculative_tokens must be >= 1, got "
+                f"{self.mt_vllm_num_speculative_tokens!r}."
+            )
+        bounded_unit_interval = {
+            "translation_alignatt_min_source_mass": self.translation_alignatt_min_source_mass,
+            "translation_alignatt_frontier_min_inaccessible_mass": self.translation_alignatt_frontier_min_inaccessible_mass,
+            "translation_alignatt_max_inaccessible_source_mass": self.translation_alignatt_max_inaccessible_source_mass,
+            "translation_alignatt_argmax_mass_threshold": self.translation_alignatt_argmax_mass_threshold,
+        }
+        for name, value in bounded_unit_interval.items():
+            numeric = float(value)
+            if numeric < 0.0 or numeric > 1.0:
+                raise ValueError(f"{name} must be in [0, 1], got {value!r}.")
+        margin = float(self.translation_alignatt_min_accessible_inaccessible_margin)
+        if margin < -1.0 or margin > 1.0:
+            raise ValueError(
+                "translation_alignatt_min_accessible_inaccessible_margin must be "
+                f"in [-1, 1], got {self.translation_alignatt_min_accessible_inaccessible_margin!r}."
+            )
 
     def apply_overrides(self, **overrides) -> None:
         for key, value in overrides.items():
@@ -367,6 +415,9 @@ class CascadeRuntimeConfig:
                 bool(self.mt_vllm_enable_prefix_caching),
                 self.mt_vllm_cudagraph_mode,
                 float(self.mt_vllm_gpu_memory_utilization),
+                bool(self.mt_vllm_enable_speculative_decoding),
+                self.mt_vllm_speculative_assistant_model,
+                int(self.mt_vllm_num_speculative_tokens),
                 int(
                     self.mt_max_model_len
                     if name == "milmmt_vllm_alignatt"
@@ -1779,7 +1830,12 @@ class CascadeSession:
                 "translation_alignatt_filter_width": self.config.translation_alignatt_filter_width,
                 "translation_alignatt_probe_mode": self.config.translation_alignatt_probe_mode,
                 "translation_alignatt_inaccessible_ms": self.config.translation_alignatt_inaccessible_ms,
+                "translation_alignatt_border_margin": self.config.translation_alignatt_border_margin,
                 "translation_alignatt_min_source_mass": self.config.translation_alignatt_min_source_mass,
+                "translation_alignatt_argmax_mass_threshold": self.config.translation_alignatt_argmax_mass_threshold,
+                "translation_alignatt_frontier_min_inaccessible_mass": self.config.translation_alignatt_frontier_min_inaccessible_mass,
+                "translation_alignatt_max_inaccessible_source_mass": self.config.translation_alignatt_max_inaccessible_source_mass,
+                "translation_alignatt_min_accessible_inaccessible_margin": self.config.translation_alignatt_min_accessible_inaccessible_margin,
                 "min_start_seconds": self.config.min_start_seconds,
                 "max_history_utterances": self.config.max_history_utterances,
                 "max_new_tokens": self.config.max_new_tokens,
@@ -1793,11 +1849,18 @@ class CascadeSession:
                 "translation_generation_margin": self.config.translation_generation_margin,
                 "translation_emit_policy": self.config.translation_emit_policy,
                 "translation_max_tail_rewrite_words": self.config.translation_max_tail_rewrite_words,
+                "translation_acceptance_policy": self.config.translation_acceptance_policy,
+                "translation_static_cutoff_units": self.config.translation_static_cutoff_units,
                 "temperature": self.config.temperature,
                 "repetition_penalty": self.config.repetition_penalty,
                 "asr_gpu_memory_utilization": self.config.asr_gpu_memory_utilization,
                 "gemma_max_model_len": self.config.gemma_max_model_len,
                 "mt_max_model_len": self.config.mt_max_model_len,
+                "mt_vllm_enable_prefix_caching": self.config.mt_vllm_enable_prefix_caching,
+                "mt_vllm_gpu_memory_utilization": self.config.mt_vllm_gpu_memory_utilization,
+                "mt_vllm_enable_speculative_decoding": self.config.mt_vllm_enable_speculative_decoding,
+                "mt_vllm_speculative_assistant_model": self.config.mt_vllm_speculative_assistant_model,
+                "mt_vllm_num_speculative_tokens": self.config.mt_vllm_num_speculative_tokens,
                 "gemma_enable_prefix_caching": self.config.gemma_enable_prefix_caching,
                 "gemma_audio_alignment_heads_path": self.config.gemma_audio_alignment_heads_path,
                 # Aggregation is hard-coded in the maintained path on purpose:

@@ -60,19 +60,28 @@ class SubmissionPreset:
     chunk_ms: int
     description: str
     paper_context_mode: str = "off"
-    translation_alignatt_min_source_mass: float = 0.0
+    translation_alignatt_min_source_mass: float = 0.003
     alignment_backend_name: str = "qwen_forced"
     mt_backend_name: str = "gemma_vllm_alignatt"
     min_start_seconds: float = 2.0
     max_history_utterances: int = 0
     partial_max_new_tokens: int = 16
-    translation_alignatt_border_margin: int = 0
+    translation_alignatt_top_k_heads: int = 4
+    translation_alignatt_border_margin: int = 1
     translation_alignatt_inaccessible_ms: float = 0.0
     translation_alignatt_argmax_mass_threshold: float = 0.0
+    translation_alignatt_frontier_min_inaccessible_mass: float = 0.03
+    translation_alignatt_max_inaccessible_source_mass: float = 0.15
+    translation_alignatt_min_accessible_inaccessible_margin: float = -1.0
+    translation_acceptance_policy: str = "alignatt"
+    translation_static_cutoff_units: int = 0
     mt_vllm_enforce_eager: bool = False
     mt_vllm_cudagraph_mode: str = "full"
     mt_vllm_enable_prefix_caching: bool = False
     mt_vllm_gpu_memory_utilization: float = 0.5
+    mt_vllm_enable_speculative_decoding: bool = False
+    mt_vllm_speculative_assistant_model: str | None = None
+    mt_vllm_num_speculative_tokens: int = 4
     paper_context_top_k: int = 3
     paper_context_max_chars: int = 1200
     paper_context_history_window_words: int = 60
@@ -108,14 +117,23 @@ class SubmissionPreset:
             min_start_seconds=self.min_start_seconds,
             max_history_utterances=self.max_history_utterances,
             partial_max_new_tokens=self.partial_max_new_tokens,
+            translation_alignatt_top_k_heads=self.translation_alignatt_top_k_heads,
             translation_alignatt_min_source_mass=self.translation_alignatt_min_source_mass,
             translation_alignatt_border_margin=self.translation_alignatt_border_margin,
             translation_alignatt_inaccessible_ms=self.translation_alignatt_inaccessible_ms,
             translation_alignatt_argmax_mass_threshold=self.translation_alignatt_argmax_mass_threshold,
+            translation_alignatt_frontier_min_inaccessible_mass=self.translation_alignatt_frontier_min_inaccessible_mass,
+            translation_alignatt_max_inaccessible_source_mass=self.translation_alignatt_max_inaccessible_source_mass,
+            translation_alignatt_min_accessible_inaccessible_margin=self.translation_alignatt_min_accessible_inaccessible_margin,
+            translation_acceptance_policy=self.translation_acceptance_policy,
+            translation_static_cutoff_units=self.translation_static_cutoff_units,
             mt_vllm_enforce_eager=self.mt_vllm_enforce_eager,
             mt_vllm_cudagraph_mode=self.mt_vllm_cudagraph_mode,
             mt_vllm_enable_prefix_caching=self.mt_vllm_enable_prefix_caching,
             mt_vllm_gpu_memory_utilization=self.mt_vllm_gpu_memory_utilization,
+            mt_vllm_enable_speculative_decoding=self.mt_vllm_enable_speculative_decoding,
+            mt_vllm_speculative_assistant_model=self.mt_vllm_speculative_assistant_model,
+            mt_vllm_num_speculative_tokens=self.mt_vllm_num_speculative_tokens,
             paper_context_path=paper_context_path,
             paper_context_mode=self.paper_context_mode,
             paper_context_top_k=self.paper_context_top_k,
@@ -130,11 +148,16 @@ SUBMISSION_PRESETS = {
         track="main",
         latency_regime="low",
         chunk_ms=850,
+        translation_alignatt_top_k_heads=4,
         translation_alignatt_border_margin=1,
+        translation_alignatt_min_source_mass=0.003,
+        translation_alignatt_frontier_min_inaccessible_mass=0.03,
+        translation_alignatt_max_inaccessible_source_mass=0.15,
         description=(
             "Main-track low-latency preset: qwen_forced ASR + gemma_vllm_alignatt "
-            "MT with chunk_ms=850 and AlignAtt border margin=1. Validated on "
-            "the dev-set inside the LOW LongYAAL regime."
+            "MT with chunk_ms=850 and the frozen future-mass AlignAtt policy "
+            "(top_k_heads=4, border margin=1, min_source_mass=0.003, "
+            "frontier_min_inaccessible_mass=0.03, max_inaccessible_source_mass=0.15)."
         ),
     ),
     "main_high_latency": SubmissionPreset(
@@ -142,7 +165,11 @@ SUBMISSION_PRESETS = {
         track="main",
         latency_regime="high",
         chunk_ms=1500,
+        translation_alignatt_top_k_heads=4,
         translation_alignatt_border_margin=1,
+        translation_alignatt_min_source_mass=0.003,
+        translation_alignatt_frontier_min_inaccessible_mass=0.03,
+        translation_alignatt_max_inaccessible_source_mass=0.15,
         description=(
             "Main-track high-latency preset: same mechanism as main_low_latency "
             "with larger chunk_ms=1500, validated inside the HIGH LongYAAL regime."

@@ -109,6 +109,9 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--current-audio-ms", type=float, default=10_000.0)
     parser.add_argument("--inaccessible-ms", type=float, default=0.0)
     parser.add_argument("--min-source-mass", type=float, default=0.0)
+    parser.add_argument("--frontier-min-inaccessible-mass", type=float, default=0.0)
+    parser.add_argument("--max-inaccessible-source-mass", type=float, default=1.0)
+    parser.add_argument("--min-accessible-inaccessible-margin", type=float, default=-1.0)
     parser.add_argument("--source-history", nargs="*", default=[])
     parser.add_argument("--translation-history", nargs="*", default=[])
     parser.add_argument(
@@ -121,6 +124,15 @@ def _build_parser() -> argparse.ArgumentParser:
         nargs="+",
         default=["vllm"],
         help="Backend selection. Only the shipped alias 'vllm' is supported.",
+    )
+    parser.add_argument("--mt-vllm-enable-speculative-decoding", action="store_true")
+    parser.add_argument("--mt-vllm-speculative-assistant-model", default=None)
+    parser.add_argument(
+        "--mt-vllm-num-speculative-tokens",
+        "--mt-vllm-speculative-num-tokens",
+        dest="mt_vllm_num_speculative_tokens",
+        type=int,
+        default=4,
     )
     parser.add_argument("--output", required=True)
     # Worker-mode private flags.
@@ -253,6 +265,12 @@ def _run_worker(args: argparse.Namespace) -> None:
         source_lang=source_lang,
         target_lang=target_lang,
         mt_backend_name=backend_name,
+        translation_alignatt_frontier_min_inaccessible_mass=args.frontier_min_inaccessible_mass,
+        translation_alignatt_max_inaccessible_source_mass=args.max_inaccessible_source_mass,
+        translation_alignatt_min_accessible_inaccessible_margin=args.min_accessible_inaccessible_margin,
+        mt_vllm_enable_speculative_decoding=args.mt_vllm_enable_speculative_decoding,
+        mt_vllm_speculative_assistant_model=args.mt_vllm_speculative_assistant_model,
+        mt_vllm_num_speculative_tokens=args.mt_vllm_num_speculative_tokens,
     )
 
     specs_raw = json.loads(Path(args._worker_prompt_set).read_text(encoding="utf-8"))
@@ -335,7 +353,28 @@ def _run_worker_subprocess(
         str(output_path),
         "--_worker-prompt-set",
         str(prompt_set_path),
+        "--frontier-min-inaccessible-mass",
+        str(args.frontier_min_inaccessible_mass),
+        "--max-inaccessible-source-mass",
+        str(args.max_inaccessible_source_mass),
+        "--min-accessible-inaccessible-margin",
+        str(args.min_accessible_inaccessible_margin),
     ]
+    if args.mt_vllm_enable_speculative_decoding:
+        cmd.append("--mt-vllm-enable-speculative-decoding")
+    if args.mt_vllm_speculative_assistant_model:
+        cmd.extend(
+            [
+                "--mt-vllm-speculative-assistant-model",
+                str(args.mt_vllm_speculative_assistant_model),
+            ]
+        )
+    cmd.extend(
+        [
+            "--mt-vllm-num-speculative-tokens",
+            str(args.mt_vllm_num_speculative_tokens),
+        ]
+    )
     completed = subprocess.run(cmd, check=False)
     if completed.returncode != 0:
         raise RuntimeError(

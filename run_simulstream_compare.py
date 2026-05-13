@@ -156,9 +156,16 @@ def build_processor_config(args: argparse.Namespace, *, backend_name: str) -> Si
         min_start_seconds=args.min_start_seconds,
         max_history_utterances=args.max_history_utterances,
         partial_max_new_tokens=args.partial_max_new_tokens,
+        translation_alignatt_top_k_heads=args.translation_alignatt_top_k_heads,
         translation_alignatt_min_source_mass=args.translation_alignatt_min_source_mass,
         translation_alignatt_border_margin=args.translation_alignatt_border_margin,
         translation_alignatt_inaccessible_ms=args.translation_alignatt_inaccessible_ms,
+        translation_alignatt_frontier_min_inaccessible_mass=args.translation_alignatt_frontier_min_inaccessible_mass,
+        translation_alignatt_max_inaccessible_source_mass=args.translation_alignatt_max_inaccessible_source_mass,
+        translation_alignatt_min_accessible_inaccessible_margin=args.translation_alignatt_min_accessible_inaccessible_margin,
+        mt_vllm_enable_speculative_decoding=args.mt_vllm_enable_speculative_decoding,
+        mt_vllm_speculative_assistant_model=args.mt_vllm_speculative_assistant_model,
+        mt_vllm_num_speculative_tokens=args.mt_vllm_num_speculative_tokens,
     )
 
 
@@ -435,11 +442,34 @@ def run_backend_subprocess(
         str(args.partial_max_new_tokens),
         "--translation-alignatt-min-source-mass",
         str(args.translation_alignatt_min_source_mass),
+        "--translation-alignatt-top-k-heads",
+        str(args.translation_alignatt_top_k_heads),
         "--translation-alignatt-border-margin",
         str(args.translation_alignatt_border_margin),
         "--translation-alignatt-inaccessible-ms",
         str(args.translation_alignatt_inaccessible_ms),
+        "--translation-alignatt-frontier-min-inaccessible-mass",
+        str(args.translation_alignatt_frontier_min_inaccessible_mass),
+        "--translation-alignatt-max-inaccessible-source-mass",
+        str(args.translation_alignatt_max_inaccessible_source_mass),
+        "--translation-alignatt-min-accessible-inaccessible-margin",
+        str(args.translation_alignatt_min_accessible_inaccessible_margin),
     ]
+    if args.mt_vllm_enable_speculative_decoding:
+        cmd.append("--mt-vllm-enable-speculative-decoding")
+    if args.mt_vllm_speculative_assistant_model:
+        cmd.extend(
+            [
+                "--mt-vllm-speculative-assistant-model",
+                str(args.mt_vllm_speculative_assistant_model),
+            ]
+        )
+    cmd.extend(
+        [
+            "--mt-vllm-num-speculative-tokens",
+            str(args.mt_vllm_num_speculative_tokens),
+        ]
+    )
     completed = run_subprocess(cmd, check=False, cwd=str(Path(__file__).resolve().parent))
     if completed.returncode != 0:
         raise SystemExit(
@@ -452,7 +482,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--wav", default=DEFAULT_WAV)
     parser.add_argument("--reference", default=DEFAULT_REFERENCE)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--chunk-ms", default=800, type=int)
+    parser.add_argument("--chunk-ms", default=850, type=int)
     parser.add_argument("--source", default="en")
     parser.add_argument("--target", default="de")
     parser.add_argument("--python", default=sys.executable)
@@ -487,9 +517,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-start-seconds", default=2.0, type=float)
     parser.add_argument("--max-history-utterances", default=0, type=int)
     parser.add_argument("--partial-max-new-tokens", default=16, type=int)
-    parser.add_argument("--translation-alignatt-min-source-mass", default=0.0, type=float)
-    parser.add_argument("--translation-alignatt-border-margin", default=0, type=int)
+    parser.add_argument("--translation-alignatt-min-source-mass", default=0.003, type=float)
+    parser.add_argument("--translation-alignatt-top-k-heads", default=4, type=int)
+    parser.add_argument("--translation-alignatt-border-margin", default=1, type=int)
     parser.add_argument("--translation-alignatt-inaccessible-ms", default=0.0, type=float)
+    parser.add_argument("--translation-alignatt-frontier-min-inaccessible-mass", default=0.03, type=float)
+    parser.add_argument("--translation-alignatt-max-inaccessible-source-mass", default=0.15, type=float)
+    parser.add_argument("--translation-alignatt-min-accessible-inaccessible-margin", default=-1.0, type=float)
+    parser.add_argument("--mt-vllm-enable-speculative-decoding", action="store_true")
+    parser.add_argument("--mt-vllm-speculative-assistant-model", default=None)
+    parser.add_argument(
+        "--mt-vllm-num-speculative-tokens",
+        "--mt-vllm-speculative-num-tokens",
+        dest="mt_vllm_num_speculative_tokens",
+        default=4,
+        type=int,
+    )
     parser.add_argument(
         "--internal-run-backend",
         choices=BACKEND_IDS,
