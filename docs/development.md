@@ -2,8 +2,6 @@
 
 ## Layout
 
-![Repository map](assets/repo-map.svg)
-
 - Runtime code lives under `src/alignatt4llm/`.
 - Public CLIs live under `src/alignatt4llm/cli/`.
 - Maintained tests live under `tests/`.

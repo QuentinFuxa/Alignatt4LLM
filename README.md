@@ -3,24 +3,26 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Paper](https://img.shields.io/badge/arXiv-2606.03967-b31b1b.svg)](https://arxiv.org/abs/2606.03967)
 
-Research code for **AlignAtt4LLM**, the IWSLT 2026 simultaneous speech
-translation system described in:
+Reference implementation for **AlignAtt4LLM**, the IWSLT 2026 simultaneous
+speech translation system described in:
 
 > [AlignAtt4LLM: Fast AlignAtt for Decoder-Only LLMs at IWSLT 2026
 > Simultaneous Speech Translation Task](https://arxiv.org/abs/2606.03967)
 
-![AlignAtt4LLM architecture](docs/assets/architecture.svg)
+![Chunk-synchronous AlignAtt4LLM cascade](docs/assets/paper/figure-01-cascade.png)
 
-## What This Repo Contains
+## Implementation Overview
 
-- A streaming ASR-to-MT cascade for simultaneous speech translation.
-- Qwen3-ASR forced-alignment and Gemma-family vLLM runtime glue.
-- Decoder-only AlignAtt policy code, calibrated attention-head artifacts, and
-  evaluation/reporting utilities.
-- Compact score anchors and reproducibility notes for the public paper.
-
-The repo does **not** vendor model weights, dataset audio, Docker submission
-packaging, or paper LaTeX/PDF sources. The paper lives on arXiv.
+- A chunk-synchronous ASR-to-MT cascade matching the system in the paper:
+  Qwen3-ASR updates the source prefix, Qwen3 ForcedAligner timestamps it, and a
+  Gemma-family decoder-only MT backend translates under AlignAtt control.
+- A decoder-only AlignAtt implementation: explicit source-span prompting,
+  calibrated MT attention heads, selective q/k replay, and runtime query/key
+  capture for vLLM execution.
+- Reproducible command-line entrypoints for single-audio validation, batch
+  inference, scoring, preset runs, ASR probes, and MT parity checks.
+- Focused tests for append-only streaming behavior, AlignAtt acceptance policy,
+  runtime defaults, reporting logic, and EN->ZH research diagnostics.
 
 ## Quickstart: Inspect And Test
 
@@ -71,19 +73,6 @@ Score an output directory:
 - `alignatt-preset` — run named runtime presets.
 - `alignatt-gemma-asr` — standalone Gemma AlignAtt ASR probe.
 - `alignatt-mt-parity` — MT backend parity and prompt probes.
-
-## Repo Map
-
-![Repository map](docs/assets/repo-map.svg)
-
-- `src/alignatt4llm/` — maintained runtime package.
-- `src/alignatt4llm/cli/` — stable public command entrypoints.
-- `tests/` — maintained regression and policy tests.
-- `tools/research/` — experiment launchers and calibration utilities.
-- `tools/reports/` — offline reporting, plotting, and replay utilities.
-- `tools/bootstrap/` — local environment setup helpers.
-- `data/` — tracked references, AlignAtt head payloads, and small fixtures.
-- `docs/` — architecture, data, reproducibility, and result notes.
 
 ## Documentation
 

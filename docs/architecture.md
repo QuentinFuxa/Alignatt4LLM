@@ -1,8 +1,9 @@
 # Architecture
 
-![AlignAtt4LLM architecture](assets/architecture.svg)
+![Chunk-synchronous AlignAtt4LLM cascade](assets/paper/figure-01-cascade.png)
 
-AlignAtt4LLM is a synchronous streaming cascade:
+AlignAtt4LLM is implemented as the chunk-synchronous cascade described in the
+paper:
 
 1. Qwen3-ASR decodes the growing audio prefix.
 2. Qwen3 ForcedAligner assigns word timings to the committed source text.
@@ -13,7 +14,7 @@ AlignAtt4LLM is a synchronous streaming cascade:
 
 ## Decoder-Only AlignAtt
 
-![Decoder-only AlignAtt](assets/decoder-alignatt.svg)
+![Decoder-only AlignAtt substrate](assets/paper/figure-02-decoder-only-alignatt.png)
 
 Classic AlignAtt uses encoder-decoder cross-attention. Decoder-only LLMs do
 not expose that structure, so this runtime reconstructs the needed signal from
@@ -25,6 +26,15 @@ the prompt and self-attention:
 - runtime Q/K capture keeps the vLLM output path bit-identical;
 - the policy accepts a target prefix when the selected attention stays within
   the accessible source frontier.
+
+![Acceptance decision from reconstructed attention](assets/paper/figure-04-acceptance-decision.png)
+
+The implementation separates the expensive full attention computation from the
+small source block the policy needs. The deployed path captures the required
+queries and keys, replays only the draft-to-source block, and applies the same
+acceptance rule over the reconstructed rows.
+
+![vLLM observer lifecycle](assets/paper/figure-05-vllm-observer.png)
 
 ## Main Runtime Pieces
 

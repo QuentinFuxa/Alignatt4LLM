@@ -172,5 +172,7 @@ acl-speech/*
 *.tar.gz
 *.pdf
 paper/
+!docs/assets/paper/
+!docs/assets/paper/*.png
 *.jsonl
 *.wav
