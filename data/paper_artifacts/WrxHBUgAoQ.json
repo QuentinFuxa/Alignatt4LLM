@@ -1,0 +1,370 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "WrxHBUgAoQ",
+  "source_pdf": "test-set/pdf/WrxHBUgAoQ.pdf",
+  "title": "Enhancing Computation Efficiency in Large Language Models through Weight and Activation Quantization",
+  "authors": "Janghwan Lee[1] , Minsoo Kim[∗][1][∗] , Seungcheol Baek[2] , Seok Joong Hwang[2] , Wonyong Sung[3] and Jungwook Choi[1][†] \n\n{hwanii0288, minsoo2333}@hanyang.ac.kr, {bsc11235, nzthing}@sapeon.com \n\nwysung@snu.ac.kr, choij@hanyang.ac.kr \n\n1Hanyang University, 2SAPEON Korea Inc., 3Seoul National University \n\nRepublic of Korea",
+  "abstract": "Large Language Models (LLMs) are proficient in natural language processing tasks, but their deployment is often restricted by extensive parameter sizes and computational demands. This paper focuses on post-training quantization (PTQ) in LLMs, specifically 4-bit weight and 8-bit activation (W4A8) quantization, to enhance computational efficiency—a topic less explored compared to weight-only quantization. We present two innovative techniques: activation-quantization-aware scaling (AQAS) and sequence-length-aware calibration (SLAC) to enhance PTQ by considering the combined effects on weights and activations and aligning calibration sequence lengths to target tasks. Moreover, we introduce dINT, a hybrid data format combining integer and denormal representations, to address the underflow issue in W4A8 quantization, where small values are rounded to zero. Through rigorous evaluations of LLMs, including OPT and LLaMA, we demonstrate that our techniques significantly boost task accuracies to levels comparable with full-precision models. By developing arithmetic units compatible with dINT, we further confirm that our methods yield a 2 × hardware efficiency improvement compared to 8-bit integer MAC unit.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "Large language models (LLMs) have achieved breakthroughs in many natural language processing tasks such as translation, summarization, reasoning, and conversation, often matching or exceeding human performance (Zhang et al., 2022; Touvron et al., 2023; Chowdhery et al., 2022; Brown et al., 2020; OpenAI, 2023). However, the extensive parameters of LLMs present deployment challenges due to the high memory bandwidth needed for high throughput inference. Post-training quantization (PTQ) addresses this by \"compressing\" weight pa-",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "> ∗ equal contribution † corresponding author",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "rameters, significantly reducing memory requirements and enhancing GPU performance by alleviating memory bandwidth bottlenecks (Frantar et al., 2023; Lin et al., 2023; Lee et al., 2023a). Nevertheless, LLMs’ computational complexity remains a concern. For example, GPT-3 (Brown et al., 2020) requires at least 350 GFLOPs of computation for a single token, but PTQ methods often revert compressed weights to higher precisions like 16-bit floating-point (FP16) for computation, which is inefficient given the resource demands of multiply-accumulate (MAC) operations. With computing platforms evolving through high-bandwidth memory (Gurumurthi et al., 2021) and processingin-memory (Kim et al., 2021; He et al., 2020) to resolve the memory bandwidth bottleneck, addressing LLMs’ computational needs becomes more imperative.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "A PTQ strategy that effectively quantizes both weights and activations is thus appealing as it reduces the hardware complexity of MAC units, enhancing computational throughput (Sun et al., 2019; Dettmers et al., 2022; Xiao et al., 2022). PTQ research specific to LLM’s computation efficiency is growing, focusing on utilizing INT8-INT8 MAC units, common in GPUs (Andersch et al., 2022). LLM.Int8 (Dettmers et al., 2022), for instance, used INT8 quantization for weights and activations, but directed activation outliers through an FP16 datapath, isolating them. SmoothQuant (Xiao et al., 2022) extended this by employing activation channel scaling to target outliers and adjusting corresponding weights for balanced quantization. However, these studies do not address challenges faced when weights are reduced to 4 bits, revealing an unexplored area for combined effects on weight and activation quantization.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "This paper delves into the challenges of posttraining quantization (PTQ) for both weights and activations in large language models (LLMs). We pinpoint two primary hurdles in achieving efficient",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "4-bit weight and 8-bit activation (W4A8) quantization. First, LLMs like OPT (Zhang et al., 2022) and LLaMA (Touvron et al., 2023) have distinct weight and activation range characteristics, making existing PTQ methods unsuitable for universal use. For example, AWQ’s (Lin et al., 2023) activation-aware scaling makes activations prone to quantization errors, while OPTQ’s (Frantar et al., 2023) weight calibration struggles with varying activation ranges. We propose two novel solutions for this first hurdle: activation-quantization-aware scaling (AQAS) and sequence-length-aware calibration (SLAC). AQAS optimizes quantization scales by jointly considering weights and activations, yielding balanced quantization. SLAC aligns the sequence length of the application task with that of the PTQ calibration dataset, mitigating the impact of variations in activation diversity, which significantly affects the PTQ calibration process.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "Second, we observe that underflow , where smallmagnitude values round to zero, severely impacts W4A8 quantization in LLMs because the quantization error associated with values rounding to zero constitutes a significant portion of the output error. While underflow is a well-known issue in reduced-precision formats for deep neural networks (DNNs) (Sun et al., 2019, 2020; Chmiel et al., 2022; Jin et al., 2022), previous PTQ research in LLMs mainly focuses on outliers, neglecting underflow. We discover that standard INT4 representation discards crucial small-magnitude weights when multiplied with activations. As existing data formats like integer, floating-point, or logarithmic formats are inadequate for this underflow issue, we introduce dINT, a new integer format with denormal representation. dINT merges the uniform coverage of integers with the denormal of floatingpoints, effectively mitigating underflow and improving accuracy. We also propose a MAC unit supporting dINT to ensure",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "hardware efficiency.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "We evaluate AQAS, SLAC, and dINT on OPT and LLaMA, focusing on language modeling, zeroshot reasoning, and 5-shot in-context learning. The results show that integrating these methods for W4A8 PTQ significantly improves task accuracies for both OPT and LLaMA across a diverse set of benchmarks (Wikitext, Common Sense Question Answering (CSQA), and Massive Multitask Language Understanding (MMLU)) and the model sizes ranging from 125M to 65B parameters.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "Various weight-only PTQ techniques have emerged to alleviate memory-bandwidth constraints in LLM inference by compressing weights to 4 bits while maintaining accuracy (Park et al., 2023; Kwon et al., 2022; Frantar et al., 2023; Lin et al., 2023; Lee et al., 2023a). For example, OPTQ (Frantar et al., 2023) reduces output distortion from column-wise weight quantization by sequentially updating unquantized weights using activation Hessians. AWQ (Lin et al., 2023) scales weights according to activation magnitudes for improved quantization, while OWQ (Lee et al., 2023a) and SPQR (Dettmers et al., 2023) isolate sensitive weights, retaining them at higher precision. However, these approaches entail high-precision computations and complex arithmetic units. We demonstrate that these weight compression methods are sub-optimal for activation quantization in common LLMs, often exacerbating challenges by ignoring activation dynamics. Consequently, we introduce advanced techniques specifically",
+      "section": "2.1 Weight-only PTQ for LLMs"
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "designed to address these intricacies, enhancing weight quantization accuracy when the activation is also quantized.",
+      "section": "2.1 Weight-only PTQ for LLMs"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "Quantizing both weights and activations enables the use of lower-precision MAC units, significantly saving logic area and power consumption (Horowitz, 2014). As such, many studies aim to reduce DNN’s computational burden (Sun et al., 2019; Lee et al., 2023b), especially in LLMs (Dettmers et al., 2022; Xiao et al., 2022; Liu et al., 2023; Bondarenko et al., 2021). For instance, LLM.Int8 (Dettmers et al., 2022) and SmoothQuant (Xiao et al., 2022) employ GPUsupported INT8-INT8 MAC operations for efficiency, with LLM.Int8 processing outliers separately and SmoothQuant adjusting activations and weights. Additionally, (Liu et al., 2023; Bondarenko et al., 2021) employ quantization-aware fine-tuning for further reductions to W4A8 or W4A4, but face noticeable accuracy losses despite expensive fine-tuning. This paper proposes novel solutions that address the accuracy drop in combined weight and activation quantization with bitprecision down to W4A8, achieving superior results compared to prior",
+      "section": "2.2 Weight and Activation PTQ for LLMs"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "works without fine-tuning.",
+      "section": "2.2 Weight and Activation PTQ for LLMs"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "Figure 1: (a) Illustration of fused-layernorm (fused-LN) in OPT (top) and layernorm (LN) in LLaMA (bottom) computation patterns within a Transformer layer. Note that two computation patterns yield ths same output if computed in full-precision, but they deviate when activation and weight are quantized. (b) Min-Max range of input activations (left) and weight (right) as operands of matrix multiplication. (c) Min-Max range of input activation varying sequence length from 128 to 2048 (Orange: OPT-6.7B, Blue: LLaMA-7B). (d) Max values of per-channel input activation for OPT-6.7B (left) and LLaMA-7B (right) for different input sequence lengths (32 and 2048).",
+      "section": "2.2 Weight and Activation PTQ for LLMs"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "Underflow , the numerical error from small values rounding to zero due to limited bit-precision, has been actively studied as a critical issue in reducedprecision DNN training. For instance, (Sun et al., 2019) counters underflow in 8-bit floating-point by adjusting the exponent bias, (Sun et al., 2020) utilizes a radix-4 format to represent wider magnitude ranges in 4-bit floating-point (FP4), and (Chmiel et al., 2022) uses stochastic underflow to address biased quantization in FP4 gradients. In fixed-point representation, (Jin et al., 2022) explores optimal formats by analyzing underflow and overflow tradeoffs based on fractional length. Contrary to these studies focusing on the training phase, our paper investigates underflow’s impact on PTQ of LLMs for the first time and introduces an enhanced integer format to combat it.",
+      "section": "2.3 Underflow for Reduced-Precision LLMs"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "We aim to advance LLM quantization beyond the realms of 4-bit weight-only PTQ or W8A8 PTQ by investigating the combined effects of weight and activation quantization. When quantizing both weight and activation, it is important to note that LLMs display distinct weight and activation characteristics. For example, OPT has been found to have 0.1% activation outliers by (Dettmers et al., 2022), whereas GLM-130B (Zeng et al., 2023) reported 30% of outliers in its model. In the context of weight, due",
+      "section": "3 Improving PTQ for Weight and Activation Quantization"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "to varied weight distributions across models, OPT66B experiences a substantial perplexity increase in the wikitext benchmark with INT4 weights, soaring from 9.34 to 110 (Frantar et al., 2023), whereas GLM-130B shows no performance degradation on the MMLU benchmark when INT4 weights are applied (Zeng et al., 2023). We posit that these discrepancies arise from variances in pre-training configurations such as datasets, learning rates, layer structures, and self-attention directionality, as well as options designed for efficient inference, such as operation fusion techniques like layernorm fusion. Significantly, existing PTQ research has overlooked these unique traits intrinsic to each model that are pivotal for the combined optimization of activation and weight quantization. Therefore, we delve into the weight and activation distributions of widely-used OPT and LLaMA models during quantization to understand PTQ limitations and develop novel methods to address them.",
+      "section": "3 Improving PTQ for Weight and Activation Quantization"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "3.1 Model Analysis: OPT vs. LLaMA",
+      "section": "3 Improving PTQ for Weight and Activation Quantization"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "To understand the adverse effects of quantization on restricting dynamic range, we examine the minimum and maximum values (Min-Max range) across the layers of LLMs. Fig. 1(a) illustrates the computation patterns within a layer of LLMs and Fig. 1(b) displays Min-Max range of activations (left) and weights (right) as operands of matrix multiplication for each FC layer in OPT and LLaMA. Notably, there are contrasting trends in",
+      "section": "3 Improving PTQ for Weight and Activation Quantization"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "Min-Max ranges; OPT has a broad activation range but a narrow weight range, while LLaMA exhibits the opposite. This distinction stems from the way these LLMs process activations at layernorm. As depicted in Fig. 1(a), in OPT, the layernorm parameters are fused to the subsequent FC layer’s weights (Fig. 1(a) top), allowing only normalized activation to enter the FC layer. Conversely, layernorm is not fused in LLaMA (Fig. 1(a) below), resulting in scaled activation as input to FC layers. Although layernorm fusion preserves functionality in full-precision computation, this presence or absence of layernorm fusion in activation processing contributes to significantly distinct behaviors under quantization, as will be discussed in the following sections.",
+      "section": "3 Improving PTQ for Weight and Activation Quantization"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "Another insightful finding from our model analysis is the variation in activation diversity based on sequence lengths . Fig. 1(c) displays the Min-Max range as sequence length varies from 128 to 2048 (Orange: OPT-6.7B, Blue: LLaMA-7B). Notably, OPT’s activation range remains stable across sequence lengths, while LLaMA’s activation range expands, suggesting challenges in range calibration for quantization. Fig. 1(d) contrasts maximum values per channel for OPT and LLaMA at varying sequence lengths. OPT displays consistent outliers at the same channels, dominating its activation dynamic ranges. In contrast, LLaMA’s outliers increase in magnitude and shift across channels, indicating varied activation dynamic ranges. This distinction in activation diversity is significant for quantization. While PTQ generally presumes consistent dynamic ranges for calibrating quantization ranges \"offline\", these findings emphasize the necessity of considering distinct activation dynamic range and",
+      "section": "3 Improving PTQ for Weight and Activation Quantization"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "incorporating sequence length into calibration. The following sections discuss methods to optimize weight and activation quantization, building on these model-specific insights.",
+      "section": "3 Improving PTQ for Weight and Activation Quantization"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "The distinct properties of outliers in weights and activations illustrated in Fig. 1(b) pose challenges of applying prior scaling techniques. Fig. 2 illustrates the absolute maximum of (a) input activations and (b) weights at the \"Key\" layers (for self-attention) in OPT-6.7B when different scaling methods are applied. Specifically, SmoothQuant (Xiao et al., 2022) (SQ) scales activation for 8-bit quantization, but descales weights, resulting in a more diverse",
+      "section": "3.2 Activation-Quantization-Aware Scaling"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "Figure 2: Absolute max value of (a) input activation and (b) weight after scaling by each method (OPT-6.7B). We observed that these trends were significantly pronounced in OPT models due to large outliers. (See Fig. 6 for the same plot for LLaMA.)",
+      "section": "3.2 Activation-Quantization-Aware Scaling"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "and quantization-sensitive range for weight. On the other hand, AWQ (Lin et al., 2023) scales weights for 4-bit quantization but significantly increases activation diversity, making activation quantization problematic. In other words, the existing scalingbased PTQ techniques such as SQ and AWQ cannot resolve the issue of conflicting trends in activation and weight outliers. To address this, we introduce activation-quantization-aware scaling (AQAS), a hybrid of SQ and AWQ. AQAS aims to find scaling values that minimize the output error caused by quantized weights and activations. We use mean squared error (MSE) loss as the objective function, aligning with previous studies on layer-wise optimization (Nagel et al., 2020; Frantar et al., 2022). Our objective function is as follows:",
+      "section": "3.2 Activation-Quantization-Aware Scaling"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "We define the weight W ∈ R[M][×][C] , scale factor s ∈ R[C] , and activation X ∈ R[C][×][T] , where M represents the output feature dimension, C represents the input feature dimension, and T denotes the number of tokens. Fig. 2 demonstrates that AQAS considers activation quantization’s impact to adjust activation magnitudes, easing activation quantization. Additionally, as compared to SQ, AQAS adjusts weight magnitudes more moderately, making 4-bit weight quantization feasible.",
+      "section": "3.2 Activation-Quantization-Aware Scaling"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "As shown in Fig. 1(c), variation in activation diversity depending on the sequence length affects the quantization performance. Specifically, weightupdate-based quantization like OPTQ (Frantar et al., 2023) struggles with models like LLaMA that have increasing activation diversity during calibration. To delve deeper into this phenomenon,",
+      "section": "3.3 Sequence-Length-Aware Calibration"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "+-------------------------------+-------------------------------+-------------+ | Sequence Length | 64 128 512 2048 | std | +-------------------------------+-------------------------------+-------------+ | FP (LLaMA-7B) | 70.92 | - | +-------------------------------+-------------------------------+-------------+ | INT4 INT4 OPTQ INT4 AQAS+OPTQ | 69.37 68.14 69.89 65.96 65.19 | - 2.54 0.68 | | | 69.99 70.48 68.92 70.20 | | +-------------------------------+-------------------------------+-------------+",
+      "section": "3.3 Sequence-Length-Aware Calibration"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "Table 1: W4A8 Quantization zero-shot evaluation of CommonSenseQA (average score of PIQA, Winogrande and Arc_easy, default calibration sequence length is 2048)",
+      "section": "3.3 Sequence-Length-Aware Calibration"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "we analyze the approach adopted by OPTQ, which employs weight adjustments in response to quantization error using activation Hessian, formulated as follows (Frantar et al., 2023):",
+      "section": "3.3 Sequence-Length-Aware Calibration"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "where X denotes the layer input activation, W is weights of linear layer, wq is weight element to quantize, and δ denotes optimal weight update recovering quantization error. We examine the weight update ratio, ( H[−] F[1][)][:][,q][/][[][H][−] F[1][]][qq][, represent-] ing the second derivative of quantization error ( E ), to assess changes in weights due to OPTQ. Fig. 3(a) shows the weight update ratio for OPT and LLaMA with varying calibration sequence lengths. OPT remains relatively consistent, while LLaMA displays varying weight update ratios for varying sequence length, suggesting activation diversity affects OPTQ’s weight updates.",
+      "section": "3.3 Sequence-Length-Aware Calibration"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "This sensitivity of OPTQ updates prompts us to further explore its implications for performance. We evaluate the zero-shot performance of OPTQ for W4A8 quantization by varying the calibration sequence length on PIQA, Winogrande, and Arc_easy tasks from CSQA (Bisk et al., 2019; Sakaguchi et al., 2019; Clark et al., 2018), which have sequence lengths ranging from tens to hundreds (note that the type of calibration dataset was kept consistent). Table 1 reveals that when the calibration sequence length (e.g., 512 or 2048) significantly deviates from task’s sequence lengths, OPTQ’s performance suffers (up to 4% degradation), even falling below basic nearest-rounding quantization. However, when the sequence lengths are aligned (e.g., 64 or 128), OPTQ performs exceptionally well.",
+      "section": "3.3 Sequence-Length-Aware Calibration"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "Figure 3: (a) Comparison of weight update ratio in Eq. 2 in OPT-6.7B, LLaMA-7B, and LLaMA-7B with AQAS scaling. (b) Minimum input activation range for the query layer in three models: W4A8 (calibrated with 128 and 2048 sequence lengths) and full-precision (FP), all evaluated under an input sequence length of 128.",
+      "section": "3.3 Sequence-Length-Aware Calibration"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "The large standard deviation in accuracies for matching versus non-matching sequence lengths suggests that LLaMA’s activation diversity substantially impacts OPTQ’s accuracy. To mitigate this, we propose the sequence-length-aware calibration (SLAC) method. This approach involves determining the expected sequence length during the target task’s inference phase and aligning the sequence length of the calibration dataset accordingly. Such a task-specific PTQ calibration process enhances the robustness and accuracy of the model’s inference. The efficacy of SLAC, particularly in the CSQA benchmark, is substantiated by experiments detailed in Sec. 5.3.",
+      "section": "3.3 Sequence-Length-Aware Calibration"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "dent when comparing the dynamic range of quantized models with their full-precision counterparts. Fig. 3 (b) demonstrates that using calibration data aligned with the input sequence length (calib-128) results in a dynamic range more consistent with that of the full-precision model (FP), unlike models calibrated with mismatched sequence lengths (calib-2048).",
+      "section": "The effectiveness of the SLAC method is evi-"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "Integrating SLAC with AQAS effectively enhances weight and activation quantization. As illustrated in Fig. 3(a), AQAS efficiently mitigates the sensitivity to input sequence length regarding weight updates. Moreover, Table 1 shows that the standard deviation related to the calibration dataset’s length is significantly reduced from 2.54 to 0.68 through AQAS. Consequently, combining AQAS with OPTQ proves advantageous for inferences across diverse sequence lengths, and employing the SLAC method for calibration according to the target dataset’s sequence length further bolsters performance.",
+      "section": "The effectiveness of the SLAC method is evi-"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "By employing AQAS to address activation quantization errors in weight scaling, and utilizing SLAC to align the sequence length of the calibration dataset with that of the target inference, we achieve a substantial improvement in the performance of our W4A8 models. However, we encounter persistent performance degradation issues. In this section, we unveil \"underflow\" issues as a previously overlooked cause of accuracy degradation in PTQ applied to LLMs and propose a new numerical format to mitigate this problem.",
+      "section": "4 Overcoming PTQ Underflow for LLMs"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "follows:",
+      "section": "4 Overcoming PTQ Underflow for LLMs"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "Fig. 4(a) exemplifies the underflow issues, illustrating the distinct impacts of quantization errors on final model accuracy, measured as perplexity. The figure highlights that setting small values near zero to exactly zero, while leaving other values unquantized, impairs performance. In contrast, quantizing larger values and precisely representing those near zero significantly improve accuracy. Fig. 4(b) provides a breakdown of error terms across layers in OPT W4A8, indicating a correlation between high total error and substantial underflow error. This underlines the necessity for a method that effectively addresses underflow errors.",
+      "section": "4 Overcoming PTQ Underflow for LLMs"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "Inspired by our observations and the denormal numbers in floating-point representation, we introduce a new integer format called integer with denormal representation (dINT). As illustrated by Fig. 4(c), dINT uses two bins around zero to ensure lower magnitudes are effectively represented. In b -bit quantization, two values are reserved for special cases, so the quantization range represents integers from 0 to 2[b] − 3. These special values in dINT have magnitudes equal to half of the chosen step size , which is a power of two to enable computation by simple bit-shift operations. Our experimental findings have confirmed that this choice of half-step size consistently delivers the most robust performance, surpassing other special values designed for bit shifting, as elaborated in Appendix A.5. The quantization and dequantization procedures for dINT are detailed below:",
+      "section": "4.2 Integer with Denormal Representation"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "We identify underflow as a main contributor to performance degradation. To dissect the causes of degradation when converting the weights of the scaled model to 4-bit, we split the quantization error into two parts: rounding error (∆ r ) and underflow error (∆ u ). The rounding error accounts for the error when the quantized value is non-zero, whereas the underflow error represents the error occurring when the quantized value rounds to zero. By considering the total error (∆) induced by quantization as a combination of ∆ u and ∆ r , we can express the expected output quantization error as",
+      "section": "4.1 Observations"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "where p represents the number of uniform steps, calculated as p = 2[b] − 3 for a given bit number b . The step size s is obtained by dividing the quantization range by p , and z is the zero-point for asymmetric quantization. c 1 and c 2 denote the positive",
+      "section": "4.1 Observations"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "Figure 4: (a) INT4 without rounding sets small values near zero to zero, preserving the rest and causing performance degradation. INT4 without underflow preserves only values near zero, improving performance. (b) Impact of underflow error and rounding error on the output error. Significant impact of underflow error on the output error in INT4. (c) Proposed dINT4 preserves two small values near zero, preventing performance degradation. (d) Using the proposed dINT4 to reduce underflow error leads to a significant reduction in output error.",
+      "section": "4.1 Observations"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "Figure 5: (Blue) Values to be quantized. (Orange) INT4 quantized values, evenly spaced. (Green) FP4 quantized values, dense resolution for small values but coarse resolution for large magnitudes. (Red) Proposed dINT4 format, balanced quantization range with a separate special value for small values.",
+      "section": "4.1 Observations"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "and negative special values in dINT that represent small magnitudes. These values are encoded with distinct bits, analogous to encoding inf or NaN . During dequantization, if the value corresponds to c 1 or c 2, it is represented as a special value; otherwise, dequantization proceeds as in standard integer formats. Fig. 5 shows that dINT4 strikes a balance between INT4, which has uniform dynamic range coverage but underflow issues, and FP4, which densely represents small values to avoid underflow but coarsely covers the dynamic range.",
+      "section": "4.1 Observations"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "Fig. 4(d) showcases the benefits of dINT in reducing output quantization error. By plotting each term of Eq. 4, we observe that dINT primarily mitigates underflow error, which substantially lowers the output error. Although in instances like layer 9, the output error slightly increases due to a widened step size causing a rise in rounding error, the magnitude of this increment is minimal. On the whole,",
+      "section": "4.3 Advantages"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "+----------------+------------------------------------+ | HW Performance | MAC Input Formats | +----------------+------------------------------------+ | Precision | INT8 × INT8 dINT4 × INT8 (Savings) | +----------------+------------------------------------+ | Area (µm2) | 86.33 44.57 (1.93×) | +----------------+------------------------------------+ | Power (mW) | 0.1595 0.0624 (2.56×) | +----------------+------------------------------------+",
+      "section": "4.3 Advantages"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "Table 2: Evaluation of hardware performance of MAC units (7nm, 1GHz).",
+      "section": "4.3 Advantages"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "dINT is effective in most scenarios. Furthermore, we design and synthesize a MAC unit using dINT and compare it to a traditional 8-bit integer MAC unit using Synopsys Design Compiler and a commercial 7nm technology (1GHz) for area efficiency evaluation. As shown in Table 2, dINT achieves 1.93 × and 2.56 × savings in area and power consumption, respectively. This underscores dINT’s effectiveness in tackling underflow issues with minimal output errors and its hardware implementation efficiency.",
+      "section": "4.3 Advantages"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "In our experimental settings, we implement a comprehensive evaluation to assess the effectiveness of our AQAS, SLAC, and dINT4 techniques in LLMs. This involves conducting quantized inference with 8-bit activations and 4-bit weights across a spectrum of tasks, encompassing language modeling, reasoning, and the MMLU benchmark. To enhance both computational and memory efficiency in activation quantization, we broaden our approach to incorporate the quantization of \" Value (for attention map calculation)\", which are",
+      "section": "5.1 Experimental Settings"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "+---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ | Weight | OPTQ | | W/V-bits | | | | OPT Family | | | | LLaMA | | | A-bits | | | | | | | | | | Family | +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ | Scaling | | | | | 125M | 1.3B | 2.7B 6.7B | | 13B | 30B | 7B 13B 30B | +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ | | Baseline | | | | 31.95 | 16.41 | 14.32 | | 11.50 | 10.67 | 5.68 5.09 | | | | | | | | | 12.29 | | | | 4.10 | +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ | | - INT8 ✓ - | | INT4 | | | | | | | |",
+      "section": "5.1 Experimental Settings"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "| | | ✓ - ✓ - ✓ | | | | | | | | | | | +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ | - | - ✓ | | | | 42.78 | 35.17 | 24.03 | | 36.43 1 | 50.94 | 6.87 6.14 | | | | | | | 36.04 | 19.35 | 15.52 | | 15.82 | 25.23 | 5.52 7.57 | | | | | | | | | 15.61 | | | | 5.85 5.13 | | | | | | | | | 15.16 | | | | | +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ | SQ | - ✓ | | | | 41.31 | 23.48 | 33.86 | | 897.25 | 19.43 | 7.08 6.27 | | | | | | | 36.22 | 17.70 | 1,596.83 | | 11.93 | 11.06 | 6.17 8.26 | | | | | | | | | 15.22 | | | | 5.91 5.11 | | | | | | | | | 12.82 | | | | | +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+",
+      "section": "5.1 Experimental Settings"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "+---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ | AWQ | - ✓ | | | | 44.17 | 25.04 | 15.88 | 322.85 | 670.00 | | 6.75 5.84 | | | | | | | 39.10 | 19.35 | 16.00 | 432.74 | 4,246.25 | | 5.26 6.52 | | | | | | | | | | | 183.83 | | 5.78 5.02 | | | | | | | | | | | 4,848.16 | | | +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ | AQAS | | | | | | | | | | | | +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ | | | | | | 36.57 | 17.68 | 15.34 | 13.42 | 12.19 | | 6.69 5.81 | | | | | | | 35.62 | 17.48 | 15.08 | 12.97 | 11.08 | | 5.14 6.60 | | | | | | | | | | | 12.08 | | 5.71 5.07 | | | | | | | | | | | 11.04 | | | +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+",
+      "section": "5.1 Experimental Settings"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "+---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+ | | ✓ | | dINT4 | | 34.92 | 17.28 | 15.03 | 12.89 | 11.98 | | 6.48 5.67 | | | | | | | | | | | 11.04 | | 4.72 | +---------+------------+--+----------+--+-------+-------+------------+--------+----------+-------+------------+",
+      "section": "5.1 Experimental Settings"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "Table 3: PPL results of W4A8V4 (Weight-4bit, Activation-8bit, Value -4bit) at standard language modeling evaluation with OPT and LLaMA family models, applying OPTQ (Frantar et al., 2023) with various weight scaling techniques and two numerical formats.",
+      "section": "5.1 Experimental Settings"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "specifically cached to expedite the inference stage during generation (Kwon et al., 2023). We compare our methods against baseline techniques, including weight scaling of SQ (Xiao et al., 2022), AWQ (Lin et al., 2023), and weight update based method, OPTQ (Frantar et al., 2023). Task details, models, calibration methods, and quantization techniques used in the experiments are outlined in Appendix A.1, and an ablation study exploring aspects such as reducing precision to 3-bit, weight-only quantization with dINT, and other 4-bit formats is detailed in Appendix A.6.",
+      "section": "5.1 Experimental Settings"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "We first evaluate perplexity (PPL) as the language modeling performance for various PTQ methods. Table 3 presents W4A8 quantization results with different PTQ combinations. For OPT models, OPTQ generally reduces perplexity. However, when combined with weight scaling methods like SQ and AWQ for 4-bit weight quantization, there’s a significant accuracy drop (i.e., spikes in PPL), which OPTQ cannot fully mitigate in most OPT models (except 6.7B and 13B). AQAS effectively curtails the accuracy drop of 4-bit weight quantization, and combining it with OPTQ enhances accuracy. Utilizing dINT4 for 4-bit quantization further lowers perplexity, maintaining a gap of less than 1.0 compared to the full-precision baseline, with the exception of OPT-125M, which is sensitive to quantization. For LLaMA models, OPTQ with 4-bit weight quantization raises perplexity due to increased activation diversity, as discussed in Sec. 3.3. Weight scaling methods like AWQ and AQAS aid in performance recovery, and",
+      "section": "5.2 Evaluation on Language Modeling Task"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "dINT4",
+      "section": "5.2 Evaluation on Language Modeling Task"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "+----------------+---------------+-------+-------------------+-------------------+ | Weight Scaling | OPTQ W/V-bits | | OPT | LLaMA | +----------------+---------------+-------+-------------------+-------------------+ | | | | 6.7B 13B | 7B 13B | +----------------+---------------+-------+-------------------+-------------------+ | | Baseline | | 69.11 69.38 | 70.92 74.48 | +----------------+---------------+-------+-------------------+-------------------+ | - | - ✓ | | 63.23 48.67 64.42 | 69.37 72.22 64.94 | | | | | 56.62 | 71.69 | +----------------+---------------+-------+-------------------+-------------------+ | SQ | ✓ | | 67.80 68.96 | 68.23 72.63 | +----------------+---------------+-------+-------------------+-------------------+ | AQAS | ✓ | | 67.79 68.80 | 69.04 73.50 | +----------------+---------------+-------+-------------------+-------------------+ | | ✓ | dINT4 | 68.19 68.96 | 68.74 73.31 | +----------------+---------------+-------+-------------------+-------------------+ |",
+      "section": "5.2 Evaluation on Language Modeling Task"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "AQAS* | ✓ | INT4 | 67.48 68.24 | 70.48 73.50 | +----------------+---------------+-------+-------------------+-------------------+ | | ✓ dINT4 | | 67.92 68.80 71.01 | | | | | | 73.64 | | +----------------+---------------+-------+-------------------+-------------------+",
+      "section": "5.2 Evaluation on Language Modeling Task"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "Table 4: Average accuracy for CommonSense QA (CSQA) tasks including PIQA, Winogrande, and ARC_easy. AQAS* denotes the AQAS method with the SLAC approach (calibrating the dataset’s sequence length to 128).",
+      "section": "5.2 Evaluation on Language Modeling Task"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "further minimizes perplexity, keeping it within 1.0 of the baseline. We detail the results of applying our proposed AQAS and dINT4 strategies to models with over 60 billion parameters, specifically OPT-66B and LLaMA-65B, in Appendix A.2.",
+      "section": "5.2 Evaluation on Language Modeling Task"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "We carry out experiments for the zero-shot CommonSense QA (CSQA) (Bisk et al., 2019; Sakaguchi et al., 2019; Clark et al., 2018) benchmark by comparing different quantization options, akin to prior tests. As noted in Sec. 3.3, LLaMA models undergo performance decline with OPTQ without weight scaling, whereas OPT models, less affected by activation diversity, show performance gains using OPTQ even without scaling. Among weight scaling techniques, AQAS exhibits superior performance, and employing the dINT4 format further enhances results.",
+      "section": "5.3 Evaluation on Zero-shot Reasoning Tasks"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "+----------------+-------------+----------+-------------------+---------------------+ | Weight Scaling | OPTQ A-bits | W/V-bits | LLaMA Family | 6 Conclusion We | | | | | | address Post Large | | | | | | Language geting | | | | | | 4-bit weig | | | | | | quantization to We | | | | | | present Activ | +----------------+-------------+----------+-------------------+---------------------+ | | | | 7B 13B 30B 65B | | +----------------+-------------+----------+-------------------+---------------------+ | | Baseline | | 35.20 47.15 58.50 | | | | | | 63.60 | | +----------------+-------------+----------+-------------------+---------------------+ | - | - ✓ | INT4 | 28.05 40.82 48.40 | | | | | | 57.20 27.05 42.95 | | | | | | 53.30 58.50 | | +----------------+-------------+----------+-------------------+---------------------+ | SQ | ✓ | | 29.32 43.12 52.83 | | | | | | 59.30 | | +----------------+-------------+----------+-------------------+---------------------+ | AQAS | ✓ | | 30.81 44.23 53.67 | |",
+      "section": "5.3 Evaluation on Zero-shot Reasoning Tasks"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "| | | | 59.60 | | +----------------+-------------+----------+-------------------+---------------------+ | | | dINT4 | 31.00 44.73 55.50 | | | | | | 61.40 | | +----------------+-------------+----------+-------------------+---------------------+",
+      "section": "5.3 Evaluation on Zero-shot Reasoning Tasks"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "We address Post-training Quantization (PTQ) in Large Language Models (LLMs), specifically targeting 4-bit weight and 8-bit activation (W4A8) quantization to boost computational efficiency. We present Activation-Quantization-Aware Scaling (AQAS) and Sequence-Length-Aware Calibration (SLAC), refining PTQ by taking into account weights and activations, and aligning sequence lengths. To combat the underflow issue in W4A8 quantization, where small magnitudes are rounded down to zero, we introduce dINT, a hybrid format blending integer and denormal representations. Through extensive evaluations on LLMs such as OPT and LLaMA, we demonstrate marked improvements in task accuracy and adaptability. Additionally, with the development of MAC units compatible with dINT, we achieve a twofold increase in hardware efficiency.",
+      "section": "5.3 Evaluation on Zero-shot Reasoning Tasks"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Table 5: Average MMLU accuracy. The detailed accuracy for each item can be found in Table 7.",
+      "section": "5.3 Evaluation on Zero-shot Reasoning Tasks"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "Due to the shorter input sentences in zero-shot CSQA compared to the default OPTQ calibration dataset, employing SLAC, which considers the LLaMA models’ activation diversity based on sequence length, improves performance for both INT4 and dINT4 formats. However, aligning the calibration length with the target task’s sequence length for the OPT models does not result in significant improvements. This can be attributed to the OPT models’ lower sensitivity to weight updates due to activation diversity during the calibration process, as discussed in Section 3.3, which differs from the behavior of the LLaMA models.",
+      "section": "5.3 Evaluation on Zero-shot Reasoning Tasks"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "We conducted a thorough analysis of modelspecific characteristics in LLMs and identified limitations in current PTQ methods. However, further investigation is needed to understand the specific phenomena observed in certain LLM models during the pre-training process. Additionally, exploring more advanced collaborations of PTQ techniques at lower bit precision for weights and activations holds promise for future research.",
+      "section": "7 Limitation"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "As a result, we attain performance within 1% of full precision for both OPT and LLaMA models using 8-bit activation and 4-bit weight, notably achieving full precision-equivalent performance in LLaMA-7B by comprehensively accounting for the model’s activation characteristics.",
+      "section": "7 Limitation"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "We evaluate the MMLU benchmark on several options that exhibited strong performance in language modeling. To assess the efficacy of our proposed method in in-context learning, we conduct 5-shot inference. Given that OPT models are deemed unsuitable for the MMLU benchmark (Lin et al., 2023), we restrict the experiments to LLaMA models. Consistent with language modeling results, AQAS, accounting for both weight and activation quantization errors, delivers the best performance. Moreover, effectively managing underflow error bolsters performance across all models, with a notable 2% performance enhancement observed in the LLaMA-30B model. To evaluate the efficacy of our approach on large-scale models, we further expand the experiment to LLaMA-65B. The results demonstrate that dINT4 significantly enhances MMLU accuracy by conserving small-magnitude values. Detailed results for each category within MMLU are provided in the Appendix A.3.",
+      "section": "5.4 Evaluation on In-Context Learning Tasks"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "This work was supported by Institute of Information & communications Technology Planning & Evaluation(IITP) grants funded by the Korea government(MSIT)(2020-0-01305, Development of AI Deep-Learning Processor and Module for 2,000 TFLOPS Server, 2020-0-01297, Development of Ultra-Low Power Deep Learning Processor Technology using Advanced Data Reuse for Edge Applications), the Technology Innovation Program (1415178807, Development of Industrial Intelligent Technology for Manufacturing, Process, and Logistics) funded By the Ministry of Trade, Industry & Energy(MOTIE, Korea), and the National Research Foundation of Korea (NRF) grant funded by the Korea government(MSIT)(No. 2021R1A2C1013513).",
+      "section": "Acknowledgement"
+    }
+  ]
+}

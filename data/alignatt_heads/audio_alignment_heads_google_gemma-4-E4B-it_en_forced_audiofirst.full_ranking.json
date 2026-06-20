@@ -1,0 +1,2690 @@
+[
+  {
+    "layer": 23,
+    "head": 2,
+    "mae_seconds": 0.5085714285714287,
+    "monotonicity": 0.8163265306122449,
+    "coverage": 1.0,
+    "ts": 0.7871482683982685
+  },
+  {
+    "layer": 23,
+    "head": 3,
+    "mae_seconds": 0.6102857142857143,
+    "monotonicity": 0.8163265306122449,
+    "coverage": 1.0,
+    "ts": 0.7766805231673933
+  },
+  {
+    "layer": 23,
+    "head": 5,
+    "mae_seconds": 1.3428571428571432,
+    "monotonicity": 0.7959183673469388,
+    "coverage": 1.0,
+    "ts": 0.7138501742160278
+  },
+  {
+    "layer": 31,
+    "head": 0,
+    "mae_seconds": 7.534857142857144,
+    "monotonicity": 0.7959183673469388,
+    "coverage": 1.0,
+    "ts": 0.6364345014920805
+  },
+  {
+    "layer": 27,
+    "head": 4,
+    "mae_seconds": 6.972571428571428,
+    "monotonicity": 0.7346938775510204,
+    "coverage": 1.0,
+    "ts": 0.5956432257536042
+  },
+  {
+    "layer": 31,
+    "head": 3,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.7346938775510204,
+    "coverage": 1.0,
+    "ts": 0.5921768273801934
+  },
+  {
+    "layer": 11,
+    "head": 5,
+    "mae_seconds": 3.5177142857142862,
+    "monotonicity": 0.6938775510204082,
+    "coverage": 1.0,
+    "ts": 0.5910520039030032
+  },
+  {
+    "layer": 31,
+    "head": 1,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.7346938775510204,
+    "coverage": 1.0,
+    "ts": 0.5909203179628115
+  },
+  {
+    "layer": 13,
+    "head": 7,
+    "mae_seconds": 7.61257142857143,
+    "monotonicity": 0.7142857142857143,
+    "coverage": 1.0,
+    "ts": 0.5790273354564757
+  },
+  {
+    "layer": 23,
+    "head": 1,
+    "mae_seconds": 3.355428571428572,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5788282040709225
+  },
+  {
+    "layer": 27,
+    "head": 0,
+    "mae_seconds": 7.960000000000001,
+    "monotonicity": 0.7142857142857143,
+    "coverage": 1.0,
+    "ts": 0.5779017857142857
+  },
+  {
+    "layer": 28,
+    "head": 3,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.7142857142857143,
+    "coverage": 1.0,
+    "ts": 0.5778911130944792
+  },
+  {
+    "layer": 23,
+    "head": 0,
+    "mae_seconds": 4.235428571428571,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5691801540524527
+  },
+  {
+    "layer": 34,
+    "head": 6,
+    "mae_seconds": 7.152,
+    "monotonicity": 0.6938775510204082,
+    "coverage": 1.0,
+    "ts": 0.5663816066171317
+  },
+  {
+    "layer": 31,
+    "head": 2,
+    "mae_seconds": 7.534857142857144,
+    "monotonicity": 0.6938775510204082,
+    "coverage": 1.0,
+    "ts": 0.5650059300635091
+  },
+  {
+    "layer": 4,
+    "head": 3,
+    "mae_seconds": 7.844571428571428,
+    "monotonicity": 0.6938775510204082,
+    "coverage": 1.0,
+    "ts": 0.5639802115444963
+  },
+  {
+    "layer": 24,
+    "head": 2,
+    "mae_seconds": 7.9074285714285715,
+    "monotonicity": 0.6938775510204082,
+    "coverage": 1.0,
+    "ts": 0.5637807470948348
+  },
+  {
+    "layer": 23,
+    "head": 7,
+    "mae_seconds": 3.5302857142857142,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5623270145596079
+  },
+  {
+    "layer": 22,
+    "head": 5,
+    "mae_seconds": 5.970285714285715,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.557295106926194
+  },
+  {
+    "layer": 20,
+    "head": 4,
+    "mae_seconds": 5.9794285714285715,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5572481227631055
+  },
+  {
+    "layer": 9,
+    "head": 7,
+    "mae_seconds": 6.491428571428571,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5548000435872289
+  },
+  {
+    "layer": 24,
+    "head": 6,
+    "mae_seconds": 6.978285714285715,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5527636237133443
+  },
+  {
+    "layer": 12,
+    "head": 7,
+    "mae_seconds": 7.473142857142857,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5509335619869744
+  },
+  {
+    "layer": 5,
+    "head": 5,
+    "mae_seconds": 7.496,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5508541834813021
+  },
+  {
+    "layer": 4,
+    "head": 1,
+    "mae_seconds": 7.717714285714286,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5501058131695258
+  },
+  {
+    "layer": 17,
+    "head": 3,
+    "mae_seconds": 3.378285714285714,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5499571167542977
+  },
+  {
+    "layer": 12,
+    "head": 4,
+    "mae_seconds": 7.867428571428571,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.549621637545339
+  },
+  {
+    "layer": 9,
+    "head": 0,
+    "mae_seconds": 7.942857142857143,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5493838429940666
+  },
+  {
+    "layer": 28,
+    "head": 0,
+    "mae_seconds": 7.957714285714285,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5493374767615645
+  },
+  {
+    "layer": 32,
+    "head": 3,
+    "mae_seconds": 7.988571428571429,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5492416674234856
+  },
+  {
+    "layer": 1,
+    "head": 4,
+    "mae_seconds": 8.230857142857142,
+    "monotonicity": 0.673469387755102,
+    "coverage": 1.0,
+    "ts": 0.5485116468278532
+  },
+  {
+    "layer": 25,
+    "head": 5,
+    "mae_seconds": 5.945142857142857,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5431392369355179
+  },
+  {
+    "layer": 28,
+    "head": 4,
+    "mae_seconds": 5.970285714285715,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5430093926404796
+  },
+  {
+    "layer": 34,
+    "head": 7,
+    "mae_seconds": 6.075428571428572,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5424764058425825
+  },
+  {
+    "layer": 25,
+    "head": 4,
+    "mae_seconds": 6.083428571428572,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.542436500253538
+  },
+  {
+    "layer": 36,
+    "head": 6,
+    "mae_seconds": 7.210285714285715,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5375924673878459
+  },
+  {
+    "layer": 2,
+    "head": 5,
+    "mae_seconds": 7.408000000000001,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5368764442028
+  },
+  {
+    "layer": 30,
+    "head": 4,
+    "mae_seconds": 7.515428571428572,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5365013325152903
+  },
+  {
+    "layer": 30,
+    "head": 3,
+    "mae_seconds": 7.5771428571428565,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.536290092319406
+  },
+  {
+    "layer": 25,
+    "head": 3,
+    "mae_seconds": 7.6091428571428565,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5361817526692079
+  },
+  {
+    "layer": 18,
+    "head": 3,
+    "mae_seconds": 7.934857142857144,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5351231590103424
+  },
+  {
+    "layer": 28,
+    "head": 2,
+    "mae_seconds": 7.960000000000001,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5350446428571428
+  },
+  {
+    "layer": 26,
+    "head": 2,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5350339702373362
+  },
+  {
+    "layer": 22,
+    "head": 2,
+    "mae_seconds": 8.05942857142857,
+    "monotonicity": 0.6530612244897959,
+    "coverage": 1.0,
+    "ts": 0.5347384166231144
+  },
+  {
+    "layer": 15,
+    "head": 1,
+    "mae_seconds": 5.155428571428572,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5334716991141053
+  },
+  {
+    "layer": 36,
+    "head": 5,
+    "mae_seconds": 5.393142857142857,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5319615404259666
+  },
+  {
+    "layer": 11,
+    "head": 6,
+    "mae_seconds": 3.693714285714286,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5318341507530696
+  },
+  {
+    "layer": 19,
+    "head": 5,
+    "mae_seconds": 5.8274285714285705,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5294741498876082
+  },
+  {
+    "layer": 5,
+    "head": 2,
+    "mae_seconds": 5.891428571428572,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5291340914475243
+  },
+  {
+    "layer": 4,
+    "head": 2,
+    "mae_seconds": 6.113142857142857,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5280033510833639
+  },
+  {
+    "layer": 16,
+    "head": 2,
+    "mae_seconds": 6.118857142857143,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5279751393252757
+  },
+  {
+    "layer": 5,
+    "head": 0,
+    "mae_seconds": 6.554285714285715,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5259509401339961
+  },
+  {
+    "layer": 32,
+    "head": 5,
+    "mae_seconds": 6.661714285714286,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5254869161268326
+  },
+  {
+    "layer": 5,
+    "head": 7,
+    "mae_seconds": 6.714285714285715,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5252645502645502
+  },
+  {
+    "layer": 8,
+    "head": 6,
+    "mae_seconds": 6.777142857142858,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5250026241209195
+  },
+  {
+    "layer": 33,
+    "head": 3,
+    "mae_seconds": 6.777142857142857,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5250026241209195
+  },
+  {
+    "layer": 19,
+    "head": 4,
+    "mae_seconds": 7.225142857142857,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5232517517219476
+  },
+  {
+    "layer": 13,
+    "head": 3,
+    "mae_seconds": 7.230857142857142,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5232306502162097
+  },
+  {
+    "layer": 12,
+    "head": 5,
+    "mae_seconds": 7.238857142857143,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5232011572835543
+  },
+  {
+    "layer": 4,
+    "head": 0,
+    "mae_seconds": 7.4708571428571435,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5223700948269215
+  },
+  {
+    "layer": 30,
+    "head": 5,
+    "mae_seconds": 7.509714285714287,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5222353324891601
+  },
+  {
+    "layer": 1,
+    "head": 6,
+    "mae_seconds": 7.547428571428572,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5221057054992073
+  },
+  {
+    "layer": 3,
+    "head": 4,
+    "mae_seconds": 7.666285714285714,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5217045647218402
+  },
+  {
+    "layer": 5,
+    "head": 3,
+    "mae_seconds": 4.8754285714285714,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5211215161030373
+  },
+  {
+    "layer": 40,
+    "head": 2,
+    "mae_seconds": 7.950857142857144,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5207874288632716
+  },
+  {
+    "layer": 32,
+    "head": 6,
+    "mae_seconds": 7.960000000000001,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5207589285714286
+  },
+  {
+    "layer": 14,
+    "head": 2,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5207518125842533
+  },
+  {
+    "layer": 20,
+    "head": 6,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5207518125842533
+  },
+  {
+    "layer": 26,
+    "head": 4,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5207518125842533
+  },
+  {
+    "layer": 27,
+    "head": 3,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5207518125842533
+  },
+  {
+    "layer": 24,
+    "head": 0,
+    "mae_seconds": 8.045714285714286,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5204945402039527
+  },
+  {
+    "layer": 37,
+    "head": 7,
+    "mae_seconds": 4.992,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5202937249666222
+  },
+  {
+    "layer": 39,
+    "head": 5,
+    "mae_seconds": 8.18742857142857,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5200682387645941
+  },
+  {
+    "layer": 7,
+    "head": 0,
+    "mae_seconds": 8.189714285714285,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5200614706770658
+  },
+  {
+    "layer": 6,
+    "head": 1,
+    "mae_seconds": 8.289142857142858,
+    "monotonicity": 0.6326530612244898,
+    "coverage": 1.0,
+    "ts": 0.5197702826209224
+  },
+  {
+    "layer": 25,
+    "head": 0,
+    "mae_seconds": 5.757714285714286,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5155661858858206
+  },
+  {
+    "layer": 17,
+    "head": 6,
+    "mae_seconds": 6.046857142857142,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.514048236875029
+  },
+  {
+    "layer": 27,
+    "head": 5,
+    "mae_seconds": 6.145142857142858,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.513560232154282
+  },
+  {
+    "layer": 9,
+    "head": 4,
+    "mae_seconds": 6.822857142857143,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5105290618804132
+  },
+  {
+    "layer": 16,
+    "head": 4,
+    "mae_seconds": 6.940571428571429,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5100553088247388
+  },
+  {
+    "layer": 8,
+    "head": 5,
+    "mae_seconds": 6.962285714285715,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.509969447804958
+  },
+  {
+    "layer": 14,
+    "head": 0,
+    "mae_seconds": 7.048000000000001,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.509635046861687
+  },
+  {
+    "layer": 20,
+    "head": 1,
+    "mae_seconds": 7.078857142857142,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.50951639957157
+  },
+  {
+    "layer": 9,
+    "head": 5,
+    "mae_seconds": 7.134857142857143,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5093033757476016
+  },
+  {
+    "layer": 36,
+    "head": 7,
+    "mae_seconds": 7.146285714285715,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5092602613435947
+  },
+  {
+    "layer": 30,
+    "head": 2,
+    "mae_seconds": 7.162285714285715,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5092001040124815
+  },
+  {
+    "layer": 14,
+    "head": 3,
+    "mae_seconds": 7.236571428571429,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5089238637039386
+  },
+  {
+    "layer": 7,
+    "head": 6,
+    "mae_seconds": 7.268571428571429,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5088063974726034
+  },
+  {
+    "layer": 12,
+    "head": 6,
+    "mae_seconds": 7.277714285714286,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5087730025048816
+  },
+  {
+    "layer": 12,
+    "head": 1,
+    "mae_seconds": 7.290285714285714,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5087272046949466
+  },
+  {
+    "layer": 20,
+    "head": 3,
+    "mae_seconds": 7.379428571428572,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.508406398565973
+  },
+  {
+    "layer": 37,
+    "head": 2,
+    "mae_seconds": 7.421714285714286,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5082565961654033
+  },
+  {
+    "layer": 14,
+    "head": 4,
+    "mae_seconds": 4.704000000000001,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.5081146062913243
+  },
+  {
+    "layer": 15,
+    "head": 3,
+    "mae_seconds": 7.499428571428572,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5079851706717379
+  },
+  {
+    "layer": 15,
+    "head": 5,
+    "mae_seconds": 7.620571428571428,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5075718262911687
+  },
+  {
+    "layer": 36,
+    "head": 3,
+    "mae_seconds": 7.665142857142858,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5074226551607189
+  },
+  {
+    "layer": 27,
+    "head": 7,
+    "mae_seconds": 7.699428571428572,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5073089482771563
+  },
+  {
+    "layer": 17,
+    "head": 2,
+    "mae_seconds": 7.925714285714285,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5065803914395464
+  },
+  {
+    "layer": 13,
+    "head": 4,
+    "mae_seconds": 7.9394285714285715,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5065374219235125
+  },
+  {
+    "layer": 9,
+    "head": 3,
+    "mae_seconds": 7.952,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5064981488573982
+  },
+  {
+    "layer": 26,
+    "head": 1,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.506466098298539
+  },
+  {
+    "layer": 16,
+    "head": 0,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5064625416659078
+  },
+  {
+    "layer": 18,
+    "head": 0,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5064625416659078
+  },
+  {
+    "layer": 19,
+    "head": 3,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5064625416659078
+  },
+  {
+    "layer": 28,
+    "head": 7,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5064625416659078
+  },
+  {
+    "layer": 31,
+    "head": 5,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5064625416659078
+  },
+  {
+    "layer": 32,
+    "head": 2,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5064625416659078
+  },
+  {
+    "layer": 29,
+    "head": 0,
+    "mae_seconds": 8.23542857142857,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5056410981667757
+  },
+  {
+    "layer": 24,
+    "head": 1,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5052060322485259
+  },
+  {
+    "layer": 28,
+    "head": 1,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.6122448979591837,
+    "coverage": 1.0,
+    "ts": 0.5052060322485259
+  },
+  {
+    "layer": 11,
+    "head": 3,
+    "mae_seconds": 5.168000000000001,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.5048174911988141
+  },
+  {
+    "layer": 21,
+    "head": 7,
+    "mae_seconds": 6.192,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.499046559669474
+  },
+  {
+    "layer": 4,
+    "head": 7,
+    "mae_seconds": 6.268571428571429,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49868036837376456
+  },
+  {
+    "layer": 32,
+    "head": 4,
+    "mae_seconds": 6.306285714285715,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49850282675247476
+  },
+  {
+    "layer": 31,
+    "head": 7,
+    "mae_seconds": 6.381714285714286,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4981531860305664
+  },
+  {
+    "layer": 2,
+    "head": 2,
+    "mae_seconds": 6.395428571428571,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49809038126145216
+  },
+  {
+    "layer": 41,
+    "head": 1,
+    "mae_seconds": 6.477714285714286,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4977183904281565
+  },
+  {
+    "layer": 18,
+    "head": 5,
+    "mae_seconds": 6.570285714285713,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49730956694271905
+  },
+  {
+    "layer": 7,
+    "head": 1,
+    "mae_seconds": 6.594285714285713,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4972052026228098
+  },
+  {
+    "layer": 18,
+    "head": 6,
+    "mae_seconds": 6.836571428571428,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49618742057126186
+  },
+  {
+    "layer": 30,
+    "head": 0,
+    "mae_seconds": 6.942857142857143,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49576053442959916
+  },
+  {
+    "layer": 28,
+    "head": 5,
+    "mae_seconds": 7.0445714285714285,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49536257179388304
+  },
+  {
+    "layer": 15,
+    "head": 4,
+    "mae_seconds": 7.08,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4952263083451202
+  },
+  {
+    "layer": 28,
+    "head": 6,
+    "mae_seconds": 7.210285714285715,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4947353245307031
+  },
+  {
+    "layer": 23,
+    "head": 6,
+    "mae_seconds": 7.262857142857143,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4945415925706382
+  },
+  {
+    "layer": 9,
+    "head": 2,
+    "mae_seconds": 7.387428571428572,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4940922274346446
+  },
+  {
+    "layer": 26,
+    "head": 6,
+    "mae_seconds": 7.390857142857142,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49408004825466006
+  },
+  {
+    "layer": 24,
+    "head": 5,
+    "mae_seconds": 7.397714285714287,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4940557197293724
+  },
+  {
+    "layer": 37,
+    "head": 4,
+    "mae_seconds": 7.416,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4939910374796306
+  },
+  {
+    "layer": 26,
+    "head": 5,
+    "mae_seconds": 7.481142857142858,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49376287369819233
+  },
+  {
+    "layer": 15,
+    "head": 6,
+    "mae_seconds": 7.536,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4935734368724059
+  },
+  {
+    "layer": 32,
+    "head": 0,
+    "mae_seconds": 7.548571428571428,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49353036669213135
+  },
+  {
+    "layer": 14,
+    "head": 6,
+    "mae_seconds": 7.558857142857143,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49349522156305436
+  },
+  {
+    "layer": 2,
+    "head": 0,
+    "mae_seconds": 7.610285714285714,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4933207554325154
+  },
+  {
+    "layer": 34,
+    "head": 1,
+    "mae_seconds": 7.616,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4933014988725295
+  },
+  {
+    "layer": 16,
+    "head": 6,
+    "mae_seconds": 7.660571428571429,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4931521698148776
+  },
+  {
+    "layer": 21,
+    "head": 5,
+    "mae_seconds": 7.746285714285714,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49286927628754357
+  },
+  {
+    "layer": 19,
+    "head": 0,
+    "mae_seconds": 7.852571428571427,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49252609641842793
+  },
+  {
+    "layer": 22,
+    "head": 4,
+    "mae_seconds": 4.885714285714286,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.49247572815533974
+  },
+  {
+    "layer": 24,
+    "head": 3,
+    "mae_seconds": 7.9074285714285715,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4923521756662634
+  },
+  {
+    "layer": 1,
+    "head": 5,
+    "mae_seconds": 7.9394285714285715,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49225170763779813
+  },
+  {
+    "layer": 25,
+    "head": 7,
+    "mae_seconds": 7.956571428571429,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49219818079075445
+  },
+  {
+    "layer": 30,
+    "head": 6,
+    "mae_seconds": 7.960000000000001,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49218749999999994
+  },
+  {
+    "layer": 1,
+    "head": 3,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49218038401282466
+  },
+  {
+    "layer": 21,
+    "head": 3,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49218038401282466
+  },
+  {
+    "layer": 31,
+    "head": 4,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4921768273801934
+  },
+  {
+    "layer": 1,
+    "head": 7,
+    "mae_seconds": 8.044571428571428,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49192660384851433
+  },
+  {
+    "layer": 35,
+    "head": 3,
+    "mae_seconds": 8.104,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49174617122771774
+  },
+  {
+    "layer": 22,
+    "head": 6,
+    "mae_seconds": 8.189714285714285,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4914900421056371
+  },
+  {
+    "layer": 19,
+    "head": 1,
+    "mae_seconds": 3.490285714285714,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.49139003017852595
+  },
+  {
+    "layer": 36,
+    "head": 4,
+    "mae_seconds": 8.264000000000001,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4912718973599802
+  },
+  {
+    "layer": 8,
+    "head": 7,
+    "mae_seconds": 8.346285714285717,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.4910343080739265
+  },
+  {
+    "layer": 35,
+    "head": 2,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49092031796281155
+  },
+  {
+    "layer": 41,
+    "head": 2,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.5918367346938775,
+    "coverage": 1.0,
+    "ts": 0.49092031796281155
+  },
+  {
+    "layer": 23,
+    "head": 4,
+    "mae_seconds": 5.363428571428571,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48928699712643675
+  },
+  {
+    "layer": 11,
+    "head": 1,
+    "mae_seconds": 5.748571428571428,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4870448772226926
+  },
+  {
+    "layer": 8,
+    "head": 2,
+    "mae_seconds": 6.064,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48539071347678364
+  },
+  {
+    "layer": 6,
+    "head": 6,
+    "mae_seconds": 6.180571428571429,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48481617061913096
+  },
+  {
+    "layer": 25,
+    "head": 6,
+    "mae_seconds": 6.243428571428572,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48451404228463235
+  },
+  {
+    "layer": 40,
+    "head": 5,
+    "mae_seconds": 6.3257142857142865,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48412636505460216
+  },
+  {
+    "layer": 21,
+    "head": 1,
+    "mae_seconds": 6.4708571428571435,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4834633623986538
+  },
+  {
+    "layer": 3,
+    "head": 1,
+    "mae_seconds": 6.650285714285715,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4826785180758888
+  },
+  {
+    "layer": 29,
+    "head": 6,
+    "mae_seconds": 6.652571428571428,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4826687574671445
+  },
+  {
+    "layer": 35,
+    "head": 5,
+    "mae_seconds": 6.853714285714286,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4818320721769499
+  },
+  {
+    "layer": 17,
+    "head": 5,
+    "mae_seconds": 6.905142857142858,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4816249819285817
+  },
+  {
+    "layer": 11,
+    "head": 2,
+    "mae_seconds": 4.465142857142857,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.48145874409989836
+  },
+  {
+    "layer": 34,
+    "head": 5,
+    "mae_seconds": 6.976,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48134403209628884
+  },
+  {
+    "layer": 2,
+    "head": 4,
+    "mae_seconds": 6.979428571428572,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4813305643082211
+  },
+  {
+    "layer": 22,
+    "head": 0,
+    "mae_seconds": 6.993142857142857,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4812768086931655
+  },
+  {
+    "layer": 18,
+    "head": 1,
+    "mae_seconds": 7.025142857142857,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48115209342067783
+  },
+  {
+    "layer": 3,
+    "head": 2,
+    "mae_seconds": 7.078857142857142,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48094497100014144
+  },
+  {
+    "layer": 10,
+    "head": 6,
+    "mae_seconds": 4.562285714285713,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4806598373888285
+  },
+  {
+    "layer": 19,
+    "head": 6,
+    "mae_seconds": 7.154285714285715,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4806587245970567
+  },
+  {
+    "layer": 15,
+    "head": 2,
+    "mae_seconds": 7.205714285714286,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48046657381615593
+  },
+  {
+    "layer": 29,
+    "head": 3,
+    "mae_seconds": 7.230857142857143,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48037350735906686
+  },
+  {
+    "layer": 33,
+    "head": 2,
+    "mae_seconds": 7.2777142857142865,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4802015739334529
+  },
+  {
+    "layer": 20,
+    "head": 7,
+    "mae_seconds": 7.318857142857142,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.48005220497321055
+  },
+  {
+    "layer": 41,
+    "head": 3,
+    "mae_seconds": 7.371428571428571,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4798634812286689
+  },
+  {
+    "layer": 29,
+    "head": 2,
+    "mae_seconds": 7.376,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47984718242597896
+  },
+  {
+    "layer": 34,
+    "head": 2,
+    "mae_seconds": 7.401142857142858,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4797578560740035
+  },
+  {
+    "layer": 13,
+    "head": 0,
+    "mae_seconds": 7.481142857142858,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47947715941247804
+  },
+  {
+    "layer": 34,
+    "head": 3,
+    "mae_seconds": 7.494857142857143,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4794295708327727
+  },
+  {
+    "layer": 38,
+    "head": 7,
+    "mae_seconds": 7.558857142857143,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4792095072773401
+  },
+  {
+    "layer": 12,
+    "head": 0,
+    "mae_seconds": 7.570285714285715,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47917055607414316
+  },
+  {
+    "layer": 40,
+    "head": 1,
+    "mae_seconds": 7.715428571428572,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4786847626540781
+  },
+  {
+    "layer": 0,
+    "head": 4,
+    "mae_seconds": 7.869714285714285,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4781858007988661
+  },
+  {
+    "layer": 8,
+    "head": 3,
+    "mae_seconds": 7.892571428571429,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.478113353039455
+  },
+  {
+    "layer": 40,
+    "head": 0,
+    "mae_seconds": 7.896000000000001,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4781025179856115
+  },
+  {
+    "layer": 0,
+    "head": 6,
+    "mae_seconds": 7.913142857142857,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4780484677522759
+  },
+  {
+    "layer": 40,
+    "head": 4,
+    "mae_seconds": 7.926857142857143,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47800537703239016
+  },
+  {
+    "layer": 37,
+    "head": 5,
+    "mae_seconds": 7.960000000000001,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47790178571428565
+  },
+  {
+    "layer": 18,
+    "head": 2,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47789466972711037
+  },
+  {
+    "layer": 36,
+    "head": 0,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47789466972711037
+  },
+  {
+    "layer": 37,
+    "head": 3,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47789466972711037
+  },
+  {
+    "layer": 6,
+    "head": 3,
+    "mae_seconds": 7.96457142857143,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.4778875573686894
+  },
+  {
+    "layer": 35,
+    "head": 6,
+    "mae_seconds": 8.081142857142858,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47752957462874396
+  },
+  {
+    "layer": 27,
+    "head": 2,
+    "mae_seconds": 8.273142857142858,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47695957604140987
+  },
+  {
+    "layer": 26,
+    "head": 0,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47663460367709726
+  },
+  {
+    "layer": 41,
+    "head": 0,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.5714285714285714,
+    "coverage": 1.0,
+    "ts": 0.47663460367709726
+  },
+  {
+    "layer": 21,
+    "head": 4,
+    "mae_seconds": 5.941714285714286,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.47172844442353823
+  },
+  {
+    "layer": 29,
+    "head": 7,
+    "mae_seconds": 6.258285714285715,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.47015768045527134
+  },
+  {
+    "layer": 22,
+    "head": 3,
+    "mae_seconds": 6.374857142857143,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46961324743751515
+  },
+  {
+    "layer": 10,
+    "head": 5,
+    "mae_seconds": 6.469714285714286,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46918276796642766
+  },
+  {
+    "layer": 21,
+    "head": 6,
+    "mae_seconds": 6.486857142857143,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46910613428702264
+  },
+  {
+    "layer": 8,
+    "head": 0,
+    "mae_seconds": 6.5360000000000005,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4688883833788292
+  },
+  {
+    "layer": 11,
+    "head": 7,
+    "mae_seconds": 6.558857142857142,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4687880685990755
+  },
+  {
+    "layer": 4,
+    "head": 6,
+    "mae_seconds": 6.564571428571429,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46876308462650806
+  },
+  {
+    "layer": 14,
+    "head": 5,
+    "mae_seconds": 6.741714285714286,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46800687502636124
+  },
+  {
+    "layer": 38,
+    "head": 4,
+    "mae_seconds": 6.845714285714286,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4675788159400686
+  },
+  {
+    "layer": 19,
+    "head": 7,
+    "mae_seconds": 6.941714285714286,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.467193635260983
+  },
+  {
+    "layer": 22,
+    "head": 1,
+    "mae_seconds": 7.018285714285714,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4668930200358364
+  },
+  {
+    "layer": 7,
+    "head": 4,
+    "mae_seconds": 7.0285714285714285,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46685307574987284
+  },
+  {
+    "layer": 33,
+    "head": 7,
+    "mae_seconds": 7.085714285714285,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46663301362948
+  },
+  {
+    "layer": 16,
+    "head": 3,
+    "mae_seconds": 7.088,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46662427582308885
+  },
+  {
+    "layer": 9,
+    "head": 6,
+    "mae_seconds": 7.132571428571429,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4664548703123745
+  },
+  {
+    "layer": 14,
+    "head": 1,
+    "mae_seconds": 7.136,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4664419159994381
+  },
+  {
+    "layer": 3,
+    "head": 6,
+    "mae_seconds": 7.253714285714286,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46600367923408625
+  },
+  {
+    "layer": 20,
+    "head": 0,
+    "mae_seconds": 7.2948571428571425,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4658534425067905
+  },
+  {
+    "layer": 12,
+    "head": 2,
+    "mae_seconds": 7.42057142857143,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4654034822398014
+  },
+  {
+    "layer": 33,
+    "head": 0,
+    "mae_seconds": 7.490285714285715,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4651597023248658
+  },
+  {
+    "layer": 5,
+    "head": 4,
+    "mae_seconds": 7.496,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46513989776701636
+  },
+  {
+    "layer": 4,
+    "head": 5,
+    "mae_seconds": 7.589714285714287,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4648188626168934
+  },
+  {
+    "layer": 6,
+    "head": 0,
+    "mae_seconds": 7.594285714285714,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4648033814589665
+  },
+  {
+    "layer": 6,
+    "head": 7,
+    "mae_seconds": 7.697142857142858,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46445935798761023
+  },
+  {
+    "layer": 26,
+    "head": 7,
+    "mae_seconds": 7.771428571428571,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4642159143787808
+  },
+  {
+    "layer": 6,
+    "head": 4,
+    "mae_seconds": 7.776000000000001,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4642010678473759
+  },
+  {
+    "layer": 33,
+    "head": 6,
+    "mae_seconds": 7.789714285714285,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46415662091126914
+  },
+  {
+    "layer": 38,
+    "head": 5,
+    "mae_seconds": 7.88,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4638674388674388
+  },
+  {
+    "layer": 26,
+    "head": 3,
+    "mae_seconds": 7.932571428571428,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4637017473314812
+  },
+  {
+    "layer": 36,
+    "head": 2,
+    "mae_seconds": 7.954285714285714,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46363387729054606
+  },
+  {
+    "layer": 2,
+    "head": 1,
+    "mae_seconds": 7.961142857142857,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4636125129812159
+  },
+  {
+    "layer": 9,
+    "head": 1,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46360539880876483
+  },
+  {
+    "layer": 18,
+    "head": 4,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46360539880876483
+  },
+  {
+    "layer": 24,
+    "head": 7,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46360539880876483
+  },
+  {
+    "layer": 31,
+    "head": 6,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46360539880876483
+  },
+  {
+    "layer": 40,
+    "head": 7,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46360539880876483
+  },
+  {
+    "layer": 37,
+    "head": 1,
+    "mae_seconds": 7.979428571428572,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.4635557010127456
+  },
+  {
+    "layer": 35,
+    "head": 4,
+    "mae_seconds": 7.991999999999999,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46351677681748854
+  },
+  {
+    "layer": 21,
+    "head": 2,
+    "mae_seconds": 8.18057142857143,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46294570610517327
+  },
+  {
+    "layer": 30,
+    "head": 7,
+    "mae_seconds": 8.22742857142857,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46280742418344595
+  },
+  {
+    "layer": 0,
+    "head": 5,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46234888939138297
+  },
+  {
+    "layer": 25,
+    "head": 1,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46234888939138297
+  },
+  {
+    "layer": 36,
+    "head": 1,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.5510204081632653,
+    "coverage": 1.0,
+    "ts": 0.46234888939138297
+  },
+  {
+    "layer": 17,
+    "head": 0,
+    "mae_seconds": 5.245714285714286,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4614560188210691
+  },
+  {
+    "layer": 32,
+    "head": 1,
+    "mae_seconds": 5.876571428571428,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.45778389800327646
+  },
+  {
+    "layer": 19,
+    "head": 2,
+    "mae_seconds": 6.090285714285715,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.45668808142212397
+  },
+  {
+    "layer": 22,
+    "head": 7,
+    "mae_seconds": 6.332571428571429,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4555230228001425
+  },
+  {
+    "layer": 16,
+    "head": 1,
+    "mae_seconds": 6.348571428571428,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4554487891579649
+  },
+  {
+    "layer": 14,
+    "head": 7,
+    "mae_seconds": 6.750857142857143,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.45368306862703794
+  },
+  {
+    "layer": 39,
+    "head": 7,
+    "mae_seconds": 6.906285714285715,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.45304898195184407
+  },
+  {
+    "layer": 16,
+    "head": 7,
+    "mae_seconds": 6.92,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.452994227994228
+  },
+  {
+    "layer": 29,
+    "head": 5,
+    "mae_seconds": 7.102857142857142,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.45228188595607494
+  },
+  {
+    "layer": 17,
+    "head": 4,
+    "mae_seconds": 7.144000000000001,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4521260174010665
+  },
+  {
+    "layer": 41,
+    "head": 4,
+    "mae_seconds": 7.168,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4520358192248496
+  },
+  {
+    "layer": 32,
+    "head": 7,
+    "mae_seconds": 7.453714285714286,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4510013712122675
+  },
+  {
+    "layer": 3,
+    "head": 0,
+    "mae_seconds": 7.469714285714286,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4509455057154423
+  },
+  {
+    "layer": 3,
+    "head": 3,
+    "mae_seconds": 7.473142857142857,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.45093356198697443
+  },
+  {
+    "layer": 34,
+    "head": 4,
+    "mae_seconds": 7.556571428571429,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4506458814325784
+  },
+  {
+    "layer": 8,
+    "head": 4,
+    "mae_seconds": 7.598857142857142,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4505022024758867
+  },
+  {
+    "layer": 10,
+    "head": 4,
+    "mae_seconds": 4.768,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.45048543689320386
+  },
+  {
+    "layer": 39,
+    "head": 2,
+    "mae_seconds": 7.680000000000001,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4502304147465438
+  },
+  {
+    "layer": 20,
+    "head": 2,
+    "mae_seconds": 7.697142857142857,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.450173643701896
+  },
+  {
+    "layer": 29,
+    "head": 1,
+    "mae_seconds": 7.738285714285715,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.45003830200665146
+  },
+  {
+    "layer": 39,
+    "head": 3,
+    "mae_seconds": 7.7622857142857145,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.449959939629954
+  },
+  {
+    "layer": 30,
+    "head": 1,
+    "mae_seconds": 7.803428571428571,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4498265981713989
+  },
+  {
+    "layer": 15,
+    "head": 7,
+    "mae_seconds": 7.870857142857143,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4496107409725034
+  },
+  {
+    "layer": 37,
+    "head": 6,
+    "mae_seconds": 7.914285714285715,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.44947344322344324
+  },
+  {
+    "layer": 27,
+    "head": 1,
+    "mae_seconds": 7.947428571428572,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.44936956006058065
+  },
+  {
+    "layer": 0,
+    "head": 7,
+    "mae_seconds": 7.954285714285714,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4493481630048318
+  },
+  {
+    "layer": 37,
+    "head": 0,
+    "mae_seconds": 7.988571428571429,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4492416674234856
+  },
+  {
+    "layer": 25,
+    "head": 2,
+    "mae_seconds": 8.01142857142857,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4491711205725156
+  },
+  {
+    "layer": 35,
+    "head": 1,
+    "mae_seconds": 8.069714285714285,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4489928355414747
+  },
+  {
+    "layer": 41,
+    "head": 7,
+    "mae_seconds": 8.122285714285713,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4488339836059706
+  },
+  {
+    "layer": 21,
+    "head": 0,
+    "mae_seconds": 8.123428571428573,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.44883055063438376
+  },
+  {
+    "layer": 35,
+    "head": 0,
+    "mae_seconds": 8.174857142857142,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4486769520962346
+  },
+  {
+    "layer": 41,
+    "head": 6,
+    "mae_seconds": 8.230857142857142,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.4485116468278533
+  },
+  {
+    "layer": 4,
+    "head": 4,
+    "mae_seconds": 8.26057142857143,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.44842474568501967
+  },
+  {
+    "layer": 3,
+    "head": 7,
+    "mae_seconds": 8.33257142857143,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.44821647248171864
+  },
+  {
+    "layer": 11,
+    "head": 4,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.5306122448979592,
+    "coverage": 1.0,
+    "ts": 0.44806317510566873
+  },
+  {
+    "layer": 5,
+    "head": 1,
+    "mae_seconds": 5.6811428571428575,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.444561605004643
+  },
+  {
+    "layer": 24,
+    "head": 4,
+    "mae_seconds": 6.123428571428572,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4422383167931058
+  },
+  {
+    "layer": 13,
+    "head": 5,
+    "mae_seconds": 6.716571428571429,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4395406651997292
+  },
+  {
+    "layer": 33,
+    "head": 4,
+    "mae_seconds": 6.965714285714286,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43852736216437793
+  },
+  {
+    "layer": 41,
+    "head": 5,
+    "mae_seconds": 7.157714285714287,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43778869631349315
+  },
+  {
+    "layer": 7,
+    "head": 2,
+    "mae_seconds": 7.419428571428572,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4368360836936919
+  },
+  {
+    "layer": 3,
+    "head": 5,
+    "mae_seconds": 7.464,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43667971914663783
+  },
+  {
+    "layer": 2,
+    "head": 6,
+    "mae_seconds": 7.565714285714286,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43632898122557895
+  },
+  {
+    "layer": 39,
+    "head": 6,
+    "mae_seconds": 7.5760000000000005,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43629397654584223
+  },
+  {
+    "layer": 38,
+    "head": 1,
+    "mae_seconds": 7.668571428571428,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4359826725680384
+  },
+  {
+    "layer": 10,
+    "head": 2,
+    "mae_seconds": 7.670857142857144,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4359750701387712
+  },
+  {
+    "layer": 10,
+    "head": 1,
+    "mae_seconds": 7.733714285714286,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4357675627173141
+  },
+  {
+    "layer": 5,
+    "head": 6,
+    "mae_seconds": 7.765714285714286,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4356630657478115
+  },
+  {
+    "layer": 7,
+    "head": 7,
+    "mae_seconds": 7.917714285714286,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4351769465956317
+  },
+  {
+    "layer": 17,
+    "head": 1,
+    "mae_seconds": 7.925714285714285,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4351518200109749
+  },
+  {
+    "layer": 2,
+    "head": 3,
+    "mae_seconds": 7.960000000000001,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43504464285714284
+  },
+  {
+    "layer": 12,
+    "head": 3,
+    "mae_seconds": 7.960000000000001,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43504464285714284
+  },
+  {
+    "layer": 27,
+    "head": 6,
+    "mae_seconds": 7.962285714285715,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43503752686996755
+  },
+  {
+    "layer": 1,
+    "head": 1,
+    "mae_seconds": 7.963428571428572,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4350339702373363
+  },
+  {
+    "layer": 33,
+    "head": 1,
+    "mae_seconds": 8.001142857142858,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43491710803163314
+  },
+  {
+    "layer": 10,
+    "head": 3,
+    "mae_seconds": 8.060571428571428,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.4347349358512325
+  },
+  {
+    "layer": 20,
+    "head": 5,
+    "mae_seconds": 8.123428571428573,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43454483634866947
+  },
+  {
+    "layer": 38,
+    "head": 6,
+    "mae_seconds": 8.140571428571429,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43449344478976887
+  },
+  {
+    "layer": 0,
+    "head": 0,
+    "mae_seconds": 8.278857142857143,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43408583041542764
+  },
+  {
+    "layer": 38,
+    "head": 3,
+    "mae_seconds": 8.333714285714287,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43392747817873323
+  },
+  {
+    "layer": 33,
+    "head": 5,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.5102040816326531,
+    "coverage": 1.0,
+    "ts": 0.43377746081995444
+  },
+  {
+    "layer": 13,
+    "head": 1,
+    "mae_seconds": 6.435428571428573,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.4264799525712528
+  },
+  {
+    "layer": 13,
+    "head": 2,
+    "mae_seconds": 6.526857142857144,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.4260715370265931
+  },
+  {
+    "layer": 2,
+    "head": 7,
+    "mae_seconds": 6.643428571428571,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.42556497778537244
+  },
+  {
+    "layer": 35,
+    "head": 7,
+    "mae_seconds": 6.8742857142857146,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.4246060543230354
+  },
+  {
+    "layer": 39,
+    "head": 1,
+    "mae_seconds": 6.893714285714286,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.4245279116424331
+  },
+  {
+    "layer": 40,
+    "head": 6,
+    "mae_seconds": 7.258285714285715,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.4231297694832153
+  },
+  {
+    "layer": 18,
+    "head": 7,
+    "mae_seconds": 7.3279999999999985,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.42287635515301214
+  },
+  {
+    "layer": 13,
+    "head": 6,
+    "mae_seconds": 7.340571428571429,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.42283110832713455
+  },
+  {
+    "layer": 38,
+    "head": 0,
+    "mae_seconds": 7.419428571428572,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.4225503694079776
+  },
+  {
+    "layer": 10,
+    "head": 0,
+    "mae_seconds": 7.523428571428573,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.42218806267478826
+  },
+  {
+    "layer": 39,
+    "head": 0,
+    "mae_seconds": 7.533714285714288,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.42215271001932303
+  },
+  {
+    "layer": 15,
+    "head": 0,
+    "mae_seconds": 7.615999999999999,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.42187292744395805
+  },
+  {
+    "layer": 38,
+    "head": 2,
+    "mae_seconds": 7.829714285714286,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.4211706297844014
+  },
+  {
+    "layer": 6,
+    "head": 5,
+    "mae_seconds": 7.928000000000001,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.42085893497183813
+  },
+  {
+    "layer": 0,
+    "head": 3,
+    "mae_seconds": 7.958857142857143,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.420762487926667
+  },
+  {
+    "layer": 11,
+    "head": 0,
+    "mae_seconds": 4.929142857142858,
+    "monotonicity": 0.46938775510204084,
+    "coverage": 1.0,
+    "ts": 0.4207360392113669
+  },
+  {
+    "layer": 0,
+    "head": 2,
+    "mae_seconds": 7.990857142857143,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.42066316802556786
+  },
+  {
+    "layer": 8,
+    "head": 1,
+    "mae_seconds": 8.076571428571429,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.4204005827967046
+  },
+  {
+    "layer": 16,
+    "head": 5,
+    "mae_seconds": 8.177142857142856,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.42009873687955873
+  },
+  {
+    "layer": 7,
+    "head": 3,
+    "mae_seconds": 8.275428571428572,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.4198100753361965
+  },
+  {
+    "layer": 34,
+    "head": 0,
+    "mae_seconds": 8.386285714285714,
+    "monotonicity": 0.4897959183673469,
+    "coverage": 1.0,
+    "ts": 0.4194917465342401
+  },
+  {
+    "layer": 39,
+    "head": 4,
+    "mae_seconds": 6.339428571428572,
+    "monotonicity": 0.46938775510204084,
+    "coverage": 1.0,
+    "ts": 0.4126340258931352
+  },
+  {
+    "layer": 29,
+    "head": 4,
+    "mae_seconds": 7.449142857142858,
+    "monotonicity": 0.46938775510204084,
+    "coverage": 1.0,
+    "ts": 0.40816022878784947
+  },
+  {
+    "layer": 10,
+    "head": 7,
+    "mae_seconds": 7.708571428571429,
+    "monotonicity": 0.46938775510204084,
+    "coverage": 1.0,
+    "ts": 0.4072787776527934
+  },
+  {
+    "layer": 1,
+    "head": 2,
+    "mae_seconds": 7.816,
+    "monotonicity": 0.46938775510204084,
+    "coverage": 1.0,
+    "ts": 0.40692896033186415
+  },
+  {
+    "layer": 7,
+    "head": 5,
+    "mae_seconds": 7.9234285714285715,
+    "monotonicity": 0.46938775510204084,
+    "coverage": 1.0,
+    "ts": 0.4065875658665105
+  },
+  {
+    "layer": 40,
+    "head": 3,
+    "mae_seconds": 8.15542857142857,
+    "monotonicity": 0.46938775510204084,
+    "coverage": 1.0,
+    "ts": 0.4058776325409704
+  },
+  {
+    "layer": 1,
+    "head": 0,
+    "mae_seconds": 8.258285714285714,
+    "monotonicity": 0.46938775510204084,
+    "coverage": 1.0,
+    "ts": 0.4055742677270884
+  },
+  {
+    "layer": 6,
+    "head": 2,
+    "mae_seconds": 5.885714285714286,
+    "monotonicity": 0.4489795918367347,
+    "coverage": 1.0,
+    "ts": 0.40059276822762296
+  },
+  {
+    "layer": 0,
+    "head": 1,
+    "mae_seconds": 8.178285714285714,
+    "monotonicity": 0.4489795918367347,
+    "coverage": 1.0,
+    "ts": 0.3915239162530907
+  },
+  {
+    "layer": 17,
+    "head": 7,
+    "mae_seconds": 7.680000000000001,
+    "monotonicity": 0.42857142857142855,
+    "coverage": 1.0,
+    "ts": 0.37880184331797234
+  }
+]

@@ -1,0 +1,144 @@
+{
+  "model": "google/gemma-4-E4B-it",
+  "language": "English",
+  "score_name": "audio_alignment_monotonicity_mae",
+  "word_end_offset_seconds": 0.6400000000000006,
+  "scoring_notes": {
+    "teacher": "tmp/alignment_research/smoke18_qwen_teacher.json",
+    "teacher_audio_duration_s": 18.0,
+    "num_heads_scored": 336,
+    "filter_width": 7,
+    "mode": "forced_alignment",
+    "notes": "Teacher-forced per-token attention; MAE is on aligned words (same sequence), so it is a true alignment-quality signal rather than a transcription-quality artifact. The word_end_offset_seconds value is the median signed lag between the selected-heads prediction and the teacher on this clip."
+  },
+  "token_alignment_heads": [
+    {
+      "layer": 23,
+      "head": 2,
+      "mae_seconds": 0.5085714285714287,
+      "monotonicity": 0.8163265306122449,
+      "coverage": 1.0,
+      "ts": 0.7871482683982685
+    },
+    {
+      "layer": 23,
+      "head": 3,
+      "mae_seconds": 0.6102857142857143,
+      "monotonicity": 0.8163265306122449,
+      "coverage": 1.0,
+      "ts": 0.7766805231673933
+    },
+    {
+      "layer": 23,
+      "head": 5,
+      "mae_seconds": 1.3428571428571432,
+      "monotonicity": 0.7959183673469388,
+      "coverage": 1.0,
+      "ts": 0.7138501742160278
+    },
+    {
+      "layer": 31,
+      "head": 0,
+      "mae_seconds": 7.534857142857144,
+      "monotonicity": 0.7959183673469388,
+      "coverage": 1.0,
+      "ts": 0.6364345014920805
+    },
+    {
+      "layer": 27,
+      "head": 4,
+      "mae_seconds": 6.972571428571428,
+      "monotonicity": 0.7346938775510204,
+      "coverage": 1.0,
+      "ts": 0.5956432257536042
+    },
+    {
+      "layer": 31,
+      "head": 3,
+      "mae_seconds": 7.963428571428572,
+      "monotonicity": 0.7346938775510204,
+      "coverage": 1.0,
+      "ts": 0.5921768273801934
+    },
+    {
+      "layer": 11,
+      "head": 5,
+      "mae_seconds": 3.5177142857142862,
+      "monotonicity": 0.6938775510204082,
+      "coverage": 1.0,
+      "ts": 0.5910520039030032
+    },
+    {
+      "layer": 31,
+      "head": 1,
+      "mae_seconds": 8.386285714285714,
+      "monotonicity": 0.7346938775510204,
+      "coverage": 1.0,
+      "ts": 0.5909203179628115
+    },
+    {
+      "layer": 13,
+      "head": 7,
+      "mae_seconds": 7.61257142857143,
+      "monotonicity": 0.7142857142857143,
+      "coverage": 1.0,
+      "ts": 0.5790273354564757
+    },
+    {
+      "layer": 23,
+      "head": 1,
+      "mae_seconds": 3.355428571428572,
+      "monotonicity": 0.673469387755102,
+      "coverage": 1.0,
+      "ts": 0.5788282040709225
+    },
+    {
+      "layer": 27,
+      "head": 0,
+      "mae_seconds": 7.960000000000001,
+      "monotonicity": 0.7142857142857143,
+      "coverage": 1.0,
+      "ts": 0.5779017857142857
+    },
+    {
+      "layer": 28,
+      "head": 3,
+      "mae_seconds": 7.963428571428572,
+      "monotonicity": 0.7142857142857143,
+      "coverage": 1.0,
+      "ts": 0.5778911130944792
+    },
+    {
+      "layer": 23,
+      "head": 0,
+      "mae_seconds": 4.235428571428571,
+      "monotonicity": 0.673469387755102,
+      "coverage": 1.0,
+      "ts": 0.5691801540524527
+    },
+    {
+      "layer": 34,
+      "head": 6,
+      "mae_seconds": 7.152,
+      "monotonicity": 0.6938775510204082,
+      "coverage": 1.0,
+      "ts": 0.5663816066171317
+    },
+    {
+      "layer": 31,
+      "head": 2,
+      "mae_seconds": 7.534857142857144,
+      "monotonicity": 0.6938775510204082,
+      "coverage": 1.0,
+      "ts": 0.5650059300635091
+    },
+    {
+      "layer": 4,
+      "head": 3,
+      "mae_seconds": 7.844571428571428,
+      "monotonicity": 0.6938775510204082,
+      "coverage": 1.0,
+      "ts": 0.5639802115444963
+    }
+  ]
+}

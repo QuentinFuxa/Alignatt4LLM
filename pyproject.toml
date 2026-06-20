@@ -1,0 +1,74 @@
+[project]
+name = "cascade_simultaneous"
+version = "0.1.0"
+requires-python = "==3.13.*"
+dependencies = []
+
+[dependency-groups]
+inference = [
+  "torch==2.10.0",
+  "mistral-common==1.11.0",
+  "accelerate==1.12.0",
+  "simulstream",
+  "simuleval",
+  "huggingface-hub",
+  "pymupdf-layout",
+  "pymupdf4llm",
+  "jupyter",
+  "nvitop",
+  "pycryptodome",
+  "mweralign",
+  "cloudpickle",
+  "qwen_asr"
+]
+evaluation = [
+  "torch==2.10.0",
+  "numpy==1.26.4",
+  "pandas==2.3.3",
+  "pyyaml",
+  "setuptools<81",
+  "sentencepiece==0.2.1",
+  "sacrebleu==2.6.0",
+  "mosestokenizer==1.2.1",
+  "transformers==4.57.6",
+  "unbabel-comet==2.2.6",
+  "simulstream[eval]",
+  "OmniSTEval",
+]
+
+[tool.uv]
+default-groups = []
+conflicts = [
+  [
+    { group = "inference" },
+    { group = "evaluation" },
+  ],
+]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+# ./setup_inference_qwen_asr_vllm.sh
+# ./setup_inference_qwen_asr_vllm.sh /custom/path/to/.venv-inference
+
+# uv venv .venv-evaluation --python 3.13
+# UV_PROJECT_ENVIRONMENT=.venv-evaluation uv sync --group evaluation
+
+[tool.pytest.ini_options]
+# Only the pytest files at the repo root are the maintained test suite.
+# scripts/ holds dated research scripts that may fail to import cleanly
+# (e.g. they require env vars like OPENAI_API_KEY) and must not be swept
+# into pytest discovery.
+testpaths = ["."]
+norecursedirs = [
+    ".git", ".venv-inference", ".venv-evaluation", "__pycache__",
+    "scripts", "docs", "outputs", "tmp", "dist", "data",
+]
+python_files = ["test_*.py"]

@@ -1,0 +1,143 @@
+{
+  "model": "google/gemma-4-E4B-it",
+  "language": "English",
+  "score_name": "audio_alignment_monotonicity_mae",
+  "scoring_notes": {
+    "teacher": "tmp/alignment_research/smoke18_qwen_teacher.json",
+    "teacher_audio_duration_s": 18.0,
+    "num_heads_scored": 336,
+    "filter_width": 7,
+    "max_new_tokens": 256,
+    "notes": "Monotonicity-dominant ranking with Qwen-teacher MAE as a soft quality term. See gemma_alignment_probe._combine_head_score."
+  },
+  "token_alignment_heads": [
+    {
+      "layer": 41,
+      "head": 2,
+      "mae_seconds": 2.2651428571428567,
+      "monotonicity": 0.9534883720930233,
+      "coverage": 1.0,
+      "ts": 0.7940081887815321
+    },
+    {
+      "layer": 41,
+      "head": 1,
+      "mae_seconds": 2.3120000000000003,
+      "monotonicity": 0.9534883720930233,
+      "coverage": 1.0,
+      "ts": 0.7929249522525559
+    },
+    {
+      "layer": 35,
+      "head": 1,
+      "mae_seconds": 2.3485714285714283,
+      "monotonicity": 0.9534883720930233,
+      "coverage": 1.0,
+      "ts": 0.7921005635367886
+    },
+    {
+      "layer": 35,
+      "head": 3,
+      "mae_seconds": 2.3748571428571426,
+      "monotonicity": 0.9534883720930233,
+      "coverage": 1.0,
+      "ts": 0.7915190700824546
+    },
+    {
+      "layer": 41,
+      "head": 7,
+      "mae_seconds": 2.472,
+      "monotonicity": 0.9534883720930233,
+      "coverage": 1.0,
+      "ts": 0.7894464687600471
+    },
+    {
+      "layer": 23,
+      "head": 2,
+      "mae_seconds": 1.930285714285714,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.7864787033341799
+    },
+    {
+      "layer": 23,
+      "head": 1,
+      "mae_seconds": 1.971428571428571,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.7852974060822898
+    },
+    {
+      "layer": 23,
+      "head": 3,
+      "mae_seconds": 2.0685714285714285,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.7826339266380841
+    },
+    {
+      "layer": 29,
+      "head": 1,
+      "mae_seconds": 2.084571428571429,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.7822113271926725
+    },
+    {
+      "layer": 35,
+      "head": 0,
+      "mae_seconds": 2.275428571428572,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.7774886804394748
+    },
+    {
+      "layer": 29,
+      "head": 0,
+      "mae_seconds": 2.354285714285714,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.7756943068816607
+    },
+    {
+      "layer": 35,
+      "head": 2,
+      "mae_seconds": 2.411428571428571,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.7744458727747263
+    },
+    {
+      "layer": 41,
+      "head": 5,
+      "mae_seconds": 2.44,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.7738372093023256
+    },
+    {
+      "layer": 35,
+      "head": 6,
+      "mae_seconds": 2.464,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.773333691390515
+    },
+    {
+      "layer": 29,
+      "head": 4,
+      "mae_seconds": 2.501714285714286,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.7725563938308336
+    },
+    {
+      "layer": 41,
+      "head": 3,
+      "mae_seconds": 2.904,
+      "monotonicity": 0.9302325581395349,
+      "coverage": 1.0,
+      "ts": 0.7651996759435761
+    }
+  ]
+}

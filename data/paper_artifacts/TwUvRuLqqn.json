@@ -1,0 +1,270 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "TwUvRuLqqn",
+  "source_pdf": "test-set/pdf/TwUvRuLqqn.pdf",
+  "title": "Understanding the Inner Workings of Language Models Through Representation Dissimilarity",
+  "authors": "Davis Brown[1] Charles Godfrey[2][,][†] Nicholas Konz[1][,][3] Jonathan Tu[1] Henry Kvinge[1][,][4] \n\n1Pacific Northwest National Laboratory 2Thomson Reuters Labs 3Duke University 4University of Washington {first.last}@pnnl.gov",
+  "abstract": "As language models are applied to an increasing number of real-world applications, understanding their inner workings has become an important issue in model trust, interpretability, and transparency. In this work we show that representation dissimilarity measures, which are functions that measure the extent to which two model’s internal representations differ, can be a valuable tool for gaining insight into the mechanics of language models. Among our insights are: (i) an apparent asymmetry in the internal representations of model using SoLU and GeLU activation functions, (ii) evidence that dissimilarity measures can identify and locate generalization properties of models that are invisible via in-distribution test set performance, and (iii) new evaluations of how language model features vary as width and depth are increased. Our results suggest that dissimilarity measures are a promising set of tools for shedding light on the inner workings of language models.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "The defining feature of deep neural networks is their capability of learning useful feature representations from data in an end-to-end fashion. Perhaps ironically, one of the most pressing scientific challenges in deep learning is understanding the features that these models learn. This challenge is not merely philosophical: learned features are known to impact model interpretability/explainability, generalization, and transferability to downstream tasks, and it can be the case that none of these effects are visible from the point of view of model performance on even carefully selected validation sets.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "When studying hidden representations in deep learning, a fundamental question is whether the internal representations of a given pair of models are similar or not. Dissimilarity measures (Klabunde et al., 2023) are a class of functions that seek to",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "†",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "address this by measuring the difference between (potentially high-dimensional) representations. In this paper, we focus on two such functions that, while popular in computer vision, have seen limited application to language models: model stitching (Lenc and Vedaldi, 2014; Bansal et al., 2021) and centered kernel alignment (CKA) (Kornblith et al., 2019). Model stitching extracts features from earlier layers of model f and plugs them into the later layers of model g (possibly mediated by a small, learnable, connecting layer), and evaluates downstream performance of the resulting “stitched” model. Stitching takes a task-centric view towards representations, operating under the assumption that if two models have similar representations then these representations should be reconcilable by a simple transformation to such an extent that the downstream task can still be solved. On the other hand, CKA compares the statistical structure of the representations obtained in two different",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "models/layers from a fixed set of input datapoints, ignoring any relationship to performance on the task for which the models were trained.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "In this paper we make the case that dissimilarity measures are a tool that has been underutilized in the study of language models. We support this claim through experiments that shed light on the inner workings of language models: (i) We show that stitching can be used to better understand the changes to representations that result from using different nonlinear activations in a model. In particular, we find evidence that feeding Gaussian error linear unit (GeLU) model representations into a softmax linear unit (SoLU) model incurs a smaller penalty in loss compared to feeding SoLU activations into a GeLU model, suggesting that models with GeLU activations may form representations that contain strictly more useful information for the training task than the representations of models using SoLU activations. (ii) We show that dissimilarity measures can localize differences in models",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "that are invisible via test set performance. Following the experimental set-up of (Juneja et al., 2022), we show that both stitching and CKA detect the difference between models which generalize to an out-of-distribution test set and models that do not generalize. (iii) Finally, we apply CKA to the Pythia networks (Biderman et al., 2023), a sequence of generative transformers of increasing width and depth, finding a high degree of similarity between early layer features even as scale varies from 70 million to 1 billion parameters, an emergent “block structure” previously observed in CKA analysis of image classifiers such as ResNets and Vision Transformers, and showing that CKA identifies a Pythia model (pythia-2.8b-deduped) exhibiting remarkably low levels of feature similarity when compared with the remaining models in the family (as well as inconsistent architectural characteristics). This last finding is perhaps surprising considering the consistent trend towards lower perplixity",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "and higher performance on benchmarks with increasing model scale seen in the original Pythia evaluations (Biderman et al., 2023) — one might have expected to see an underlying consistent evolution of hidden features from the perspective of CKA.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "In this section we review the two model dissimilarity measures appearing in this paper.",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "Model stitching (Bansal et al., 2021): Informally, model stitching asks how well the representation extracted by the early layers of one model can be used by the later layers of another model to solve a specific task. Let f be a neural network and for a layer l of f let f≤l (respectively f≥l ) be the composition of the first l layers of f (respectively the layers m of f with m ≥ l ). Given another network g the model obtained by stitching layer l of f to layer m of g with stitching layer ϕ is g>m ◦ ϕ ◦ f≤l . The performance of this stitched network measures the similarity of representations of f at layer l and representations of g at layer m .",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "Centered kernel alignment (CKA) (Kornblith et al., 2019): Let D = {x 1 , . . . , xd} be a set of model inputs. For models f and g with layers l and m respectively, let Af,l,g,m be the covariance matrix of f≤l ( D ) and g≤m ( D ). Then the CKA score for models f and g at layers l and m respec-",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "tively and evaluated at D is",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "where || · ||F is the Frobenious norm. Higher CKA scores indicate more structural similarity between representations. In our experiments we use an unbiased estimator of eq. (1) to calculate CKA in batches (see appendix C for details).",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "3 Model stitching reveals an asymmetry between GeLU and interpretable-by-design SoLU",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "The design of more interpretable models is an area of active research. Interpretable-by-design models often achieve comparable performance on downstream tasks to their non-interpretable counterparts (Rudin, 2019). However, these models (almost by definition) have differences in their hidden layer representations that can impact downstream performance.",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "Many contemporary transformers use the Gaussian error linear unit activation function, approximately GeLU( x ) = x ∗ sigmoid(1 . 7 x ). The softmax linear unit SoLU( x ) = x· softmax( x ) is an activation function introduced in (Elhage et al., 2022) in an attempt to reduce neuron polysemanticity: the softmax has the effect of shrinking small and amplifying large neuron outputs. One of the findings of (Elhage et al., 2022) was that SoLU transformers yield comparable performance to their GeLU counterparts on a range of downstream tasks. However, those tests involved zero-shot evaluation or finetuning of the full transformer, and as such they do not shed much light on intermediate hidden feature representations. We use stitching to do this.",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "Using the notation from Section 2, we set our stitching layer ϕ to be a learnable linear layer (all other parameters of the stitched model are frozen) between the residual streams following a layer l . We stitch small 3-layer (9.4M parameter) and 4- layer (13M parameter) SoLU and GeLU models trained by (Nanda, 2022), using the Pile validation set (Gao et al., 2020) to optimize ϕ .",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Figure 1 displays the resulting stitching losses calculated on the Pile validation set. For both the 3-layer and 4-layer models, and at every layer considered, we see that when f is a SoLU model for the stitched model g>m ◦ϕ◦f≤l — the “SoLU-intoGeLU” cases — larger penalties are incurred than when f uses GeLUs, i.e. the “GeLU-into-SoLU”",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "Figure 1: Comparing stitching loss between 3-layer and 4-layer GeLU and SoLU models on the Pile validation set. Stitching for “solu −→ gelu,” i.e. stitching with a SoLU ‘head’ and GeLU ‘tail,’ incurs systematic penalties (larger loss is worse) compared to the “gelu −→ solu” stitching. Baselines for stitching identical models (e.g., “gelu3l −→ gelu-3l”) are given to account for potential inherent differences in learning the stitching layer ϕ between the activation functions.",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "cases. We conjecture that this outcome results from the fact that SoLU activations effectively reduce capacity of hidden feature layers; there may be an analogy between the experiments of fig. 1 and those of (Bansal et al., 2021, Fig. 3c) stitching vision models of different widths.",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "We also measure the stitching performance between pairs of identical models, the SoLU-intoSoLU and GeLU-into-GeLU stitching baselines. This is meant to delineate between two factors influencing the stitching penalties being recorded: the ease of optimizing stitching layers and the interplay between hidden features of possibly different architectures. We seek to measure differences between hidden features, while the former is an additional unavoidable factor inherent in model stitching experiments. The identical SoLU-into-SoLU and GeLU-into-GeLU stitching baselines serve as a proxy measure of stitching optimization success, since in-principle the stitching layer should be able to learn the identity matrix and incur a stitching penalty of 0. So, that SoLU-into-SoLU stitches better than GeLU-into-GeLU gives evidence for SoLU models being easier to stitch with than GeLU models, from an optimization perspective. That both SoLU-into-GeLU and GeLU-into-SoLU incur higher stitching penalties",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "than GeLU-into-GeLU suggests that the penalties cannot only be a result of stitching layer optimization issues.",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "As pointed out in (Bansal et al., 2021) such an analysis is not possible using CKA, which only detects distance between distributions of hidden features (displayed for our GeLU and SoLU models in figs. 4 and 5), not their usefulness for a machine learning task. Further, the differences in layer expressiveness between GeLU and SoLU models are not easily elicited by evaluation on downstream tasks, but can be seen through linear stitching.",
+      "section": "2 Background"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "Starting with a single pretrained BERT model and fine-tuning 100 models (differing only in random initialization of their classifier heads and stochasticity of batching in fine-tuning optimization) on the Multi-Genre Natural Language Inference (MNLI) dataset (Williams et al., 2018), the authors of (McCoy et al., 2020) observed a striking phenomenon: despite the fine-tuned BERTs’ near identical performance on MNLI, their performance on Heuristic Analysis for NLI Systems (HANS), an out of distribution variant of MNLI, (McCoy et al., 2019) was highly variable. On a specific subset of HANS called “lexical overlap” (HANS-LO) one subset of fine-tuned BERTs (the generalizing ) models) were relatively successful and used syntactic features; models in its complement (the heuristic models) failed catastrophically and used a strategy akin to",
+      "section": "4 Locating generalization failures"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "bag-of-words.[1] Recent work of (Juneja et al., 2022) found that partitioning the 100 fine-tuned BERTs on the basis of their HANS-LO performance is essentially equivalent to partitioning them on the basis of mode connectivity : that is, the generalizing and heuristic models lie in separate loss-landscape basins. We refer the interested reader to (Juneja et al., 2022) for further details.",
+      "section": "4 Locating generalization failures"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "But at what layer(s) do the hidden features of the generalizing and heuristic models diverge? For example, are these two subpopulations of models distinct because their earlier layers are different or because their later layers are different? Or both? Neither analysis of OOD performance nor mode connectivity analysis can provide an answer, but both stitching and CKA reveal that the difference between the features of the generalizing and heuristic models is concentrated in later layers of the BERT encoder. It is worth highlighting that conceptualizing and building relevant datasets for distribution shifts is often expensive and time consuming. That identity stitching and CKA using indistribution MNLI data alone differentiate between heuristic and generalizing behavior on HANS-LO suggests that they are useful tools for model error analysis and debugging.",
+      "section": "4 Locating generalization failures"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "Figure 2a displays performance of pairs of BERT models stitched with the identity function ϕ = id, i.e. models of the form g>m ◦ f≤l on the MNLI finetuning task.[2] We see that at early layers of the models identity stitching incurs almost no penalty, but that stitching at later layers (when the fraction of layers occupied by at the bottom model exceeds 75 %) stitching between generalizing and heuristic models incurs significant accuracy drop (high stitching penalty), whereas stitching within the generalizing and heuristic groups incurs almost no penalty.",
+      "section": "4 Locating generalization failures"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "A similar picture emerges in fig. 2b, where we plot CKA values between features of fine-tuned",
+      "section": "4 Locating generalization failures"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "> 1By “relatively successful” we mean “Achieving up to 50% accuracy on an adversarially-designed test set.” While variable OOD performance with respect to fine-tuning seed was also seen on other subsets of HANS, we follow (McCoy et al., 2020; Juneja et al., 2022) in focusing on HANS-LO where such variance was most pronounced.",
+      "section": "4 Locating generalization failures"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "2The motivation for stitching with a constant identity function comes from evidence that stitching-type algorithms perform symmetry correction (accounting for the fact that features of model A could differ from those of model B by an architecture symmetry e.g. permuting neurons, see e.g. (Ainsworth et al., 2023)), but that networks obtained from multiple finetuning runs from a fixed pretrained model seem to not differ by such symmetries (see for example (Wortsman et al., 2022)).",
+      "section": "4 Locating generalization failures"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "BERTs on the MNLI dataset. At early layers, CKA is insensitive to the generalizing or heuristic nature of model A and B. At later layers (in the same range where we saw identity stitching penalties appear), the CKA measure between generalizing and heuristic models significantly exceeds its value within the generalizing and heuristic groups.",
+      "section": "4 Locating generalization failures"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "Together, the results of fig. 2 paint the following picture: the NLI models of (McCoy et al., 2020) seem to all build up generally useful features in their early layers, and only decide to memorize (i.e., use a lexical overlap heuristic) or generalize (use syntactic features) in their final layers.",
+      "section": "4 Locating generalization failures"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "Enormous quantities of research and engineering energy have been devoted to design, training and evaluation of scaling families of language models. By a “scaling family” we mean a collection of neural network architectures with similar components, but with variable width and/or depth resulting in a sequence of models with increasing size (as measured by number of parameters). Pioneering work in computer vision used CKA to discover interesting properties of hidden features that vary with network width and depth (Nguyen et al., 2021), but to the best of our knowledge no similar studies have appeared in the natural language domain",
+      "section": "5 Representation dissimilarity in scaling families"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "We take a first step in this direction by computing CKA measures of features within and between the models of the Pythia family (Biderman et al., 2023), up to the second-largest model with 6.9 billion parameters. In all experiments we use the “deduped” models (trained on the deduplicated version of the Pile (Gao et al., 2020)). In the case of inter-model CKA measurements on pythia-6.9b we see in fig. 3 (bottom right) that similarity between layers l and m gradually decreases as |m−l| decreases. We also see a pattern reminiscent of the “block structure” analyzed in (Nguyen et al., 2021), where CKA values are relatively high when comparing two layers within one of the following three groups: (i) early layers (the first 3), (ii) late layers (in this case only the final layer) and (iii) the remaining intermediate layers, while CKA values are relatively low when comparing two layers between these three groups.",
+      "section": "5 Representation dissimilarity in scaling families"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "Using CKA to compare features between pythia{ 1b,1.4b,2.8b } and pythia-6.9b we observe high similarity between features at the be-",
+      "section": "5 Representation dissimilarity in scaling families"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "Figure 2: Left: Identity stitching on the MNLI dataset between pairs of the top 10 (“generalizing”) and bottom 10 (“heuristic”) performing models of (McCoy et al., 2020) on the lexical overlap subset of HANS (an out-ofdistribution NLI dataset). Right: Corresponding CKA values. Both: Confidence intervals are obtained by evaluating on all distinct pairs of generalizing and heuristic models, for a total of 2 · �102 � +10[2] = 190 model comparisons.",
+      "section": "5 Representation dissimilarity in scaling families"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "Figure 3: CKA between { pythia-1b,pythia-1.4b,pythia-2.8b,pythia-6.9b } and pythia-6.9b evaluated on the Pile dataset (Gao et al., 2020) (higher means more similar).",
+      "section": "5 Representation dissimilarity in scaling families"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "ginning of the model. A plausible reason for this early layer similarity is the common task of “detokenization,” (Elhage et al., 2022) where early neurons in models may change unnatural tokenizations to more useful representations, for example responding strongly to compound words (e.g., birthday | party). We also continue to see “block structure” even when comparing between two models, and in the case of the pairs (pythia-1b, pythia-6.9b) and (pythia-1.4b, pythia-6.9b) substantial inter-model feature similarity in intermediate layers.",
+      "section": "5 Representation dissimilarity in scaling families"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "The low CKA values obtained when comparing intermediate layers of (pythia-2.8b, pythia-6.9b) break this trend – in fact, as illus-",
+      "section": "5 Representation dissimilarity in scaling families"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "trated in fig. 9, pythia-2.8b exhibits such trendbreaking intermediate layer feature dissimilarity with every Pythia model with 1 billion or more parameters.[3] Upon close inspection, we see that while the pythia{ 1b,1.4b,6.9b } models all have a early layer “block” consisting of 3 layers with relatively high CKA similarity, in pythia-2.8b this block consists of only 2 layers, suggesting the features of pythia-2.8b diverge from the rest of the family very early in the model. In table 1 we point out that some aspects of pythia-2.8b’s architecture are inconsistent with the general scaling trend of the Pythia family as a whole.",
+      "section": "5 Representation dissimilarity in scaling families"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "> 3Except itself, of course.",
+      "section": "5 Representation dissimilarity in scaling families"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "In the current work we examine relatively small language models. Larger models have qualitatively different features, and it is not obvious if our experiments on the differences in layer expressiveness between GeLU and SoLU models will scale to significantly larger models. While we show that identity stitching and CKA distinguish the heuristic and generalizing BERT models, we did not attempt to use stitching/CKA to automatically cluster the models (as was done with mode connectivity in (Juneja et al., 2022)).",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "In this paper we present new applications of representation analysis to language model hidden features. Large language models have the potential to impact human society in ways that we are only beginning to glimpse. A deeper understanding of the features they learn could be exploited for both positive and negative effect. Positive use cases include methods for enhancing language models to be more safe, generalizable and robust (one such approach hinted at in the experiments of section 4), methods for explaining the decisions of language models and identifying model components responsible for unwanted behavior. Unfortunately, these tools can at times be repurposed to do harm, for example extracting information from model training data and inducing specific undesirable model predictions.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "This research was supported by the Mathematics for Artificial Reasoning in Science (MARS) initiative via the Laboratory Directed Research and Development (LDRD) investments at Pacific Northwest National Laboratory (PNNL). PNNL is a multi-program national laboratory operated for the U.S. Department of Energy (DOE) by Battelle Memorial Institute under Contract No. DE-AC0576RL0-1830.",
+      "section": "Acknowledgements"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "Samuel K. Ainsworth, Jonathan Hayase, and Siddhartha Srinivasa. 2023. Git Re-Basin: Merging Models modulo Permutation Symmetries.",
+      "section": "Acknowledgements"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "Yamini Bansal, Preetum Nakkiran, and Boaz Barak. 2021. Revisiting model stitching to compare neural representations. In Advances in Neural Information Processing Systems , volume 34, pages 225–236. Curran Associates, Inc.",
+      "section": "Acknowledgements"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "Evgeny Burnaev. 2021. Representation topology divergence: A method for comparing neural network representations. arXiv preprint arXiv:2201.00058 .",
+      "section": "Acknowledgements"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "Yonatan Belinkov, Nadir Durrani, Fahim Dalvi, Hassan Sajjad, and James Glass. 2017. What do neural machine translation models learn about morphology? In Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) , pages 861–872, Vancouver, Canada. Association for Computational Linguistics.",
+      "section": "Acknowledgements"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "Nora Belrose, Zach Furman, Logan Smith, Danny Halawi, Igor V. Ostrovsky, Lev McKinney, Stella Rose Biderman, and J. Steinhardt. 2023. Eliciting latent predictions from transformers with the tuned lens. ARXIV.ORG .",
+      "section": "Acknowledgements"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "Stella Biderman, Hailey Schoelkopf, Quentin Anthony, Herbie Bradley, Kyle O’Brien, Eric Hallahan, Mohammad Aflah Khan, Shivanshu Purohit, USVSN Sai Prashanth, Edward Raff, Aviya Skowron, Lintang Sutawika, and Oskar van der Wal. 2023. Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling.",
+      "section": "Acknowledgements"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "Frances Ding, Jean-Stanislas Denain, and Jacob Steinhardt. 2021. Grounding representation similarity through statistical testing. Advances in Neural Information Processing Systems , 34:1556–1568.",
+      "section": "Acknowledgements"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "Nelson Elhage, Tristan Hume, Catherine Olsson, Neel Nanda, Tom Henighan, Scott Johnston, Sheer ElShowk, Nicholas Joseph, Nova DasSarma, Ben Mann, Danny Hernandez, Amanda Askell, Kamal Ndousse, Andy Jones, Dawn Drain, Anna Chen, Yuntao Bai, Deep Ganguli, Liane Lovitt, Zac Hatfield-Dodds, Jackson Kernion, Tom Conerly, Shauna Kravec, Stanislav Fort, Saurav Kadavath, Josh Jacobson, Eli TranJohnson, Jared Kaplan, Jack Clark, Tom Brown, Sam McCandlish, Dario Amodei, and Christopher Olah. 2022. Softmax linear units. Transformer Circuits Thread . Https://transformercircuits.pub/2022/solu/index.html.",
+      "section": "Acknowledgements"
+    }
+  ]
+}

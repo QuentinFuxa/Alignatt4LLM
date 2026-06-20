@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite the AlignAtt4LLM paper."
+title: "AlignAtt4LLM"
+authors:
+  - family-names: Fuxa
+    given-names: Quentin
+  - family-names: Machacek
+    given-names: Dominik
+preferred-citation:
+  type: article
+  title: "AlignAtt4LLM: Fast AlignAtt for Decoder-Only LLMs at IWSLT 2026 Simultaneous Speech Translation Task"
+  authors:
+    - family-names: Fuxa
+      given-names: Quentin
+    - family-names: Machacek
+      given-names: Dominik
+  year: 2026
+  doi: 10.48550/arXiv.2606.03967
+  url: "https://arxiv.org/abs/2606.03967"
+repository-code: "https://github.com/QuentinFuxa/Alignatt4LLM"
+url: "https://arxiv.org/abs/2606.03967"

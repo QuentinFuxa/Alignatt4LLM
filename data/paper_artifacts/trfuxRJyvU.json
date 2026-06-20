@@ -1,0 +1,515 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "trfuxRJyvU",
+  "source_pdf": "test-set/pdf/trfuxRJyvU.pdf",
+  "title": "Rethinking Model Selection and Decoding for Keyphrase Generation with Pre-trained Sequence-to-Sequence Models",
+  "authors": "Di Wu, Wasi Uddin Ahmad, Kai-Wei Chang \n\nUniversity of California, Los Angeles \n\n{diwu,kwchang}@cs.ucla.edu, wasiahmad@ucla.edu",
+  "abstract": "Keyphrase Generation (KPG) is a longstanding task in NLP with widespread applications. The advent of sequence-to-sequence (seq2seq) pre-trained language models (PLMs) has ushered in a transformative era for KPG, yielding promising performance improvements. However, many design decisions remain unexplored and are often made arbitrarily. This paper undertakes a systematic analysis of the influence of model selection and decoding strategies on PLM-based KPG. We begin by elucidating why seq2seq PLMs are apt for KPG, anchored by an attention-driven hypothesis. We then establish that conventional wisdom for selecting seq2seq PLMs lacks depth: (1) merely increasing model size or performing task-specific adaptation is not parameter-efficient; (2) although combining in-domain pre-training with task adaptation benefits KPG, it does partially hinder generalization. Regarding decoding, we demonstrate that while greedy search achieves strong F1 scores, it lags in recall compared with samplingbased methods. Based on these insights, we propose DESEL, a likelihood-based decodeselect algorithm for seq2seq PLMs. DESEL improves greedy search by an average of 4.7% semantic F1 across five datasets. Our collective findings pave the way for deeper future investigations into PLM-based KPG.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "Keyphrases encapsulate the core information of a document. Due to their high information density, they have been found valuable in areas such as information retrieval (Wu and Bolivar, 2008; Dave and Varma, 2010; Kim et al., 2013; Boudin et al., 2020), document clustering (Hammouda et al., 2005), summarization (Zhang et al., 2004), and text classification (Berend, 2011). A keyphrase is termed a present keyphrase if it is explicitly found within the document and an absent keyphrase otherwise. The task of identifying present keyphrases is defined as keyphrase extraction (KPE), whereas",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "keyphrase generation (KPG) involves predicting both types of keyphrases.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "Recently, pre-trained language models (PLMs) have been widely incorporated in KPG (Chowdhury et al., 2022; Zhao et al., 2022) via sequence-tosequence (seq2seq) generation, with promising performance on zero-shot (Kulkarni et al., 2022), multilingual (Gao et al., 2022), and low-resource (Wu et al., 2022a) KPG. However, existing literature typically focuses on a specific subset of important components in this pipeline, such as data construction and loss design, while making arbitrary choices for the others (Zhao et al., 2022; Ray Chowdhury et al., 2022; Wu et al., 2022a; Garg et al., 2022). As a result, KPG systems are often compared under different assumptions and the effect of the arbitrary design choices remains unclear. To bridge this gap, this paper focuses on two crucial questions that have not been systematically explored:",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "1. Which PLM leads to the best KPG performance when fine-tuned? 2. What is the best decoding strategy?",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "In practice, sub-optimal choices for these factors could lead to optimizing an unnecessarily large model or sub-optimal results decoded from a strong KPG model. To answer these two questions, we conduct in-depth analyses on KPG with (1) PLMs of diverse size and pre-training strategies and (2) a diverse set of decoding strategies.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "To begin with, we posit that seq2seq PLMs are inherently suitable to KPG (§3). By drawing the correlations with a strong graph-based KPE algorithm, we show that these PLMs implicitly compute phrase centrality (Boudin, 2013) in their decoder attention patterns. This knowledge is also directly translatable to a strong ranking function for KPE. On the other hand, encoder-only models fail to carry such centrality information.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "Next, we search for the best seq2seq PLM for KPG fine-tuning (§4). While common strategies for other NLP tasks might advocate for (1) scaling",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "up the model size, (2) in-domain pre-training, or (3) task adaptation, do these approaches hold the same merit for KPG? Our findings reveal that a singular emphasis on scaling or task adaptation does not ensure efficient performance improvement. In contrast, in-domain pre-training consistently bolsters performance across both keyphrase types and can benefit from task adaptation. A robustness analysis reveals that a proper model choice and data-oriented training approaches are complementary: without the latter, stronger PLMs are more vulnerable to perturbed input, with over 14% recall drop under named variation substitutions and over 5% recall drop under input paraphrasing.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "Decoding strategy is also an essential component in PLM-based KPG, but much under-explored by current literature. In §5, we thoroughly compare six decoding strategies including greedy search, beam search, and sampling-based methods. Results suggest that when only generating a single sequence consisting of concatenated keyphrases, greedy search achieves a strong F1 score. However, aggregating the predictions from multiple sampled sequences outperforms greedy search due to a much higher recall.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "Based on these findings, we introduce DESEL, a likelihood-based selection strategy that selects from sampled phrases to augment the greedy search predictions. DESEL utilizes the probability of phrases from greedy search’s predictions as the baseline to filter out noisy predictions from a set of sampled keyphrase candidates. Experiments on five KPG datasets show that DESEL consistently improves greedy decoding by 7.9% F 1@ M for present keyphrases, 25% F 1@ M for absent keyphrases, and 4.7% Semantic F1 for all keyphrases, achieving state-of-the-art KPG performance, underscoring the importance of carefully examining the design choice of KPG.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "1. An in-depth exploration of the intrinsic suitability of seq2seq PLMs for KPG.",
+      "section": "To summarize, our primary contributions are:"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "2. A comprehensive examination of effective strategies for model enhancement in KPG, spotlighting the merits of specific combinations and their implications for robustness.",
+      "section": "To summarize, our primary contributions are:"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "3. We establish the trade-off between accuracy and concept coverage for different decoding algorithms. Then, we introduce a probabilitybased decode-select mechanism DESEL that consistently improves over greedy search.",
+      "section": "To summarize, our primary contributions are:"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "4. Our research illuminates the profound impact of under-emphasized factors on KPG performance. To facilitate future research on KPG, we release our code and models at https: //github.com/uclanlp/DeepKPG.",
+      "section": "To summarize, our primary contributions are:"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "Problem Definition We represent an example for KPG as a tuple ( X , Y ), corresponding to the input document X = ( x 1 , x 2 , ..., xd ) and the set of human-written reference keyphrases Y = {y 1 , y 2 , ..., yn} . Following Meng et al. (2017), yi is classified as a present keyphrase if it is a substring of X or an absent keyphrase otherwise. The KPG task requires predicting Y in any order, and the KPE task only requires predicting present keyphrases (Turney, 2000).",
+      "section": "2.1 Keyphrase Generation"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "Evaluation We adopt lexical-based and semanticbased evaluation to evaluate a model’s predictions P = {p 1 , p 2 , ..., pm} against Y . For lexical evaluation, we follow Chan et al. (2019) and use the P @ M , R @ M , and F 1@ M scores. P and Y are stemmed with the Porter Stemmer (Porter, 1980) and the duplicates are removed before the score calculation. For semantic evaluation, we follow Wu et al. (2023) and report SemP , SemR , and SemF 1. Note that lexical metrics are separately calculated for present and absent keyphrases while the semantic metrics are calculated with all the phrases. We repeat all the experiments with three random seeds and report the averaged performance.",
+      "section": "2.1 Keyphrase Generation"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "Benchmark Meng et al. (2017) introduce KP20k, which contains 500k Computer Science papers. Following their work, we train on KP20k and evaluate on the title and abstracts from the KP20k test set as well as four out-of-distribution testing datasets: Inspec (Hulth, 2003), Krapivin (Krapivin et al., 2009), NUS (Nguyen and Kan, 2007), and SemEval (Kim et al., 2010). Table 5 summarizes the statistics of all testing datasets.",
+      "section": "2.1 Keyphrase Generation"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Baselines We consider two strong supervised encoder-decoder models from Ye et al. (2021): 1. CopyTrans : A Transformer (Vaswani et al., 2017) with copy mechanism (See et al., 2017).",
+      "section": "2.1 Keyphrase Generation"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "2. The SetTrans model, which performs orderagnostic KPG. The model uses control codes trained via a k-step target assignment algorithm to generate keyphrases in parallel.",
+      "section": "2.1 Keyphrase Generation"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "As the goal of this work is thoroughly studying PLM-based methods, we only provide the results of the strongest baselines as a point of reference. We also include other baselines in appendix section G. In our analysis, we also use MultipartiteRank (MPRank, Boudin (2018)), a performant graphbased unsupervised KPE algorithm. More details about MPRank are discussed in §3.1.",
+      "section": "2.1 Keyphrase Generation"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "In this work, we focus on fine-tuning Transformerbased sequence-to-sequence PLMs BART (Lewis et al., 2020) and T5 (Raffel et al., 2020) for KPG with the \"One2Seq\" formulation. Concretely, following Ye and Wang (2018) and Yuan et al. (2020), we use a separator token ; to join all the target keyphrases as the target sequence Y = ( y 1 ; ... ; yn ). The models are trained with the crossentropy loss for generating Y based on X . At test time, greedy decoding is used, followed by a postprocessing stage to segment the output sequence into individual phrases. We provide implementation details and hyperparameters in appendix D.",
+      "section": "2.2 Sequence-to-Sequence PLMs"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "3 Do PLMs inherently carry significant knowledge of keyphrases?",
+      "section": "2.2 Sequence-to-Sequence PLMs"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "Existing studies have justified their use of seq2seq PLMs by drawing the close relationship between the pre-training tasks of BART (denoising language modeling) or T5 (unified text-to-text transfer) and the formulation of KPG (Gao et al., 2022; Zhao et al., 2022; Wu et al., 2022a) or KPE (Kong et al., 2023). However, there is a lack of an in-depth understanding of why seq2seq PLMs should be chosen for keyphrase-related tasks. In this section, we reason based on phrase centrality (Litvak and Last, 2008; Boudin, 2013) and show that PLMs with autoregressive decoders, including seq2seq PLMs, carry attention heads that approximately function as centrality assigners and naturally as potent keyphrase rankers.",
+      "section": "2.2 Sequence-to-Sequence PLMs"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "The concept of phrase centrality originated from graph-based KPE, where keyphrase candidates are represented as nodes. Various graph centrality measures are used to determine a phrase’s importance in the document. We use MPRank in our analysis, which encodes closeness-based and eigenvectorbased centrality (Boudin, 2013). MPRank first uses rules to obtain C noun phrase candidates and then",
+      "section": "3.1 Centrality of Phrases"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "+---------------------------+-------------------------+---------------------------+---------------------------+ | Model | Size | Head ρ | Head τ | +---------------------------+-------------------------+---------------------------+---------------------------+ | Encoder-only PLMs | | | | +---------------------------+-------------------------+---------------------------+---------------------------+ | BERT-base BERT-large | 110M 340M | 3-0 0.300 0-5 0.351 | 3-0 0.206 0-6 0.246 | +---------------------------+-------------------------+---------------------------+---------------------------+ | Decoder-only PLMs | | | | +---------------------------+-------------------------+---------------------------+---------------------------+ | gpt2 gpt2-medium | 117M 345M 774M 1.5B | 0-11 0.626 1-6 0.630 | 0-11 0.479 1-6 0.480 | | gpt2-large gpt2-xl | | 0-13 0.627 0-6 0.626 | 0-13 0.478 0-6 0.476 |",
+      "section": "3.1 Centrality of Phrases"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "+---------------------------+-------------------------+---------------------------+---------------------------+ | Seq2seq PLMs | | | | +---------------------------+-------------------------+---------------------------+---------------------------+ | BART-base BART-large | 140M 406M 60M 223M 770M | 0-6 0.608 0-9 0.585 4-4 | 0-6 0.459 0-9 0.438 4-4 | | T5-small T5-base T5-large | 3B | 0.624 8-4 0.621 0-2 0.628 | 0.471 8-4 0.466 0-2 0.471 | | T5-3B | | 0-8 0.648 | 0-8 0.494 | +---------------------------+-------------------------+---------------------------+---------------------------+",
+      "section": "3.1 Centrality of Phrases"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "Table 1: Correlation between keyphrase candidates’ attention weights and centrality scores. l - h denotes attention head h in layer l . Both h and l start from index 0. We report the attention head that achieves the best scores. The highest score is boldfaced.",
+      "section": "3.1 Centrality of Phrases"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "performs lexical clustering to group the candidates into topic clusters. Next, each candidate is represented as a graph node and connected with the candidates from other topic clusters. TextRank (Mihalcea and Tarau, 2004) is used to obtain a centrality score ci for each of the nodes ni . We refer the readers to Boudin (2018) for further details.",
+      "section": "3.1 Centrality of Phrases"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "Using MPRank as a lens, we first investigate the extent to which PLMs implicitly represent centrality information. We use the paper titles and abstracts from the KP20k test set as the probing set. Each probing instance is fed into a PLM and the attention weights from the self-attention layers are collected. For the h[th] attention head at layer l , we denote the attention from token i to token j as αi[l,h] →j[.][For] the j[th] token in the noun phrase candidate ni , the global attention weight on it is",
+      "section": "3.2 Attention intensities in BART and T5 decoders encode phrase centrality"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "where L is the length of the text after tokenization. Then, the attention weight of ni is calculated as",
+      "section": "3.2 Attention intensities in BART and T5 decoders encode phrase centrality"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "where |ni| denotes the number of tokens in ni . We study four families of models: BART, T5, BERT, and GPT-2 (Radford et al., 2019). For",
+      "section": "3.2 Attention intensities in BART and T5 decoders encode phrase centrality"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "BART and T5, we use their decoder attentions. We correlate a[l,h] i with ci using Spearman correlation ρ and Kendall’s Tau τ and present the best correlation for each model in Table 1. Surprisingly, BART and T5 decoders contain attention heads that encode phrase centrality similarly as MPRank . The head with the best correlation generally appears in the lower layers, indicating that centrality understanding may be more related to low-level features. Also, the upper bound of correlation strength grows with model size for T5 while does not grow for BART. Beyond centrality assigners , these attention heads are also potent keyphrase extractors : simply ranking the noun phrase candidates by a[l,h] i achieves similar F 1@5 for present keyphrases or SemF 1@5 score as MPRank (appendix B).",
+      "section": "3.2 Attention intensities in BART and T5 decoders encode phrase centrality"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "Evaluating other types of PLMs, we find that BERT’s attention heads only show weak centrality knowledge, with only 0.246 best Kendall Tau with MPRank. On the other hand, GPT-2 exhibits a similar pattern to the decoders from seq2seq PLMs, indicating that the observed pattern is strongly associated with autoregressive decoders . As centrality is generally correlated with global importance, our result aligns with the observations that masked language modeling tends to exploit local dependency while causal language modeling can learn long-range dependencies (Clark et al., 2019; Vig and Belinkov, 2019).",
+      "section": "3.2 Attention intensities in BART and T5 decoders encode phrase centrality"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "In summary, through attention-based analyses, we reveal novel insights into the underlying keyphrase knowledge of PLMs with autoregressive decoders. Such knowledge can be employed explicitly (via ranking) or implicitly (via fine-tuning and prompting) to facilitate KPG. In the rest of the paper, we focus on rethinking two basic designs for KPG with seq2seq PLMs.",
+      "section": "3.2 Attention intensities in BART and T5 decoders encode phrase centrality"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "Three crucial design options exist for using seq2seq PLMs for KPG: the choice of PLM to fine-tune, the fine-tuning data and objective , and the decoding strategy . Previous work focuses on fine-tuning objective and data construction (Meng et al., 2021; Ray Chowdhury et al., 2022; Garg et al., 2023) while often making the other two choices in an ad hoc way, making it difficult to compare among approaches. This section dives into the first question by evaluating three \"conventional wisdoms\":",
+      "section": "4 Influence of PLM Choice for KPG"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "1. Using PLMs with more parameters (§4.1). 2. Using in-domain PLMs (§4.2). 3. Using task-adapted PLMs (§4.3).",
+      "section": "4 Influence of PLM Choice for KPG"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "Although the effect of model sizes has been explored for a range of tasks, it is poorly understood in the KPG literature, where most recent works employ a single PLM with 100M to 500M parameters (Kulkarni et al., 2022; Wu et al., 2022b; Zhao et al., 2022). To establish a common ground, we measure the performance of fine-tuning BART-base/large (purple line) and T5-small/base/large/3B (green line) and report the results on KP20k in Figure 1.",
+      "section": "4.1 The scaling law for keyphrase generation"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Surprisingly, fine-tuning BART or T5 is extremely parameter-inefficient compared to taskspecific architectures trained from scratch[1] . For instance, although T5’s performance consistently increases with the model size, around 8x more parameters are required to achieve the same Present F 1@ M on KP20k as SetTrans and 30x more parameters are required to have a better SemF 1. Closer inspection shows that SetTrans excels in recall via its parallel control codes and the set loss. In comparison, limited by the learning formulation and decoding strategy, fine-tuned seq2seq PLMs fall behind in their recall of important keyphrases. In §5, we will show that this problem can be alleviated with a simple decode-then-select strategy.",
+      "section": "4.1 The scaling law for keyphrase generation"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "BART vs. T5 BART and T5 display similar scaling for F 1@ M and SemF 1. However, compared to T5, BART’s recall scores increase more readily than the precision scores. At the same number of parameters, BART also performs better on absent keyphrases. One possible reason is that BART’s text infilling objective is more advantageous for learning the knowledge for constructing spans absent from text (Wu et al., 2022a).",
+      "section": "4.1 The scaling law for keyphrase generation"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "Which score is more sensitive to scaling? Compared to recall, precision is more sensitive to model size. For example, T5-small achieves 98% SemR compared to the 50x larger T5-3B. In addition, absent keyphrases scores are more sensitive. Overall, this suggests that small models are able to extract relevant keyphrases, but learn to selectively omit unimportant keyphrases and create more absent keyphrases as the model size grows. Indeed, the average number of predicted keyphrases decreases from T5-small (6.75), T5-base (5.74), and T5-large (5.66), to T5-3B (5.48), while the number of absent keyphrases increases from T5-small (0.91),",
+      "section": "4.1 The scaling law for keyphrase generation"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "> 1We note that this claim is orthogonal to the observations that PLMs are data-efficient (Wu et al., 2022a).",
+      "section": "4.1 The scaling law for keyphrase generation"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "Figure 1: KP20k test performance of models of various sizes and pre-training strategies. +ID = using in-domain SciBART. +TAPT = second-stage training on OAGKX. The results are averaged over 3 random seeds.",
+      "section": "4.1 The scaling law for keyphrase generation"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "T5-base (0.99), T5-large (1.01), to T5-3B (1.05).",
+      "section": "4.1 The scaling law for keyphrase generation"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "In-domain pre-training has been shown effective in a wide range of tasks requiring extensive domain knowledge (Beltagy et al., 2019; Lee et al., 2019). As keyphrases often contain domain-specific terminologies, we hypothesize that the domain of a PLM greatly affects its keyphrase generation ability. To test this hypothesis, we pre-train in-domain BART models SciBART-base and SciBART-large from scratch using the paper titles and abstracts from the S2ORC dataset (Lo et al., 2020). The processed dataset contains 171.7M documents or 15.4B to-",
+      "section": "4.2 Domain knowledge is crucial to accurate keyphrase generation"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "kens in total. The models are pre-trained on text infilling for 250k steps with batch size 2048, learning rate 3e-4, 10k warm-up steps, and polynomial learning rate decay. We present data processing and model training details in appendix C.",
+      "section": "4.2 Domain knowledge is crucial to accurate keyphrase generation"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "The results of fine-tuning SciBART are presented with \"+ID\" (for \"In-Domain\") in Figure 1. As expected, SciBART significantly improves over BART for all three F1 metrics, outperforming the much larger T5-3B. Notably, SciBART also has better parameter efficiency compared to general domain models: scaling from SciBART-base to SciBART-large provides a much larger growth in SemF 1 compared to scaling up BART and T5.",
+      "section": "4.2 Domain knowledge is crucial to accurate keyphrase generation"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "Task-adaptive pre-training (TAPT) is another common technique for adding task-specific supervision signals (Gururangan et al., 2020). In this section, we analyze the effect on KPG performance of adding two types of TAPT stages to seq2seq PLMs: keyphrase generation or instruction following .",
+      "section": "4.3 Task-adaptive pre-training is more effective with in-domain models"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "Keyphrase Pre-training We directly use KeyBART (Kulkarni et al., 2022) (denoted as \"+TAPT\" in Figure 1), which is trained using the OAGKX dataset (Çano and Bojar, 2020) on KPG with keyphrases corrupted from the input. To investigate the effects of TAPT on in-domain PLMs, we also fine-tune SciBART on OAGKX with batch size 256, learning rate 3e-5, and 250k steps. We denote this model as \"+ID+TAPT\" in Figure 1.",
+      "section": "4.3 Task-adaptive pre-training is more effective with in-domain models"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "Instruction Pre-training Recently, instruction tuning has been introduced to improve the generalization ability of PLMs (Mishra et al., 2022; Ouyang et al., 2022). As KPG is relevant to classic NLP tasks such as information extraction and summarization, we hypothesize that training with instruction data also serves as TAPT for KPG[2] . To confirm, we benchmark FLAN-T5 (Chung et al., 2022), a family of T5 models fine-tuned on instruction following datasets (yellow line in Figure 1).",
+      "section": "4.3 Task-adaptive pre-training is more effective with in-domain models"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "TAPT struggles to improve absent KPG but is more effective with in-domain models. Figure 1 suggests that both TAPT strategies lead to a similar amount of improvement in the present keyphrase F1@M and SemF1. Surprisingly, the absolute gain is small and TAPT hardly improves absent keyphrase performance. For KeyBART, although its pre-training data (OAGKX) has a similar percentage of absent keyphrases as KP20K (32% vs. 37%), its objective (recovering present keyphrases from corrupted input) might still be different from absent keyphrase generation. For FLAN-T5, we find that the KPG-related tasks in its pre-training tasks often contain very short input text, representing a significant distribution mismatch with KP20k. However, when applied on the in-domain SciBART, TAPT can greatly improve the performance on KP20k. Combined with §4.2, we conclude that in-domain pre-training is more important for KPG and TAPT serves a complementary secondary role .",
+      "section": "4.3 Task-adaptive pre-training is more effective with in-domain models"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "> 2In fact, some variants of the keyphrase extraction task are included in popular instruction datasets such as NIv2 (Wang et al., 2022) and Alpaca (Taori et al., 2023).",
+      "section": "4.3 Task-adaptive pre-training is more effective with in-domain models"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "+-------------------------------------------+--------------------------------------------------+ | Model | Before After ∆ | +-------------------------------------------+--------------------------------------------------+ | Name Variation Substitution | | +-------------------------------------------+--------------------------------------------------+ | BART-large SciBART-large KeyBART SciBART- | 0.476 0.410 -0.066 (13.9%↓) 0.531 0.420 -0.131 | | large+TAPT | (20.9%↓) 0.463 0.398 -0.065 (14.2%↓) 0.525 0.434 | | | -0.091 (17.4%↓) | +-------------------------------------------+--------------------------------------------------+ | Paraphrasing | | +-------------------------------------------+--------------------------------------------------+ | BART-large SciBART-large KeyBART SciBART- | 0.463 0.453 -0.010 (2.3%↓) 0.524 0.494 -0.030 | | large+TAPT | (5.8%↓) 0.466 0.407 -0.059 (12.6%↓) 0.522 0.487 | | | -0.035 (6.8%↓) |",
+      "section": "4.3 Task-adaptive pre-training is more effective with in-domain models"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "+-------------------------------------------+--------------------------------------------------+",
+      "section": "4.3 Task-adaptive pre-training is more effective with in-domain models"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "Table 2: Results for the probing experiments. \"Before\" and \"After\" indicate the recall scores before and after perturbation. ∆ denotes the score change from \"Before\" to \"After\". The best score is boldfaced.",
+      "section": "4.3 Task-adaptive pre-training is more effective with in-domain models"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "4.4 Analysis: are strong KPG models sensitive to input perturbations?",
+      "section": "4.3 Task-adaptive pre-training is more effective with in-domain models"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "As in-domain and task-adapted PLMs already greatly benefit KPG, are data augmentation techniques no longer necessary? In this section, we reveal that these designs increase the model’s sensitivity to input perturbations, and data augmentation is still desired for better generalization.",
+      "section": "4.3 Task-adaptive pre-training is more effective with in-domain models"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "We design two input perturbations on KP20k to check the behaviors of BART-based KPG models.",
+      "section": "4.4.1 Method"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "Name variation substitution We construct 8905 perturbed inputs by replacing present keyphrases with their name variations linked by Chan et al. (2019). Ideally, a robust KPG model would have a similar recall for the original phrases and the name variations as they appear in the same context.",
+      "section": "4.4.1 Method"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "Paraphrasing We leverage gpt-3.5-turbo to paraphrase 1000 documents into a scientific writing style. A good KPG model is expected to retain similar recall for phrases that present both before and after paraphrasing since the inputs describe the same ideas. The detailed prompt and several examples are presented in appendix E.",
+      "section": "4.4.1 Method"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "Table 2 presents the perturbation results. We observe that models often fail to predict name variations when they appear in place of the original synonyms, while successfully maintaining their predictions given paraphrased inputs. This indicates that the models may overfit to the high-frequency keyphrases in the training set and input augmentation methods such as Garg et al. (2023) are necessary to correct this pattern.",
+      "section": "4.4.2 Results"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "In addition, domain-specific or task-adapted models exhibit a larger performance drop compared to BART-large, suggesting a trade-off between domain/task specificity and generalization. Pre-trained on large-scale keyphrase data, KeyBART may rely more on syntax and position information in the data and thus be less sensitive to synonym change. On the other hand, pre-trained on a large-scale scientific corpus, SciBART is more robust than KeyBART on different scientific writing styles beyond the ones available in KP20k.",
+      "section": "4.4.2 Results"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "We summarize the main conclusions derived from the empirical results presented in this section: • Naively scaling up BART and T5 is parameterinefficient on KP20k compared to SetTrans.",
+      "section": "4.5 Discussion"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "• Domain knowledge is crucial for KPG performance and improves parameter efficiency.",
+      "section": "4.5 Discussion"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "• Task-adaptive training with keyphrase or instruction tuning data only significantly improves KPG with in-domain models.",
+      "section": "4.5 Discussion"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "• In-domain pre-training and TAPT harm generalization in different ways and data augmentation during fine-tuning is desired.",
+      "section": "4.5 Discussion"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "While it is well-known that decoding strategies can strongly affect text generation quality (Fan et al., 2018; Holtzman et al., 2020), surprisingly there has been little study about decoding PLM-based KPG models. Previous studies often directly use greedy search and variants of beam search (Gao et al., 2022; Zhao et al., 2022; Wu et al., 2022a), limiting the understanding of PLMs fine-tuned for KPG. To bridge this knowledge gap, we first carefully evaluate six decoding strategies on the strongest PLM-based KPG model. We then propose a simple yet effective decode-select strategy to mitigate the observed deficiencies of greedy search.",
+      "section": "5 Decoding Strategy for KPG"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "We focus on decoding the SciBART-large+TAPT model fine-tuned on KP20k, under the budget varying from 1 to 20 samples. The following six decoding algorithms are compared. For each algorithm, their hyperparameters are chosen based on the KP20k validation set.",
+      "section": "5.1 Multi-sequence decoding: the trade-off between coverage and quality"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "1. Greedy search . 2. Beam search . We set the beam size to the number of desired samples.",
+      "section": "5.1 Multi-sequence decoding: the trade-off between coverage and quality"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "3. Diverse beam search (Vijayakumar et al., 2018). We set the number of groups to the number of desired samples and the weight of the dissimilarity term to λg = 0 . 1.",
+      "section": "5.1 Multi-sequence decoding: the trade-off between coverage and quality"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "4. Vanilla sampling . We further apply a temperature scaling τ = 0 . 7. 5. Top-k sampling (Fan et al., 2018). We use temperature τ = 0 . 7 and k = 2 as we find a large k harms the generation quality.",
+      "section": "5.1 Multi-sequence decoding: the trade-off between coverage and quality"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "6. Nucleus sampling (Holtzman et al., 2020). We set p = 0 . 95 and temperature τ = 0 . 5.",
+      "section": "5.1 Multi-sequence decoding: the trade-off between coverage and quality"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "Figure 2 presents the semantic-based evaluation results as a function of sample size. In the single sample setting, greedy search achieves a strong SemF 1, only slightly outperformed by diverse beam search. For other methods, we observe a clear trade-off between their information coverage ( SemR ) and the noise in the final output ( SemP ) as the number of samples grows. Nevertheless, all these methods are able to outperform greedy search at a certain sample size, indicating that single-sequence decoding is sub-optimal.",
+      "section": "5.1 Multi-sequence decoding: the trade-off between coverage and quality"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "Greedy search captures the correlations in humanwritten labels but suffers from local decisions and path dependency : high-quality keyphrases can be missed with improbable first tokens. However, naively outputting the union of multiple sampled sequences brings excessive noise. To achieve the balance between the two, we introduce DESEL, a simple and effective three-stage decoding strategy:",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "1. De code one sequence G via greedy search. 2. Sample n sequences {S 1 , ..., Sn} to collect a set of candidate keyphrases S .",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "3. Sel ect high quality phrases {s 1 , ..., sm} ⊂ S and output the sequence ( G ; s 1 ; ... ; sm ).",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "For step 3, we estimate Pr( si|X ) for every phrase si in the n samples and Pr( gj|X ) for every phrase gj ∈ G . Then, we use G as a baseline to select at most m most probable si that satisfies",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "where α is a hyperparameter controlling the tradeoff between precision and recall. The probability estimation is obtained with either the original",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "Figure 2: A comparison of six strategies for decoding from the SciBART+TAPT model. Greedy search achieves strong performance while performing worse than beam search and sampling with multiple samples.",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "+------------------+-----------------+-----------------+------------------+-----------------+-----------------+ | Method | KP20k P A Sem | Inspec P A Sem | Krapivin P A Sem | NUS P A Sem | SemEval P A Sem | +------------------+-----------------+-----------------+------------------+-----------------+-----------------+ | CopyTrans | 0.376 0.046 | 0.333 0.023 | 0.365 0.063 | 0.429 0.044 | 0.321 0.022 | | SetTrans CorrKG† | 0.562 0.391 | 0.569 0.328 | 0.547 0.375 | 0.579 0.446 | 0.377 0.342 | | BART-large | 0.058 0.585 | 0.030 0.573 | 0.072 0.560 | 0.055 0.597 | 0.029 0.396 | | SciBART-large + | | | | | | | TAPT + TAPT + | | | | | | | DESEL | | | | | | +------------------+-----------------+-----------------+------------------+-----------------+-----------------+ | | 0.404 0.071 N/A | 0.365 0.045 N/A | N/A N/A N/A | 0.449 0.079 N/A | 0.359 0.044 N/A | +------------------+-----------------+-----------------+------------------+-----------------+-----------------+ | | 0.392 0.047 | 0.333 0.024",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "| 0.347 0.051 | 0.435 0.048 | 0.311 0.024 | | | 0.575 0.396 | 0.565 0.328 | 0.517 0.329 | 0.586 0.421 | 0.381 0.304 | | | 0.057 0.587 | 0.026 0.557 | 0.056 0.503 | 0.050 0.567 | 0.033 0.382 | | | 0.426 0.063 | 0.330 0.030 | 0.347 0.064 | 0.442 0.055 | 0.333 0.031 | | | 0.597 0.431 | 0.569 0.402 | 0.519 0.352 | 0.585 0.449 | 0.386 0.341 | | | 0.076 0.612 | 0.036 0.611 | 0.086 0.546 | 0.068 0.610 | 0.040 0.402 | +------------------+-----------------+-----------------+------------------+-----------------+-----------------+",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "Table 3: Testing results on all datasets. P and A stand for F 1@ M for present and absent keyphrases. Sem stands for SemF 1. The best performance is boldfaced.[†] copied from Zhao et al. (2022). The best entries in each column are statistically significantly higher than the second best (p < 0.05) via a paired bootstrap test. Full results in Table 8.",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "model or a newly trained \"one2one\" model[3] that learns to generate a single keyphrase based on X . We use nucleus sampling with p = 0.95 and τ = 0.5 for step 2, and set m = 10, n = 10, and α = 0.78.",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "Table 3 presents the test results of important models in this paper. DESEL consistently improves the performance over the base model by a large margin. In Table 4, we compare against other selection strategies including random selection, input overlap using a sentence transformer model, and FreqFS proposed in Zhao et al. (2022). DESEL is the only method that consistently outperforms both greedy search and nucleus sampling.",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "Discussion Compared to the single-sequence decoding baselines, DESEL wins by bringing in the diversity. Compared to the baseline ranking methods, DESEL wins by capturing the correlations between labels (encoded in the greedy search outputs) and using the likelihood-based criteria to filter out",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "> 3Starting from KeyBART, the one2one model can be efficiently trained. We provide more details in appendix F.",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "+----------------------------------------------------+--------------------------------------------------+ | Method | P A Sem | +----------------------------------------------------+--------------------------------------------------+ | Greedy search (G) Nucleus sampling (S) Random | 0.426 0.063 0.597 0.385 0.074 0.599 0.385 0.072 | | Selection Input Overlap FreqFS (Zhao et al., 2022) | 0.596 0.402 0.064 0.611 0.426 0.072 0.610 0.426 | | DESEL (self) DESEL (one2one) | 0.070 0.608 0.431 0.076 0.612 | +----------------------------------------------------+--------------------------------------------------+",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "Table 4: A comparison across different decoding strategies. Methods below the dotted line merge G with S . high-quality phrases from the diverse candidates.",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0087",
+      "text": "Efficiency DESEL harms the inference latency as it generates multiple sequences. To improve the efficiency, one optimization is reusing the encoder’s outputs for all the decoding and scoring operations. We implemented this strategy and benchmarked it with the BART (base) model. DESEL with n = 10 (1 greedy search and 10 sampling sequences decoded) takes 3.8x time compared to greedy decoding.",
+      "section": "5.2 A simple decode-select strategy boosts the performance of greedy decoding"
+    },
+    {
+      "chunk_id": "c0088",
+      "text": "Keyphrase Generation Meng et al. (2017) propose the task of Deep Keyphrase Generation and a strong baseline model CopyRNN. Later works improve the architecture by adding correlation constraints (Chen et al., 2018) and linguistic constraints (Zhao and Zhang, 2019), exploiting learning signals from titles (Ye and Wang, 2018; Chen et al., 2019b), and hierarchical modeling the phrases and words (Chen et al., 2020). Ye and Wang (2018) reformulate the problem as generating a sequence of keyphrases, while Ye et al. (2021) further uses a set generation formulation to remove the influence of difference target phrase ordering. Other works include incorporating reinforcement learning (Chan et al., 2019; Luo et al., 2021), GANs (Swaminathan et al., 2020), and unifying KPE with KPG (Chen et al., 2019a; Ahmad et al., 2021). Meng et al. (2021) conduct an empirical study on architecture, generalizability, phrase order, and decoding strategies, with the main focus on models trained from scratch instead",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0089",
+      "text": "of PLMs.",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0090",
+      "text": "PLMs for KPG More recently, Wu et al. (2021), Chowdhury et al. (2022), Wu et al. (2022a), Gao et al. (2022), and Wu et al. (2022b) consider finetuning prefix-LMs or seq2seq PLMs for KPG. Kulkarni et al. (2022) use KPG as a pre-training task to learn strong BART-based representations. Zhao et al. (2022) adopt optimal transport for loss design and propose frequency-based filtering for decoding to improve BART-based KPG.",
+      "section": "6 Related Work"
+    },
+    {
+      "chunk_id": "c0091",
+      "text": "While our study sheds light on important aspects of keyphrase generation (KPG) models, several limitations present opportunities for future research.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0092",
+      "text": "First, our analysis focuses on model selection and decoding and thus uses default cross entropy loss and original training set without data augmentations. Investigating how the discussed design choices with more recent data augmentation (Ray Chowdhury et al., 2022; Garg et al., 2022) or training strategies (Zhao et al., 2022) is an important future study. In addition, the best approach to combine the conclusions reached in this paper on long input KPG (Garg et al., 2022) or KPG models trained with reinforcement learning (Chan et al., 2019; Luo et al., 2021) worth future study.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0093",
+      "text": "Second, while in-domain pre-training combined with task adaptation was found to enhance KPG performance, we did not fully investigate the underlying mechanisms leading to these improvements. Further research could explore the interplay between these two aspects and uncover more granular insights into how they improve KPG.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0094",
+      "text": "Finally, although we revealed a compromise between performance optimization and model robustness, we did not delve into designing new methods for improving the robustness of these models against perturbed inputs. Future research could further explore techniques to mitigate this trade-off, developing models that maintain high performance while being resistant to input perturbations.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0095",
+      "text": "This paper systematically investigated model selection and decoding for building KPG models with seq2seq PLMs. Our analyses suggested much more nuanced patterns beyond the \"conventional wisdom\" assumed by the majority of current literature. Our novel decoding strategy, DESEL, significantly improved the performance of greedy search across multiple datasets. More broadly, this study underscores the distinct nature of the KPG task. One should not blindly transpose conclusions or assumptions from other text generation tasks. Instead, they warrant careful re-evaluation and empirical validation. Our work also opens up exciting directions for future work, with deep groundings in keyphrase literature. For instance, making KPG models more robust, interpreting a KPG model, and designing better decoding algorithms for KPG.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0096",
+      "text": "S2ORC and OAGKX are released under the Creative Commons By 4.0 License. We perform text cleaning and email/URL filtering on S2ORC to remove sensitive information, and we keep OAGKX as-is. We use the keyphrase benchmarking datasets distributed by the original authors. No additional preprocessing is performed before fine-tuning except lower-casing and tokenization. We do not re-distribute any of the datasets used in this work.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0097",
+      "text": "Potential risks of SciBART include accidental leakage of (1) sensitive personal information and (2) inaccurate factual information. For (1), we carefully preprocess the data in the preprocessing stage to remove personal information, including emails and URLs. However, we had difficulties desensitizing names and phone numbers in the text because they overlapped with the informative content. For (2), since SciBART is pre-trained on scientific pa-",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0098",
+      "text": "pers, it may generate scientific-style statements that include inaccurate information. We encourage the potential users of SciBART not to rely fully on its outputs without verifying their correctness.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0099",
+      "text": "Pre-training SciBART and fine-tuning the large T5 models are computationally heavy, and we estimate the total CO2 emission to be around 3000 kg using the calculation application provided by Lacoste et al. (2019). We will release the fine-tuned checkpoints and we document the hyperparameters in the appendix section D to help the community reduce the energy spent optimizing PLMs for KPG and other various NLP applications.",
+      "section": "7 Conclusion"
+    },
+    {
+      "chunk_id": "c0100",
+      "text": "The research is supported in part by Taboola, NSF CCF-2200274, and an Amazon AWS credit award. We thank the Taboola team for the helpful discussion. We also thank anonymous reviewers, Da Yin, Tanmay Parekh, and other members of the UCLANLP group for their valuable feedback.",
+      "section": "Acknowledgments"
+    }
+  ]
+}

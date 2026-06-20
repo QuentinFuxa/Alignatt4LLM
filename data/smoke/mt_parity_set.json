@@ -1,0 +1,35 @@
+[
+  {
+    "name": "final_clean",
+    "source_text": "Hi I'm Si Yuan from Fudan University.",
+    "is_final": true
+  },
+  {
+    "name": "partial_no_prefill",
+    "source_text": "Hi I'm Si Yuan from Fudan University and I",
+    "is_final": false
+  },
+  {
+    "name": "partial_with_prefill",
+    "source_text": "Hi I'm Si Yuan from Fudan University and I",
+    "is_final": false,
+    "accepted_target_prefill": "Hallo, ich bin Si Yuan"
+  },
+  {
+    "name": "partial_provenance_weak",
+    "source_text": "Hi I'm Si Yuan from Fudan University and I",
+    "is_final": false,
+    "min_source_mass": 0.85
+  },
+  {
+    "name": "partial_longer_frontier",
+    "source_text": "Today we are going to talk about the challenges of simultaneous speech translation and",
+    "is_final": false
+  },
+  {
+    "name": "partial_long_with_prefill",
+    "source_text": "Today we are going to talk about the challenges of simultaneous speech translation and",
+    "is_final": false,
+    "accepted_target_prefill": "Heute werden wir über"
+  }
+]

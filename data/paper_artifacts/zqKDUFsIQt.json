@@ -1,0 +1,510 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "zqKDUFsIQt",
+  "source_pdf": "test-set/pdf/zqKDUFsIQt.pdf",
+  "title": "Disentangling Transformer Language Models as Superposed Topic Models",
+  "authors": "Jia Peng Lim Singapore Management University jiapeng.lim.2021@smu.edu.sg \n\nHady W. Lauw Singapore Management University hadywlauw@smu.edu.sg",
+  "abstract": "Topic Modelling is an established research area where the quality of a given topic is measured using coherence metrics. Often, we infer topics from Neural Topic Models (NTM) by interpreting their decoder weights, consisting of top-activated words projected from individual neurons. Transformer-based Language Models (TLM) similarly consist of decoder weights. However, due to its hypothesised superposition properties, the final logits originating from the residual path are considered uninterpretable. Therefore, we posit that we can interpret TLM as superposed NTM by proposing a novel weight-based, model-agnostic and corpus-agnostic approach to search and disentangle decoder-only TLM, potentially mapping individual neurons to multiple coherent topics. Our results show that it is empirically feasible to disentangle coherent topics from GPT-2 models using the Wikipedia corpus. We validate this approach for GPT-2 models using Zero-Shot Topic Modelling. Finally, we extend the proposed approach to disentangle and analyse LLaMA models.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "The term ‘superposition’ in machine learning typically refers to overlapping concepts. Elhage et al. (2021) allude to the property of superposition in transformers when discussing the difficulty of interpreting its multilayer perceptrons’ (MLP) neurons in Transformer Language Models (TLM). Black et al. (2022) also find neurons in transformers having polysemantic behaviour. We believe it is possible to interpret neurons in superposition, motivated by three key insights.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "Our first insight lies in the similarity between TLM and Neural Topic Models (NTM) (see Section 2). Many analyses of transformers examine some variation of neuron activations paths (Shazeer et al., 2020; Dong et al., 2021). Again, NTM also uses paths (albeit usually across one layer) and interprets the highest activated logits from a given",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "neuron as a topic. It is thus natural to treat the interpretation of TLM as a topic model with topics in superposition. Arora et al. (2018) show that polysemous words, i.e., multiple meanings, are in linear superposition within word embeddings. Similarly, we posit to linearly disentangle the logit interpretation of neurons in superposition and examine the neurons in the residual stream (see Section 4). We treat neurons from MLP as belonging to the higherdimensional residual stream.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "Our second insight acknowledges the decadelong interpretability research stemming from topic models. Since Blei (2012), there has been a push to reconcile the evaluation of topic models with the human notion of coherence (Mimno et al., 2011; Lau et al., 2014; Röder et al., 2015), and still debated (Doogan and Buntine, 2021; Hoyle et al., 2021). We show that their findings might help advance the interpretation of TLM (see Section 3.1).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "Our third insight contributes towards tackling the disentanglement problem from a novel angle. We map the disentanglement problem to an NP-Hard classical graph problem and propose a computationally feasible approach to solve it via heuristics and exact solving (see Section 5). Wary of mirages (Schaeffer et al., 2023), we propose a non-trivial baseline and empirically show that the disentangled superposition interpretations are indeed meaningful and not due to chance (see Section 6).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "Contributions . This work aims to deploy topic modelling methodologies, specifically in the area of interpretability, to automate the search and evaluation of concepts within TLMs. We propose a novel weights-based, corpus-agnostic approach to disentangle topics from decoder-only TLM with automated evaluation. These extracted topics are constrained to the themes in the chosen corpus. In a static setting, when considering each GPT-2’s neurons (residual, MLP) individually, we empirically show that many are in superposition and may embody multiple distinct or related concepts.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "TLMs are pre-trained on a large number of tokens across a plethora of themes. One possible application is to mine the TLM to identify and explain the neurons’ role(s) concerning these learnt themes. To further validate our results dynamically, we employ a topic modelling task on GPT-2 in a zero-shot manner (ZSTM, see Section 7). Given a corpus as an input, we register top activating neurons and investigate the projected topics. Finally, we extend our proposed approach[1] on LLaMA (see Section 8), detailing our intuition and approach in overcoming the barrier to interpretability introduced by its choice of tokenization.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "Alignment Research. The area closest to our work is mechanistic interpretability (Olah et al., 2020), a white-box approach to explain models via model weights. Many works focus on explaining attention (Voita et al., 2019; Clark et al., 2019; Hao et al., 2021). Geva et al. (2022) show that sub-updates in feed-forward network layers are interpretable. Millidge and Black (2022) finds interpretable singular value decompositions of Transformer weights. Dar et al. (2023) analyse transformers in the embedding space. Elhage et al. (2022) and Henighan et al. (2023) analyse properties of superposition in toy transformers. More recently, Cunningham et al. (2023) and Bricken et al. (2023) use sparse autoencoders to extract interpretable features from neurons. Without introducing additional neural networks, our work contributes towards the automated discovery and evaluation of superpositions in neurons from TLMs.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "Topic Models. While earlier works utilised probabilistic graphical models (Blei et al., 2003), recent works focus on neural-based approaches. There are many NTMs (Miao et al., 2016; Srivastava and Sutton, 2017; Zhang and Lauw, 2020; Dieng et al., 2020; Zhang et al., 2022) that incorporate an autoencoder framework (Kingma and Welling, 2014), while others (Yang et al., 2020; Pham and Le, 2021; Zhang et al., 2023) utilizes graph neural networks (Kipf and Welling, 2017; Liu et al., 2019). TLMs have a considerable influence on such neural topic models. Bianchi et al. (2021a), Grootendorst (2022), Han et al. (2023) use TLM embeddings in their topic modelling approaches. Bianchi et al. (2021b) propose an NTM that undergoes self-supervised training on pre-trained multi-",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "1github.com/PreferredAI/superposed-topics",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "Figure 1: The logit distribution of different fn in GPT2-XL with three observable areas: 1) Elimination at the left tail, 2) Mixture in the middle, and 3) Promotion at the right tail. Vertical lines are τ thresholds to shortlist token pools. Different paths have similar logit distribution.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "lingual S-BERT document embeddings (Reimers and Gurevych, 2019) for use in a zero-shot crosslingual setting. Wang et al. (2023) propose a TLMagnostic method to add additional concept tokens, where from its representation, inferring topics after fine-tuning to any specific supervised task. For our zero-shot topic modelling task, we do not employ additional training or modifications to GPT-2.",
+      "section": "2 Related Work"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "For any given neuron n in language model M , different inputs to M may activate the same neuron to express different concepts. We consider these concepts to be in superposition within n , and describable in a human-interpretable manner using groups of words – topics. If we can obtain its final logit representation fn ∈ R[|][S][|] on token-space S , we posit that it is empirically possible to linearly disentangle fn into multiple interpretable vector representations i in vocabulary space V with a leftover abstract vector representation an (Equation 1).",
+      "section": "3 Disentangling Topics in Superposition"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "Similar to the behaviours observed in Geva et al. (2022), we observed that fn is dividable into three distinct behaviours: promotion , elimination , and mixture (Figure 1). If in exists, we expect in to promote or eliminate specific themes. For uninterpretable mixture behaviour, we liken it to an .",
+      "section": "3 Disentangling Topics in Superposition"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "Figure 2: Illustration of our three-step approach. Topic examples are from a random f[Lo-I] in GPT-2-XL. The word graphs shown are for illustration purposes. Values in parenthesis are the respective topics’ NPMI W .",
+      "section": "3 Disentangling Topics in Superposition"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "Figure 3: Illustration of a high-level abstraction of the decoder-only transformer model in higher-dimensional Dh and lower-dimensional Dl residual stream.",
+      "section": "3 Disentangling Topics in Superposition"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "Figure 4: Visualisation of neuron paths fj,d[path][.][Paths] (Origin-Distance) projected from individual neurons.",
+      "section": "3 Disentangling Topics in Superposition"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "Figure 2 provides an overview of our framework, and we outline the three steps below.",
+      "section": "3.1 Three-Step Disentanglement Approach"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "Projection . We begin by projecting fn onto corpus statistics. Intuitively, knowing what to look for helps in the search. We use Wikipedia as our reference corpus and Normalised Pointwise Mutual Information (NPMI) as our corpus statistic. Introduced in Bouma (2009), the NPMI score of a given topic is the mean of NPMI between each possible word-pairs in the group (Equation 2). Lau et al. (2014) and Röder et al. (2015) found correlations between NPMI scores and human ratings on a subset of Wikipedia corpus. We calculate NPMI on Wikipedia’s statistics (NPMI W ) and ZSTM’s selected corpus statistics (NPMI C ).",
+      "section": "3.1 Three-Step Disentanglement Approach"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "We use Wikipedia-EN corpus statistics prepared in Lim and Lauw (2023) (Wikipedia-V40K[2] ) that contains its top 40K most frequent vocabulary excluding stop-words. For NPMI calculated from this corpus statistics, Lim and Lauw (2023) benchmarked its correlation to human judgement at ρ ¯ = 0 . 66, with 40 unique study participants split across eight different study groups. We reiterate that it is possible to use other corpora for this projection step (see Section 7).",
+      "section": "3.1 Three-Step Disentanglement Approach"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "> 2github.com/PreferredAI/topic-metrics, with article bodies processed using Attardi (2015).",
+      "section": "3.1 Three-Step Disentanglement Approach"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "Shortlisting . Since our interests lie in in , the tails of fn , we start by shortlisting the topτ and bottomτ tokens, respectively termed pos and neg token pool. Producing word pools from these token pools, we subsequently individually segment into word sets via heuristics using corpus statistics. For some n , this step may produce zero word sets, suggesting the concepts within n do not lie within the corpus domain.",
+      "section": "3.1 Three-Step Disentanglement Approach"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "Exact Solving . Finally, within each word set, we locally optimize it against NPMI W to get a b - sized coherent topic. A standard fixed topic size allows parity in comparison across differently-sized word sets and ease of human identification. We validate our approach in Section 6, where we show empirically that the distribution of tails in differs from a non-trivial random distribution.",
+      "section": "3.1 Three-Step Disentanglement Approach"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "Transformer Architecture. From Elhage et al. (2021), we adopt a similar notation style. However, we further differentiate the residual stream into higher and lower dimensions, respectively Dh and Dl , as illustrated in Figure 3. We analyse the activation paths of decoder-only transformers. Given a pre-trained language model M with L layers, with tokens t from token-space S , we get its initial embeddings x 0 via embedding layer ME (Equation 3). At each layer l , xl− 1 ∈ R[D][l] increases its dimensions via WI[l][, and is passed into Transformer] block Tl . The Dh -output of Tl is then transformed back to Dl space via WO[l][(Equation][ 3][).][Final logits] f ∈ R[|][S][|] obtained using unembedding layer MU on the Dl -residual layer xL (Equation 4).",
+      "section": "4 Path Definitions"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "Presenting a higher-level abstraction, we omit details that differ between different models, such as positional embeddings and normalisation. Usually, in each layer l , attention is applied via the various attention heads Hl (Equation 5) (Vaswani et al., 2017). Attention layer Al is connected to MLP ml in a residual manner (Equation 6).",
+      "section": "4 Path Definitions"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "Different Paths . There are many possible paths from any n ∈ M to the final logit layer. We constrain our search to origin-distance pairs with origin (higher (Hi) or lower (Lo) residual dimension) and distance (immediate (I) or complete (C)). Figure 4 visualises the different activation paths for the four modes. Let neuron path fj,d[path][represent][the][final] logits of neurons (Equation 7), at index d in layer j . Its D -dimension boolean representation (Equation 8), with Dl and Dh representing lower and higher dimensions, as the initial input and injected into starting layer j (Equations 9,10,11,12).",
+      "section": "4 Path Definitions"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "For Paths Hi-C and Hi-I, we examine MLP neurons in Tj computing all subsequent layers after layer j (Equation 9) with limits [1 , L ]. Hi-C obtains complete neuron path fj,d[Hi-C] (Equation 7). However, Hi-I only computes its transformation to the Dl - dimension (Equation 10). Starting from Dh -MLP is equivalent to evaluating path Lo on layer j + 1 on a compositional input.",
+      "section": "4 Path Definitions"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "For Paths Lo-C and Lo-I, we examine neurons in Dl -residual layer j before Tj . Path Lo-C computes complete path (Equation 11) and Lo-I only computes layer j (Equation 12).",
+      "section": "4 Path Definitions"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "From each fj,d[path][, we shortlist top-][τ][and bottom-][τ] tokens, forming pos and neg token pools representing in . After projecting it onto a corpus, we obtain word pools that we represent as word graphs.",
+      "section": "4 Path Definitions"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "In a word pool G , each word v ∈ V is connected via word-pairs ( vi, vj ) ∈ E weighted by corpus statistic wvi,vj . We can formulate extracting b -sized cliques from G as disentangled topics into the following graph problem.",
+      "section": "5 Methodology"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "+--+---------------------------+---------------------------+--+ | | lgorithm 1: Star | | | | | Heuristic | | | +--+---------------------------+---------------------------+--+ | | Function | | | | | Star_Heuristic(graph G, | | | | | edge limits θ, size | | | | | limits κ): Delete (vi, | | | | | vj) ∈G if wvi,vj < θl | | | | | ∨wvi,vj > θu; Delete v ∈G | | | | | if |(v, vj) ∈G| < κl; | | | | | Stars ←{Create_Star(v, | | | | | G)∀v ∈G}; Order star | | | | | ∈Stars descending via | | | | | star.mean_score; Chosen | | | | | ←∅; Sets ←∅; for star | | | | | ∈Stars do if star.centre | | | | | ∈Chosen then continue; | | | | | end g ←{v | | | | | ∈star.neighbours|v | | | | | /∈Chosen}; if g ≥κu then | | | | | g ←{v | top κu −1 largest | | | | | wstar.centre,v : v | | | | | ∈star.neighbours}; end g | | | | | ←g∪star.centre; if |g| | | | | | ≥κl then Sets ←Sets ∪g; | | | | | end for v ∈g do Chosen | | | | | ←Chosen ∪v; end end | | | | | return Sets Function | | | | | Create_Star(v, G): | | |",
+      "section": "Algorithm 1: Star Heuristic"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "+--+---------------------------+---------------------------+--+ | | | return star.centre ←v, | | | | | star.neighbours ←{vj|(v, | | | | | vj) ∈G}, star.mean_score | | | | | ← � vj ∈star.neighbours | | | | | wv,vj |star.neighbours| ; | | +--+---------------------------+---------------------------+--+",
+      "section": "Algorithm 1: Star Heuristic"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "Maximum Edge-Weighted b -Clique (MEWC) . Given a graph G , with vertices V and edges E , find max-weighted b -sized clique in G . This problem is NP-hard (Dijkhuizen and Faigle, 1993), as it reduces to the maximum clique problem (Karp, 1972). As G has a non-trivial amount of vertices, finding a top arbitrary number of non-overlapping MEWC in G is computationally challenging. To enable feasible computation to search for highlyweighted b -cliques, we design a star heuristic (Algorithm 1), inspired by Park et al. (1996)’s facetdefining star inequalities, breaking G into smaller sub-graphs for exact solving.",
+      "section": "Algorithm 1: Star Heuristic"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "Exact Solving of Subgraphs. Gouveia and Martins (2015) explored the feasibility of solving different convex formulations of MEKC on G of varying degrees and sizes. We adapt Park et al. (1996)’s formulation to fit our use case. We arrive at a Mixed Integer Program (Eq. 13) that maximises the weight of selected edges (Eq. 13a), selecting edges ( i, j ) and vertex i by boolean variables ei,j (Eq. 13f) and xi (Eq. 13g) respectively. We constrain clique size to b (Eq. 13d, 13e) and selection of edges within selected clique (Eq. 13f, 13g).",
+      "section": "Algorithm 1: Star Heuristic"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "GPT-2 (Radford et al., 2019) is widely used in mechanistic interpretability research. We use model sizes ranging from S (124M) to XL (1558M) (See Table 16 in Appendix B for details). Token space S GPT-2 contains 50,257 tokens encoded using the byte-pair encoding (BPE) algorithm (Sennrich et al., 2016). We map 31K of GPT-2’s tokens directly to 19K words ∈ Wikipedia-V40K’s V Wiki. No further processing is required, as we recover a large portion of V Wiki.",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "Baseline . We use a random distribution of logits to derive a non-trivial set of coherence topics that occur due to chance. In a random word pool, the number of possible b -sized topics scales exponentially with τ , resulting in favourable odds of producing topics that create a false illusion of interpretability. The random baseline uses the same sampling process S and hyper-parameters of GPT2 to generate 50,000 random token pools.",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "Sampling Parameters . To shortlist the important tails of f , we tune hyper-parameters using the first 200 neurons from the first layer of different paths (See Appendix A.1). We locally optimize each word set on NPMI W to get a topic of size 10.",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Sampling Observations . Comparing GPT2 to its random baseline, differences in word sets/neuron are significant (see Table 1). We observe that word pools contain hundreds of words, with pos pools double the size of neg pools. Additionally, pos pools have more word sets per neuron than neg pools, although the mean size of word sets remains similar. The random baseline produces more word sets per neuron than neg pools but produces fewer word sets than pos pools while sampling a significantly larger number of words.",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "+----------------------+--+----------------------+---------------------+----------------------+ | modes | | Words/Word Pool pos | Word Sets/Word Pool | Words/Word Set pos | | | | neg | pos neg | neg | +----------------------+--+----------------------+---------------------+----------------------+ +----------------------+--+----------------------+---------------------+----------------------+ | S-Hi-C S-Hi-I S-Lo-C | | 388.1 ± 122.1 | 6.90 ± 5.43 2.07 ± | 15.19 ± 4.84 12.82 ± | | S-Lo-I | | 216.680 ± 87.9 480.0 | 1.89 9.86 ± 5.79 | 3.30 14.37 ± 4.26 | | | | ± 104.9 229.119 ± | 2.19 ± 2.22 5.92 ± | 12.65 ± 3.21 15.10 ± | | | | 87.0 326.4 ± 125.2 | 5.00 1.70 ± 1.11 | 4.76 12.49 ± 2.91 | | | | 228.968 ± 86.1 437.3 | 8.11 ± 5.18 3.56 ± | 14.47 ± 4.38 12.74 ± | | | | ± 113.1 336.300 ± | 2.79 | 3.14 | | | | 114.1 | | | +----------------------+--+----------------------+---------------------+----------------------+",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "+----------------------+--+----------------------+---------------------+----------------------+ | XL-Hi-C XL-Hi-I XL- | | 473.0 ± 129.8 | 11.34 ± 5.29 3.08 ± | 14.88 ± 4.55 13.66 ± | | Lo-C XL-Lo-I | | 250.104 ± 83.9 478.2 | 4.09 10.02 ± 3.73 | 4.00 14.60 ± 4.58 | | | | ± 96.0 244.775 ± | 3.84 ± 5.10 10.02 ± | 14.00 ± 4.17 14.78 ± | | | | 106.4 466.4 ± 102.6 | 5.06 2.48 ± 3.64 | 4.51 13.44 ± 3.96 | | | | 244.433 ± 79.7 450.4 | 6.88 ± 4.10 3.99 ± | 13.76 ± 3.94 13.01 ± | | | | ± 89.2 351.506 ± | 3.55 | 3.42 | | | | 106.3 | | | +----------------------+--+----------------------+---------------------+----------------------+ +----------------------+--+----------------------+---------------------+----------------------+ | Random | | 559.2 ± 14.2 | 5.77 ± 1.87 | 12.04 ± 2.37 | +----------------------+--+----------------------+---------------------+----------------------+",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "Table 1: Sampling statistics of GPT-2. Full results in Table 11 in App. B. Using the Mann-Whitney U test, differences in distributions between GPT-2 and random baseline on number of Word Sets/Word Pool are significant at p < 0 . 001. For GPT-2, there are no empty word pools, i.e. each word pool contains some vocabulary from V Wiki.",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "+-----------------+------------------+-----------------+------------------+-----------------+------------------+ | modes | Mean num. Topics | Top-1 Topic | Mean NPMIW score | Total num. of | % of Abstract | | | pos neg | (Topical Pool) | per Topical Pool | topics pos neg | Pool pos neg | | | | NPMIW score pos | pos neg | | both | | | | neg | | | | +-----------------+------------------+-----------------+------------------+-----------------+------------------+ +-----------------+------------------+-----------------+------------------+-----------------+------------------+ | S-Hi-C S-Hi-I | 6.76 2.08 9.76 | 0.202 ± 0.06 | 0.130 0.164 | 211,612 22,106 | 7.5 35.6 6.0 1.1 | | S-Lo-C S-Lo-I | 2.19 5.68 1.70 | 0.216 ± 0.09 | 0.119 0.132 | 351,968 24,634 | 34.8 0.6 11.0 | | | 8.10 3.56 | 0.218 ± 0.06 | 0.142 0.162 | 40,865 4,725 | 34.9 7.4 2.8 | | | | 0.166 ± 0.08 | 0.122 0.117 | 70,502 21,913 | 16.6 1.2 | | | | 0.215 ± 0.07 | | | | | | | 0.199 ± 0.09 | | | | | | | 0.227 ± 0.07 | | | | | | |",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "0.191 ± 0.08 | | | | +-----------------+------------------+-----------------+------------------+-----------------+------------------+ +-----------------+------------------+-----------------+------------------+-----------------+------------------+ | XL-Hi-C XL-Hi-I | 10.88 2.98 9.12 | 0.232 ± 0.07 | 0.127 0.126 | 3,135,250 | 3.1 34.0 0.6 2.4 | | XL-Lo-C XL-Lo-I | 3.78 9.62 2.47 | 0.160 ± 0.07 | 0.117 0.118 | 291,738 | 26.9 0.0 1.8 | | | 6.88 4.00 | 0.199 ± 0.05 | 0.128 0.126 | 2,665,849 | 34.2 0.9 1.9 | | | | 0.160 ± 0.06 | 0.111 0.113 | 535,733 712,337 | 14.6 0.3 | | | | 0.227 ± 0.07 | | 59,817 508,179 | | | | | 0.155 ± 0.07 | | 217,321 | | | | | 0.212 ± 0.06 | | | | | | | 0.182 ± 0.07 | | | | +-----------------+------------------+-----------------+------------------+-----------------+------------------+ +-----------------+------------------+-----------------+------------------+-----------------+------------------+ | Random | 5.77 | 0.145 ± 0.03 | 0.064 | 288,091 | 0.54 |",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "+-----------------+------------------+-----------------+------------------+-----------------+------------------+",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "Table 2: Aggregated results across all layers. Using the Mann-Whitney U test, differences in distributions on top-1 NPMI W scores between GPT-2-sampled and random baseline are significant at p < 0 . 001. Topical Pools and Abstract Pools are pools that respectively produce some topics and no topics. We consider a word is frequently occurring (FOW) when it is in more than 2.5% of the topics and remove \"stop topics\" with more than five FOW.",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "Disentangled Topics . The results in Table 2 show significant differences between random baseline and GPT-2’s pos pools in top-1 and mean NPMI W score. Although there is a close difference between random baseline and neg pools in top-1 NPMI W score, there is still a sizable difference between their mean NPMI W score. Across different model sizes, larger models seem to generate more topics per f[path] . Additionally, while Top-1 NPMI W for pos pools remains consistent, we see a slight decline of scores in NPMI W in Top-1 NPMI W for neg pools and mean NPMI W . Compared to pos pools, neg pools have more abstract f[path] producing zero word sets. From these results, we empirically show that it is possible to disentangle multiple superposed topics.",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "Case Study. We showcase an example from a random f[path] in GPT-2-S (Table 3). The extracted topics have similar and varied themes: finance (#1), visuals (#2), places (#3, 4), and sports (#5, 6).",
+      "section": "6 Automated Quantitative Evaluation"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "In a traditional topic modelling task, we seek to derive K number of topics of size b for corpus analysis. In this ZSTM task, since the pre-training of the TLM is not specific to the selected corpora, the corpus becomes the analysis tool for TLM instead. If our interpretation of its neurons is valid, given a corpus, we expect neurons with similar concepts to be activated frequently. Otherwise, there will be a contradiction. Obtaining a competitive topic set will validate our previous findings. We do not require additional tokens, prompting, or fine-tuning.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "Approach . We implement a voting scheme giving each token some votes for each layer, examining neurons that exceed the vote threshold (See Appendix A.2). For GPT-2, we extract disentangled topics from Paths Lo-C and Lo-I of the selected neurons. To select the final K topics, we use a greedy algorithm (Lim and Lauw, 2022) optimizing on corpus NPMI C with diversity constraints.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "+---------------------------+---------------------------+---------------------------+---+ | Word pool | Word Sets | Extracted Topics (NPMIW ) | # | | (alphabetically-sorted) | | | | +---------------------------+---------------------------+---------------------------+---+ | ability adult arch avenue | domestic wholesale fair | wholesale price demand | 1 | | avenues away ball bar | sell price product f- | sell product value market | | | bare bay black cap | nancial markets | markets domestic con- | | | ceiling chance clock | commercial value demand | sumers (0.197) | | | commer- cial competition | con- sumers trade free | | | | consumers cor- ner | market | | | | crossed dark demand | | | | | distri- bution domestic | | | | | draw edge est fair | | | | | fnancial fnely foor free | | | | | grab green ground hall | | | | | hand hands held holding | | | | | ind kneeling level | | | | | lightly line lines long | | | | | lower lying market | | | | | markets minute minutes | | | | | open pale",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "platform | | | | | platforms price product | | | | | resting round run sell | | | | | shape sit sit- ting slip | | | | | spot stage straight | | | | | street surface thin trade | | | | | trophy upper value vert | | | | | waved white wholesale | | | | | wide wing wood yard (456 | | | | | ommitted words) | | | | +---------------------------+---------------------------+---------------------------+---+ | | dark green white vert | long pale black white | 2 | | | waved fnely thin black | thin green upper wide | | | | spot wing cap long upper | dark fnely (0.187) | | | | edge wide bare lightly | | | | | surface adult ground | | | | | shape distribution lower | | | | | pale | | | +---------------------------+---------------------------+---------------------------+---+ | | arch crossed lying wood | sit hall lying resting | 3 | | | clock kneeling resting | corner sitting ceil- ing | | | | bar hall bay sit sitting | arch foor kneeling | | | | level ceiling corner foor | (0.106) | |",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "+---------------------------+---------------------------+---------------------------+---+ | | avenue avenues yard | est line lines ind yard | 4 | | | street est line lines | platform platforms avenue | | | | plat- forms platform ind | avenues street (0.103) | | +---------------------------+---------------------------+---------------------------+---+ | | trophy open stage away | stage open round draw | 5 | | | competition round held | away tro- phy minute held | | | | minute minutes draw | minutes competition | | | | | (0.102) | | +---------------------------+---------------------------+---------------------------+---+ | | holding ability grab | slip run straight hands | 6 | | | straight hand hands slip | hand ability hold- ing | | | | run chance ball | chance ball grab (0.069) | | +---------------------------+---------------------------+---------------------------+---+",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "Table 3: GPT-2-S, Path Hi-C, Layer 11 Neuron 245, pos pool. More examples in Appendix C.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "+----------------+--+--------------+----------------+----------------+--+----------------+ | Model NPMIC | | | TU A (%) 0.903 | Model NPMIC | | | | NPMIW | | | - 0.911 - | NPMIW TU A (%) | | | | | | | 0.916 - 0.945 | | | | | | | | - 0.887 - | | | | | | | | 0.955 20.57 | | | | | | | | 0.950 20.57 | | | | | | | | 0.965 23.73 | | | | | | | | 0.920 23.73 | | | | | | | | 0.945 14.99 | | | | | | | | 0.965 14.99 | | | | | | | | 0.940 15.37 | | | | | | | | 0.955 15.37 | | | | +----------------+--+--------------+----------------+----------------+--+----------------+ +----------------+--+--------------+----------------+----------------+--+----------------+ | ProdLDA | | -0.059 0.045 | 0.903 - 0.911 | ProdLDA | | -0.028 0.007 | | ProdLDA-β CTM | | 0.085 0.075 | - 0.916 - | ProdLDA-β CTM | | 0.741 - -0.023 | | CTM-β BERTopic | | -0.060 0.052 | 0.945 - 0.887 | CTM-β BERTopic | | 0.014 0.830 - | | | | 0.016 0.070 | - | | | 0.027 0.050 | | | | -0.002 0.069 | | | | 0.895 - 0.067 | | | | | | | | 0.057",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "0.835 - | | | | | | | | -0.049 0.023 | | | | | | | | 0.906 - | +----------------+--+--------------+----------------+----------------+--+----------------+ +----------------+--+--------------+----------------+----------------+--+----------------+ | GPT-2-S-Lo-C | | 0.164 0.123 | 0.955 20.57 | GPT-2-S-Lo-C | | 0.135 0.021 | | GPT-2-S-Lo-I | | 0.169 0.115 | 0.950 20.57 | GPT-2-S-Lo-I | | 0.850 32.31 | | GPT-2-M-Lo-C | | 0.177 0.117 | 0.965 23.73 | GPT-2-M-Lo-C | | 0.143 0.043 | | GPT-2-M-Lo-I | | 0.186 0.120 | 0.920 23.73 | GPT-2-M-Lo-I | | 0.885 32.31 | | GPT-2-L-Lo-C | | 0.197 0.115 | 0.945 14.99 | GPT-2-L-Lo-C | | 0.156 0.021 | | GPT-2-L-Lo-I | | 0.170 0.118 | 0.965 14.99 | GPT-2-L-Lo-I | | 0.865 46.52 | | GPT-2-XL-Lo-C | | 0.184 0.112 | 0.940 15.37 | GPT-2-XL-Lo-C | | 0.148 0.042 | | GPT-2-XL-Lo-I | | 0.179 0.140 | 0.955 15.37 | GPT-2-XL-Lo-I | | 0.865 46.52 | | | | | | | | 0.164 0.028 | | | | | | | | 0.855 38.20 | | | | | | | | 0.143 0.033 | | | | | | | | 0.855 38.20 | | | | | | | |",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "0.180 0.023 | | | | | | | | 0.845 43.39 | | | | | | | | 0.159 0.045 | | | | | | | | 0.850 43.39 | +----------------+--+--------------+----------------+----------------+--+----------------+",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "(a) 20NewsGroup, K = 20. Min. word-pair count = 50. (b) M10, K = 20. Min. word-pair count = 0.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "Table 4: A subset of results for topic set sizes K = 20. The best baseline scores for the metric are underlined. Bolded PLM scores are better than the best baseline. The complete results are in Appendix B. Full results for topic set sizes K = 20 is in Table 14, K = 50 is in Table 13. Baseline scores are the mean of 10 independent runs with error bars in Table 15. A is the percentage of neuron paths f[path] examined, determined by token votes.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "Corpus . We generate sets of 20 topics for 20NewsGroup[3] , BBC-News (Lim and Buntine, 2014), M10 (Greene and Cunningham, 2006), and DBLP (Tang et al., 2008; Pan et al., 2016) processed from OCTIS (Terragni et al., 2021), with additional sets of 50 topics for 20NewsGroup and BBC-News. Corpus details in Appendix A.2.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "Metrics . To account for rare occurrences, we set a minimum count of word pairs for NPMI C calculation, measuring relevance to the corpus. NPMI W evaluates the generality and coherence of the topic. Desiring uniqueness amongst topics, Topic Uniqueness (TU) (Dieng et al., 2020), measuring the proportion of unique words in K topics. To obtain competitive sets of results, we must overcome a three-way trade-off between the metrics.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "3http://people.csail.mit.edu/jrennie/ 20Newsgroups/",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "Baselines . We use three baselines. ProdLDA (Srivastava and Sutton, 2017) and CTM (Bianchi et al., 2021a) are both popular and competitive autoencoder-based NTM trained on the pre-defined train and validation sets in OCTIS. We derive additional sets of results by selecting the best composite topics (suffixed with - β ) using the same greedy algorithm. Lastly, we include BERTopic (Grootendorst, 2022) which uses class-based TF-IDF on S-BERT document embeddings[4] . For parity reasons, topics comprise the best ten words ( b = 10) appearing in Wikipedia-V40K.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "Evaluation . Overall, the topics reclaimed in GPT-2 models are comparable to stronger baselines, suggesting the static interpretations of individual neurons are likely to be meaningful.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "> 4all-mpnet-base-v2 S-BERT model.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "+----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | | Words/Word | | Word | | Words/Word | | Empty | Pools (%) | | | Pool | | Sets/Word | | Set | | | | | | | | Pool | | | | | | +----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | modes | pos | neg | pos | neg | pos | neg | pos | neg | +----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | 7B-Hi-C | 609.3 ± | 39.6 ± 52.9 | 7.22 ± 4.84 | 3.07 ± 3.18 | 13.59 ± | 14.10 ± | 14.0% | 85.8% | | | 323.2 | | | | 4.29 | 4.21 | | | +----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | 7B-Hi-I | 143.5 ± | 143.5 ± | 3.60 ± 2.25 | 3.63 ± 2.29 | 13.82 ± | 13.68 ± | 15.4% | 15.4% | | | 64.2 | 64.4 | | | 4.26 | 3.75 | | |",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "+----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | 7B-Lo-C | 646.4 ± | 33.1 ± 43.6 | 7.51 ± 4.90 | 2.66 ± 2.76 | 13.57 ± | 13.81 ± | 11.6% | 89.3% | | | 314.0 | | | | 4.26 | 4.01 | | | +----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | 7B-Lo-I | 145.1 ± | 142.9 ± | 3.80 ± 2.72 | 4.10 ± 2.58 | 13.86 ± | 13.77 ± | 19.6% | 23.0% | | | 85.4 | 76.5 | | | 4.29 | 3.79 | | | +----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | 13B-Hi-C | 310.8 ± | 100.9 ± | 7.35 ± 3.06 | 2.18 ± 1.93 | 14.21 ± | 13.04 ± | 1.2% | 48.0% | | | 121.7 | 34.7 | | | 4.63 | 3.51 | | | +----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | 13B-Hi-I | 162.3 ± | 162.4 ± | 3.97 ± 1.85 | 4.00 ± 1.88 | 13.61 ± | 13.51 ± | 2.4% | 2.4% | | | 38.3 | 38.6 | | | 3.98 | 3.59 | | |",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "+----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | 13B-Lo-C | 312.9 ± | 99.4 ± 32.2 | 7.39 ± 3.08 | 2.10 ± 1.84 | 14.25 ± | 12.96 ± | 1.1% | 48.7% | | | 123.4 | | | | 4.69 | 3.46 | | | +----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | 13B-Lo-I | 166.1 ± | 158.2 ± | 4.13 ± 2.12 | 4.05 ± 2.04 | 13.72 ± | 13.52 ± | 2.0% | 4.8% | | | 50.0 | 41.5 | | | 4.13 | 3.59 | | | +----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+ | Random | 173.7 ± | | 4.88 ± 1.30 | | 13.65 ± | | | 0 | | | 13.2 | | | | 3.63 | | | | +----------+------------+-------------+-------------+-------------+------------+---------+-------+-----------+",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "Table 5: Sampling statistics on random LLaMA layers. Before the removal of stop topics. Using the Mann-Whitney U test, differences in distributions on the number of Word Sets/Word Pool are significant with p < 0 . 001.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "+-----------------+------------------+----------------+-----------------+-----------------+------------------+ | modes | Mean num. Topics | Top-1 Topic | Mean NPMI score | Total num. of | % of abstract | | | per neuron pos | (Topical Pool) | per topical | Topics pos neg | neurons pos neg | | | neg | NPMI score pos | neurons pos neg | | both | | | | neg | | | | +-----------------+------------------+----------------+-----------------+-----------------+------------------+ +-----------------+------------------+----------------+-----------------+-----------------+------------------+ | 7B-Hi-C 7B-Hi-I | 6.98 3.07 3.60 | 0.128 ± 0.08 | 0.031 0.060 | 2,094,472 | 7.4 42.9 4.7 7.7 | | 7B-Lo-C 7B-Lo-I | 3.63 7.24 2.66 | 0.102 ± 0.06 | 0.050 0.050 | 153,571 | 7.7 0.5 6.2 44.7 | | | 3.80 4.10 | 0.103 ± 0.05 | 0.030 0.060 | 1,071,527 | 4.1 9.8 11.5 0.1 | | | | 0.103 ± 0.05 | 0.049 0.048 | 1,082,455 | | | | | 0.130 ± 0.08 | | 831,424 37,233 | | | | | 0.098 ± 0.06 | | 400,292 413,202 | | | | | 0.101 ±",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "0.05 | | | | | | | 0.105 ± 0.05 | | | | +-----------------+------------------+----------------+-----------------+-----------------+------------------+ +-----------------+------------------+----------------+-----------------+-----------------+------------------+ | 13B-Hi-C | 7.35 2.18 3.97 | 0.122 ± 0.05 | 0.039 0.033 | 4,016,410 | 0.6 24.0 0.0 1.2 | | 13B-Hi-I | 4.00 7.39 2.10 | 0.054 ± 0.06 | 0.037 0.038 | 627,028 | 1.2 0.1 0.5 24.3 | | 13B-Lo-C | 4.13 4.05 | 0.094 ± 0.05 | 0.039 0.032 | 2,143,710 | 0.0 1.0 2.4 0.0 | | 13B-Lo-I | | 0.094 ± 0.05 | 0.038 0.037 | 2,159,556 | | | | | 0.122 ± 0.05 | | 1,496,621 | | | | | 0.052 ± 0.06 | | 220,585 829,311 | | | | | 0.095 ± 0.04 | | 788,671 | | | | | 0.091 ± 0.04 | | | | +-----------------+------------------+----------------+-----------------+-----------------+------------------+ +-----------------+------------------+----------------+-----------------+-----------------+------------------+ | Random | 4.88 | 0.099 ± 0.03 | 0.038 | 244,145 | 0 |",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "+-----------------+------------------+----------------+-----------------+-----------------+------------------+",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "Table 6: Aggregated results of all LLaMA layers, stop topics excluded. Using the Mann-Whitney U test, differences in the distribution of Top-1 NPMI scores are significant with p < 0 . 001.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "The top K extracted topics from GPT-2 models performed the best on 20NewsGroup (Table 4a). At K = 20, BBC-News have similar results to 20NewsGroup, and DBLP has similar results to M10 (Table 4b). Evaluating 20NewsGroup and BBC-News at K = 50, performance for top K extracted topics is also competitive.",
+      "section": "7 Zero-Shot Topic Modelling (ZSTM)"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "LLaMA (Touvron et al., 2023) is another popular decoder-only TLM. Its 32K tokens S LLaMA encoded using SentencePiece’s BPE (Kudo and Richardson, 2018). Cross-referencing S LLaMA with V Wiki produces few common words, as its tokens are sub-words which are uninterpretable as-is, necessitating additional processing of token pools. Observing the possibility of recovering coherent topics directly from GPT-2’s token space and considering a word as a topic of sub-words, we posit that it is possible to recover vocabulary from S LLaMA. We decode each lower-cased v ∈ V Wiki via SentencePiece (excluding start token <s> ) into its constituent tokens. Projecting the tokens onto V Wiki, we consider a word recovered when all of its constituent tokens are present in the token pool.",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "It is possible to recover 36K vocabulary words in V Wiki from S LLaMA.[5] Using the previous analysis on GPT-2, we examine all layers of LLaMA models sized 7B and 13B.",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "Sampling Observations . Only pos pools from complete paths (Hi-C/Lo-C) show a sizeable difference compared to the random baseline. For the various pool from other modes, while the differences are significant, their values are similar or weaker than the random baseline, which suggest they might not be as meaningful.",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "Disentangled Topics . Similar to the observations in sampling, when compared to the random baselines, pos pools from complete paths produce more topics and are better in Top-1 NPMI W . However, pools from the other modes exhibit similar or weaker characteristics, implying that these distributions are indistinguishable. In GPT-2, when compared to their baseline, pools from all modes appear to be meaningful, exhibiting different distributions across metrics. However, results from LLaMA suggest we can only infer and extract topics from pos pools produced by complete paths.",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "> 5We exclude multi-word entities representation in V Wiki, as they are joint together using underscores.",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "+---------------------------+---------------------------+---------------------------+---+ | Word pool | Word sets | Extracted Topics (NPMIW ) | § | | (alphabetically-sorted) | | | | +---------------------------+---------------------------+---------------------------+---+ | acid ais bar baritone | acid bases cap closely | dna rna bases modifcation | 1 | | bases bass bird blog boer | containing contains dna | acid stem function | | | bone broad cap cgi cis | editing follows function | naturally containing | | | closely command | functionally function- | contains (0.115) | | | commanding composer | ing generates host long | | | | containing contains con- | marker modifcation nat- | | | | tributions dating dean | urally possess stem rna | | | | der des die dna dusk | | | | | editing extra famous fda | | | | | fsher fag fat foor | | | | | follows func- tion | | | | | functionality | | | | | functionally func- | | | | | tioning functions | | | | | generates geom- etry | | | | | germany ghost",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "gis guest | | | | | gulf hand handing hang | | | | | host http https | | | | | integration intentionally | | | | | jerry lang legs lets like | | | | | log long longer marker | | | | | meaning modifcation | | | | | mortally nat- urally noaa | | | | | non npr ones perry pho- | | | | | tos plan platform | | | | | platforms possess post | | | | | pull realize rna sally | | | | | sand sas sent slogan soft | | | | | sport standing stem | | | | | strategic ted toes touch | | | | | touching unit upload van | | | | | weight www (336 ommitted | | | | | words) | | | | +---------------------------+---------------------------+---------------------------+---+ | | bird bone broad dusk | weight toes hand fat | 2 | | | extra fat foor hand legs | broad legs touch touching | | | | like longer meaning ones | bone soft (0.111) | | | | sand soft standing touch | | | | | touching weight toes | | | +---------------------------+---------------------------+---------------------------+---+ | | blog cgi fda http",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "https | cgi www sport photos http | 3 | | | lang log noaa non npr | https log up- load | | | | photos platform sport | platform blog (0.081) | | | | upload www | | | +---------------------------+---------------------------+---------------------------+---+ | | baritone command composer | contributions die command | 4 | | | contributions des die | famous ger- many van des | | | | famous geometry germany | composer guest der | | | | guest slogan van der | (0.048) | | +---------------------------+---------------------------+---------------------------+---+ | | ais bar bass cis | integration plan bar | 5 | | | functionality functions | functionality gis | | | | integra- tion plan | functions ais platforms | | | | platforms unit gis | cis unit (0.001) | | +---------------------------+---------------------------+---------------------------+---+ | | dating dean ghost hang | dean pull lets sally hang | 6 | | | intentionally jerry pull | ghost realize jerry ted | | | | realize sally ted lets |",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "dating (-0.053) | | +---------------------------+---------------------------+---------------------------+---+ | | boer fsher fag gulf | post mortally gulf perry | 7 | | | handing mortally perry | fag command- ing sas sent | | | | post sas sent strategic | handing boer (-0.059) | | | | commanding | | | +---------------------------+---------------------------+---------------------------+---+",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "Table 7: LLaMA-13B, Path Hi-C, Layer 3 Neuron 206, pos pool. More examples in Appendix C.",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "Case Study . From LLaMA-7B (Table 7), topics consists various themes: cell biology (§1), descriptors (§2), website (§3), mixed (§4), technical (§5). However, some topics seem incoherent, with our best guesses: horror trope (§6) and British military (§7). The size of word sets might hint at some aspect of topic quality.",
+      "section": "8 Extending to LLaMA"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "Aside from comparing across different sizes within the model family, we can also compare across model families. There are differences between the results between GPT-2 and LLaMA. In this section, we discuss the possible cause and effect.",
+      "section": "9 Discussions"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "Topical Sparsity. The larger sizes of TLMs might induce greater topical sparsity, with larger models able to spread their learnt concepts over a larger number of neurons. With greater topical sparsity, there is greater difficulty in inferring concepts directly from the neuron as its characteristics may be similar to the random baseline. With millions of extracted pos pools topics from complete paths of both models, the topics from LLaMA are fewer per neuron and less coherent when compared to GPT-2. Hence, it is likely that the learnt concepts, with similar themes to Wikipedia, are less concentrated within LLaMA.",
+      "section": "9 Discussions"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "Number of Training Tokens . With LLaMA training on a larger and more diverse corpus, it is likely to learn more concepts absent from Wikipedia. These out-of-domain concepts are undetectable when projected onto V Wiki, causing the neuron to appear less coherent.",
+      "section": "9 Discussions"
+    },
+    {
+      "chunk_id": "c0087",
+      "text": "Tokenization. With LLaMA organizing its knowledge at the token level, reconstructing vocabulary from S LLaMA introduces another layer of abstraction. This abstraction may result in some informational gap between the word and token level that reduces our ability to infer from the neuron directly.",
+      "section": "9 Discussions"
+    },
+    {
+      "chunk_id": "c0088",
+      "text": "We believe these are the key challenges to overcome when pursuing prompt-less explanations of TLMs.",
+      "section": "9 Discussions"
+    },
+    {
+      "chunk_id": "c0089",
+      "text": "We demonstrate that our approach from a novel angle, disentangling superposed topics from TLM via a graph-based formulation optimizing topic modelling metric NPMI W , revealing and analysing superposed topics on GPT-2, evaluated on ZSTM, and extendable to LLaMA. Additionally, we show that TLM is quantifiable by topic coherence and the number of superposed topics in an automated manner. Comparison using a random baseline gives us confidence when validating interpretations to be meaningful and not due to chance. These metrics might advance our understanding of architectural design decisions and warrant future investigation on other open-sourced TLM.",
+      "section": "10 Conclusion"
+    },
+    {
+      "chunk_id": "c0090",
+      "text": "This research/project is supported by the National Research Foundation, Singapore under its AI Singapore Programme (AISG Award No: AISG3-PhD2023-08-055T). We thank our reviewers for their kind feedback.",
+      "section": "Acknowledgments"
+    },
+    {
+      "chunk_id": "c0091",
+      "text": "Language . Corpora used primarily consist of English vocabulary. The TLMs used are also mostly trained on tokens from English-based corpora. Since our approach is corpus-agnostic, extracting multi-lingual information may be feasible with an appropriate corpus.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0092",
+      "text": "Exact-Solving Time Limit. Required due to large numbers of sub-graphs. Some sub-graphs fail to solve within the given time limit of 2 or 3 minutes. Nevertheless, we include the sub-optimal topic as the representative topic of the sub-graph.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0093",
+      "text": "Topic Quality. While NPMI W is likely to give a good indicator towards the quality of the topic. There is a possibility that some sets of words appear coherent to a group of experts while appearing incomprehensible to others.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0094",
+      "text": "We do not foresee any undesired implications stemming from our work. Conversely, we hope that our work can advance AI Ethics research.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0095",
+      "text": "David M. Blei, Andrew Y. Ng, and Michael I. Jordan. 2003. Latent dirichlet allocation. J. Mach. Learn. Res. , 3:993–1022.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0096",
+      "text": "Gerlof Bouma. 2009. Normalized (pointwise) mutual information in collocation extraction. Proceedings of the Biennial GSCL Conference 2009 .",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0097",
+      "text": "Trenton Bricken, Adly Templeton, Joshua Batson, Brian Chen, Adam Jermyn, Tom Conerly, Nick Turner, Cem Anil, Carson Denison, Amanda Askell, Robert Lasenby, Yifan Wu, Shauna Kravec, Nicholas Schiefer, Tim Maxwell, Nicholas Joseph, Zac Hatfield-Dodds, Alex Tamkin, Karina Nguyen, Brayden McLean, Josiah E Burke, Tristan Hume, Shan Carter, Tom Henighan, and Christopher Olah. 2023. Towards monosemanticity: Decomposing language models with dictionary learning. Transformer Circuits Thread .",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0098",
+      "text": "Kevin Clark, Urvashi Khandelwal, Omer Levy, and Christopher D. Manning. 2019. What does BERT look at? an analysis of BERT’s attention. In Proceedings of the 2019 ACL Workshop BlackboxNLP: Analyzing and Interpreting Neural Networks for NLP , pages 276–286, Florence, Italy. Association for Computational Linguistics.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0099",
+      "text": "Hoagy Cunningham, Aidan Ewart, Logan Riggs, Robert Huben, and Lee Sharkey. 2023. Sparse autoencoders find highly interpretable features in language models.",
+      "section": "Ethics Statement"
+    }
+  ]
+}

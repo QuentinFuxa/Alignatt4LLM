@@ -1,0 +1,445 @@
+{
+  "schema_version": "paper_artifact/v1",
+  "paper_id": "HYQILrakKs",
+  "source_pdf": "test-set/pdf/HYQILrakKs.pdf",
+  "title": "ALCUNA: Large Language Models Meet New Knowledge",
+  "authors": "Xunjian Yin[∗] and Baizhou Huang[∗] and Xiaojun Wan Wangxuan Institute of Computer Technology, Peking University Center for Data Science, Peking University The MOE Key Laboratory of Computational Linguistics, Peking University {xjyin,hbz19,wanxiaojun}@pku.edu.cn",
+  "abstract": "With the rapid development of NLP, large-scale language models (LLMs) excel in various tasks across multiple domains now. However, existing benchmarks may not adequately measure these models’ capabilities, especially when faced with new knowledge. In this paper, we address the lack of benchmarks to evaluate LLMs’ ability to handle new knowledge, an important and challenging aspect in the rapidly evolving world. We propose an approach called KnowGen that generates new knowledge by altering existing entity attributes and relationships, resulting in artificial entities that are distinct from real-world entities. With KnowGen, we introduce a benchmark named ALCUNA to assess LLMs’ abilities in knowledge understanding, differentiation, and association. We benchmark several LLMs, reveals that their performance in face of new knowledge is not satisfactory, particularly in reasoning between new and internal knowledge. We also explore the impact of entity similarity on the model’s understanding of entity knowledge and the influence of contextual entities. We appeal to the need for caution when using LLMs in new scenarios or with new knowledge, and hope that our benchmarks can help drive the development of LLMs in face of new knowledge.",
+  "chunks": [
+    {
+      "chunk_id": "c0000",
+      "text": "Large-scale language models (LLMs) have made impressive progress in the last few years (Brown et al., 2020; Ouyang et al., 2022; Touvron et al., 2023; OpenAI, 2023), which perform surprisingly well on various tasks on various domains, to the extent that many traditional benchmarks (Thorne et al., 2018; Wang et al., 2018) are no longer sufficient to measure the capabilities of LLMs. Therefore, some new benchmarks have been proposed to evaluate the ability of the model to solve more complex tasks such as college entrance exams, law",
+      "section": null
+    },
+    {
+      "chunk_id": "c0001",
+      "text": "*These authors contributed equally to this work.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0002",
+      "text": "school admission tests, math competitions and so on (Hendrycks et al., 2021; Guo et al., 2023; Zhong et al., 2023). LLMs also achieve promising results on these benchmarks.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0003",
+      "text": "However, it is surprising that there is not yet a benchmark to evaluate the ability of large models in face of new knowledge, which is very important and challenging. Why is this evaluation important? Firstly, we are in a changing world, where models encounter new knowledge frequently in practice. And some work (Peng et al., 2023) is exploring retrieval methods to augment large models, which will also cause the models to meet new knowledge frequently. So of course we expect the model to perform well in such situations, because re-training the model every time is very expensive and unrealistic. Secondly, as Elangovan et al. (2021) mentioned, the presence of overlap between the training and test data can lead to a misestimation of the model’s memory ability as generalization ability, especially nowadays when LLMs are trained on an enormous amount of data. Whereas, evaluation on new knowledge does not need to worry about such data leakage, as new knowledge can usually lead to new data and",
+      "section": null
+    },
+    {
+      "chunk_id": "c0004",
+      "text": "thus more reliable and valuable assessment of the model’s ability.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0005",
+      "text": "While such evaluation is important, it is challenging to construct the benchmark. The reason is that it is difficult to ensure that the knowledge contained in the benchmark is new for LLMs, since training data for some models are large and nonpublicly available. Furthermore, it is also difficult to ensure that the knowledge used for benchmarking will be not outdated and inefficient, as there are many LLMs that may soon include data from the benchmark in their training. In summary, such benchmark for new knowledge needs to exhibit three basic characteristics: it contains enough new knowledge for sufficient evaluation ( sufficient ), the knowledge is new to all models ( model-agnostic ) and the knowledge can remain new for a long time",
+      "section": null
+    },
+    {
+      "chunk_id": "c0006",
+      "text": "( long-lasting ).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0007",
+      "text": "There are several possible solutions to the above challenges. One option is to always use the most updated data such as the news of the day (temporal knowledge). However, this is both labor-intensive to race against the LLM training and unclear about the lifetime of the proposed data. Another option is to keep the benchmark closed-source, with an authoritative committee managing the data and users calling API when evaluating, thus preventing using them for training LLMs . To reach this point further requires community coordination.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0008",
+      "text": "To better address these challenges, we propose an approach to GENerate new KNOWledge conveniently ( KnowGen ) based on the structured representation of existing entity knowledge by making reasonable changes to entity attributes and relationships. There are differences and associations between artificial entities and existing entities. Particularly, we apply KnowGen with structured biological taxonomic information data to rationally create a group of organisms that do not exist in the world. To test the model’s ability in face of new knowledge, we construct a variety of questions about these artificial entities that can examine the model’s ability to understand new knowledge ( Knowledge Understanding ), distinguish between model’s internal knowledge and new knowledge ( Knowledge Differentiation ) and make multi-hop reasoning by linking model’s internal and new knowledge ( Knowledge Association ). We use the A rtificial L y C onstr U cted k N owledge to A ssess LLMs as a benchmark (",
+      "section": null
+    },
+    {
+      "chunk_id": "c0009",
+      "text": "ALCUNA ).",
+      "section": null
+    },
+    {
+      "chunk_id": "c0010",
+      "text": "We evaluate and analyze several popular large models based on ALCUNA, including ChatGPT[1] , Alpaca, Vicuna, and ChatGLM with vanilla, CoT (Chain-of-Thought), Zero-Shot and Few-Shot settings (Brown et al., 2020; Kojima et al., 2023; Wei et al., 2023). We find that neither ChatGPT nor other models perform very well in face of new knowledge. ChatGPT does a good job of understanding and differentiating new knowledge, but almost all models fail to reason between the new knowledge and the internal knowledge. This reminds us to remain cautious when large models encounter new scenarios and knowledge. In addition, we explore the impact of entity similarity on the model’s understanding of entity knowledge, the impact of contextual entities, etc.",
+      "section": null
+    },
+    {
+      "chunk_id": "c0011",
+      "text": "> 1https://chat.openai.com/chat",
+      "section": "The contributions of our work are listed below:"
+    },
+    {
+      "chunk_id": "c0012",
+      "text": "1) we propose a new method KnowGen to generate new knowledge for simulating real scenarios. 2) we apply our method to produce an artificial biological entity knowledge dataset, ALCUNA, as a benchmark for evaluating the performance of models in face of new knowledge. 3) we evaluate and analyze several popular large models and obtain insightful observations and conclusions.",
+      "section": "The contributions of our work are listed below:"
+    },
+    {
+      "chunk_id": "c0013",
+      "text": "Our benchmark has been released to the community to facilitate future research[2] .",
+      "section": "The contributions of our work are listed below:"
+    },
+    {
+      "chunk_id": "c0014",
+      "text": "input : One Class C output : Property Set T (˜ e ) of ˜ e e[p] ← RandomSelect( C ) ; E[psb] ← sib( e[p] ) // Get the triplet set for heredity, variation, dropout and extension TR[h][,][ T] R[v][,][ T] R[d][←][RandomSplit(][T][R][(][e][p][)][)] TA[h][,][ T] A[v][,][ T] A[d][←][RandomSplit(][T][A][(][e][p][)][)] T[e] ← RandomSample( T ( E[psb] ) ) // Heredity and Dropout TR (˜ e ) ←TR ( C ) ∪TR[h][;] TA (˜ e ) ←TA ( C ) ∪TA[h] // Variation : replacing the object with an entity from the same class for ( e[p] , r, e[′] ) in TR[v][do] E[′][sb] ← sib( e[′] ) e[′][sb] ← RandomSelect( E[′][sb] ) TR (˜ e ) ←TR (˜ e ) ∪{ (˜ e, r, e[′][sb] ) } // Variation : add gaussian noise to the value or copy from E[psb] for ( e[p] , a, v ) in TA[v][do] if isnum( v ) then v ˜ ← v + N (0 , v/ 10) else e[psb] ← RandomSelect( E[psb] ) v ˜ ← GetValue( e[psb] , a ) TA (˜ e ) ←TA (˜ e ) ∪{ (˜ e, a, ˜ v ) } // Extension and get final property T (˜ e ) ←TA (˜ e ) ∪TR (˜ e ) ∪T[e]",
+      "section": "Algorithm 1: Knowledge Generation"
+    },
+    {
+      "chunk_id": "c0015",
+      "text": "In this section, we begin by presenting our inspiration, then formally introduce our knowledge generation method KnowGen.",
+      "section": "2 KnowGen: Knowledge Generation"
+    },
+    {
+      "chunk_id": "c0016",
+      "text": "According to the ontological form (Sowa, 1995; Noy et al., 2001), we can represent most knowledge 2https://github.com/Arvid-pku/ALCUNA",
+      "section": "2.1 Inspiration"
+    },
+    {
+      "chunk_id": "c0017",
+      "text": "as entities, the classes to which they belong, their attributes and the relations between them. And inspired by organisms: organisms can produce organisms with new properties naturally through heredity and variation. Can knowledge also be \"inherited\" and \"varied\" in a broader context? Different entities of the same class have different properties as well as commonalities. Generally speaking, entities of the same class are similar to some extent, while they have some different properties. By analogy with biological terminology, we refer to this characteristic of knowledge of similar entities as \"hybridizability\". This inspires us to use different entities of the same class to fuse their properties, simulating the process of biological inheritance and variation, to generate new entity knowledge.",
+      "section": "2.1 Inspiration"
+    },
+    {
+      "chunk_id": "c0018",
+      "text": "In the following we will formally define and describe how knowledge is \"inherited\" and \"varied\" in our approach.",
+      "section": "2.1 Inspiration"
+    },
+    {
+      "chunk_id": "c0019",
+      "text": "Based on the design of the ontology, We represent knowledge from the viewpoint of Entity. Entity e ∈E is a distinct and identifiable object or individual in the world. Each entity can possess various attributes a ∈A , which describe the properties of the entity with a value v ∈V . At the same time, each entity can participate in relations r ∈R with other entities. Both the attributes and relations of entity e can be represented as a set of property triplets: { ( e, a, v ) } = TA ( e ) ⊂TA and { ( e, r, e[′] ) } = TR ( e ) ⊂TR . Entities with similar characteristics may be aggregated into a class C ⊂E . For convenience, we denote the same properties across all entities in class C as T ( C ) = TA ( C ) ∪TR ( C ). Without any special description, the triplet T ( e ) of entity e refers to its unique properties.",
+      "section": "2.2 Knowledge Formalization"
+    },
+    {
+      "chunk_id": "c0020",
+      "text": "For example, Figure 1 shows an example in the form of such structured knowledge, where both Alpaca and Vicuna are existing entities belonging to the class Camels and Alcuna is an artificial entity generated by us. Alpaca has attributes such as \"Body mass\" and relations such as \"Eaten by\", and can be formed into triplets such as (Alpaca, Body mass, 60kg) and (Alpaca, Eaten by, Cougar).",
+      "section": "2.2 Knowledge Formalization"
+    },
+    {
+      "chunk_id": "c0021",
+      "text": "Focusing on knowledge in the form of ontology, we aim to construct artificial entities reasonably to accelerate the process of new knowledge generation in the real world. When creating an artificial entity",
+      "section": "2.3 Construction of New Entities"
+    },
+    {
+      "chunk_id": "c0022",
+      "text": "within a specific class, it must adhere to certain common properties shared by other entities in the same class. Furthermore, it is essential for the artificial entity to possess some unique properties that differentiate it from existing entities. To address these requirements for individuality and commonality, we propose a fast and effective method to construct an artificial entity that fuses attributes and relations of entities within the same class.",
+      "section": "2.3 Construction of New Entities"
+    },
+    {
+      "chunk_id": "c0023",
+      "text": "Initially, we select an existing entity e[p] from a specific class C to serve as the parent entity for our artificial entity e ˜ and consider other entities within the same class C as sibling entities of parent , denoted by sib ( e[p] ) = {e 1 , ...en} . Our goal is to construct an artificial entity that exhibits high similarity to the parent entity and conforms to the commonality of the class ( heredity ) while incorporating properties from the sibling entities or reasonably changing property values ( variation ). As an example, in Figure 1, the artificial entity Alcuna inherits the \"Diet\" and other attributes from the parent Alpaca, while the \"Body mass\" is varied.",
+      "section": "2.3 Construction of New Entities"
+    },
+    {
+      "chunk_id": "c0024",
+      "text": "Besides the above operations of heredity and variation, we construct new entities with additional extension and dropout of the properties of the new entities, in order to mimic human progressive cognitive processes of entities. As the example in Figure 1 shows, we extend the attribute of \"First appearance\" from Vicuna to Alcuna, and drop out the \"Life span\" from the parent entity Alpaca.",
+      "section": "2.3 Construction of New Entities"
+    },
+    {
+      "chunk_id": "c0025",
+      "text": "The whole method can be seen in Algorithm 1. A detailed description of KnowGen with natural language and expressions is shown in Appendix A. The entities constructed in this way are not only reasonable but also convenient for us to assess the model’s cognitive ability to associate and differentiate new knowledge with the existing knowledge.",
+      "section": "2.3 Construction of New Entities"
+    },
+    {
+      "chunk_id": "c0026",
+      "text": "Based on the constructed artificial entities, a natural form of evaluation is to ask questions to LLMs in the context of new knowledge. In specific, we leverage an attribute triplet (˜ e, a, v ) for generating a onehop question q (˜ e, a, v ) by specifically asking about the object v , given the subject e ˜ and attribute a . With a chain of relation triplets TC = (˜ e, r, e 1) → ( e 1 , r 1 , e 2) → ... → ( eN − 1 , rN − 1 , eN ), we construct a multi-hop question q ( TC ) asking about the tail object eN , given the head subject e ˜ and relations {r, r 1 , ..., rN − 1 } .",
+      "section": "2.4 Question Answering as Evaluation Task"
+    },
+    {
+      "chunk_id": "c0027",
+      "text": "We propose that LLM requires the knowledge understanding, knowledge differentiation and",
+      "section": "2.4 Question Answering as Evaluation Task"
+    },
+    {
+      "chunk_id": "c0028",
+      "text": "Figure 1: Demonstration of ALCUNA, including heredity, variation, extension and dropout operations in KnowGen, generated artificial entity named Alcuna and three types of questions related to it.",
+      "section": "2.4 Question Answering as Evaluation Task"
+    },
+    {
+      "chunk_id": "c0029",
+      "text": "knowledge association abilities when faced with new knowledge. To enable a more detailed assessment, we design diverse categories of questions to evaluate each ability, as shown on the right side of Figure 1.",
+      "section": "2.4 Question Answering as Evaluation Task"
+    },
+    {
+      "chunk_id": "c0030",
+      "text": "Specifically, we sample some attribute triplets in the variation set TA[v][(˜][e][)][ and the dropout set][ T] A[d][(˜][e][)] to create KD question set, which is ideally suited for evaluating the knowledge differentiation ability of a model to distinguish between the parent entity e[p] existing in its internal knowledge and the newly constructed artificial entity ˜ e provided in the context.",
+      "section": "2.4 Question Answering as Evaluation Task"
+    },
+    {
+      "chunk_id": "c0031",
+      "text": "The proficiency of LLMs in reasoning along mastered knowledge graph has been demonstrated in previous studies (Hu et al., 2022; Choudhary and Reddy, 2023). However, it remains uncertain whether it can effectively establish connection between newly encountered artificial entity and the existing knowledge for multi-hop reasoning task. To investigate this, we incorporate the relations of artificial entity to construct a new graph, which encompasses both existing entities and the artificial entity. We then perform a breadth-first-search on the relation graph to identify a chain of relation triplets TC with the artificial entity serving as root (e.g., [ (Alcuna, Eaten by, Jaguar), (Jaguar, Compete with, Maned Wolf) ]), and then utilize the chain to generate a multi-hop question q ( TC ) (e.g., What organism is the competitor of the Alcuna’s natural enemy? ). We group such questions into KA question set.",
+      "section": "2.4 Question Answering as Evaluation Task"
+    },
+    {
+      "chunk_id": "c0032",
+      "text": "For the rest of the artificial entity’s property",
+      "section": "2.4 Question Answering as Evaluation Task"
+    },
+    {
+      "chunk_id": "c0033",
+      "text": "triplets, we utilize them to evaluate the ability of remembering and understanding new knowledge by simply asking questions about the objects in triplets. We group such questions into KU question set.",
+      "section": "2.4 Question Answering as Evaluation Task"
+    },
+    {
+      "chunk_id": "c0034",
+      "text": "With our proposed method, one can create a large amount of new entities quickly based on existing structured knowledge. A natural attempt is to construct new organisms on already discovered ones, since the biological taxonomy is perfectly adapted to our proposed approach. Therefore, we utilize KnowGen to propose ALCUNA, a biological dataset for evaluating the ability of the model in face of new knowledge as shown in Figure 1.",
+      "section": "3 ALCUNA: Our Benchmark"
+    },
+    {
+      "chunk_id": "c0035",
+      "text": "We utilize the structured data from the EOL[3] (Encyclopedia of Life) database (Parr et al., 2014) to provide existing knowledge, which is an online, freely accessible database that aims to provide information about all known species on Earth. EOL organizes all biological taxons into a taxonomic tree, in which each entity belongs to a class. The most intriguing feature of EOL is that it constructs rich structured data in the form of key-value pairs for each biological entity, including taxonomic rank, attributes, relationships and information source. As a whole, it contains 2404790 entities with a total of 13625612 properties consisted of 669 property types. The substantial volume of data, coupled with",
+      "section": "3.1 EOL Database"
+    },
+    {
+      "chunk_id": "c0036",
+      "text": "3https://eol.org/ its well-organized format, renders EOL the most suitable data source for constructing ALCUNA.",
+      "section": "3.1 EOL Database"
+    },
+    {
+      "chunk_id": "c0037",
+      "text": "Each time we select a class C from the taxonomic tree of EOL and consider its members as entities. We then divide them into one parent entity e[p] and its siblings sib ( e[p] ) from which we construct the artificial entity. Since a high-level taxon is usually not a specific organism, the properties it possesses may be too homogeneous, so we screen out all taxons belonging to kingdom, phylum and domain.",
+      "section": "3.2 Artificial Entity Construction Details"
+    },
+    {
+      "chunk_id": "c0038",
+      "text": "In the real world, the naming scheme of a newly found creature usually incorporates the same prefix or suffix of other creatures of the same species. In order to mimic the real world scenario and considering the tokenization algorithms used in LLMs, we firstly split the names of related existing entities (i.e. the parent entity and sibling entities of parent) into subwords[4] . Then we randomly select names of related entities, and for the i -th selected entity we choose its i -th subword. For example, \"ALCUNA\" is created from Alpaca and Vicuna.",
+      "section": "3.2 Artificial Entity Construction Details"
+    },
+    {
+      "chunk_id": "c0039",
+      "text": "Given a property triplet (˜ e, a, v ) (one-hop setting) or a chain of property triplets TC = (˜ e, r, e 1) → ( e 1 , r 1 , e 2) → ... → ( eN − 1 , rN − 1 , eN ) (multi-hop setting), we aim to generate natural language question asking about the tail object.",
+      "section": "3.3 Template-based Question Generation"
+    },
+    {
+      "chunk_id": "c0040",
+      "text": "We leverage ChatGPT in the process of question generation to avoid expensive labor costs following Petroni et al. (2019). Specifically, we use ChatGPT to generate a question template with a placeholder [T] given only the relevant properties to avoid introducing too much model’s knowledge of a specific entity. Then we generate questions from the question template by replacing [T] with the name of head subject. We generate five question templates for each property group in form of multiple choice, fill-in-the-blank and Boolean questions. The details about the prompts used for question generation and examples are shown in Appendix B.2. To ensure the quality of automatic question generation by this method, we randomly sample 100 questions each for one-hop and multi-hop questions for human checking. It turns out that for the generated onehop questions, 98% are correct; for the multi-hop questions, 95% are correct. It shows that this way of constructing questions is acceptable.",
+      "section": "3.3 Template-based Question Generation"
+    },
+    {
+      "chunk_id": "c0041",
+      "text": "> 4We utilize the tokenizer of GPT-2 for tokenization. Figure 2: (a) The number of entities with different counts of attributes. (b) The number of entities with different counts of relations.",
+      "section": "3.3 Template-based Question Generation"
+    },
+    {
+      "chunk_id": "c0042",
+      "text": "With the previous steps, we constructed a dataset, ALCUNA, for evaluating the ability of LLMs in face of new knowledge. The ALCUNA dataset consists of a total of 84351 questions about 3554 artificial entities. We ensure that the constructed artificial entities contain rich and unique attributes and relationships by filtering out parent entities with less than three properties. Specifically, each artificial entity contains 11.75 property triples and 25.39 siblings on average. The distribution of the number of property triplets is shown in Figure 2.",
+      "section": "3.4 Dataset Summary"
+    },
+    {
+      "chunk_id": "c0043",
+      "text": "We organize the dataset in terms of questions, and for each question we collect the corresponding property triplets as evidence and the relevant artificial entities’ information as new knowledge. We divide all questions into three subsets, KU, KD and KA, as mentioned in Section 2.4 to measure the corresponding capabilities of LLMs in a fine-grained manner. In specific, KU, KD and KA contain 11316, 27186 and 15353 questions respectively. The details about question forms in the three subsets are shown in Appendix B.1.",
+      "section": "3.4 Dataset Summary"
+    },
+    {
+      "chunk_id": "c0044",
+      "text": "We select several popular LLMs for evaluation and analysis on our benchmarks, including ChatGPT, Alpaca-7B, Vicuna-13B and ChatGLM-6B. The detailed description of our selected models can be found in Appendix C.",
+      "section": "4.1 LLMs Selected for Evaluation"
+    },
+    {
+      "chunk_id": "c0045",
+      "text": "In order to adapt the approach in the era of large models and to match the application scenarios in practice, we introduce two types of evaluation methods: zero-shot and few-shot. We implement both the vanilla and \"Chain-of-Thought\" (CoT) reasoning forms for zero-shot and few-shot setting.",
+      "section": "4.2 Evaluation Methods"
+    },
+    {
+      "chunk_id": "c0046",
+      "text": "For experiments in the zero-shot setting, our inputs are structured representations of new knowledge and questions to be answered by the model. For experiments in the few-shot setting, we include several examples of the same form together with the answers, which we hope will help the model understand. For the zero-shot CoT, we append \"Let’s think step by step.\" at the end of questions, and for the few-shot CoT, the reasoning process for the answers of examples is also attached. Please refer to Appendix D for the detailed method description. An example of prompt used in our experiment is shown in Table 12.",
+      "section": "4.2 Evaluation Methods"
+    },
+    {
+      "chunk_id": "c0047",
+      "text": "Since our questions are in the form of multiple choice, fill-in-the-blank or Boolean questions, the golden answers are usually just one or a few words. Therefore, we determine the correctness of the model output by matching it with the answer (like Accuracy). Since there may be more than one possible answer to some questions, such as those asking about the geographical distribution of entities, etc., we consider the answer to be correct as long as it matches one of the correct answers. This is a less stringent measurement, but as seen in Section 5, most models still perform poorly. Using the proposed dataset, we evaluate each model’s ability with each method for knowledge understanding, knowledge differentiation, and knowledge association, respectively. We report the average score on the entire benchmark in each setting.",
+      "section": "4.3 Evaluation Metric"
+    },
+    {
+      "chunk_id": "c0048",
+      "text": "Since there are differences of internal/existing knowledge of different models due to the different model size and training data, we further filter the samples in our dataset for each model before testing, based on previous work (Petroni et al., 2019), in order not to be influenced by the difference (which is not the theme of our paper) and to compare the models’ performance in face of new knowledge in a more focused and fair way . For our method of filtering questions, please refer to Appendix E. We experiment and analyze the four models mentioned in Section 4.1 based on the filtered new knowledge, using the evaluation settings introduced in Section 4.2.",
+      "section": "4.4 Data Filtering"
+    },
+    {
+      "chunk_id": "c0049",
+      "text": "The performance of the LLMs on our benchmark under different settings is shown in Table 1. We can see that ChatGPT has the best performance in all settings, which is consistent with our usual beliefs. Vicuna has the second best performance among all models. In terms of methods, the few-shot setting performs better than the zero-shot setting overall, and CoT performs better than the vanilla form in most cases.",
+      "section": "5.1 Overall Results"
+    },
+    {
+      "chunk_id": "c0050",
+      "text": "In face of new knowledge, as seen in Table 1, LLMs do perform poorly except for ChatGPT on KU and KD experiments. Among all abilities, knowledge association is obviously the most difficult for LLMs, and all of them have difficulty in relating to their internal knowledge through new knowledge provided, and thus in making multi-hop reasoning correctly. The performance of knowledge understanding and knowledge differentiation is better than that of knowledge association, but yet not satisfactory for most LLMs.",
+      "section": "5.1 Overall Results"
+    },
+    {
+      "chunk_id": "c0051",
+      "text": "In summary, current LLMs perform relatively poorly in face of new knowledge, slightly better in knowledge understanding and knowledge differentiation, and have more difficulty in reasoning across new and existing knowledge. In order to have a clearer view of models output, please refer to Appendix F for the analysis of models output.",
+      "section": "5.1 Overall Results"
+    },
+    {
+      "chunk_id": "c0052",
+      "text": "Considering that it is expensive, slow and unstable to call ChatGPT’s API, without loss of generality, all the following comparison experiments for analysis are conducted on three other models. In addition, for convenience, the following analysis experiments are performed in the setting of the vanilla few-shot method, and structured input artificial entity knowledge, if not specifically stated.",
+      "section": "5.1 Overall Results"
+    },
+    {
+      "chunk_id": "c0053",
+      "text": "In this section we explore the effect of the similarity between the artificial entity and the parent entity on the model performance over the KD questions, which are designed to assess the model’s ability to distinguish between new knowledge and existing knowledge. Specifically, we explore attribute similarity and name similarity.",
+      "section": "5.2 Impact of Entity Similarity"
+    },
+    {
+      "chunk_id": "c0054",
+      "text": "The More Similar, the More Confusing (unless powerful enough) We define the proportion of overlap of properties between entities as the property similarity of entities. As shown in Figure 3,",
+      "section": "5.2 Impact of Entity Similarity"
+    },
+    {
+      "chunk_id": "c0055",
+      "text": "+----------------------------------------------------+---------------------------------------------------+ | ChatGPT Alpaca Vicuna ChatGLM | ChatGPT Alpaca Vicuna ChatGLM | +----------------------------------------------------+---------------------------------------------------+ | Zero-Shot-Vanilla KU 50.19 31.02 34.12 34.64 KD | Zero-Shot-CoT 68.75 39.81 39.61 24.85 61.78 14.29 | | 58.70 15.35 38.65 32.29 KA 28.44 24.60 29.71 10.29 | 38.53 22.84 35.36 19.66 29.55 4.97 63.34 29.44 | | Avg. 52.85 25.12 35.98 31.26 | 38.00 22.04 | +----------------------------------------------------+---------------------------------------------------+ | Few-Shot-Vanilla KU 75.44 33.80 41.22 47.97 KD | Few-Shot-CoT 82.18 40.77 43.67 40.91 74.99 36.24 | | 64.20 38.97 46.76 41.42 KA 41.52 27.63 30.10 27.47 | 55.81 37.19 37.88 25.73 25.07 26.93 74.11 38.02 | | Avg. 64.37 35.09 42.74 42.56 | 47.73 37.64 |",
+      "section": "5.2 Impact of Entity Similarity"
+    },
+    {
+      "chunk_id": "c0056",
+      "text": "+----------------------------------------------------+---------------------------------------------------+",
+      "section": "5.2 Impact of Entity Similarity"
+    },
+    {
+      "chunk_id": "c0057",
+      "text": "Figure 3: Relationship between model performance on KD questions and the property similarity between the artificial entity and its parental entity.",
+      "section": "Table 1: Performance of LLMs at our benchmark under different settings"
+    },
+    {
+      "chunk_id": "c0058",
+      "text": "+----------------+-------------+-------------+-------------+ | | Alpaca | Vicuna | ChatGLM | +----------------+-------------+-------------+-------------+ | similar random | 38.74 39.52 | 47.23 47.64 | 41.61 43.20 | +----------------+-------------+-------------+-------------+",
+      "section": "Table 1: Performance of LLMs at our benchmark under different settings"
+    },
+    {
+      "chunk_id": "c0059",
+      "text": "Table 2: Results on KD questions of the entity with the same property and different name.",
+      "section": "Table 1: Performance of LLMs at our benchmark under different settings"
+    },
+    {
+      "chunk_id": "c0060",
+      "text": "we divide questions according to the property similarity between the parental entities and the artificial entities, and calculate the scores of models in different similarity ranges on the KD problem respectively. We can find that the performance of the robust ChatGPT to differentiate entities is almost independent of the similarity. But other than it, all other models are affected by entity similarity. The more similar the new entities are to the existing entities, the harder they are to differentiate them, which illustrates the flaws of LLMs. The further analysis is shown in Appendix ??",
+      "section": "Table 1: Performance of LLMs at our benchmark under different settings"
+    },
+    {
+      "chunk_id": "c0061",
+      "text": "The Name also Plays a Role Since each artificial entity is identified by its name, we think that the name might have some effect on the model’s ability to distinguish new knowledge, so we conducted experiments on KD questions for comparison. We",
+      "section": "Table 1: Performance of LLMs at our benchmark under different settings"
+    },
+    {
+      "chunk_id": "c0062",
+      "text": "+--+---------------------+-------------+-------------+-------------+ | | Context | Alpaca | Vicuna | ChatGLM | +--+---------------------+-------------+-------------+-------------+ | | artifcial w/ parent | 38.97 37.09 | 46.76 35.04 | 41.42 24.71 | +--+---------------------+-------------+-------------+-------------+ | | w/ irrelevant | 37.12 | 37.17 | 35.00 | +--+---------------------+-------------+-------------+-------------+",
+      "section": "Table 1: Performance of LLMs at our benchmark under different settings"
+    },
+    {
+      "chunk_id": "c0063",
+      "text": "Table 3: Results on KD questions with different knowledge in context.",
+      "section": "Table 1: Performance of LLMs at our benchmark under different settings"
+    },
+    {
+      "chunk_id": "c0064",
+      "text": "assign two different names to artificial entities with the same properties: one is a randomly generated sequence of characters (random), and the other is a random substitution of one character (similar) for the name of its parent entity. The results of the experiments on the KD questions are shown in Table 2. We can find that the influence of names on model cognition does exist, and similar names are more likely to cause confusion in the model. However, the effect is not very large and both results are lower, which shows that the modeling of new entities by LLM is both derived from the names and influenced by the properties.",
+      "section": "Table 1: Performance of LLMs at our benchmark under different settings"
+    },
+    {
+      "chunk_id": "c0065",
+      "text": "To further explore the performance of LLMs when new knowledge is provided in the context, we vary the knowledge content provided for the analysis experiments.",
+      "section": "5.3 Impact of Provided Knowledge"
+    },
+    {
+      "chunk_id": "c0066",
+      "text": "Parent Entity Aggravates Confusion According to Section 5.2, the models suffer from a certain degree of confusion when faced with new knowledge that overlaps in name or properties with internal knowledge. To further verify this, we explicitly introduce parent entities in the context. Specifically, we conducted two comparison experiments: 1) adding parent entity knowledge to the context; 2) adding a random existing entity knowledge as control variables. As shown in Table 3, the performance is affected by both parent and irrelevant",
+      "section": "5.3 Impact of Provided Knowledge"
+    },
+    {
+      "chunk_id": "c0067",
+      "text": "+---------------+--------+--------+---------+ | Context | Alpaca | Vicuna | ChatGLM | +---------------+--------+--------+---------+ | artifcial | 27.63 | 30.1 | 27.47 | +---------------+--------+--------+---------+ | w/ chain | 29.21 | 33.25 | 44.43 | +---------------+--------+--------+---------+ | w/ irrelevant | 25.38 | 22.98 | 18.56 | +---------------+--------+--------+---------+",
+      "section": "5.3 Impact of Provided Knowledge"
+    },
+    {
+      "chunk_id": "c0068",
+      "text": "Table 4: Results on KA questions with different knowledge in context.",
+      "section": "5.3 Impact of Provided Knowledge"
+    },
+    {
+      "chunk_id": "c0069",
+      "text": "+---------------------------------+-------------------------------+-------------------------------+ | Table 4: Results on KA edge | questions with | different knowl- | | in context. | | | +---------------------------------+-------------------------------+-------------------------------+ | Alpaca | Vicuna | ChatGLM | +---------------------------------+-------------------------------+-------------------------------+ | JSON NL | JSON NL | JSON NL | +---------------------------------+-------------------------------+-------------------------------+ | KU 33.8 30.63 KD 38.97 36.00 KA | 41.22 28.04 46.76 36.12 30.10 | 47.97 20.07 41.42 22.44 27.47 | | 27.63 26.07 Avg. 35.09 32.16 | 25.48 42.74 31.92 | 9.82 42.56 20.54 | +---------------------------------+-------------------------------+-------------------------------+",
+      "section": "5.3 Impact of Provided Knowledge"
+    },
+    {
+      "chunk_id": "c0070",
+      "text": "Table 5: Results on ALCUNA with knowledge in JSON and natural language format (NL).",
+      "section": "5.3 Impact of Provided Knowledge"
+    },
+    {
+      "chunk_id": "c0071",
+      "text": "entities in the context, which is consistent with previous work (Shi et al., 2023). More significantly, for Vicuna and ChatGLM models, the parent entity brings more substantial performance degradation compared to the irrelevant entity, again confirming the confusion problem of existing large models in face of new knowledge.",
+      "section": "5.3 Impact of Provided Knowledge"
+    },
+    {
+      "chunk_id": "c0072",
+      "text": "Chain Entities are Key to Knowledge Association To more clearly analyze why all models performs poorly on the knowledge association problem, we conduct two additional sets of experiments on the KA questions: 1) adding knowledge about the entities involved in the reasoning chain to the context. 2) randomly sampling the same number of entities to the context for a fair comparison. The final results are shown in Table 4. We can find that the score of all models improves very much after adding the information of the entities required for inference, and the performance of all models decreases after adding irrelevant entities. This also shows that the main problem is that LLMs really cannot make the association between new and existing knowledge well, and not just the problem of not being able to make reasoning.",
+      "section": "5.3 Impact of Provided Knowledge"
+    },
+    {
+      "chunk_id": "c0073",
+      "text": "Structured Knowledge is Better Since our knowledge is represented structurally, the input of knowledge in our experiments is also structured, as shown in Table 12. To explore the effect of the form of the knowledge representation, we additionally do comparison experiments with knowledge in natural language form as input (NL). We use templates to transform each attribute into a language description for input similar to the template-based question generation process in Section 3.3. As can",
+      "section": "5.3 Impact of Provided Knowledge"
+    },
+    {
+      "chunk_id": "c0074",
+      "text": "be seen from Table 5, all models generally perform better with the structured input setting (JSON). The models’ understanding of this structured text may come from the code in the training data. This indicates that for this kind of high-density knowledge input, a clear and structured representation is more helpful for the model’s understanding.",
+      "section": "5.3 Impact of Provided Knowledge"
+    },
+    {
+      "chunk_id": "c0075",
+      "text": "In this section, we discuss how to apply the proposed ALCUNA benchmark to other models. There are two different application scenarios of our benchmark. First, if one wants to assess the knowledge understanding performance of different LLMs in the face of new knowledge, ALCUNA can be directly utilized for evaluation. On the other hand, if one wants to compare the knowledge differentiation and association abilities, the different background knowledge inside the different models may lead to an unfair comparison. Therefore, we need to conduct an additional filtering on ALCUNA to ensure the existing entities are possessed by all models, which will cause a shrinkage of our benchmark. Despite this, the current benchmark has been filtered on models such as Alpaca. A reasonable assumption is that the models that come after that will be more and more powerful, so the resulting shrinkage won’t be very severe.",
+      "section": "6 Assess New Models with ALCUNA"
+    },
+    {
+      "chunk_id": "c0076",
+      "text": "Large Language Models In recent years, significant advancements in Large Language Models (LLMs) like FLAN-T5(Chung et al., 2022), GPT3(Brown et al., 2020), OPT(Zhang et al., 2022), LLama(Touvron et al., 2023) and GPT-4(OpenAI, 2023) have led to exceptional performance in natural language processing tasks. At the same time, open-source LLMs based on LLama and other fundamental models for further instruction fine-tuning have emerged recently, such as Alpaca(Taori et al., 2023), Vicuna(Chiang et al., 2023), Koala(Geng et al., 2023), ChatGLM(Du et al., 2022), etc., which have also shown strong capabilities.",
+      "section": "7 Related Work"
+    },
+    {
+      "chunk_id": "c0077",
+      "text": "These models have shown breakthroughs on a variety of tasks, and some have been applied as a commercial product in daily work. Since the world is constantly changing, the ability of the models to perform when faced with new knowledge is critical.",
+      "section": "7 Related Work"
+    },
+    {
+      "chunk_id": "c0078",
+      "text": "Existing Benchmarks Benchmarks, such as SQuAD(Rajpurkar et al., 2016), SNLI(Bowman",
+      "section": "7 Related Work"
+    },
+    {
+      "chunk_id": "c0079",
+      "text": "et al., 2015), GLUE(Wang et al., 2018), SuperGLUE (Wang et al., 2020), LAMBADA (Paperno et al., 2016), etc., is essential for setting evaluation criteria and tracking model performance. While some traditional benchmarks like SQuAD and SNLI assess single-task abilities, GLUE and SuperGLUE evaluate general language models across various NLP tasks. More recently, with rapid development of LLMs, new benchmarks have been proposed to evaluate on more complex tasks such as college entrance exams, law school admission tests and so on (Hendrycks et al., 2021; Guo et al., 2023; Zhong et al., 2023). However, these benchmarks are still based on existing knowledge, which is abundant in the training data of LLM.",
+      "section": "7 Related Work"
+    },
+    {
+      "chunk_id": "c0080",
+      "text": "Some knowledge benchmarks (Onoe et al., 2021; Mallen et al., 2023; Arodi et al., 2023) evaluate model’s ability of knowledge integration while they either only evaluate on small models which are very different with LLMs (training data, ability, etc.) or simply use knowledge that already exists. Therefore, benchmarks that assess LLMs’ ability with new knowledge rather than existing knowledge are urgently needed.",
+      "section": "7 Related Work"
+    },
+    {
+      "chunk_id": "c0081",
+      "text": "Source of New Knowledge Many works use temporal knowledge as a source of new knowledge to evaluate new knowledge behavior of LLMs (Lazaridou et al., 2021; Agarwal and Nenkova, 2022; Jang et al., 2023; Zaporojets et al., 2023). There is also some work that uses entity or attribute substitution to create new knowledge (Longpre et al., 2022; Zhou et al., 2023). A discussion of the differences and strengths and weaknesses of our work versus prior work is in Appendix I.",
+      "section": "7 Related Work"
+    },
+    {
+      "chunk_id": "c0082",
+      "text": "We propose a new approach KnowGen to construct new knowledge and build an artificial biological entity benchmark ALCUNA for evaluating the ability of LLMs faced with new knowledge. We test and analyze several popular models with commonly used methods, and find some useful conclusions. Our proposed approach and benchmark can help the development of more powerful LLMs that can understand, differentiate and reason across new and existing knowledge. In the future, we expect that more LLMs will be evaluated on our benchmark. More benchmarks in other disciplines also can be constructed based our method.",
+      "section": "8 Conclusion"
+    },
+    {
+      "chunk_id": "c0083",
+      "text": "Although the method we design can be used for the construction of any knowledge that satisfies the ontological representation, we have implemented it only on biological data. It is absolutely possible to use this approach to create new knowledge in other domains for evaluating LLMs. It is because KnowGen method for creating new knowledge only requires some defined classes, and some entities in the classes, entities with their own attributes, and connections between the entities. Any knowledge base with such a structure can be used to create new knowledge with our KnowGen method. In the future, we hope that new knowledge datasets from more domains will be available.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0084",
+      "text": "We evaluate only a few powerful models due to the fact that some models are closed source or the number of parameters is too large. We expect that more models can be measured using our benchmark.",
+      "section": "Limitations"
+    },
+    {
+      "chunk_id": "c0085",
+      "text": "The knowledge of biological entities in our benchmark is artificially constructed, so it does not exist in the real world. Therefore, for humans, it is necessary to be careful not to be misled by the knowledge inside; for models, the hazard of using our dataset for training on model knowledge is unknown. This is in line with our expectation that we want ALCUNA to be used as a new knowledge benchmark only for the evaluation of model capabilities in face of new knowledge.",
+      "section": "Ethics Statement"
+    },
+    {
+      "chunk_id": "c0086",
+      "text": "This work was supported by National Key R&D Program of China (2021YFF0901502), National Science Foundation of China (No. 62161160339), State Key Laboratory of Media Convergence Production Technology and Systems and Key Laboratory of Science, Technology and Standard in Press Industry (Key Laboratory of Intelligent Press Media Technology). We appreciate the anonymous reviewers for their helpful comments. Xiaojun Wan is the corresponding author.",
+      "section": "Acknowledgements"
+    }
+  ]
+}
