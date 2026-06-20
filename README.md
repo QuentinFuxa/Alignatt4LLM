@@ -11,29 +11,14 @@ speech translation system described in:
 
 ![Chunk-synchronous AlignAtt4LLM cascade](docs/assets/paper/figure-01-cascade.png)
 
-## Implementation Overview
 
-- A chunk-synchronous ASR-to-MT cascade matching the system in the paper:
-  Qwen3-ASR updates the source prefix, Qwen3 ForcedAligner timestamps it, and a
-  Gemma-family decoder-only MT backend translates under AlignAtt control.
-- A decoder-only AlignAtt implementation: explicit source-span prompting,
-  calibrated MT attention heads, selective q/k replay, and runtime query/key
-  capture for vLLM execution.
-- Reproducible command-line entrypoints for single-audio validation, batch
-  inference, scoring, preset runs, ASR probes, and MT parity checks.
-- Focused tests for append-only streaming behavior, AlignAtt acceptance policy,
-  runtime defaults, reporting logic, and EN->ZH research diagnostics.
-
-## Quickstart: Inspect And Test
+## Quickstart:
 
 ```bash
 uv venv .venv-dev --python 3.13
 UV_PROJECT_ENVIRONMENT=.venv-dev uv sync --group dev
 .venv-dev/bin/python -m pytest
 ```
-
-This path exercises the maintained policy/runtime tests without loading GPU
-models.
 
 ## Quickstart: A100 Inference
 
@@ -68,11 +53,8 @@ Score an output directory:
 ## Public CLI
 
 - `alignatt-batch` — run the streaming cascade over one or more media files.
-- `alignatt-compare` — run single-audio ASR/backend comparisons.
 - `alignatt-eval` — score emitted hypotheses with OmniSTEval-compatible files.
-- `alignatt-preset` — run named runtime presets.
 - `alignatt-gemma-asr` — standalone Gemma AlignAtt ASR probe.
-- `alignatt-mt-parity` — MT backend parity and prompt probes.
 
 ## Documentation
 
@@ -87,7 +69,7 @@ Score an output directory:
 ```bibtex
 @article{fuxa2026alignatt4llm,
   title = {AlignAtt4LLM: Fast AlignAtt for Decoder-Only LLMs at IWSLT 2026 Simultaneous Speech Translation Task},
-  author = {Fuxa, Quentin and Machacek, Dominik},
+  author = {Fuxa, Quentin and Macháček, Dominik},
   year = {2026},
   doi = {10.48550/arXiv.2606.03967},
   url = {https://arxiv.org/abs/2606.03967}
