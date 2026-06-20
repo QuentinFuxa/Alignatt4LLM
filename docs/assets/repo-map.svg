@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="360" viewBox="0 0 1080 360" role="img" aria-labelledby="title desc">
+  <title id="title">AlignAtt4LLM repository map</title>
+  <desc id="desc">The public repository is organized around src, tests, tools, data, and docs.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f7f8fb; }
+      .card { fill: #fff; stroke: #c7ced9; stroke-width: 1.5; rx: 8; }
+      .runtime { fill: #eaf4ff; stroke: #4d87bd; }
+      .tests { fill: #eef8ed; stroke: #4f9557; }
+      .tools { fill: #fff5e8; stroke: #b7792f; }
+      .data { fill: #f2eefb; stroke: #7659ad; }
+      .docs { fill: #f7eeee; stroke: #ad5a5a; }
+      .title { font: 700 18px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #1f2937; }
+      .text { font: 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #334155; }
+      .small { font: 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #526070; }
+    </style>
+  </defs>
+  <rect class="bg" width="1080" height="360"/>
+  <text x="44" y="48" class="title">Public repository layout</text>
+  <text x="44" y="74" class="text">A small root; maintained runtime in src; experiments and reports kept out of the first viewport.</text>
+
+  <rect x="54" y="120" width="180" height="132" class="card runtime"/>
+  <text x="86" y="154" class="title">src/</text>
+  <text x="82" y="184" class="text">runtime package</text>
+  <text x="82" y="206" class="text">public CLIs</text>
+  <text x="82" y="228" class="small">alignatt4llm + simulstream</text>
+
+  <rect x="258" y="120" width="180" height="132" class="card tests"/>
+  <text x="290" y="154" class="title">tests/</text>
+  <text x="286" y="184" class="text">maintained policy</text>
+  <text x="286" y="206" class="text">and runtime checks</text>
+
+  <rect x="462" y="120" width="180" height="132" class="card tools"/>
+  <text x="494" y="154" class="title">tools/</text>
+  <text x="490" y="184" class="text">research sweeps</text>
+  <text x="490" y="206" class="text">reports + bootstrap</text>
+
+  <rect x="666" y="120" width="180" height="132" class="card data"/>
+  <text x="698" y="154" class="title">data/</text>
+  <text x="694" y="184" class="text">refs, metadata,</text>
+  <text x="694" y="206" class="text">attention heads</text>
+
+  <rect x="870" y="120" width="156" height="132" class="card docs"/>
+  <text x="902" y="154" class="title">docs/</text>
+  <text x="898" y="184" class="text">architecture</text>
+  <text x="898" y="206" class="text">reproducibility</text>
+  <text x="898" y="228" class="small">paper companion notes</text>
+</svg>

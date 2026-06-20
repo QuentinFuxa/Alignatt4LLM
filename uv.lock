@@ -2,17 +2,17 @@ version = 1
 revision = 3
 requires-python = "==3.13.*"
 resolution-markers = [
-    "sys_platform == 'linux' and extra != 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference'",
-    "sys_platform == 'win32' and extra != 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference'",
-    "sys_platform == 'emscripten' and extra != 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference'",
-    "sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference'",
-    "sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-evaluation' and extra != 'group-20-cascade-simultaneous-inference'",
-    "sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation' and extra != 'group-20-cascade-simultaneous-inference'",
-    "extra != 'group-20-cascade-simultaneous-evaluation' and extra != 'group-20-cascade-simultaneous-inference'",
+    "sys_platform == 'linux' and extra != 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference'",
+    "sys_platform == 'win32' and extra != 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference'",
+    "sys_platform == 'emscripten' and extra != 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference'",
+    "sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference'",
+    "sys_platform == 'linux' and extra == 'group-12-alignatt4llm-evaluation' and extra != 'group-12-alignatt4llm-inference'",
+    "sys_platform != 'linux' and extra == 'group-12-alignatt4llm-evaluation' and extra != 'group-12-alignatt4llm-inference'",
+    "extra != 'group-12-alignatt4llm-evaluation' and extra != 'group-12-alignatt4llm-inference'",
 ]
 conflicts = [[
-    { package = "cascade-simultaneous", group = "evaluation" },
-    { package = "cascade-simultaneous", group = "inference" },
+    { package = "alignatt4llm", group = "evaluation" },
+    { package = "alignatt4llm", group = "inference" },
 ]]
 
 [[package]]
@@ -26,8 +26,8 @@ dependencies = [
     { name = "psutil" },
     { name = "pyyaml" },
     { name = "safetensors" },
-    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-inference') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-inference') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
+    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-12-alignatt4llm-inference') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-12-alignatt4llm-inference') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/4a/8e/ac2a9566747a93f8be36ee08532eb0160558b07630a081a6056a9f89bf1d/accelerate-1.12.0.tar.gz", hash = "sha256:70988c352feb481887077d2ab845125024b2a137a5090d6d7a32b57d03a45df6", size = 398399, upload-time = "2025-11-21T11:27:46.973Z" }
 wheels = [
@@ -87,6 +87,85 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/61/62/06741b579156360248d1ec624842ad0edf697050bbaf7c3e46394e106ad1/aiosignal-1.4.0.tar.gz", hash = "sha256:f47eecd9468083c2029cc99945502cb7708b082c232f9aca65da147157b251c7", size = 25007, upload-time = "2025-07-03T22:54:43.528Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fb/76/641ae371508676492379f16e2fa48f4e2c11741bd63c48be4b12a6b09cba/aiosignal-1.4.0-py3-none-any.whl", hash = "sha256:053243f8b92b990551949e63930a839ff0cf0b0ebbe0597b0f3fb19e1a0fe82e", size = 7490, upload-time = "2025-07-03T22:54:42.156Z" },
+]
+
+[[package]]
+name = "alignatt4llm"
+version = "0.1.0"
+source = { editable = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+evaluation = [
+    { name = "mosestokenizer" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" } },
+    { name = "omnisteval" },
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" } },
+    { name = "pyyaml" },
+    { name = "sacrebleu" },
+    { name = "sentencepiece" },
+    { name = "setuptools", version = "80.10.2", source = { registry = "https://pypi.org/simple" } },
+    { name = "simulstream", extra = ["eval"], marker = "extra == 'group-12-alignatt4llm-evaluation'" },
+    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "transformers" },
+    { name = "unbabel-comet" },
+]
+inference = [
+    { name = "accelerate" },
+    { name = "cloudpickle" },
+    { name = "huggingface-hub" },
+    { name = "jupyter" },
+    { name = "mistral-common" },
+    { name = "mweralign" },
+    { name = "nvitop" },
+    { name = "pycryptodome" },
+    { name = "pymupdf-layout" },
+    { name = "pymupdf4llm" },
+    { name = "qwen-asr" },
+    { name = "simuleval" },
+    { name = "simulstream" },
+    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-12-alignatt4llm-inference') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-12-alignatt4llm-inference') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+evaluation = [
+    { name = "mosestokenizer", specifier = "==1.2.1" },
+    { name = "numpy", specifier = "==1.26.4" },
+    { name = "omnisteval" },
+    { name = "pandas", specifier = "==2.3.3" },
+    { name = "pyyaml" },
+    { name = "sacrebleu", specifier = "==2.6.0" },
+    { name = "sentencepiece", specifier = "==0.2.1" },
+    { name = "setuptools", specifier = "<81" },
+    { name = "simulstream", extras = ["eval"] },
+    { name = "torch", marker = "sys_platform != 'linux'", specifier = "==2.10.0" },
+    { name = "torch", marker = "sys_platform == 'linux'", specifier = "==2.10.0", index = "https://download.pytorch.org/whl/cu128" },
+    { name = "transformers", specifier = "==4.57.6" },
+    { name = "unbabel-comet", specifier = "==2.2.6" },
+]
+inference = [
+    { name = "accelerate", specifier = "==1.12.0" },
+    { name = "cloudpickle" },
+    { name = "huggingface-hub" },
+    { name = "jupyter" },
+    { name = "mistral-common", specifier = "==1.11.0" },
+    { name = "mweralign" },
+    { name = "nvitop" },
+    { name = "pycryptodome" },
+    { name = "pymupdf-layout" },
+    { name = "pymupdf4llm" },
+    { name = "qwen-asr" },
+    { name = "simuleval" },
+    { name = "simulstream" },
+    { name = "torch", marker = "sys_platform != 'linux'", specifier = "==2.10.0" },
+    { name = "torch", marker = "sys_platform == 'linux'", specifier = "==2.10.0", index = "https://download.pytorch.org/whl/cu128" },
 ]
 
 [[package]]
@@ -343,81 +422,6 @@ wheels = [
 ]
 
 [[package]]
-name = "cascade-simultaneous"
-version = "0.1.0"
-source = { virtual = "." }
-
-[package.dev-dependencies]
-evaluation = [
-    { name = "mosestokenizer" },
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" } },
-    { name = "omnisteval" },
-    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" } },
-    { name = "pyyaml" },
-    { name = "sacrebleu" },
-    { name = "sentencepiece" },
-    { name = "setuptools", version = "80.10.2", source = { registry = "https://pypi.org/simple" } },
-    { name = "simulstream", extra = ["eval"], marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
-    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "transformers" },
-    { name = "unbabel-comet" },
-]
-inference = [
-    { name = "accelerate" },
-    { name = "cloudpickle" },
-    { name = "huggingface-hub" },
-    { name = "jupyter" },
-    { name = "mistral-common" },
-    { name = "mweralign" },
-    { name = "nvitop" },
-    { name = "pycryptodome" },
-    { name = "pymupdf-layout" },
-    { name = "pymupdf4llm" },
-    { name = "qwen-asr" },
-    { name = "simuleval" },
-    { name = "simulstream" },
-    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-inference') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-inference') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-]
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-evaluation = [
-    { name = "mosestokenizer", specifier = "==1.2.1" },
-    { name = "numpy", specifier = "==1.26.4" },
-    { name = "omnisteval" },
-    { name = "pandas", specifier = "==2.3.3" },
-    { name = "pyyaml" },
-    { name = "sacrebleu", specifier = "==2.6.0" },
-    { name = "sentencepiece", specifier = "==0.2.1" },
-    { name = "setuptools", specifier = "<81" },
-    { name = "simulstream", extras = ["eval"] },
-    { name = "torch", marker = "sys_platform != 'linux'", specifier = "==2.10.0" },
-    { name = "torch", marker = "sys_platform == 'linux'", specifier = "==2.10.0", index = "https://download.pytorch.org/whl/cu128" },
-    { name = "transformers", specifier = "==4.57.6" },
-    { name = "unbabel-comet", specifier = "==2.2.6" },
-]
-inference = [
-    { name = "accelerate", specifier = "==1.12.0" },
-    { name = "cloudpickle" },
-    { name = "huggingface-hub" },
-    { name = "jupyter" },
-    { name = "mistral-common", specifier = "==1.11.0" },
-    { name = "mweralign" },
-    { name = "nvitop" },
-    { name = "pycryptodome" },
-    { name = "pymupdf-layout" },
-    { name = "pymupdf4llm" },
-    { name = "qwen-asr" },
-    { name = "simuleval" },
-    { name = "simulstream" },
-    { name = "torch", marker = "sys_platform != 'linux'", specifier = "==2.10.0" },
-    { name = "torch", marker = "sys_platform == 'linux'", specifier = "==2.10.0", index = "https://download.pytorch.org/whl/cu128" },
-]
-
-[[package]]
 name = "certifi"
 version = "2026.2.25"
 source = { registry = "https://pypi.org/simple" }
@@ -660,8 +664,8 @@ name = "entmax"
 version = "1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
+    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/06/a0/71747f0d98e441d0670b06205afd24d832e88c0ee62129ca47ce88505304/entmax-1.3-py3-none-any.whl", hash = "sha256:41bb1edbd497a1b53b1f0fc80befd543499dc704b4e5436ddf6c5728a2d00546", size = 13359, upload-time = "2024-02-07T10:09:38.865Z" },
@@ -1255,7 +1259,7 @@ name = "jupyter-events"
 version = "0.12.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "jsonschema", extra = ["format-nongpl"], marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "jsonschema", extra = ["format-nongpl"], marker = "extra == 'group-12-alignatt4llm-inference'" },
     { name = "packaging" },
     { name = "python-json-logger" },
     { name = "pyyaml" },
@@ -1415,8 +1419,8 @@ dependencies = [
     { name = "lazy-loader" },
     { name = "msgpack" },
     { name = "numba" },
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-evaluation'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-inference'" },
     { name = "pooch" },
     { name = "scikit-learn" },
     { name = "scipy" },
@@ -1563,7 +1567,7 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
     { name = "pillow" },
     { name = "pydantic" },
-    { name = "pydantic-extra-types", extra = ["pycountry"], marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "pydantic-extra-types", extra = ["pycountry"], marker = "extra == 'group-12-alignatt4llm-inference'" },
     { name = "requests" },
     { name = "tiktoken" },
     { name = "typing-extensions" },
@@ -1717,7 +1721,7 @@ version = "7.17.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beautifulsoup4" },
-    { name = "bleach", extra = ["css"], marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "bleach", extra = ["css"], marker = "extra == 'group-12-alignatt4llm-inference'" },
     { name = "defusedxml" },
     { name = "jinja2" },
     { name = "jupyter-core" },
@@ -1803,8 +1807,8 @@ version = "0.65.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "llvmlite" },
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-evaluation'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-inference'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/49/61/7299643b9c18d669e04be7c5bcb64d985070d07553274817b45b049e7bfe/numba-0.65.0.tar.gz", hash = "sha256:edad0d9f6682e93624c00125a471ae4df186175d71fd604c983c377cdc03e68b", size = 2764131, upload-time = "2026-04-01T03:52:01.946Z" }
 wheels = [
@@ -2626,7 +2630,7 @@ name = "pytest"
 version = "9.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
@@ -2642,7 +2646,7 @@ name = "pytest-cov"
 version = "7.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "coverage", marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "coverage", marker = "extra == 'group-12-alignatt4llm-inference'" },
     { name = "pluggy" },
     { name = "pytest" },
 ]
@@ -2699,12 +2703,12 @@ name = "pytorch-lightning"
 version = "2.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "fsspec", extra = ["http"], marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
+    { name = "fsspec", extra = ["http"], marker = "extra == 'group-12-alignatt4llm-evaluation'" },
     { name = "lightning-utilities" },
     { name = "packaging" },
     { name = "pyyaml" },
-    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
+    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
     { name = "torchmetrics" },
     { name = "tqdm" },
     { name = "typing-extensions" },
@@ -2992,8 +2996,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama" },
     { name = "lxml" },
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-evaluation'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-inference'" },
     { name = "portalocker" },
     { name = "regex" },
     { name = "tabulate" },
@@ -3043,8 +3047,8 @@ version = "1.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "joblib" },
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-evaluation'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-inference'" },
     { name = "scipy" },
     { name = "threadpoolctl" },
 ]
@@ -3069,8 +3073,8 @@ name = "scipy"
 version = "1.17.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-evaluation'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-inference'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7a/97/5a3609c4f8d58b039179648e62dd220f89864f56f7357f5d4f45c29eb2cc/scipy-1.17.1.tar.gz", hash = "sha256:95d8e012d8cb8816c226aef832200b1d45109ed4464303e997c5b13122b297c0", size = 30573822, upload-time = "2026-02-23T00:26:24.851Z" }
 wheels = [
@@ -3207,8 +3211,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "librosa" },
     { name = "pyyaml" },
-    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-inference') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-inference') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
+    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (sys_platform != 'linux' and extra == 'group-12-alignatt4llm-inference') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (sys_platform == 'linux' and extra == 'group-12-alignatt4llm-inference') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
     { name = "websockets" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ed/2b/8aeef10089d4c035fad536277bc556993dd8af3685c230c9d7a0c710bca0/simulstream-0.2.0.tar.gz", hash = "sha256:518d586db6032a4fb75d51e14eecdf3021600c85ddb24414cb69ac86c4ce604f", size = 61038, upload-time = "2026-02-05T14:49:17.217Z" }
@@ -3238,8 +3242,8 @@ version = "0.13.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cffi" },
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-evaluation'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-inference'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e1/41/9b873a8c055582859b239be17902a85339bec6a30ad162f98c9b0288a2cc/soundfile-0.13.1.tar.gz", hash = "sha256:b2c68dab1e30297317080a5b43df57e302584c49e2942defdde0acccc53f0e5b", size = 46156, upload-time = "2025-01-25T09:17:04.831Z" }
 wheels = [
@@ -3276,8 +3280,8 @@ name = "soxr"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-evaluation'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-inference'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/7e/f4b461944662ad75036df65277d6130f9411002bfb79e9df7dff40a31db9/soxr-1.0.0.tar.gz", hash = "sha256:e07ee6c1d659bc6957034f4800c60cb8b98de798823e34d2a2bba1caa85a4509", size = 171415, upload-time = "2025-09-07T13:22:21.317Z" }
 wheels = [
@@ -3497,18 +3501,18 @@ name = "torch"
 version = "2.10.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "sys_platform == 'win32' and extra != 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference'",
-    "sys_platform == 'emscripten' and extra != 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference'",
-    "sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference'",
-    "sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation' and extra != 'group-20-cascade-simultaneous-inference'",
+    "sys_platform == 'win32' and extra != 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference'",
+    "sys_platform == 'emscripten' and extra != 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference'",
+    "sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference'",
+    "sys_platform != 'linux' and extra == 'group-12-alignatt4llm-evaluation' and extra != 'group-12-alignatt4llm-inference'",
 ]
 dependencies = [
     { name = "filelock", marker = "sys_platform != 'linux'" },
     { name = "fsspec", marker = "sys_platform != 'linux'" },
     { name = "jinja2", marker = "sys_platform != 'linux'" },
     { name = "networkx", marker = "sys_platform != 'linux'" },
-    { name = "setuptools", version = "80.10.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "setuptools", version = "82.0.1", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-inference') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
+    { name = "setuptools", version = "80.10.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "setuptools", version = "82.0.1", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-12-alignatt4llm-inference') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
     { name = "sympy", marker = "sys_platform != 'linux'" },
     { name = "typing-extensions", marker = "sys_platform != 'linux'" },
 ]
@@ -3554,8 +3558,8 @@ dependencies = [
     { name = "nvidia-nvjitlink-cu12", marker = "sys_platform == 'linux'" },
     { name = "nvidia-nvshmem-cu12", marker = "sys_platform == 'linux'" },
     { name = "nvidia-nvtx-cu12", marker = "sys_platform == 'linux'" },
-    { name = "setuptools", version = "80.10.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "setuptools", version = "82.0.1", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-inference') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
+    { name = "setuptools", version = "80.10.2", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "setuptools", version = "82.0.1", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform == 'linux' and extra == 'group-12-alignatt4llm-inference') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
     { name = "sympy", marker = "sys_platform == 'linux'" },
     { name = "triton", marker = "sys_platform == 'linux'" },
     { name = "typing-extensions", marker = "sys_platform == 'linux'" },
@@ -3576,8 +3580,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" } },
     { name = "packaging" },
-    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
+    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f1/49/c7c50d400cf9a9e1c56d149cddb6d2c2bf863aae7b7dd6d898b0d63bd800/torchmetrics-0.10.3.tar.gz", hash = "sha256:9e6ab66175f2dc13e246c37485b2c27c77931dfe47fc2b81c76217b8efdc1e57", size = 340527, upload-time = "2022-11-16T18:15:18.957Z" }
 wheels = [
@@ -3629,8 +3633,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
     { name = "huggingface-hub" },
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-evaluation'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-cascade-simultaneous-inference'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-evaluation'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-12-alignatt4llm-inference'" },
     { name = "packaging" },
     { name = "pyyaml" },
     { name = "regex" },
@@ -3721,8 +3725,8 @@ dependencies = [
     { name = "sacrebleu" },
     { name = "scipy" },
     { name = "sentencepiece" },
-    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
-    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-20-cascade-simultaneous-evaluation') or (extra == 'group-20-cascade-simultaneous-evaluation' and extra == 'group-20-cascade-simultaneous-inference')" },
+    { name = "torch", version = "2.10.0", source = { registry = "https://pypi.org/simple" }, marker = "(sys_platform != 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
+    { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "(sys_platform == 'linux' and extra == 'group-12-alignatt4llm-evaluation') or (extra == 'group-12-alignatt4llm-evaluation' and extra == 'group-12-alignatt4llm-inference')" },
     { name = "torchmetrics" },
     { name = "transformers" },
 ]

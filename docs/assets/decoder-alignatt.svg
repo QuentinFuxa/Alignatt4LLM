@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="420" viewBox="0 0 1080 420" role="img" aria-labelledby="title desc">
+  <title id="title">Decoder-only AlignAtt reconstruction</title>
+  <desc id="desc">A deterministic prompt exposes source spans, selected heads are replayed with captured query and key tensors, and a frontier gate accepts or defers target units.</desc>
+  <defs>
+    <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#263241"/>
+    </marker>
+    <style>
+      .bg { fill: #fbfaf7; }
+      .box { fill: #fff; stroke: #cbd2dc; stroke-width: 1.4; rx: 8; }
+      .source { fill: #eaf4ff; stroke: #4d87bd; }
+      .heads { fill: #f2eefb; stroke: #7659ad; }
+      .replay { fill: #eef8ed; stroke: #4f9557; }
+      .gate { fill: #fff5e8; stroke: #b7792f; }
+      .title { font: 700 18px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #1f2937; }
+      .text { font: 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #334155; }
+      .small { font: 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #526070; }
+      .arrow { stroke: #263241; stroke-width: 2; marker-end: url(#arrow2); fill: none; }
+      .dash { stroke: #8b95a5; stroke-width: 1.4; stroke-dasharray: 6 6; fill: none; }
+    </style>
+  </defs>
+  <rect class="bg" width="1080" height="420"/>
+  <text x="44" y="48" class="title">How AlignAtt is recovered for decoder-only LLMs</text>
+  <text x="44" y="74" class="text">No encoder-decoder cross-attention is available, so the runtime reconstructs a source-facing attention signal from the decoder prompt.</text>
+
+  <rect x="58" y="120" width="220" height="112" class="box source"/>
+  <text x="86" y="154" class="title">1. Prompt Source Span</text>
+  <text x="86" y="184" class="text">Current source text is</text>
+  <text x="86" y="206" class="text">marked deterministically.</text>
+
+  <rect x="322" y="120" width="220" height="112" class="box heads"/>
+  <text x="350" y="154" class="title">2. Selected Heads</text>
+  <text x="350" y="184" class="text">Offline head ranking picks</text>
+  <text x="350" y="206" class="text">translation-alignment heads.</text>
+
+  <rect x="586" y="120" width="220" height="112" class="box replay"/>
+  <text x="614" y="154" class="title">3. Q/K Replay</text>
+  <text x="614" y="184" class="text">Captured query/key tensors</text>
+  <text x="614" y="206" class="text">rebuild draft attention.</text>
+
+  <rect x="850" y="120" width="172" height="112" class="box gate"/>
+  <text x="880" y="154" class="title">4. Frontier</text>
+  <text x="880" y="184" class="text">Commit safe target</text>
+  <text x="880" y="206" class="text">units; defer the rest.</text>
+
+  <line x1="280" y1="176" x2="316" y2="176" class="arrow"/>
+  <line x1="544" y1="176" x2="580" y2="176" class="arrow"/>
+  <line x1="808" y1="176" x2="844" y2="176" class="arrow"/>
+
+  <rect x="112" y="292" width="856" height="58" class="box"/>
+  <text x="142" y="326" class="title">Invariant: generation output stays unchanged; only the online commit boundary changes.</text>
+  <path d="M168 232 C168 268, 540 268, 540 292" class="dash"/>
+  <path d="M936 232 C936 268, 540 268, 540 292" class="dash"/>
+</svg>

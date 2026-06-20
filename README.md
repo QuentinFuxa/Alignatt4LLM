@@ -1,134 +1,110 @@
 # AlignAtt4LLM
 
-Research code for simultaneous speech translation with a streaming ASR-to-MT
-cascade and decoder-only AlignAtt policies.
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Paper](https://img.shields.io/badge/arXiv-2606.03967-b31b1b.svg)](https://arxiv.org/abs/2606.03967)
 
-Paper: [AlignAtt4LLM: Fast AlignAtt for Decoder-Only LLMs at IWSLT 2026
-Simultaneous Speech Translation Task](https://arxiv.org/abs/2606.03967).
+Research code for **AlignAtt4LLM**, the IWSLT 2026 simultaneous speech
+translation system described in:
 
-This branch is the public research-code surface. The paper source and generated
-PDF are not vendored here; the arXiv record is the canonical paper artifact.
+> [AlignAtt4LLM: Fast AlignAtt for Decoder-Only LLMs at IWSLT 2026
+> Simultaneous Speech Translation Task](https://arxiv.org/abs/2606.03967)
 
-## Active Focus
+![AlignAtt4LLM architecture](docs/assets/architecture.svg)
 
-- Improve EN->ZH by using `milmmt_vllm_alignatt` instead of the Gemma MT route.
-- Produce stronger, reproducible evidence that AlignAtt beats fixed
-  `cut_last_target_units` policies under comparable latency.
-- Keep the runtime clean enough that new results can become paper-grade figures
-  and tables without another repo cleanup pass.
+## What This Repo Contains
 
-## Public Scope
+- A streaming ASR-to-MT cascade for simultaneous speech translation.
+- Qwen3-ASR forced-alignment and Gemma-family vLLM runtime glue.
+- Decoder-only AlignAtt policy code, calibrated attention-head artifacts, and
+  evaluation/reporting utilities.
+- Compact score anchors and reproducibility notes for the public paper.
 
-- Included: active runtime code, presets, AlignAtt head payloads, references,
-  evaluation/reporting utilities, and post-submission research notes.
-- Not included: paper LaTeX/PDF sources, Docker submission packaging, local
-  experiment outputs, model weights, and audio files whose redistribution is
-  controlled by upstream datasets.
-- Runtime target: a CUDA/A100-style inference machine with the vLLM stack used
-  by this project. Lightweight inspection and policy tests can run without GPU
-  inference.
+The repo does **not** vendor model weights, dataset audio, Docker submission
+packaging, or paper LaTeX/PDF sources. The paper lives on arXiv.
 
-## Runtime
-
-- ASR default: `qwen_forced`
-- MT baseline: `gemma_vllm_alignatt`
-- MT improvement route: `milmmt_vllm_alignatt`
-- Active presets: `gemma_low_latency`, `gemma_high_latency`
-- Preset API: `cascade.presets.get_runtime_preset`
-- Batch runner: `run_simulstream_batch.py`
-- Single-audio A/B: `run_simulstream_compare.py`
-
-## Setup
-
-Inference environment:
+## Quickstart: Inspect And Test
 
 ```bash
-./setup_inference_qwen_asr_vllm.sh
+uv venv .venv-dev --python 3.13
+UV_PROJECT_ENVIRONMENT=.venv-dev uv sync --group dev
+.venv-dev/bin/python -m pytest
 ```
 
-Evaluation environment:
+This path exercises the maintained policy/runtime tests without loading GPU
+models.
+
+## Quickstart: A100 Inference
 
 ```bash
-uv venv .venv-evaluation --python 3.13
-UV_PROJECT_ENVIRONMENT=.venv-evaluation uv sync --group evaluation
+tools/bootstrap/setup_inference_qwen_asr_vllm.sh
 ```
 
-## Data
-
-The repository tracks dev-set metadata/references and small text fixtures under
-`data/`. Audio is expected to be provided locally by the user, typically under
-`data/devset/audio/`, and is ignored by Git.
-
-For the historical smoke path used in internal notes,
-`data/smoke/alignatt_smoke18.wav` is a local 18-second clip derived from the
-dev-set audio. It is not part of the public Git payload.
-
-## Canonical Commands
-
-Smoke the ASR frontend comparison on one local clip:
+Then run one local WAV:
 
 ```bash
-.venv-inference/bin/python run_simulstream_compare.py \
-  --wav <path-to-local-wav>
+.venv-inference/bin/alignatt-compare --wav <local.wav>
 ```
 
-Run the Gemma baseline on one dev clip:
+Run a batch point:
 
 ```bash
-.venv-inference/bin/python run_simulstream_batch.py \
-  --inputs <path-to-local-wav> \
-  --target de \
-  --output-dir outputs/gemma_de_smoke
-```
-
-Probe the MiLMMT EN->ZH route:
-
-```bash
-.venv-inference/bin/python run_simulstream_batch.py \
-  --inputs <path-to-local-wav> \
+.venv-inference/bin/alignatt-batch \
+  --inputs <local.wav> \
   --target zh \
   --mt-backend-name milmmt_vllm_alignatt \
   --translation-alignatt-top-k-heads 8 \
   --output-dir outputs/milmmt_zh_smoke
 ```
 
-Compare AlignAtt against fixed target cutoffs on a controlled subset:
-
-```bash
-.venv-inference/bin/python scripts/run_mt_cutoff_policy_sweep.py \
-  --inputs <path-to-local-wav> \
-  --target de \
-  --output-root outputs/mt_cutoff_smoke
-```
-
 Score an output directory:
 
 ```bash
-.venv-evaluation/bin/python evaluate_cascade_outputs.py \
-  --output-dir outputs/gemma_de_smoke
+.venv-evaluation/bin/alignatt-eval \
+  --output-dir outputs/milmmt_zh_smoke
 ```
 
-## Repo Layout
+## Public CLI
 
-- `cascade/` — active runtime package
-- `cascade/presets.py` — active runtime preset source of truth
-- `data/devset/` — tracked development metadata and references
-- `dev-set/` — compatibility alias to `data/devset/`
-- `data/alignatt_heads/` — tracked AlignAtt head payloads
-- `data/smoke/` — tiny text fixtures for local smoke runs
-- `scripts/` — maintained experiment and reporting utilities
-- `docs/` — current system, status, and result notes
-- `docs/archive/` — historical cleanup and submission notes
+- `alignatt-batch` — run the streaming cascade over one or more media files.
+- `alignatt-compare` — run single-audio ASR/backend comparisons.
+- `alignatt-eval` — score emitted hypotheses with OmniSTEval-compatible files.
+- `alignatt-preset` — run named runtime presets.
+- `alignatt-gemma-asr` — standalone Gemma AlignAtt ASR probe.
+- `alignatt-mt-parity` — MT backend parity and prompt probes.
 
-## Docs
+## Repo Map
 
-- [`docs/system.md`](docs/system.md) — runtime architecture and supported routes
-- [`docs/results.md`](docs/results.md) — result anchors and calibration notes
-- [`docs/status.md`](docs/status.md) — current cleanup state and decisions
-- [`docs/archive/2026-05-submission.md`](docs/archive/2026-05-submission.md) —
-  compact record of the submitted Docker/preset era
-- [`docs/reference/README.md`](docs/reference/README.md) — retained upstream reading material
+![Repository map](docs/assets/repo-map.svg)
+
+- `src/alignatt4llm/` — maintained runtime package.
+- `src/alignatt4llm/cli/` — stable public command entrypoints.
+- `tests/` — maintained regression and policy tests.
+- `tools/research/` — experiment launchers and calibration utilities.
+- `tools/reports/` — offline reporting, plotting, and replay utilities.
+- `tools/bootstrap/` — local environment setup helpers.
+- `data/` — tracked references, AlignAtt head payloads, and small fixtures.
+- `docs/` — architecture, data, reproducibility, and result notes.
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Data](docs/data.md)
+- [Reproducibility](docs/reproducibility.md)
+- [Results](docs/results.md)
+- [Development](docs/development.md)
+
+## Citation
+
+```bibtex
+@article{fuxa2026alignatt4llm,
+  title = {AlignAtt4LLM: Fast AlignAtt for Decoder-Only LLMs at IWSLT 2026 Simultaneous Speech Translation Task},
+  author = {Fuxa, Quentin and Machacek, Dominik},
+  year = {2026},
+  doi = {10.48550/arXiv.2606.03967},
+  url = {https://arxiv.org/abs/2606.03967}
+}
+```
 
 ## License
 
-Code in this repository is released under the MIT License. See [`LICENSE`](LICENSE).
+Code in this repository is released under the MIT License. See [LICENSE](LICENSE).

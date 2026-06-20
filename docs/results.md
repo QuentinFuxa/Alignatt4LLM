@@ -46,10 +46,10 @@ full dev-set scoring.
 
 ## Cutoff Comparison Workflow
 
-Use `scripts/run_mt_cutoff_policy_sweep.py` to produce real streaming outputs
-for AlignAtt and fixed `cut_last_target_units` policies, then score each output
-with `evaluate_cascade_outputs.py` and summarize with
-`scripts/report_mt_cutoff_policy_tradeoff.py`.
+Use `tools/research/run_mt_cutoff_policy_sweep.py` to produce real streaming
+outputs for AlignAtt and fixed `cut_last_target_units` policies, then score
+each output with `alignatt-eval` and summarize with
+`tools/reports/report_mt_cutoff_policy_tradeoff.py`.
 
 Claims should be made from scored output directories and their manifests, not
 from one-off console logs.

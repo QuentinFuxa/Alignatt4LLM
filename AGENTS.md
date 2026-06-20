@@ -136,18 +136,18 @@ for the next iteration, not submission packaging.
 
 ## Active runtime
 
-- Main runtime: `cascade/runtime.py`
-- Runtime presets: `cascade/presets.py`
-- SimulStream processor: `cascade/simulstream_processor.py`
-- Canonical batch runner: `run_simulstream_batch.py`
-- Canonical single-audio validation loop: `run_simulstream_compare.py` on
+- Main runtime: `src/alignatt4llm/runtime.py`
+- Runtime presets: `src/alignatt4llm/presets.py`
+- SimulStream processor: `src/alignatt4llm/simulstream_processor.py`
+- Canonical batch runner: `alignatt-batch`
+- Canonical single-audio validation loop: `alignatt-compare` on
   `data/smoke/alignatt_smoke18.wav`
 
 ## Supported backends
 
 - ASR `qwen_forced` — stable default.
 - ASR `gemma_vllm_qk_fast` — Gemma AlignAtt ASR research path; standalone
-  entrypoint: `gemma_asr_low_latency.py`.
+  entrypoint: `alignatt-gemma-asr`.
 - MT `gemma_vllm_alignatt` — stable Gemma baseline route.
 - MT `milmmt_vllm_alignatt` — active MiLMMT improvement route.
 
@@ -165,11 +165,11 @@ Use these names in new commands, docs, manifests, and result tables.
 ## Data and docs
 
 - Tracked dev-set: `data/devset/`
-- Compatibility alias: `dev-set/` -> `data/devset/`
 - Local untracked test-set: `data/testset/`
 - AlignAtt heads: `data/alignatt_heads/`
 - Smoke fixtures: `data/smoke/`
-- Current docs: `docs/system.md`, `docs/results.md`, `docs/status.md`
+- Current docs: `docs/architecture.md`, `docs/reproducibility.md`,
+  `docs/data.md`, `docs/results.md`, `docs/development.md`, `docs/status.md`
 - Historical submission note: `docs/archive/2026-05-submission.md`
 - Historical cleanup notes: `docs/archive/2026-04-history.md`
 
