@@ -1,16 +1,44 @@
-# AlignAtt4LLM
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Paper](https://img.shields.io/badge/arXiv-2606.03967-b31b1b.svg)](https://arxiv.org/abs/2606.03967)
-
-Reference implementation for **AlignAtt4LLM**, the IWSLT 2026 simultaneous
-speech translation system described in:
+<h1 align="center">
+  <img src="src/assets/alignatt4llm_icon.svg" alt="AlignAtt4LLM icon" width="64" />
+  AlignAtt4LLM
+</h1>
 
 > [AlignAtt4LLM: Fast AlignAtt for Decoder-Only LLMs at IWSLT 2026
 > Simultaneous Speech Translation Task](https://arxiv.org/abs/2606.03967)
 
-![Chunk-synchronous AlignAtt4LLM cascade](docs/assets/paper/figure-01-cascade.png)
+**AlignAtt4LLM** adapts [AlignAtt](https://arxiv.org/abs/2305.11408) to decoder-only LLMs for simultaneous speech
+translation. The MT model drafts a translation from the current source prefix,
+the runtime reconstructs target-to-source attention from selected decoder
+attention heads, and only the target prefix that is supported by accessible
+source evidence is emitted.
 
+
+![Chunk-synchronous AlignAtt4LLM cascade](src/assets/cascade.png)
+
+## Scope & what it brings ?
+
+The IWSLT implementation is end-to-end: it includes ASR, chunk-synchronous runtime code (synchronicity comes from the requirement to use [SimulStream](https://arxiv.org/abs/2512.17648)), and MT. This makes the full
+ASR + MT cascade runnable from audio input to simultaneous translation output. But the core of the innovation here is what happens in the MT part:
+
+**1.** The idea of reconstructing the attention, to know *where to cut* :
+
+<img src="src/assets/where_to_cut.png" width="500"/>
+
+
+**2.** The way of recomputing attention from a fused kernel to keep inference *fast*
+
+<img src="src/assets/run_fast.png" width="500"/>
+
+
+**3.** The way of capturing keys and queries at runtime in [VLLM](https://github.com/vllm-project/vllm) to keep inference *really fast*
+
+<img src="src/assets/run_really_fast.png" width="500"/>
+
+
+**Thus, this package contains:**
+
+- a reproducible end-to-end cascade
+- A focus on the implementation of AlignAtt to decoders only LLMs.
 
 ## Quickstart:
 
@@ -59,6 +87,7 @@ Score an output directory:
 ## Documentation
 
 - [Architecture](docs/architecture.md)
+- [Generalizing AlignAtt4LLM to other LLMs](docs/generalizing.md)
 - [Data](docs/data.md)
 - [Reproducibility](docs/reproducibility.md)
 - [Results](docs/results.md)
@@ -75,7 +104,3 @@ Score an output directory:
   url = {https://arxiv.org/abs/2606.03967}
 }
 ```
-
-## License
-
-Code in this repository is released under the MIT License. See [LICENSE](LICENSE).
