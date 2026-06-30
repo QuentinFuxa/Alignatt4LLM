@@ -89,14 +89,19 @@ def build_config() -> CascadeRuntimeConfig:
     return config
 
 
-def stream_one_wav(bundle: LoadedModelBundle, wav_path: Path) -> dict:
+def stream_one_wav(bundle: LoadedModelBundle, wav_path: Path, *, trace_sink=None) -> dict:
     """Stream ``wav_path`` through a fresh session and collect the ASR trace.
 
     Returns a dict with the raw trace, the per-token commit log (alignatt's
     acoustic ``end_time_s`` per committed token), and the committed
     prediction, enough to build an OmniSTEval-compatible hypothesis record.
+
+    When ``trace_sink`` is set, the session emits a live per-token attention
+    trace (on stderr); it has no effect on the returned dict or artifacts.
     """
     session = bundle.new_session()
+    if trace_sink is not None:
+        session.attention_trace_sink = trace_sink
     audio = load_audio_mono_16khz(str(wav_path))
     audio_duration_s = len(audio) / SAMPLE_RATE
     chunk_size = int(SAMPLE_RATE * CHUNK_MS / 1000)
@@ -224,6 +229,25 @@ def main() -> None:
             f"default {REWIND_THRESHOLD}). Ignored by `frontier_flush`."
         ),
     )
+    parser.add_argument(
+        "--trace-attention",
+        action="store_true",
+        help=(
+            "Print, on stderr, a live per-token attention trace as Gemma "
+            "streams: where each token attends in the audio timeline "
+            "(src@frame (seconds)) and whether it was committed or held. "
+            "Artifacts on stdout/files are unchanged."
+        ),
+    )
+    parser.add_argument(
+        "--trace-attention-level",
+        choices=("commits", "all"),
+        default="all",
+        help=(
+            "`all` (default) traces committed and held tokens; `commits` "
+            "traces only committed tokens. Ignored without --trace-attention."
+        ),
+    )
     args = parser.parse_args()
 
     CHUNK_MS = int(args.chunk_ms)
@@ -244,6 +268,12 @@ def main() -> None:
     bundle.ensure_alignment_backend()
     print(f"[load] backend ready in {perf_counter() - load_start:.1f}s", flush=True)
 
+    trace_sink = None
+    if args.trace_attention:
+        from alignatt4llm.alignment.attention_trace import make_stderr_trace_printer
+
+        trace_sink = make_stderr_trace_printer(str(args.trace_attention_level))
+
     records: list[dict] = []
     per_wav_dir = args.output_dir / "per_wav"
     per_wav_dir.mkdir(parents=True, exist_ok=True)
@@ -251,7 +281,7 @@ def main() -> None:
     for idx, wav in enumerate(args.wavs, start=1):
         print(f"[stream] ({idx}/{len(args.wavs)}) {wav.name}", flush=True)
         t0 = perf_counter()
-        run = stream_one_wav(bundle, wav)
+        run = stream_one_wav(bundle, wav, trace_sink=trace_sink)
         rec = build_hypothesis_record(run)
         records.append(rec)
 

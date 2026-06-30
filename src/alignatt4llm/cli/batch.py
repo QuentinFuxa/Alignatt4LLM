@@ -535,6 +535,7 @@ def run_batch_inference(
     target_lang_code: str,
     explicit_paper_context_path: str | None = None,
     paper_context_dir: str | None = None,
+    attention_trace_level: str | None = None,
 ) -> dict[str, Any]:
     print(f"Will process {len(input_paths)} media files for {source_lang_code}->{target_lang_code}")
 
@@ -547,6 +548,12 @@ def run_batch_inference(
     processor = CascadeAlignAttProcessor(processor_config)
     processor.set_source_language(source_lang_code)
     processor.set_target_language(target_lang_code)
+    if attention_trace_level:
+        from alignatt4llm.alignment.attention_trace import make_stderr_trace_printer
+
+        processor.session.attention_trace_sink = make_stderr_trace_printer(
+            attention_trace_level
+        )
 
     all_hypothesis_records: list[dict[str, Any]] = []
     all_stream_updates: list[dict[str, Any]] = []
@@ -864,6 +871,25 @@ def parse_args() -> argparse.Namespace:
         help=(
             "MT backend route. Default is the stable Gemma baseline; "
             "milmmt_vllm_alignatt is the active MiLMMT improvement route."
+        ),
+    )
+    parser.add_argument(
+        "--trace-attention",
+        action="store_true",
+        help=(
+            "Print, on stderr, a live per-token MT attention trace as the model "
+            "drafts: which source token each draft token attends to (src@N) and "
+            "the accessible/inaccessible mass that drives the cut. Artifacts on "
+            "stdout/files are unchanged."
+        ),
+    )
+    parser.add_argument(
+        "--trace-attention-level",
+        choices=("commits", "all"),
+        default="all",
+        help=(
+            "`all` (default) traces committed and held draft tokens; `commits` "
+            "traces only committed tokens. Ignored without --trace-attention."
         ),
     )
     parser.add_argument(
@@ -1491,6 +1517,9 @@ def main() -> None:
         target_lang_code=target_lang_code,
         explicit_paper_context_path=args.paper_context_path,
         paper_context_dir=args.paper_context_dir,
+        attention_trace_level=(
+            args.trace_attention_level if args.trace_attention else None
+        ),
     )
 
 

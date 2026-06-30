@@ -346,6 +346,13 @@ def build_mt_backend(
             model_name=model_name,
             runtime_config=runtime_config,
         )
+    if backend_name == "qwen_vllm_alignatt":
+        from alignatt4llm.mt.qwen_vllm_backend import QwenVLLMMTBackend
+
+        return QwenVLLMMTBackend(
+            model_name=model_name,
+            runtime_config=runtime_config,
+        )
     raise ValueError(f"Unknown mt_backend_name: {backend_name!r}")
 
 

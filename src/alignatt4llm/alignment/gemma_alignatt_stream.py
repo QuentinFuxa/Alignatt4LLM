@@ -17,11 +17,12 @@ that invariant can be audited in one place.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 import numpy as np
 
 if TYPE_CHECKING:
+    from alignatt4llm.alignment.attention_trace import AttentionTraceTokenEvent
     from alignatt4llm.alignment.gemma_vllm_asr_backend import GemmaVLLMASRBackend
 
 
@@ -54,6 +55,10 @@ class AlignAttStepRaw:
 class StreamStepDelta:
     new_committed_tokens: list[CommittedToken] = field(default_factory=list)
     partial_tail_text: str = ""
+    # Per-held-token (decoded text, absolute audio-frame anchor) for the tokens
+    # generated but not committed this step. Populated only when an attention
+    # trace sink is attached; default-empty and ignored by every other caller.
+    held_tokens: list[tuple[str, int]] = field(default_factory=list)
     audio_window_start_frame_abs: int = 0
     audio_window_content_frames: int = 0
     diagnostics: dict[str, Any] = field(default_factory=dict)
@@ -81,6 +86,7 @@ class GemmaAlignAttStream:
         rewind_threshold: int = 200,
         commit_policy: str = "frontier_flush",
         max_new_tokens: int | None = None,
+        trace_sink: Callable[[list["AttentionTraceTokenEvent"]], None] | None = None,
     ) -> None:
         self.backend = backend
         self.language = str(language)
@@ -90,6 +96,11 @@ class GemmaAlignAttStream:
         self.max_new_tokens = int(max_new_tokens) if max_new_tokens else int(
             backend.max_new_tokens
         )
+        # Optional live attention-trace sink. When set, each step emits a list
+        # of per-token AttentionTraceTokenEvent for display; default off so a
+        # normal run pays only one ``is not None`` check per chunk.
+        self._trace_sink = trace_sink
+        self._step_idx = 0
 
         sr = int(backend.sample_rate)
         ms = float(backend.audio_ms_per_token)
@@ -118,6 +129,7 @@ class GemmaAlignAttStream:
     def reset(self) -> None:
         self.committed_tokens = []
         self._out_of_window_count = 0
+        self._step_idx = 0
 
     # ------------------------------------------------------------------
     # Commit-time absolute end time for the last committed token
@@ -150,6 +162,8 @@ class GemmaAlignAttStream:
         audio = np.asarray(utterance_audio, dtype=np.float32)
         if len(audio) == 0:
             return StreamStepDelta()
+
+        self._step_idx += 1
 
         # 1. Audio window: the trailing `max_window_samples`. Align the
         #    window start UP to an audio-frame boundary so per-token
@@ -355,6 +369,24 @@ class GemmaAlignAttStream:
 
         self.committed_tokens.extend(new_committed)
 
+        # Held tokens (generated but not committed) for the live attention
+        # trace. Computed only when a sink is attached; uses the same argmax
+        # list the commit walk used for this policy so the frame anchors match.
+        held_tokens: list[tuple[str, int]] = []
+        if self._trace_sink is not None and accepted_count < n:
+            held_argmaxes = (
+                clipped_argmaxes
+                if self.commit_policy == "rewind_abort"
+                else projected_argmaxes
+            )
+            held_tokens = [
+                (
+                    self.backend.decode_single_token(int(gen_ids[i])),
+                    int(win_start_frame_abs) + int(held_argmaxes[i]),
+                )
+                for i in range(accepted_count, n)
+            ]
+
         diagnostics = {
             "commit_policy": str(self.commit_policy),
             "generated_count": int(n),
@@ -374,10 +406,25 @@ class GemmaAlignAttStream:
         if step_raw.diagnostics:
             diagnostics["backend"] = dict(step_raw.diagnostics)
 
-        return StreamStepDelta(
+        delta = StreamStepDelta(
             new_committed_tokens=new_committed,
             partial_tail_text=partial_tail_text,
+            held_tokens=held_tokens,
             audio_window_start_frame_abs=int(win_start_frame_abs),
             audio_window_content_frames=int(content_frame_len),
             diagnostics=diagnostics,
         )
+        if self._trace_sink is not None:
+            from alignatt4llm.alignment.attention_trace import (
+                asr_trace_events_from_delta,
+            )
+
+            self._trace_sink(
+                asr_trace_events_from_delta(
+                    chunk_idx=self._step_idx,
+                    delta=delta,
+                    ms_per_token=float(self.backend.audio_ms_per_token),
+                    aborted_by_rewind=aborted_by_rewind,
+                )
+            )
+        return delta

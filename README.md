@@ -40,54 +40,89 @@ ASR + MT cascade runnable from audio input to simultaneous translation output. B
 - a reproducible end-to-end cascade
 - A focus on the implementation of AlignAtt to decoders only LLMs.
 
-## Quickstart:
+## See where Gemma listens
+
+The runtime already reconstructs, for every drafted token, **where in the source
+it attends** — an audio frame for ASR, a source token for MT. `--trace-attention`
+prints that live on stderr as each token is committed or held. It is a pure read
+of the signal the policy uses; the emitted artifacts are unchanged.
+
+Standalone Gemma AlignAtt ASR — watch where each transcript token lands on the
+audio timeline (`src@frame (seconds)`):
 
 ```bash
-uv venv .venv-dev --python 3.13
-UV_PROJECT_ENVIRONMENT=.venv-dev uv sync --group dev
-.venv-dev/bin/python -m pytest
+alignatt-gemma-asr \
+  --wavs audio.wav \
+  --output-dir outputs/gemma_asr_trace \
+  --trace-attention
 ```
 
-## Quickstart: A100 Inference
-
-```bash
-tools/bootstrap/setup_inference_qwen_asr_vllm.sh
+```
+[chunk   3] commit "the"       → src@18 (0.76s)
+[chunk   3] commit "model"     → src@24 (1.00s)
+[chunk   4] HOLD   "attends"   → src@31 (1.28s) > frontier → cut
+[chunk   5] commit "attends"   → src@31 (1.28s)
 ```
 
-Then run one local WAV:
+The full cascade, end to end — the MT trace adds the accessible / inaccessible
+attention-mass split that drives the *where to cut* decision:
 
 ```bash
-.venv-inference/bin/alignatt-compare --wav <local.wav>
+alignatt-batch \
+  --inputs audio.wav --target zh \
+  --mt-backend-name gemma_vllm_alignatt \
+  --trace-attention \
+  --output-dir outputs/gemma_zh_smoke
 ```
 
-Run a batch point:
-
-```bash
-.venv-inference/bin/alignatt-batch \
-  --inputs <local.wav> \
-  --target zh \
-  --mt-backend-name milmmt_vllm_alignatt \
-  --translation-alignatt-top-k-heads 8 \
-  --output-dir outputs/milmmt_zh_smoke
+```
+[chunk   7] commit "我们"      → src@12  mass acc 0.91 inacc 0.04
+[chunk   7] commit "需要"      → src@18  mass acc 0.88 inacc 0.07
+[chunk   8] HOLD   "增长"      → src@27  mass acc 0.31 inacc 0.58 > frontier → cut
 ```
 
 Score an output directory:
 
 ```bash
-.venv-evaluation/bin/alignatt-eval \
-  --output-dir outputs/milmmt_zh_smoke
+alignatt-eval --output-dir outputs/gemma_zh_smoke
 ```
+
+## ▶ Bring your own LLM
+
+The portable part of AlignAtt4LLM is the MT-side policy, not the model. A new
+decoder-only LLM plugs into the same runtime by supplying a `VLLMAttentionSpec`
+(which vLLM attention class to patch and how its `forward` recomputes Q/K) plus a
+thin backend subclass — and reuses the shared capture/reconstruction/acceptance
+machinery in [`src/alignatt4llm/vllm_qk/`](src/alignatt4llm/vllm_qk/).
+
+The shipped worked example is [Qwen2.5](src/alignatt4llm/mt/qwen_vllm_backend.py)
+(`qwen_vllm_alignatt`):
+
+```bash
+alignatt-batch \
+  --inputs audio.wav --target de \
+  --mt-backend-name qwen_vllm_alignatt \
+  --output-dir outputs/qwen_de_smoke
+```
+
+The full recipe (find your attention class → write a spec → subclass the backend
+and worker → register → calibrate heads) is in
+[Adding a New LLM](docs/adding_a_model.md).
 
 ## Public CLI
 
 - `alignatt-batch` — run the streaming cascade over one or more media files.
+- `alignatt-compare` — single-WAV A/B of two backends with WER/CER/latency.
 - `alignatt-eval` — score emitted hypotheses with OmniSTEval-compatible files.
+- `alignatt-preset` — run named operating points (`gemma_low_latency`, `gemma_high_latency`) in batch or server mode.
 - `alignatt-gemma-asr` — standalone Gemma AlignAtt ASR probe.
+- `alignatt-mt-parity` — MT backend parity/diagnostic harness.
 
 ## Documentation
 
 - [Architecture](docs/architecture.md)
 - [Generalizing AlignAtt4LLM to other LLMs](docs/generalizing.md)
+- [Adding a New LLM (bring your own model)](docs/adding_a_model.md)
 - [Data](docs/data.md)
 - [Reproducibility](docs/reproducibility.md)
 - [Results](docs/results.md)

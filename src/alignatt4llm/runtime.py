@@ -79,7 +79,11 @@ STABLE_ALIGNMENT_BACKEND_NAMES = ("qwen_forced", "gemma_vllm_qk_fast")
 
 # The stable Gemma MT path remains Gemma AlignAtt through vLLM. MiLMMT is
 # the active route for post-submission improvements.
-VALID_MT_BACKEND_NAMES = ("gemma_vllm_alignatt", "milmmt_vllm_alignatt")
+VALID_MT_BACKEND_NAMES = (
+    "gemma_vllm_alignatt",
+    "milmmt_vllm_alignatt",
+    "qwen_vllm_alignatt",
+)
 STABLE_MT_BACKEND_NAMES = ("gemma_vllm_alignatt",)
 VALID_ASR_ALIGNATT_COMMIT_POLICIES = ("frontier_flush", "rewind_abort")
 VALID_TRANSLATION_ACCEPTANCE_POLICIES = (
@@ -158,6 +162,12 @@ milmmt_model_name = _resolve_hf_snapshot(
     "models--xiaomi-research--MiLMMT-46-4B-v0.1/snapshots/1341209df846d7b2f6a077090ca957e28656e3de",
     env_var="CASCADE_MILMMT_SNAPSHOT",
 )
+# Reference "bring your own LLM" model (see docs/adding_a_model.md). Defaults to
+# the HF repo id; override CASCADE_QWEN_MT_SNAPSHOT with a local snapshot path
+# when running fully offline.
+qwen_mt_model_name = os.environ.get(
+    "CASCADE_QWEN_MT_SNAPSHOT", "Qwen/Qwen2.5-1.5B-Instruct"
+)
 
 
 def alignatt_heads_path_for(
@@ -172,6 +182,12 @@ def alignatt_heads_path_for(
         return (
             "data/alignatt_heads/"
             "translation_heads_xiaomi-research_MiLMMT-46-4B-v0_1_"
+            f"{source_code}-{target_code}.json"
+        )
+    if mt_backend_name == "qwen_vllm_alignatt":
+        return (
+            "data/alignatt_heads/"
+            "translation_heads_Qwen_Qwen2_5-1_5B-Instruct_"
             f"{source_code}-{target_code}.json"
         )
     return (
@@ -189,6 +205,8 @@ def mt_model_name_for_backend(mt_backend_name: str) -> str:
         return milmmt_model_name
     if mt_backend_name == "gemma_vllm_alignatt":
         return gemma_model_name
+    if mt_backend_name == "qwen_vllm_alignatt":
+        return qwen_mt_model_name
     raise ValueError(f"Unknown mt_backend_name: {mt_backend_name!r}")
 
 
@@ -639,7 +657,11 @@ class CascadeRuntimeConfig:
         See alignment_backend_fingerprint for the engine-vs-policy split.
         """
         name = self.mt_backend_name
-        if name in {"gemma_vllm_alignatt", "milmmt_vllm_alignatt"}:
+        if name in {
+            "gemma_vllm_alignatt",
+            "milmmt_vllm_alignatt",
+            "qwen_vllm_alignatt",
+        }:
             return (
                 name,
                 bool(self.mt_vllm_enforce_eager),
@@ -650,9 +672,9 @@ class CascadeRuntimeConfig:
                 self.mt_vllm_speculative_assistant_model,
                 int(self.mt_vllm_num_speculative_tokens),
                 int(
-                    self.mt_max_model_len
-                    if name == "milmmt_vllm_alignatt"
-                    else self.gemma_max_model_len
+                    self.gemma_max_model_len
+                    if name == "gemma_vllm_alignatt"
+                    else self.mt_max_model_len
                 ),
             )
         return (name,)
@@ -1528,6 +1550,8 @@ class TranslationUnitManager:
                     partial_result,
                     partial_frontier,
                 )
+                if self.session.attention_trace_sink is not None:
+                    self.session._emit_mt_attention_trace(partial_result)
             else:
                 partial_result = self.snapshot_skipped_partial_result(
                     source_frontier=partial_frontier,
@@ -1569,6 +1593,47 @@ class CascadeSession:
         # inflates by ~5x because every word in a segment gets the same
         # chunk-boundary delay.
         self._per_token_commits: list[dict[str, Any]] = []
+        # Optional live attention-trace sink (set by CLIs running with
+        # --trace-attention). Forwarded to the Gemma AlignAtt stream so it
+        # emits per-token AttentionTraceTokenEvent lists as decisions are made.
+        # None by default: a normal run pays nothing for it.
+        self.attention_trace_sink: Any | None = None
+        self._mt_trace_chunk_idx = 0
+
+    def _emit_mt_attention_trace(self, result: "MTBackendResult | None") -> None:
+        """Feed the live trace sink with this chunk's MT draft decisions.
+
+        Display-only: the source axis is the source prompt, so each draft token
+        shows ``src@<source-token>`` plus the accessible/inaccessible mass split.
+        The per-token metadata arrays align with a prefix of the draft ids
+        (``operating_ids = draft_generated_ids[:operating_count]``), so the trace
+        spine is the number of aligned positions. Never raises into a run.
+        """
+        sink = self.attention_trace_sink
+        if sink is None or result is None or not result.draft_generated_token_ids:
+            return
+        tokenizer = getattr(getattr(self.bundle, "mt_backend", None), "tokenizer", None)
+        if tokenizer is None:
+            return
+        from alignatt4llm.alignment.attention_trace import mt_trace_events_from_metadata
+
+        metadata = result.alignatt_metadata or {}
+        positions = metadata.get("aligned_source_local_positions")
+        draft_ids = list(result.draft_generated_token_ids)
+        n = len(positions) if positions is not None else len(draft_ids)
+        n = min(int(n), len(draft_ids))
+        try:
+            texts = [str(tokenizer.decode([int(draft_ids[i])])) for i in range(n)]
+        except Exception:  # display-only: a decode hiccup must not break a run
+            texts = [str(int(draft_ids[i])) for i in range(n)]
+        self._mt_trace_chunk_idx += 1
+        sink(
+            mt_trace_events_from_metadata(
+                chunk_idx=self._mt_trace_chunk_idx,
+                draft_token_texts=texts,
+                alignatt_metadata=metadata,
+            )
+        )
 
     def load_models(self) -> None:
         self.bundle.load()
@@ -1817,6 +1882,7 @@ class CascadeSession:
                 commit_policy=str(self.config.asr_alignatt_commit_policy),
                 frame_threshold=int(self.config.asr_alignatt_frame_threshold),
                 rewind_threshold=int(self.config.asr_alignatt_rewind_threshold),
+                trace_sink=self.attention_trace_sink,
             )
         stream = self._gemma_align_att_stream
 

@@ -5,6 +5,12 @@ supplies a growing source transcript plus timestamps. The portable part is the
 MT-side policy: draft with a decoder-only LLM, recover where each drafted target
 token attends in the source prompt, and commit only the safe target prefix.
 
+> For the concrete, step-by-step recipe and a worked example, see
+> [Adding a New LLM](adding_a_model.md) and the Qwen2.5 reference backend
+> (`src/alignatt4llm/mt/qwen_vllm_backend.py`, `qwen_vllm_alignatt`). The
+> generic, reusable capture machinery lives in `src/alignatt4llm/vllm_qk/`.
+> This document is the conceptual companion to that recipe.
+
 ## What Must Transfer
 
 To port AlignAtt4LLM to another decoder-only MT model, the new backend needs to
@@ -61,12 +67,20 @@ Then add a production backend:
 7. Reuse `AlignAttDecoderPolicy` for partial decoding and keep the final
    `is_partial=False` path as a normal full translation.
 
+Steps 1, 2, 4, and 6 are now driven by the generic base in
+`src/alignatt4llm/vllm_qk/`: a backend supplies a `VLLMAttentionSpec` (which
+attention class to patch + how its `forward` recomputes Q/K) and a thin
+`BaseQKObserverWorker` subclass, rather than hand-writing the patch and worker.
+See [Adding a New LLM](adding_a_model.md) for the exact edits.
+
 The current examples are:
 
 - `GemmaVLLMMTBackend`: Gemma-family chat-template backend used by the stable
-  IWSLT MT route.
+  IWSLT MT route (keeps its own QK-norm-aware forward).
 - `MiLMMTVLLMMTBackend`: experimental MiLMMT route that reuses the same vLLM
   Q/K observer mechanics with a raw translation prompt.
+- `QwenVLLMMTBackend`: the reference "bring your own LLM" backend (Qwen2.5),
+  built on the generic `vllm_qk` base with the standard no-QK-norm forward.
 
 ## Model Requirements
 
