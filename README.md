@@ -42,8 +42,7 @@ ASR + MT cascade runnable from audio input to simultaneous translation output. B
 
 ## See where Gemma listens
 
-The runtime already reconstructs, for every drafted token, **where in the source
-it attends**: an audio frame for ASR, a source token for MT. `--trace-attention`
+The runtime already reconstructs, for every drafted token, **where in the source it attends**.
 prints that live on stderr as each token is committed or held. It is a pure read
 of the signal the policy already uses, so it does not change what the model emits.
 
