@@ -216,14 +216,13 @@ def test_milmmt_sampling_uses_model_card_greedy_defaults_and_end_of_turn_stop():
 
 def test_gemma3_mt_attention_patch_is_installable():
     pytest.importorskip("vllm.model_executor.models.gemma3")
-    from alignatt4llm.mt.gemma_vllm_observer import (
-        install_global_gemma_attention_mt_patches,
-    )
+    from alignatt4llm.mt.gemma_vllm_backend import GEMMA_SPEC
+    from alignatt4llm.vllm_qk.patch import install_global_attention_mt_patch
     from vllm.model_executor.models.gemma3 import Gemma3Attention
 
-    install_global_gemma_attention_mt_patches()
+    install_global_attention_mt_patch(GEMMA_SPEC)
 
-    assert hasattr(Gemma3Attention, "_alignatt_mt_qk_original_forward")
+    assert hasattr(Gemma3Attention, "_alignatt_gemma_mt_qk_original_forward")
 
 
 class CharOffsetTokenizerWithBos(CharOffsetTokenizer):

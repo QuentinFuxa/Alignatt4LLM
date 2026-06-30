@@ -1385,8 +1385,8 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Path to a PaperArtifact JSON (produced by "
-            "cascade.paper_context.paper_artifact) to inject as MT-side [Paper "
-            "context]. Default: no context."
+            "alignatt4llm.paper_context.paper_artifact) to inject as MT-side "
+            "[Paper context]. Default: no context."
         ),
     )
     parser.add_argument(

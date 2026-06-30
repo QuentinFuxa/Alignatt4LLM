@@ -1,29 +1,20 @@
-"""vLLM-side Q/K observer for MT AlignAtt (PLAN.md Phase 2).
+"""Model-agnostic vLLM-side Q/K observer for MT AlignAtt.
 
-This is a close analogue of
-``cascade.alignment.gemma_vllm_asr_backend._AudioQKTensorObserver``
-with one structural difference: for MT we need the full 4-way provenance
-partition (``source_accessible`` / ``source_inaccessible`` / ``non_source_prompt``
-/ ``suffix``), which requires recomputing the softmax over ``[prompt_K | suffix_K]``.
-The ASR observer captures K only at prompt positions; the MT observer also
-captures K at decode positions so we can reconstruct the suffix row per token.
+This is the reusable core of the ``vllm_qk`` base. It owns everything that does
+NOT depend on a specific model family: the per-layer fixed-buffer observer, the
+``alignatt::capture_mt_qk`` custom op + registry, the spec-driven configure /
+stub / prepare / fetch helpers, and the Q@K^T reconstruction. A model plugs in
+through a :class:`~alignatt4llm.vllm_qk.spec.VLLMAttentionSpec` (which attention
+class to patch and how its ``forward`` recomputes Q/K); see
+``alignatt4llm.vllm_qk.patch`` for the patch installer and the standard forward,
+and ``docs/adding_a_model.md`` for the recipe.
 
-The observer contract per layer is:
-
-- ``prompt_k_buffer``: K at every prompt position, on the selected **KV** heads
-- ``decode_q_buffer``: Q at every decode position, on the selected Q heads
-- ``decode_k_buffer``: K at every decode position, on the selected KV heads
-
-All three are fixed-shape tensor buffers, scattered via ``scatter_add_``-style
-ops so the capture path is compatible with ``torch.compile`` / cudagraph
-capture (no ``nonzero`` / Python-level conditionals on tensor values).
-
-The patched Gemma-family ``Attention.forward`` is intentionally separate from the ASR
-version so the two observers never alias the same attribute. If the ASR
-Gemma ASR backend and the MT Gemma-family backend ever need to coexist in one
-process, this module would need a shared dispatcher. The stable target pairs
-``qwen_forced`` ASR with ``gemma_vllm_alignatt`` MT; MiLMMT uses this observer
-only when selected explicitly.
+For MT we need the full 4-way provenance partition (``source_accessible`` /
+``source_inaccessible`` / ``non_source_prompt`` / ``suffix``), which requires
+recomputing the softmax over ``[prompt_K | suffix_K]``. So the observer captures
+K at prompt positions, plus Q and K at decode positions, into fixed-shape tensor
+buffers scattered via ``scatter_add_``-style ops, keeping the capture path
+compatible with ``torch.compile`` / cudagraph capture.
 """
 from __future__ import annotations
 
@@ -35,11 +26,14 @@ from typing import Any, Sequence
 import numpy as np
 import torch
 
+from alignatt4llm.vllm_qk.spec import VLLMAttentionSpec, assert_supported_attention_module
+
 
 _MT_OBSERVER_BOOTSTRAP_ENV = "CASCADE_MT_ALIGNATT_OBSERVER_BOOTSTRAP"
 
 
-def _resolve_vllm_gemma_decoder_layers(model) -> Sequence[object]:
+def resolve_decoder_layers(model) -> Sequence[object]:
+    """Locate the decoder layer list inside a loaded vLLM model (model-agnostic)."""
     candidates = (
         getattr(getattr(getattr(model, "language_model", None), "model", None), "layers", None),
         getattr(getattr(model, "model", None), "layers", None),
@@ -49,7 +43,7 @@ def _resolve_vllm_gemma_decoder_layers(model) -> Sequence[object]:
         if candidate is not None:
             return candidate
     raise RuntimeError(
-        "Could not locate Gemma decoder layers inside the loaded vLLM model."
+        "Could not locate decoder layers inside the loaded vLLM model."
     )
 
 
@@ -260,7 +254,7 @@ def _resolve_mt_observer_bindings(
     state = getattr(model, "_alignatt_mt_qk_state", None)
     if state is None:
         return []
-    layers = _resolve_vllm_gemma_decoder_layers(model)
+    layers = resolve_decoder_layers(model)
     bindings: list[tuple[int, _MTPromptDecodeQKTensorObserver]] = []
     for layer_idx in state.get("layer_indices", ()):
         attn = getattr(layers[int(layer_idx)], "self_attn", None)
@@ -273,133 +267,6 @@ def _resolve_mt_observer_bindings(
             )
         bindings.append((int(layer_idx), observer))
     return bindings
-
-
-def _capture_mt_qk_into_tensor_buffers(attn_module, positions, q, k) -> None:
-    # NOTE (commit 2a818d0 / 5e557a8 / 4ebfee0 / this diff): an
-    # earlier attempt wrapped this function with
-    # ``@torch.compiler.disable`` to keep the observer-capture out of
-    # the AOT-compiled Gemma-family forward graph. That patch is not
-    # shippable: vLLM compiles the model in fullgraph mode, which
-    # does not permit graph breaks, and
-    # ``@torch.compiler.disable`` requires one. The dynamo error is
-    # explicit: *"Skip calling torch.compiler.disable()'d function"
-    # — the model is using torch.compile in fullgraph mode"*. A
-    # proper fix would need to either (a) convince vLLM to allow a
-    # break at the observer call, or (b) replace the observer
-    # capture path with a PyTorch custom op registered via
-    # ``torch.library.custom_op`` so it becomes a single dispatcher
-    # call that AOT can represent as an opaque node. Both are out
-    # of night scope.
-    observer = _get_mt_qk_tensor_observer(attn_module)
-    if observer is None:
-        return
-
-    positions_flat = positions.reshape(-1).to(dtype=torch.int64)
-    if positions_flat.numel() == 0:
-        return
-
-    q_heads = q.reshape(-1, attn_module.num_heads, attn_module.head_dim)
-    k_heads = k.reshape(-1, attn_module.num_kv_heads, attn_module.head_dim)
-    selected_q = torch.index_select(
-        q_heads, dim=1, index=observer.selected_heads_tensor
-    ).to(dtype=torch.float32)
-    selected_k = torch.index_select(
-        k_heads, dim=1, index=observer.selected_kv_heads_tensor
-    ).to(dtype=torch.float32)
-
-    prompt_length = observer.prompt_length_tensor
-    max_prompt = observer.prompt_k_buffer.shape[1]
-    max_decode = int(observer.decode_q_buffer.shape[0])
-
-    observer.forward_call_count_tensor.add_(1)
-
-    # --- prompt K scatter ---
-    prompt_mask = (positions_flat >= 0) & (positions_flat < prompt_length)
-    prompt_mask_i32 = prompt_mask.any().to(dtype=torch.int32)
-    observer.prompt_forward_call_count_tensor.add_(prompt_mask_i32)
-    prompt_offsets_clamped = positions_flat.clamp(min=0, max=max_prompt - 1)
-    prompt_values = selected_k.transpose(0, 1)  # (kv_heads, seq, head_dim)
-    prompt_mask_f32 = prompt_mask.to(dtype=prompt_values.dtype).view(1, -1, 1)
-    prompt_index = prompt_offsets_clamped.view(1, -1, 1).expand(
-        prompt_values.shape[0], -1, prompt_values.shape[2]
-    )
-    prompt_scratch = observer.prompt_k_scratch
-    prompt_scratch.zero_()
-    prompt_scratch.scatter_add_(1, prompt_index, prompt_values * prompt_mask_f32)
-    prompt_written_scratch = observer.prompt_written_scratch
-    prompt_written_scratch.zero_()
-    prompt_written_scratch.scatter_reduce_(
-        0,
-        prompt_offsets_clamped,
-        prompt_mask.to(dtype=prompt_written_scratch.dtype),
-        reduce="amax",
-        include_self=False,
-    )
-    prompt_write_mask = prompt_written_scratch.to(dtype=torch.bool)
-    observer.prompt_k_buffer.copy_(
-        torch.where(
-            prompt_write_mask.view(1, -1, 1),
-            prompt_scratch,
-            observer.prompt_k_buffer,
-        )
-    )
-    observer.prompt_written_buffer.logical_or_(prompt_write_mask)
-
-    # --- decode Q and decode K scatter ---
-    decode_offsets = positions_flat - prompt_length
-    decode_mask = (
-        (positions_flat >= prompt_length)
-        & (decode_offsets >= 0)
-        & (decode_offsets < max_decode)
-    )
-    decode_mask_i32 = decode_mask.any().to(dtype=torch.int32)
-    observer.decode_forward_call_count_tensor.add_(decode_mask_i32)
-    decode_offsets_clamped = decode_offsets.clamp(min=0, max=max_decode - 1)
-
-    # decode Q
-    decode_q_mask_f32 = decode_mask.to(dtype=selected_q.dtype).view(-1, 1, 1)
-    decode_q_index = decode_offsets_clamped.view(-1, 1, 1).expand(
-        -1, selected_q.shape[1], selected_q.shape[2]
-    )
-    decode_q_scratch = observer.decode_q_scratch
-    decode_q_scratch.zero_()
-    decode_q_scratch.scatter_add_(0, decode_q_index, selected_q * decode_q_mask_f32)
-
-    # decode K
-    decode_k_mask_f32 = decode_mask.to(dtype=selected_k.dtype).view(-1, 1, 1)
-    decode_k_index = decode_offsets_clamped.view(-1, 1, 1).expand(
-        -1, selected_k.shape[1], selected_k.shape[2]
-    )
-    decode_k_scratch = observer.decode_k_scratch
-    decode_k_scratch.zero_()
-    decode_k_scratch.scatter_add_(0, decode_k_index, selected_k * decode_k_mask_f32)
-
-    decode_written_scratch = observer.decode_written_scratch
-    decode_written_scratch.zero_()
-    decode_written_scratch.scatter_reduce_(
-        0,
-        decode_offsets_clamped,
-        decode_mask.to(dtype=decode_written_scratch.dtype),
-        reduce="amax",
-        include_self=False,
-    )
-    decode_write_mask = decode_written_scratch.to(dtype=torch.bool)
-    observer.decode_q_buffer.copy_(
-        torch.where(
-            decode_write_mask.view(-1, 1, 1),
-            decode_q_scratch,
-            observer.decode_q_buffer,
-        )
-    )
-    observer.decode_k_buffer.copy_(
-        torch.where(
-            decode_write_mask.view(-1, 1, 1),
-            decode_k_scratch,
-            observer.decode_k_buffer,
-        )
-    )
-    observer.decode_written_buffer.logical_or_(decode_write_mask)
 
 
 # Global registry mapping layer index -> observer. Used by the
@@ -612,129 +479,10 @@ def _capture_mt_qk_into_tensor_buffers_from_observer(
     observer.decode_written_buffer.logical_or_(decode_write_mask)
 
 
-def _assert_supported_gemma_attention_module(attn_module) -> None:
-    required = (
-        "qkv_proj",
-        "q_size",
-        "kv_size",
-        "num_heads",
-        "num_kv_heads",
-        "head_dim",
-        "q_norm",
-        "k_norm",
-        "rotary_emb",
-        "attn",
-        "o_proj",
-    )
-    missing = [name for name in required if not hasattr(attn_module, name)]
-    if missing:
-        raise RuntimeError(
-            "Gemma-family MT AlignAtt requires a vLLM Gemma3/Gemma4 attention module "
-            f"with Q/K/V projection access; missing attributes: {missing}"
-        )
+def install_stub_observers_on_model(model, spec: VLLMAttentionSpec) -> int:
+    """Install a ``None`` stub on every attention observer attribute.
 
-
-def _make_mt_tensor_buffer_gemma_attention_forward():
-    def _patched_forward(self, positions, hidden_states, **kwargs):
-        _assert_supported_gemma_attention_module(self)
-        qkv, _ = self.qkv_proj(hidden_states)
-        q, k, v = qkv.split([self.q_size, self.kv_size, self.kv_size], dim=-1)
-
-        q = q.unflatten(-1, (self.num_heads, self.head_dim))
-        q = self.q_norm(q)
-        q = q.flatten(-2, -1)
-
-        if hasattr(self, "is_kv_shared_layer"):
-            if not hasattr(self, "v_norm"):
-                raise RuntimeError(
-                    "Gemma4 MT AlignAtt expected v_norm on the vLLM attention module."
-                )
-            if not self.is_kv_shared_layer:
-                k = k.unflatten(-1, (self.num_kv_heads, self.head_dim))
-                k = self.k_norm(k)
-                k = k.flatten(-2, -1)
-                q, k = self.rotary_emb(positions, q, k)
-
-                v = v.unflatten(-1, (self.num_kv_heads, self.head_dim))
-                v = self.v_norm(v)
-                v = v.flatten(-2, -1)
-            else:
-                q = self.rotary_emb(positions, q, k)[0]
-        else:
-            k = k.unflatten(-1, (self.num_kv_heads, self.head_dim))
-            k = self.k_norm(k)
-            k = k.flatten(-2, -1)
-            q, k = self.rotary_emb(positions, q, k)
-
-        # Dispatch the observer capture through the custom op so
-        # AOT-compile sees a single opaque node rather than tracing
-        # into the observer tensor scatters. Layer index is stored
-        # on the module at stub-install / configure time; if it's
-        # missing for some reason, fall back to -1 (never found in
-        # the registry, so the custom op's no-op path fires).
-        #
-        # The op returns a zero-sentinel tensor threaded into
-        # ``attn_output`` so inductor can't DCE the call under
-        # cudagraph=full. Adding a 0-dim scalar is a no-op for
-        # numerics (broadcast of ``torch.zeros((), dtype=q.dtype)``)
-        # but creates a data dependency the compiler must honour.
-        layer_idx = int(getattr(self, "_alignatt_mt_layer_idx", -1))
-        observer_sentinel = torch.ops.alignatt.capture_mt_qk(
-            layer_idx, positions, q, k
-        )
-
-        attn_output = self.attn(q, k, v)
-        attn_output = attn_output + observer_sentinel
-        output, _ = self.o_proj(attn_output)
-        return output
-
-    return _patched_forward
-
-
-def install_global_gemma_attention_mt_patch() -> None:
-    _ensure_custom_op_registered()
-
-    try:
-        from vllm.model_executor.models.gemma3 import Gemma3Attention
-    except Exception:
-        Gemma3Attention = None
-
-    try:
-        from vllm.model_executor.models.gemma4 import Gemma4Attention
-    except Exception:
-        Gemma4Attention = None
-
-    if Gemma3Attention is None and Gemma4Attention is None:
-        raise RuntimeError(
-            "Gemma-family MT AlignAtt requires vLLM Gemma3Attention or "
-            "Gemma4Attention support."
-        )
-
-    if Gemma3Attention is not None and not hasattr(
-        Gemma3Attention, "_alignatt_mt_qk_original_forward"
-    ):
-        Gemma3Attention._alignatt_mt_qk_original_forward = Gemma3Attention.forward
-        Gemma3Attention.forward = _make_mt_tensor_buffer_gemma_attention_forward()
-
-    if Gemma4Attention is not None and not hasattr(
-        Gemma4Attention, "_alignatt_mt_qk_original_forward"
-    ):
-        Gemma4Attention._alignatt_mt_qk_original_forward = Gemma4Attention.forward
-        Gemma4Attention.forward = _make_mt_tensor_buffer_gemma_attention_forward()
-
-
-def install_global_gemma4_attention_mt_patch() -> None:
-    install_global_gemma_attention_mt_patch()
-
-
-def install_global_gemma_attention_mt_patches() -> None:
-    install_global_gemma_attention_mt_patch()
-
-
-def install_stub_observers_on_model(model) -> int:
-    """Install a ``None`` stub on every Gemma-family attention observer attr.
-
-    The AOT-compiled Gemma attention ``forward`` traces an attribute
+    The AOT-compiled attention ``forward`` traces an attribute
     access to ``_alignatt_mt_qk_tensor_observer`` during first warmup
     and then, when vLLM's compile cache replays the compiled graph
     in a fresh process, performs a direct ``__dict__`` lookup on that
@@ -750,13 +498,13 @@ def install_stub_observers_on_model(model) -> int:
     ``__dict__`` so the compiled lookup succeeds. Returns the number
     of layers stubbed.
     """
-    layers = _resolve_vllm_gemma_decoder_layers(model)
+    layers = resolve_decoder_layers(model)
     stubbed = 0
     for layer_idx, layer in enumerate(layers):
         attn = getattr(layer, "self_attn", None)
         if attn is None:
             continue
-        _assert_supported_gemma_attention_module(attn)
+        assert_supported_attention_module(attn, spec)
         # Use object.__setattr__ so this works even on modules that
         # otherwise reject unknown attributes. The attribute ends up
         # in attn.__dict__, which is the lookup AOT-compiled code
@@ -777,8 +525,9 @@ def install_stub_observers_on_model(model) -> int:
     return stubbed
 
 
-def _configure_mt_qk_observer_on_model(
+def configure_mt_qk_observer_on_model(
     model,
+    spec: VLLMAttentionSpec,
     *,
     selected_heads: Sequence[dict[str, int]],
     max_prompt_tokens: int,
@@ -786,7 +535,7 @@ def _configure_mt_qk_observer_on_model(
 ) -> dict[str, Any]:
     from alignatt4llm.mt.base import map_attention_head_to_key_value_head
 
-    layers = _resolve_vllm_gemma_decoder_layers(model)
+    layers = resolve_decoder_layers(model)
     heads_by_layer: dict[int, list[int]] = {}
     for head in selected_heads:
         heads_by_layer.setdefault(int(head["layer"]), []).append(int(head["head"]))
@@ -799,7 +548,7 @@ def _configure_mt_qk_observer_on_model(
         attn = getattr(layer, "self_attn", None)
         if attn is None:
             raise RuntimeError(f"Layer {layer_idx} has no self_attn module.")
-        _assert_supported_gemma_attention_module(attn)
+        assert_supported_attention_module(attn, spec)
         device = attn.qkv_proj.weight.device
 
         selected_kv_heads = [

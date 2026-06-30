@@ -164,18 +164,9 @@ def build_gemma_vllm_sampling_params(
     )
 
 
-def _resolve_vllm_gemma_decoder_layers(model) -> Sequence[object]:
-    candidates = (
-        getattr(getattr(getattr(model, "language_model", None), "model", None), "layers", None),
-        getattr(getattr(model, "model", None), "layers", None),
-        getattr(model, "layers", None),
-    )
-    for candidate in candidates:
-        if candidate is not None:
-            return candidate
-    raise RuntimeError(
-        "Could not locate Gemma decoder layers inside the loaded vLLM model."
-    )
+# Shared with the MT path: the decoder-layer resolver is model-agnostic and
+# lives in the vllm_qk base. Aliased so the existing ASR call sites are unchanged.
+from alignatt4llm.vllm_qk.observer import resolve_decoder_layers as _resolve_vllm_gemma_decoder_layers
 
 
 def _encode_tensor_observer_bootstrap(
@@ -1415,7 +1406,7 @@ class GemmaVLLMASRBackend(AlignmentBackend):
             bootstrap_active = False
             if self.worker_mode == "custom_tensor":
                 llm_kwargs["worker_cls"] = (
-                    "cascade.alignment.gemma_vllm_asr_worker.GemmaVLLMASRWorker"
+                    "alignatt4llm.alignment.gemma_vllm_asr_worker.GemmaVLLMASRWorker"
                 )
                 if not self.alignatt_heads:
                     raise RuntimeError(

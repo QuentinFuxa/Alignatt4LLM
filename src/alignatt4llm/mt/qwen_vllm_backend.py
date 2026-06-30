@@ -1,19 +1,20 @@
-"""Reference MT AlignAtt backend for a non-Gemma decoder-only LLM (Qwen2.5).
+"""Reference MT AlignAtt backend for a non-Gemma decoder-only LLM (Qwen3).
 
 This is the worked "bring your own LLM" example referenced by
 ``docs/adding_a_model.md``. It shows the minimal surface to add a new model:
 
   * a :class:`VLLMAttentionSpec` naming the vLLM attention class and the
-    standard (no-QK-norm) patched forward, and
+    standard patched forward, and
   * a ~30-line backend subclass that reuses the entire MiLMMT/Gemma AlignAtt
     ``translate`` loop, acceptance policy, prompt rendering, and observer
     reconstruction unchanged.
 
-Qwen2.5 is chosen deliberately: it is openly downloadable (Apache-2.0), uses
-grouped-query attention (exercising the head->KV-head mapping on a non-Gemma
-layout), and its vLLM attention does NOT apply per-head QK-norm, so the generic
-``make_standard_decoder_patched_forward`` is exactly correct. (Qwen3 and Gemma
-add QK-norm and therefore need a norm-aware forward instead.)
+Qwen3 is openly downloadable (Apache-2.0), uses grouped-query attention
+(exercising the head->KV-head mapping on a non-Gemma layout), and applies
+per-head QK-norm before the rotary. ``make_standard_decoder_patched_forward``
+handles that QK-norm branch (the view-based reshape Qwen2/Qwen3 use), so the
+generic forward covers Qwen3 without any bespoke code. Only Gemma keeps a
+bespoke forward, because of its different reshape and Gemma4 KV-sharing branch.
 
 NOTE: like every vLLM-touching path here, the runtime correctness of the
 captured Q/K must be validated on a GPU box. The attribute names and forward
@@ -32,12 +33,13 @@ from alignatt4llm.translation_variants import RenderedTranslationPrompt
 from alignatt4llm.vllm_qk.patch import make_standard_decoder_patched_forward
 from alignatt4llm.vllm_qk.spec import VLLMAttentionSpec
 
-# The plug-in point: which vLLM attention class to patch and how. Standard
-# Llama/Qwen2-class attention (qkv_proj -> rotary -> attn -> o_proj), no QK-norm.
+# The plug-in point: which vLLM attention class to patch and how. Qwen3 uses the
+# standard decoder shape (qkv_proj -> [QK-norm] -> rotary -> attn -> o_proj); the
+# generic forward applies the QK-norm branch since Qwen3 enables it.
 QWEN_SPEC = VLLMAttentionSpec(
-    family="qwen2",
+    family="qwen3",
     attention_import_paths=(
-        ("vllm.model_executor.models.qwen2", "Qwen2Attention"),
+        ("vllm.model_executor.models.qwen3", "Qwen3Attention"),
     ),
     required_attrs=(
         "qkv_proj",
@@ -46,6 +48,8 @@ QWEN_SPEC = VLLMAttentionSpec(
         "num_heads",
         "num_kv_heads",
         "head_dim",
+        "q_norm",
+        "k_norm",
         "rotary_emb",
         "attn",
         "o_proj",
@@ -55,7 +59,7 @@ QWEN_SPEC = VLLMAttentionSpec(
 
 
 class QwenVLLMMTBackend(MiLMMTVLLMMTBackend):
-    """Qwen2.5 MT AlignAtt backend — the reference "bring your own LLM" example.
+    """Qwen3 MT AlignAtt backend — the reference "bring your own LLM" example.
 
     Reuses the full MiLMMT/Gemma AlignAtt ``translate`` loop and acceptance
     policy; only the chat-template prompt contract, the vLLM attention spec, and
@@ -74,9 +78,14 @@ class QwenVLLMMTBackend(MiLMMTVLLMMTBackend):
         # author may add explicit bounds (num_layers, num_attention_heads) here.
         return None
 
+    def _chat_template_extra_kwargs(self) -> dict[str, Any]:
+        # Qwen3 enables chain-of-thought by default; disable it so the streamed
+        # draft is the translation, not <think> reasoning.
+        return {"enable_thinking": False}
+
     def build_llm_init_kwargs(self) -> dict[str, Any]:
         kwargs = super().build_llm_init_kwargs()
-        # Qwen uses its own observer worker (Qwen2Attention, not Gemma classes).
+        # Qwen uses its own observer worker (Qwen3Attention, not Gemma classes).
         # Canonical module path (new code does not use the legacy `cascade.`
         # namespace shim).
         kwargs["worker_cls"] = "alignatt4llm.mt.qwen_vllm_worker.QwenVLLMMTWorker"
@@ -102,7 +111,7 @@ class QwenVLLMMTBackend(MiLMMTVLLMMTBackend):
     def resolve_generation_stop_token_ids(self) -> tuple[int, ...]:
         return BaseMTBackend.resolve_generation_stop_token_ids(self)
 
-    # Qwen2.5-Instruct ships a chat template, so reuse the chat-template prompt
+    # Qwen3 ships a chat template, so reuse the chat-template prompt
     # contract (same path Gemma uses) rather than MiLMMT's raw-completion prompt.
     def render_prompt_token_ids(
         self,

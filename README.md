@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="src/assets/alignatt4llm_icon.svg" alt="AlignAtt4LLM icon" width="64" />
+  <img src="src/assets/alignatt_logo.svg" alt="AlignAtt4LLM icon" width="64" />
   AlignAtt4LLM
 </h1>
 
@@ -43,11 +43,11 @@ ASR + MT cascade runnable from audio input to simultaneous translation output. B
 ## See where Gemma listens
 
 The runtime already reconstructs, for every drafted token, **where in the source
-it attends** — an audio frame for ASR, a source token for MT. `--trace-attention`
+it attends**: an audio frame for ASR, a source token for MT. `--trace-attention`
 prints that live on stderr as each token is committed or held. It is a pure read
-of the signal the policy uses; the emitted artifacts are unchanged.
+of the signal the policy already uses, so it does not change what the model emits.
 
-Standalone Gemma AlignAtt ASR — watch where each transcript token lands on the
+Standalone Gemma AlignAtt ASR. Watch where each transcript token lands on the
 audio timeline (`src@frame (seconds)`):
 
 ```bash
@@ -58,13 +58,15 @@ alignatt-gemma-asr \
 ```
 
 ```
-[chunk   3] commit "the"       → src@18 (0.76s)
-[chunk   3] commit "model"     → src@24 (1.00s)
-[chunk   4] HOLD   "attends"   → src@31 (1.28s) > frontier → cut
-[chunk   5] commit "attends"   → src@31 (1.28s)
+[chunk   1] commit "Hi"         → src@2 (0.12s)
+[chunk   2] commit " Si"        → src@52 (2.12s)
+[chunk   2] commit " Yuan"      → src@52 (2.12s)
+[chunk   3] commit " F"         → src@75 (3.04s)
+[chunk   3] commit "udan"       → src@89 (3.60s)
+[chunk   3] commit " Universit" → src@92 (3.72s)
 ```
 
-The full cascade, end to end — the MT trace adds the accessible / inaccessible
+The full cascade, end to end. The MT trace adds the accessible / inaccessible
 attention-mass split that drives the *where to cut* decision:
 
 ```bash
@@ -76,26 +78,24 @@ alignatt-batch \
 ```
 
 ```
-[chunk   7] commit "我们"      → src@12  mass acc 0.91 inacc 0.04
-[chunk   7] commit "需要"      → src@18  mass acc 0.88 inacc 0.07
-[chunk   8] HOLD   "增长"      → src@27  mass acc 0.31 inacc 0.58 > frontier → cut
+[chunk   1] commit "大家好"   → src@0   mass acc 0.34 inacc 0.01
+[chunk   2] commit "来自"     → src@9   mass acc 0.47 inacc 0.10
+[chunk   2] commit "复"       → src@9   mass acc 0.63 inacc 0.06
+[chunk   9] HOLD   "经常"     → src@26  mass acc 0.03 inacc 0.68 > frontier → cut
 ```
 
-Score an output directory:
+The last line is the policy at work: that draft token's attention is 0.68 on
+source that has not arrived yet, so it is held rather than emitted.
 
-```bash
-alignatt-eval --output-dir outputs/gemma_zh_smoke
-```
-
-## ▶ Bring your own LLM
+## Bring your own LLM
 
 The portable part of AlignAtt4LLM is the MT-side policy, not the model. A new
 decoder-only LLM plugs into the same runtime by supplying a `VLLMAttentionSpec`
 (which vLLM attention class to patch and how its `forward` recomputes Q/K) plus a
-thin backend subclass — and reuses the shared capture/reconstruction/acceptance
+thin backend subclass, and reuses the shared capture/reconstruction/acceptance
 machinery in [`src/alignatt4llm/vllm_qk/`](src/alignatt4llm/vllm_qk/).
 
-The shipped worked example is [Qwen2.5](src/alignatt4llm/mt/qwen_vllm_backend.py)
+The shipped worked example is [Qwen3](src/alignatt4llm/mt/qwen_vllm_backend.py)
 (`qwen_vllm_alignatt`):
 
 ```bash
@@ -111,12 +111,12 @@ and worker → register → calibrate heads) is in
 
 ## Public CLI
 
-- `alignatt-batch` — run the streaming cascade over one or more media files.
-- `alignatt-compare` — single-WAV A/B of two backends with WER/CER/latency.
-- `alignatt-eval` — score emitted hypotheses with OmniSTEval-compatible files.
-- `alignatt-preset` — run named operating points (`gemma_low_latency`, `gemma_high_latency`) in batch or server mode.
-- `alignatt-gemma-asr` — standalone Gemma AlignAtt ASR probe.
-- `alignatt-mt-parity` — MT backend parity/diagnostic harness.
+- `alignatt-batch`: run the streaming cascade over one or more media files.
+- `alignatt-compare`: single-WAV A/B of two backends with WER/CER/latency.
+- `alignatt-eval`: score emitted hypotheses with OmniSTEval-compatible files.
+- `alignatt-preset`: run named operating points (`gemma_low_latency`, `gemma_high_latency`) in batch or server mode.
+- `alignatt-gemma-asr`: standalone Gemma AlignAtt ASR probe.
+- `alignatt-mt-parity`: MT backend parity/diagnostic harness.
 
 ## Documentation
 

@@ -1485,7 +1485,7 @@ def test_gemma_mt_llm_kwargs_do_not_include_speculative_config_by_default():
     kwargs = backend.build_llm_init_kwargs()
 
     assert "speculative_config" not in kwargs
-    assert kwargs["worker_cls"] == "cascade.mt.gemma_vllm_worker.GemmaVLLMMTWorker"
+    assert kwargs["worker_cls"] == "alignatt4llm.mt.gemma_vllm_worker.GemmaVLLMMTWorker"
 
 
 def test_gemma_mt_llm_kwargs_include_explicit_speculative_config():

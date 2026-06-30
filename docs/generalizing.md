@@ -6,7 +6,7 @@ MT-side policy: draft with a decoder-only LLM, recover where each drafted target
 token attends in the source prompt, and commit only the safe target prefix.
 
 > For the concrete, step-by-step recipe and a worked example, see
-> [Adding a New LLM](adding_a_model.md) and the Qwen2.5 reference backend
+> [Adding a New LLM](adding_a_model.md) and the Qwen3 reference backend
 > (`src/alignatt4llm/mt/qwen_vllm_backend.py`, `qwen_vllm_alignatt`). The
 > generic, reusable capture machinery lives in `src/alignatt4llm/vllm_qk/`.
 > This document is the conceptual companion to that recipe.
@@ -79,8 +79,8 @@ The current examples are:
   IWSLT MT route (keeps its own QK-norm-aware forward).
 - `MiLMMTVLLMMTBackend`: experimental MiLMMT route that reuses the same vLLM
   Q/K observer mechanics with a raw translation prompt.
-- `QwenVLLMMTBackend`: the reference "bring your own LLM" backend (Qwen2.5),
-  built on the generic `vllm_qk` base with the standard no-QK-norm forward.
+- `QwenVLLMMTBackend`: the reference "bring your own LLM" backend (Qwen3),
+  built on the generic `vllm_qk` base with the standard forward (QK-norm on).
 
 ## Model Requirements
 

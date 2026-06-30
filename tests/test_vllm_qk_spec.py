@@ -12,22 +12,22 @@ from alignatt4llm.vllm_qk.spec import VLLMAttentionSpec, resolve_attention_class
 
 def _spec() -> VLLMAttentionSpec:
     return VLLMAttentionSpec(
-        family="qwen2",
-        attention_import_paths=(("vllm.model_executor.models.qwen2", "Qwen2Attention"),),
+        family="qwen3",
+        attention_import_paths=(("vllm.model_executor.models.qwen3", "Qwen3Attention"),),
         required_attrs=("qkv_proj", "rotary_emb", "attn", "o_proj"),
         make_patched_forward=lambda spec: (lambda *a, **k: None),
     )
 
 
 def test_original_forward_attr_is_family_namespaced():
-    assert _spec().original_forward_attr() == "_alignatt_qwen2_mt_qk_original_forward"
+    assert _spec().original_forward_attr() == "_alignatt_qwen3_mt_qk_original_forward"
 
 
 def test_resolve_attention_classes_skips_missing_modules():
     # vLLM is absent in the dev env; the resolver must swallow ImportError and
     # return an empty tuple rather than raising.
     assert resolve_attention_classes(
-        [("vllm.model_executor.models.qwen2", "Qwen2Attention")]
+        [("vllm.model_executor.models.qwen3", "Qwen3Attention")]
     ) == ()
 
 

@@ -68,18 +68,42 @@ def _patched_qwen3_asr_get_text_config(self, decoder=False):
     return self
 
 
+def _apply_qwen_asr_source_patch() -> None:
+    """Best-effort apply the bootstrap qwen_asr transformers-5 source patch.
+
+    The inference bootstrap (``tools/bootstrap/setup_inference_qwen_asr_vllm.sh``)
+    already runs this patcher at setup time, so this runtime call is a redundant,
+    idempotent safety net. The patcher script is not an installed module, so we
+    locate ``tools/bootstrap`` relative to the repo and skip silently if it
+    cannot be imported (e.g. when qwen_asr was already patched at setup).
+    """
+    import sys
+    from pathlib import Path
+
+    bootstrap_dir = Path(__file__).resolve().parents[3] / "tools" / "bootstrap"
+    if bootstrap_dir.is_dir() and str(bootstrap_dir) not in sys.path:
+        sys.path.insert(0, str(bootstrap_dir))
+    try:
+        import patch_qwen_asr_for_transformers5
+    except Exception:
+        return
+    try:
+        patch_qwen_asr_for_transformers5.main()
+    except Exception:
+        pass
+
+
 def ensure_qwen_runtime_patched() -> None:
     global _QWEN_RUNTIME_PATCHED
     if _QWEN_RUNTIME_PATCHED:
         return
 
     _ensure_transformers_generic_compat()
-    import patch_qwen_asr_for_transformers5
+    _apply_qwen_asr_source_patch()
     from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS
     from qwen_asr.core.transformers_backend import modeling_qwen3_asr
     from qwen_asr.core.transformers_backend.configuration_qwen3_asr import Qwen3ASRConfig
 
-    patch_qwen_asr_for_transformers5.main()
     modeling_qwen3_asr._qwen3_asr_default_rope_init = _qwen3_asr_default_rope_init
     if "default" not in ROPE_INIT_FUNCTIONS:
         ROPE_INIT_FUNCTIONS["default"] = _qwen3_asr_default_rope_init

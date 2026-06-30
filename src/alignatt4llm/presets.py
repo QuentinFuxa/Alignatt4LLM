@@ -109,7 +109,7 @@ class RuntimePreset:
             repo_root=repo_root,
         )
         return SimpleNamespace(
-            type="cascade.simulstream_processor.CascadeAlignAttProcessor",
+            type="alignatt4llm.simulstream_processor.CascadeAlignAttProcessor",
             source_lang_code=source_lang_code,
             target_lang_code=target_lang_code,
             chunk_ms=self.chunk_ms,

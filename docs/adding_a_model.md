@@ -6,20 +6,21 @@ accessible source. That machinery is model-agnostic. Porting it to another
 decoder-only LLM means supplying two model-specific things and reusing everything
 else.
 
-The worked reference is `src/alignatt4llm/mt/qwen_vllm_backend.py` (Qwen2.5,
+The worked reference is `src/alignatt4llm/mt/qwen_vllm_backend.py` (Qwen3,
 `qwen_vllm_alignatt`). Copy it.
 
 ## What is generic vs. what you supply
 
 The generic base lives in `src/alignatt4llm/vllm_qk/`:
 
-- `spec.py` — `VLLMAttentionSpec`: which vLLM attention class to patch, the
-  attributes its `forward` exposes, and how to build the patched forward.
-- `patch.py` — `make_standard_decoder_patched_forward` (the standard no-QK-norm
+- `spec.py`: the `VLLMAttentionSpec`, naming which vLLM attention class to
+  patch, the attributes its `forward` exposes, and how to build the patched
+  forward.
+- `patch.py`: `make_standard_decoder_patched_forward` (the standard no-QK-norm
   attention shape), the spec-driven patch installer, and the stub/configure
   wiring. Reuses the proven `alignatt::capture_mt_qk` custom op, the per-layer
   observer buffers, and `reconstruct_mt_attention_rows`.
-- `worker.py` — `BaseQKObserverWorker`: the full vLLM warmup/compile-deferral
+- `worker.py`: `BaseQKObserverWorker`, the full vLLM warmup/compile-deferral
   lifecycle. Your worker is a subclass that sets `spec`.
 
 You supply only:
@@ -31,19 +32,22 @@ You supply only:
 ## Steps
 
 1. **Find your vLLM attention class.** e.g.
-   `vllm.model_executor.models.qwen2.Qwen2Attention`. Confirm its `forward`
+   `vllm.model_executor.models.qwen3.Qwen3Attention`. Confirm its `forward`
    exposes the standard `qkv_proj`, `q_size`, `kv_size`, `num_heads`,
    `num_kv_heads`, `head_dim`, `rotary_emb`, `attn`, `o_proj`.
 
-2. **Write a `VLLMAttentionSpec`.** Use `make_standard_decoder_patched_forward`
-   unless your attention applies **per-head QK-norm before the rotary**
-   (Gemma, Qwen3 do; Llama, Qwen2 do not). If it does, write a norm-aware
-   forward that norms `q`/`k` before `rotary_emb` and captures the post-norm,
-   post-rotary tensors — otherwise the reconstructed attention is wrong.
+2. **Write a `VLLMAttentionSpec`.** `make_standard_decoder_patched_forward`
+   covers the common vLLM attention shape, including the optional per-head
+   QK-norm branch (the view-based reshape Qwen3 uses, applied when
+   `self.qk_norm` is set). Llama-class attention leaves it off; Qwen3 turns it on.
+   Write a bespoke forward only when the attention reshapes differently (Gemma
+   uses `unflatten` plus a Gemma4 KV-sharing branch). The forward must capture
+   the **post-norm, post-rotary** Q/K, otherwise the reconstructed attention is
+   wrong.
 
 3. **Subclass the backend.** Inherit `MiLMMTVLLMMTBackend`, set `backend_name`,
    `model_family`, `context_config_attr`, point `worker_cls` at your worker
-   (canonical `alignatt4llm.mt.<your>_vllm_worker.<Worker>` path — not the
+   (canonical `alignatt4llm.mt.<your>_vllm_worker.<Worker>` path, not the
    legacy `cascade.` shim), and choose a prompt contract (reuse
    `BaseMTBackend.render_prompt_*` for chat-template models).
 

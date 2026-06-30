@@ -166,7 +166,7 @@ milmmt_model_name = _resolve_hf_snapshot(
 # the HF repo id; override CASCADE_QWEN_MT_SNAPSHOT with a local snapshot path
 # when running fully offline.
 qwen_mt_model_name = os.environ.get(
-    "CASCADE_QWEN_MT_SNAPSHOT", "Qwen/Qwen2.5-1.5B-Instruct"
+    "CASCADE_QWEN_MT_SNAPSHOT", "Qwen/Qwen3-1.7B"
 )
 
 
@@ -187,7 +187,7 @@ def alignatt_heads_path_for(
     if mt_backend_name == "qwen_vllm_alignatt":
         return (
             "data/alignatt_heads/"
-            "translation_heads_Qwen_Qwen2_5-1_5B-Instruct_"
+            "translation_heads_Qwen_Qwen3-1_7B_"
             f"{source_code}-{target_code}.json"
         )
     return (

@@ -395,6 +395,15 @@ class BaseMTBackend(ABC):
             stop_ids.add(int(eos_token_id))
         return tuple(sorted(stop_ids))
 
+    def _chat_template_extra_kwargs(self) -> dict[str, Any]:
+        """Extra kwargs for ``apply_chat_template`` (override per model).
+
+        Default is none. Qwen3, for example, overrides this with
+        ``{"enable_thinking": False}`` so the MT draft is the translation rather
+        than chain-of-thought reasoning.
+        """
+        return {}
+
     def render_prompt_token_ids(self, rendered_prompt: RenderedTranslationPrompt) -> list[int]:
         if self.tokenizer is None:
             raise RuntimeError("Gemma tokenizer is not loaded. Run load() first.")
@@ -406,6 +415,7 @@ class BaseMTBackend(ABC):
             template_kwargs["continue_final_message"] = True
         else:
             template_kwargs["add_generation_prompt"] = True
+        template_kwargs.update(self._chat_template_extra_kwargs())
         prompt_token_ids = self.tokenizer.apply_chat_template(
             rendered_prompt.messages,
             **template_kwargs,
@@ -426,6 +436,7 @@ class BaseMTBackend(ABC):
             template_kwargs["continue_final_message"] = True
         else:
             template_kwargs["add_generation_prompt"] = True
+        template_kwargs.update(self._chat_template_extra_kwargs())
         return str(self.tokenizer.apply_chat_template(rendered_prompt.messages, **template_kwargs))
 
     def render_prompt_package(

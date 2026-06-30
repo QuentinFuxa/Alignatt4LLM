@@ -17,7 +17,7 @@ class VLLMAttentionSpec:
     """Describes how to capture Q/K from one model family's vLLM attention.
 
     Attributes:
-        family: short identifier (e.g. ``"qwen2"``), used for log lines and to
+        family: short identifier (e.g. ``"qwen3"``), used for log lines and to
             namespace the saved-original-forward attribute.
         attention_import_paths: ``(module_path, class_name)`` pairs to try, in
             order; the first importable class(es) get patched. Multiple entries
@@ -39,6 +39,22 @@ class VLLMAttentionSpec:
     def original_forward_attr(self) -> str:
         """Attribute name under which the unpatched ``forward`` is preserved."""
         return f"_alignatt_{self.family}_mt_qk_original_forward"
+
+
+def assert_supported_attention_module(attn_module: Any, spec: "VLLMAttentionSpec") -> None:
+    """Fail loudly at install/configure time if the attention module lost an attr.
+
+    A vLLM version bump that renames an internal then fails here with a clear
+    message instead of mid-generation.
+    """
+    missing = [name for name in spec.required_attrs if not hasattr(attn_module, name)]
+    if missing:
+        raise RuntimeError(
+            f"{spec.family} MT AlignAtt requires a vLLM attention module exposing "
+            f"{tuple(spec.required_attrs)}; missing attributes: {missing}. "
+            "A vLLM version bump may have renamed these; update the "
+            "VLLMAttentionSpec.required_attrs and the patched forward."
+        )
 
 
 def resolve_attention_classes(

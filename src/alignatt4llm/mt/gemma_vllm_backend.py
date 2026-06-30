@@ -58,10 +58,84 @@ from alignatt4llm.mt.base import (
 )
 from alignatt4llm.translation_variants import RenderedTranslationPrompt, TranslationVariant
 
-from alignatt4llm.mt.gemma_vllm_observer import (
+from alignatt4llm.vllm_qk.observer import (
     _MT_OBSERVER_BOOTSTRAP_ENV,
     _encode_mt_observer_bootstrap,
     reconstruct_mt_attention_rows,
+)
+from alignatt4llm.vllm_qk.spec import VLLMAttentionSpec, assert_supported_attention_module
+
+
+def make_gemma_patched_forward(spec: VLLMAttentionSpec):
+    """Gemma-family MT attention forward: per-head QK-norm + Gemma4 KV-sharing.
+
+    Gemma reshapes with ``unflatten`` and has a Gemma4 ``is_kv_shared_layer``
+    branch, so it does not use ``make_standard_decoder_patched_forward``. Captures
+    post-norm, post-rotary Q/K through the shared ``alignatt::capture_mt_qk`` op.
+    """
+
+    def _patched_forward(self, positions, hidden_states, **kwargs):
+        assert_supported_attention_module(self, spec)
+        qkv, _ = self.qkv_proj(hidden_states)
+        q, k, v = qkv.split([self.q_size, self.kv_size, self.kv_size], dim=-1)
+
+        q = q.unflatten(-1, (self.num_heads, self.head_dim))
+        q = self.q_norm(q)
+        q = q.flatten(-2, -1)
+
+        if hasattr(self, "is_kv_shared_layer"):
+            if not hasattr(self, "v_norm"):
+                raise RuntimeError(
+                    "Gemma4 MT AlignAtt expected v_norm on the vLLM attention module."
+                )
+            if not self.is_kv_shared_layer:
+                k = k.unflatten(-1, (self.num_kv_heads, self.head_dim))
+                k = self.k_norm(k)
+                k = k.flatten(-2, -1)
+                q, k = self.rotary_emb(positions, q, k)
+
+                v = v.unflatten(-1, (self.num_kv_heads, self.head_dim))
+                v = self.v_norm(v)
+                v = v.flatten(-2, -1)
+            else:
+                q = self.rotary_emb(positions, q, k)[0]
+        else:
+            k = k.unflatten(-1, (self.num_kv_heads, self.head_dim))
+            k = self.k_norm(k)
+            k = k.flatten(-2, -1)
+            q, k = self.rotary_emb(positions, q, k)
+
+        layer_idx = int(getattr(self, "_alignatt_mt_layer_idx", -1))
+        observer_sentinel = torch.ops.alignatt.capture_mt_qk(layer_idx, positions, q, k)
+
+        attn_output = self.attn(q, k, v)
+        attn_output = attn_output + observer_sentinel
+        output, _ = self.o_proj(attn_output)
+        return output
+
+    return _patched_forward
+
+
+GEMMA_SPEC = VLLMAttentionSpec(
+    family="gemma",
+    attention_import_paths=(
+        ("vllm.model_executor.models.gemma3", "Gemma3Attention"),
+        ("vllm.model_executor.models.gemma4", "Gemma4Attention"),
+    ),
+    required_attrs=(
+        "qkv_proj",
+        "q_size",
+        "kv_size",
+        "num_heads",
+        "num_kv_heads",
+        "head_dim",
+        "q_norm",
+        "k_norm",
+        "rotary_emb",
+        "attn",
+        "o_proj",
+    ),
+    make_patched_forward=make_gemma_patched_forward,
 )
 
 
@@ -577,7 +651,7 @@ class MiLMMTVLLMMTBackend(BaseMTBackend):
             "enforce_eager": self.enforce_eager,
             "enable_prefix_caching": self.enable_prefix_caching,
             "compilation_config": self._build_compilation_config(),
-            "worker_cls": "cascade.mt.gemma_vllm_worker.GemmaVLLMMTWorker",
+            "worker_cls": "alignatt4llm.mt.gemma_vllm_worker.GemmaVLLMMTWorker",
         }
         speculative_config = self.build_speculative_config()
         if speculative_config is not None:
