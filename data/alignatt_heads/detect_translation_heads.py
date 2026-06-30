@@ -838,8 +838,13 @@ def build_translation_prompt(
         ]
         if tokenizer is None:
             raise ValueError("tokenizer required for Qwen model")
+        # Disable Qwen3 chain-of-thought so the forced target follows the prompt
+        # directly (no <think> block); harmless for Qwen2-class templates.
         return tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True,
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+            enable_thinking=False,
         )
 
     if "gemma" in lowered:
